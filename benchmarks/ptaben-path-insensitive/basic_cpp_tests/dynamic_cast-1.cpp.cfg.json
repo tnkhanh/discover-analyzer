@@ -1,0 +1,3 @@
+{
+    "clang-extra-options": "-frtti"
+}

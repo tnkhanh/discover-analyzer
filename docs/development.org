@@ -1,0 +1,30 @@
+#+title: Development Guide
+
+* IDE environment
+
+  - Suggested editor: Emacs, Vim, Visual Studio Code, Sublime Text, Atom, etc.
+
+  - Using [[https://github.com/OCamlPro/ocp-indent][ocp-indent]] for automatic coding indentation, [[https://github.com/ocaml/merlin][merlin]] for code
+    completion, navigation, outline, etc.
+
+    #+begin_src sh
+    opam install merlin ocp-indent
+    #+end_src
+
+* Coding convention:
+
+  - Use only white-spaces for indentation, each indentation is 2 whitespaces
+
+  - The length of each code line is at most 80 column.
+
+  - Naming style:
+
+    + Functions and variables' names: snake case (~lower_case_with_underscore~):
+    + Modules' names: Camel Case (~UpperCaseWithouthUnderscore~)
+
+* Tutorials
+
+  - OCaml binding for LLVM:
+
+    + https://llvm.org/docs/tutorial/OCamlLangImpl1.html
+    + https://www.wzdftpd.net/blog/ocaml-llvm-01.html

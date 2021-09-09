@@ -1,0 +1,5 @@
+;; lexer
+(ocamllex (modules lexer))
+
+;; parser for entailments
+(menhir (modules parser))

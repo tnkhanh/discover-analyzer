@@ -1,0 +1,102 @@
+#+title: Notes on Alias Graph
+#+date: <2020-06-25 Thu>
+#+author: Ta Quang Trung
+
+* 1. Dereference graph
+
+- File: global-simple.c
+
+  #+begin_example
+  {*v2, v3}, {*gv2, v2}, {*gv2, gv1}, {*gv1, v1}, {*gv1, gv0}, {v5, v1},
+  {v4, v3}, Deref(*v2, v2), Deref(*gv2, gv2), Deref(*gv1, gv1)
+
+  -----------------------------
+  check alias of v4, v5:
+
+  {v5, v1}, {*gv1, v1} ==> {v5, *gv1}
+  {v4, v3}, {*v2, v3} ==> {v4, *v2}
+  {*gv2, v2}, Deref(*v2, v2) ~~~~~>  {**gv2, *v2}           ;; deref inference
+  {*gv2, gv1}, Deref(*gv1, gv1) ~~~~~> {**gv2, *gv1}        ;; deref inference
+  {v4, *v2}, {**gv2, *v2} ==> {v4, **gv2}
+  {v5, *gv1}, {**gv2, *gv1} ==> {v5, **gv2}
+  {v4, **gv2}, {v5, **gv2} ==> {v4, v5}
+  #+end_example
+
+
+* 2. Dereference and Field-access graph
+
+- File: struct-simple.c
+
+  #+begin_example
+  {Elem(v1,0,0), v15}, {Elem(v1,0,0), v13}, {Elem(v0,0,0), v11},
+  {Elem(v0,0,0), v9}, {*v15, v16}, {*v13, v12}, {*v11, v12}, {*v9, v2},
+  {v18, v2}, {v17, v16}, Deref(*v15, v15), Deref(*v11, v11)
+
+  --------------------------------
+  check alias of v17, v18:
+
+  {v18, v2}, {*v9, v2} ==> {*v9, v18}
+  {v17, v16}, {*v15, v16} ==> {*v15, v17}
+  {Elem(v1,0,0), v15}, Deref(*v15, v15) ~~~> {*Elem(v1,0,0), *v15}, Deref(Elem(v1,0,0))
+  {Elem(v1,0,0), v13}, Deref(Elem(v1,0,0)) ~~~> {*Elem(v1,0,0), *v13}
+
+  {*Elem(v1,0,0), *v13}, {*Elem(v1,0,0), *v15} ==> {*v13, *v15}
+  {*v15, v17}, {*v13, *v15} ==> {*v13, v17}
+  {*v13, v17}, {*v13, v12} ==> {v12, v17}
+  {v12, v17}, {*v11, v12} ==> {*v11, v17}
+  {Elem(v0,0,0), v11}, {Elem(v0,0,0), v9} ==> {v11, v9}
+  {v11, v9}, Deref(*v11, v11) ~~~> {*v11, *v9}, Deref(*v9, v9)
+  {*v11, v17}, {*v11, *v9} ==> {v17, *v9}
+  {*v9, v18}, {v17, *v9} ==> {v17, v18}
+  #+end_example
+
+* 3. Algorithm:
+
+Alias graph is a directed graph (digraph).
+
+_Step 1: Populate the alias graph with dereference information_
+
+- If the alias graph G has:
+    an alias edge ~{a, b}~ or ~[a, b]~,
+    and a pair of  dereference edges ~DerefFrom(u, a)~ and ~DerefTo(a, u)~,
+  then:
+    generate a pair of edges ~DerefFrom(v, b)~, and ~DerefTo(b, v)~,
+    for some ~v~ (can be symbolically created)
+
+- If the alias graph G has
+    an alias edge ~{a, b}~ or ~[a, b]~,
+    and a pair of edges ~FieldFrom(u, a, fld)~, and ~FieldTo(a, fld, u)~,
+    meaning ~u = a->fld~,
+    assume that ~fld~ uniquely represents a field of a struct,
+  then
+    generate two edges ~FieldFrom(v, b, fld)~, and ~FieldTo(b, fld, v)~,
+    for some ~v~ (can be symbolically created)
+
+_Step 2: alias query_
+
+Given two vertices ~u~ and ~v~:
+
+- They are must-alias if there exists a path between ~u~ and ~v~ such that:
+  + There is at least one must-alias edge
+  + There is not any may-alias edge
+  + The sequence of edges ~DerefFrom~ and ~DerefTo~ is balanced:
+    from source to destination, each edge ~DerefFrom~ will be matched
+    with an unique edge ~DerefTo~ (similar to the parenthesis balance)
+  + The sequence of edges ~FieldFrom~ and ~FieldTo~ is also balanced
+
+* 4. Underlying Theory:p
+
+- Need to define:
+  + The *balance* of dereference edges: ~DerefFrom~ vs ~DerefTo~
+  + The *balance* of field-access edges: ~FieldFrom~ vs ~FieldTo~
+
+- Consistency:
+  + Every path from a source to a destination pointer should return the same
+    alias result (may/must or no-alias).
+
+- Questions:
+  + This path is a valid must-alias path:
+    ~[DerefFrom, FieldFrom, MustAlias, FieldTo, DerefTo]~.
+
+  + How about this path, when ~DerefTo~ is transposed:
+    ~[DerefFrom, FieldFrom, MustAlias, DerefTo, FieldTo]~.

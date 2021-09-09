@@ -1,0 +1,6 @@
+# --------------------------------
+# User configurations for Discover
+# --------------------------------
+
+# Gollvm compiler
+GOLLVM_BINARY_PATH: ~/workspace/gollvm/bin

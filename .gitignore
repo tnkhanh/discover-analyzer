@@ -1,0 +1,46 @@
+# build files
+_build/
+build/
+
+# binary files
+*.o
+*.out
+*.byte
+*.native
+discover
+discovery
+covalry
+llave
+cdetector
+infer
+
+# temporary files
+*.bc
+*.ll
+*.ast
+*.log
+*.dbg
+tmp
+infer-out
+*.xml
+logs
+
+# solidity files
+*.contract
+
+# macOS temp files
+.DS_Store
+
+# configuration files
+_tags
+dune-project
+.merlin
+configure
+myocamlbuild.ml
+setup.ml
+setup.data
+setup.log
+
+# sub-modules
+.ccls-cache
+normalizer

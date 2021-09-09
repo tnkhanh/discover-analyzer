@@ -1,0 +1,30 @@
+Function: main(arg0)
+
+ bb0:
+  %v0 = icmp sgt i32 %arg0, 5
+  %v1 = br i1 %v0, label %bb1, label %bb2
+
+
+ bb1:
+  %v2 = call noalias i8* @malloc(i64 80) #2               // v2: [80,80] bytes
+  %v3 = bitcast i8* %v2 to i32*                           // v3: [80,80] bytes
+  %v4 = getelementptr inbounds i32, i32* %v3, i64 22
+  %v5 = store i32 2, i32* %v4, align 4, !tbaa !2
+  %v6 = br label %bb3
+
+
+ bb2:
+  %v7 = call noalias i8* @malloc(i64 160) #2              // v7: [160,160] bytes
+  %v8 = bitcast i8* %v7 to i32*                           // v8: [160,160] bytes
+  %v9 = getelementptr inbounds i32, i32* %v8, i64 22
+  %v10 = store i32 1, i32* %v9, align 4, !tbaa !2
+  %v11 = br label %bb3
+
+
+ bb3:
+  %v12 = phi i32* [ %v3, %bb1 ], [ %v8, %bb2 ]            // v12: [80, 160] bytes
+  %v13 = getelementptr inbounds i32, i32* %v12, i64 22
+  %v14 = load i32, i32* %v13, align 4, !tbaa !2
+  %v15 = bitcast i32* %v12 to i8*
+  %v16 = call void @free(i8* %v15) #2
+  %v17 = ret i32 %v14
