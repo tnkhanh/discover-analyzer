@@ -42,7 +42,6 @@ type input_mode =
   | InpLlir
   | InpCCpp
   | InpGolang
-  | InpYaml
 
 (*******************************************************************
  ** Global Flags
@@ -120,8 +119,6 @@ let file_ext_llir = ["ll"]
 let file_ext_seplogic = ["sl"]
 let file_ext_c_cpp = ["c"; "cpp"; "h"; "hpp"; "cc"]
 let file_ext_go = ["go"]
-let file_ext_yaml = ["yaml"]
-let file_ext_json = ["json"]
 
 (* input files *)
 let input_mode = ref InpUnkn

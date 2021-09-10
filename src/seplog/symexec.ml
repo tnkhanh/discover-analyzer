@@ -9,20 +9,17 @@ open Dcore
 module AG = Arguments
 module BG = Bug
 module BR = Llvm_bitreader
-module CA = Config_ast
 module CI = Commonir
 module DF = Dataflow
 module LI = Llir
 module LL = Llvm
 module NO = Normalize
 module PS = Process
-module CC = Config_analyzer
 module PV = Prover
 module SA = Slast
 module SI = Slir
 module TF = Transform
 module TI = Typeinfer
-module YM = Yaml
 
 let parse_program_seplog (filename: string) : SA.program =
   let pr_position fname lexbuf =
@@ -98,12 +95,6 @@ let analyze_program_seplog (prog: SI.program) : unit =
   debugc ((SI.pr_program prog) ^
              "\n\n===================================\n");
   List.iter ~f:(process_command prog) prog.prog_commands
-
-let analyze_program_yaml (prog: YM.value) : unit =
-  let _ = if !print_input_prog then (
-    debugc ("=====================================\n" ^
-            "INPUT PROGRAMS:\n\n" ^ (CA.pr_program prog) ^ "\n\n")) in
-  CC.analyze_protocol prog
 
 let analyze_program_llvm (prog: LI.program) : unit =
   let _ = print "Analyze program by Separation Logic" in

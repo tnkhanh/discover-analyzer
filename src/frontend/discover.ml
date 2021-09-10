@@ -9,7 +9,6 @@ open Dcore
 module AG = Arguments
 module AS = Assertion
 module BG = Bug
-module CC = Config_compiler
 module CI = Commonir
 module DA = Dfanalyzer
 module DF = Dataflow
@@ -100,8 +99,6 @@ let get_input_type (filename: string) =
         InpGolang
       else if List.exists ~f:(String.equal ext) file_ext_c_cpp then
         InpCCpp
-      else if List.exists ~f:(String.equal ext) file_ext_yaml then
-        InpYaml
       else InpUnkn)
   | _ -> !input_mode
 
@@ -113,7 +110,6 @@ let compile_input_file (filename: string) : CI.program =
   | InpLlir -> filename |> LC.compile_llir |> CI.mk_llvm_prog
   | InpCCpp -> filename |> LC.compile_c_cpp |> CI.mk_llvm_prog
   | InpGolang -> filename |> LC.compile_golang |> CI.mk_llvm_prog
-  | InpYaml -> filename |> CC.compile_yaml_code |> CI.mk_yaml_prog
   | InpUnkn -> herror "Unknown input type: " pr_str filename
 
 let print_analysis_summary () =
@@ -161,7 +157,6 @@ let analyze_program (prog: CI.program) : unit =
       | WkmNoAnalysis -> print "No analysis mode is performed!"
       | _ -> ())
   | CI.Slprog prog -> SE.analyze_program_seplog prog
-  | CI.Ymprog prog -> SE.analyze_program_yaml prog
 
 let analyze_input_file (filename: string) : unit =
   let _ = print ("Analyze input file: " ^ filename) in
