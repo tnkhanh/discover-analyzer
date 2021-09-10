@@ -1,3 +1,11 @@
+(********************************************************************
+ * Author: Ta Quang Trung
+ * Date: 2020
+ *
+ * Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.
+ * All rights reserved.
+ ********************************************************************)
+
 {
 open Z3parser
 
