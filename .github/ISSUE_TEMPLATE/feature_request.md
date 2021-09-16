@@ -7,7 +7,7 @@ assignees: ''
 
 ---
 
-**Describe problems related to this feature feaquest**
+**Describe problems related to this feature request**
 
 ...
 
