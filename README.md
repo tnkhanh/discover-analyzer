@@ -4,9 +4,9 @@ Discover -- a source code static analyzer
 *Copyright (c) 2020-2021 Singapore Blockchain Innovation Program.*
 
 
-# Installation
+# Compiling Discover
 
-## Prerequisite:
+## Prerequisites
 
 Preferably Ubuntu / Linux Mint. The following commands are tested and work well
 with Linux Mint / Ubuntu 20.
@@ -190,7 +190,7 @@ with Linux Mint / Ubuntu 20.
   cp $WORKDIR/llvm-normalizer/build/normalizer $WORKDIR/discover-analyzer/
   ```
 
-# Run Discover
+# Runnxing Discover
 
 - Run pointer analysis on C program:
 
@@ -200,6 +200,6 @@ with Linux Mint / Ubuntu 20.
              examples/c/field-read.c
   ```
 
-# Development
+# Contributing to Discover
 
 - See `docs/development.md`.
