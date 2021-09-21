@@ -458,6 +458,7 @@ let pr_valuekind (k: LV.t) : string =
   | LV.GlobalIFunc -> "GlobalIFunc"
   | LV.GlobalVariable -> "GlobalVariable"
   | LV.UndefValue -> "UndefValue"
+  | LV.PoisonValue -> "PoisonValue"
   | LV.Instruction _ -> "Instruction"
 
 let pr_typekind (k: LT.t) : string =

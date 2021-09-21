@@ -13,45 +13,45 @@ with Linux Mint / Ubuntu 20.
 
 ### Tools and libraries
 
-- LLVM and Clang version 11 (11.0 or 11.1)
+- LLVM and Clang 12
 
-  + Install LLVM and Clang 11 from Linux repositories:
+  + Install from Linux repositories:
 
     ``` sh
     # Ubuntu, Linux Mint
-    sudo apt-get install llvm-11 llvm-11-dev clang-11 libclang-11-dev
+    sudo apt-get install llvm-12 llvm-12-dev clang-12 libclang-12-dev
 
     # Arch Linux, Manjaro
-    sudo pacman -S llvm11 clang11
+    sudo pacman -S llvm12 clang12
     ```
 
   + If LLVM and Clang cannot be installed automatically, then in Ubuntu-based
-    operating systems, user can download a [pre-built LLVM and Clang 11.1](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.1.0/clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-20.10.tar.xz)
-    from the LLVM project, and extract it to `$HOME/llvm/llvm-11`.
+    operating systems, user can download a pre-built LLVM and Clang version 12
+    from the [LLVM GitHub Releases](https://github.com/llvm/llvm-project/releases), and extract it to `$HOME/llvm/llvm-12`.
 
     Then, run the following commands to update the environment variables:
 
     ``` sh
-    # Assume that LLVM + Clang 11.1 binaries are stored at $HOME/llvm/llvm-11/
-    export PATH=$HOME/llvm/llvm-11/bin:$PATH
-    export LD_LIBRARY_PATH=$HOME/llvm/llvm-11/lib:$LD_LIBRARY_PATH
+    # Assume that LLVM + Clang 12 binaries are stored at $HOME/llvm/llvm-12/
+    export PATH=$HOME/llvm/llvm-12/bin:$PATH
+    export LD_LIBRARY_PATH=$HOME/llvm/llvm-12/lib:$LD_LIBRARY_PATH
     ```
 
-  + Otherwise, LLVM and Clang 11 can be downloaded and built from source code.
-    To do this, download the [source code of LLVM and Clang 11.1](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.1.0/llvm-project-11.1.0.src.tar.xz) and extract
-    it to `$HOME/llvm/src/llvm-project-11/`:
+  + Otherwise, LLVM and Clang 12 can be downloaded and built from source code.
+    To do this, download source code of LLVM 12 from the [LLVM GitHub
+    Releases](https://github.com/llvm/llvm-project/releases) and extract it to `$HOME/llvm/src/llvm-project-12/`:
 
     ``` sh
-    # Assume that LLVM 11.1 source code is stored at $HOME/llvm/src/llvm-project/
-    mkdir -p $HOME/llvm/llvm-11
+    # Assume that LLVM 12 source code is stored at $HOME/llvm/src/llvm-project/
+    mkdir -p $HOME/llvm/llvm-12
     cd $HOME/llvm/src/llvm-project/
     mkdir -p build; cd build
     cmake ../llvm -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_INSTALL_PREFIX=$HOME/llvm/llvm-11 -Wno-dev -G Ninja
+          -DCMAKE_INSTALL_PREFIX=$HOME/llvm/llvm-12 -Wno-dev -G Ninja
     ninja
     ninja install
-    export PATH=$HOME/llvm/llvm-11/bin:$PATH
-    export LD_LIBRARY_PATH=$HOME/llvm/llvm-11/lib:$LD_LIBRARY_PATH
+    export PATH=$HOME/llvm/llvm-12/bin:$PATH
+    export LD_LIBRARY_PATH=$HOME/llvm/llvm-12/lib:$LD_LIBRARY_PATH
     ```
 
 - CMake, zlib, libedit, z3
@@ -69,7 +69,7 @@ with Linux Mint / Ubuntu 20.
 - Install ninja-build
 
   ``` sh
-  sudo apt-get install clang-11 ninja-build
+  sudo apt-get install clang-12 ninja-build
   ```
 
 - Run the following instructions to install `gollvm`.
@@ -92,8 +92,9 @@ with Linux Mint / Ubuntu 20.
   git clone https://github.com/libffi/libffi.git
   git clone https://github.com/ianlancetaylor/libbacktrace.git
   ```
-
 - Checkout the following commit for LLVM-11-compatible version:
+
+  (TODO: update Gollvm tutorial to LLVM 12 )
 
   ``` sh
   # Git revisions for working with LLVM 11
@@ -153,8 +154,8 @@ with Linux Mint / Ubuntu 20.
   opam init
   opam switch create 4.12.0
   eval $(opam env)
-  opam install core menhir dune extlib ocamlgraph ppx_deriving \
-       fileutils llvm yaml
+  opam install core unix str ocamlgraph fileutils yaml ezjsonm \
+               llvm llvm.target llvm.bitreader llvm.bitwriter llvm.irreader
   ```
 
 ## Compilation
