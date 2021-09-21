@@ -191,7 +191,7 @@ with Linux Mint / Ubuntu 20.
   cp $WORKDIR/llvm-normalizer/build/normalizer $WORKDIR/discover-analyzer/
   ```
 
-# Runnxing Discover
+# Running Discover
 
 - Run pointer analysis on C program:
 
@@ -203,4 +203,13 @@ with Linux Mint / Ubuntu 20.
 
 # Contributing to Discover
 
-- See `docs/development.md`.
+## Our current contributors
+
+- [Ta Quang Trung](https://github.com/taquangtrung/)
+- [Ren Kunpeng](https://github.com/kunpengren)
+- [Trinh Ngoc Khanh](https://github.com/tnkhanh)
+- [Huang Lung-Chen](https://github.com/lung21)
+
+## Want to contribute to our project?
+
+- Please create issues or pull requests to help us improve our tool! :)
