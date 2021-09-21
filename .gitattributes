@@ -1,0 +1,8 @@
+# Disable GitHub from detecting a programming language
+# as the main language of your project.
+
+*.c linguist-detectable=false
+*.h linguist-detectable=false
+*.cpp linguist-detectable=false
+*.sol linguist-detectable=false
+*.go linguist-detectable=false
