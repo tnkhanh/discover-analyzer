@@ -201,9 +201,9 @@ with Linux Mint / Ubuntu 20.
              examples/c/field-read.c
   ```
 
-# Contributing to Discover
+# Contributing to our Discover project
 
-## Our current contributors
+## Current contributors
 
 - [Ta Quang Trung](https://github.com/taquangtrung/)
 - [Ren Kunpeng](https://github.com/kunpengren)

@@ -1,6 +1,5 @@
 /*******************************************************************
- * Author: Ta Quang Trung
- * Date:   July 6th, 2020
+ * This file is part of the source code analyzer Discover.
  *
  * Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.
  * All rights reserved.
