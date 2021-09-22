@@ -2218,6 +2218,39 @@ let args_of_instr_call (i: instr) : llvalues =
     !args
   | _ -> herror "operand_args: not an instr Call: " pr_instr i
 
+(* CallBr *)
+
+let num_args_of_instr_callbr (i: instr) : int =
+  match instr_opcode i with
+  | LO.CallBr -> LL.num_arg_operands (llvalue_of_instr i)
+  | _ -> herror "num_args_of: not an instr CallBr: " pr_instr i
+
+let arg_of_instr_callbr (i: instr) (idx: int) : llvalue =
+  match instr_opcode i with
+  | LO.CallBr ->
+    if (idx < num_args_of_instr_call i) then operand i idx
+    else herror "arg_of_instr_call: idx out of bound" pr_int idx
+  | _ -> herror "arg_of: not an instr Call: " pr_instr i
+
+
+let args_of_instr_callbr (i: instr) : llvalues =
+  match instr_opcode i with
+  | LO.CallBr ->
+    let args = ref [] in
+    let num_args = num_args_of_instr_call i in
+    for idx = 0 to (num_args - 1) do
+      args := !args @ [operand i idx]
+    done;
+    !args
+  | _ -> herror "operand_args: not an instr CallBr: " pr_instr i
+
+let callee_of_instr_callbr (i: instr) : func =
+  match instr_opcode i with
+  | LO.CallBr ->
+    let num_args = num_args_of_instr_callbr i in
+    mk_func (operand i num_args)
+  | _ -> herror "callee_of: not an instr CallBr: " pr_instr i
+
 (* Invoke *)
 
 let num_args_of_instr_invoke (i: instr) : int =
@@ -2265,26 +2298,38 @@ let args_of_instr_invoke (i: instr) : llvalues =
 let num_args_of_instr_call_or_invoke (i: instr) : int =
   match instr_opcode i with
   | LO.Call -> num_args_of_instr_call i
+  | LO.CallBr -> num_args_of_instr_call i
   | LO.Invoke -> num_args_of_instr_invoke i
-  | _ -> herror "num_args_of: not an instr Call or Invoke: " pr_instr i
+  | _ ->
+    herror "num_args_of_instr_call_or_invoke: expect Call, CallBr, or Invoke: "
+      pr_instr i
 
 let callee_of_instr_call_or_invoke (i: instr) : func =
   match instr_opcode i with
   | LO.Call -> callee_of_instr_call i
+  | LO.CallBr -> callee_of_instr_callbr i
   | LO.Invoke -> callee_of_instr_invoke i
-  | _ -> herror "callee_of: not an instr Call or Invoke: " pr_instr i
+  | _ ->
+    herror "callee_of_instr_call_or_invoke: expect Call, CallBr, or Invoke: "
+      pr_instr i
 
 let arg_of_instr_call_or_invoke (i: instr) (idx: int) : llvalue =
   match instr_opcode i with
   | LO.Call -> arg_of_instr_call i idx
+  | LO.CallBr -> arg_of_instr_callbr i idx
   | LO.Invoke -> arg_of_instr_invoke i idx
-  | _ -> herror "operand_args: not an instr Call: " pr_instr i
+  | _ ->
+    herror "arg_of_instr_call_or_invoke: expect Call, CallBr, or Invoke: "
+      pr_instr i
 
 let args_of_instr_call_or_invoke (i: instr) : llvalues =
   match instr_opcode i with
   | LO.Call -> args_of_instr_call i
+  | LO.CallBr -> args_of_instr_callbr i
   | LO.Invoke -> args_of_instr_invoke i
-  | _ -> herror "operand_args: not an instr Call: " pr_instr i
+  | _ ->
+    herror "args_of_instr_call_or_invoke: expect Call, CallBr, or Invoke: "
+      pr_instr i
 
 let get_origin_src_of_memcpy (i: instr) : llvalue =
   let callee = callee_of_instr_call_or_invoke i in

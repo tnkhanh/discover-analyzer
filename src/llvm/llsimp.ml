@@ -78,6 +78,12 @@ let elim_instr_load_of_const (modul: LL.llmodule) : unit =
               loads_replacers := !loads_replacers @ [(instr, v)]
           | None -> ()
         else ()
+      | LO.Call | LO.CallBr | LO.Invoke ->
+        let args = args_of_instr_call_or_invoke instr in
+        List.iter ~f:(fun arg ->
+          if is_llvalue_instr arg then
+            Hashtbl.remove tbl_stored_values (mk_instr arg)
+          else ()) args
       | _ -> ()) in
     let _ = deep_iter_func ~finstr func in
     !loads_replacers in
