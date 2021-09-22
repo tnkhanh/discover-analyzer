@@ -5,14 +5,38 @@
  * All rights reserved.
  *******************************************************************/
 
+/*
+ * Builtin library for analyzing C/C++ files
+ */
+
 #include <stdio.h>
 
 #ifndef __DEBUG_
 #define __DEBUG_ 1                 // 1 to enable, 0 to disable debug
 #endif
 
+
 /*******************************************************************
- * assertions for alias analysis
+ * List of bug types
+ *******************************************************************/
+
+enum bug_type {
+  // Memory bugs
+  Memory_leak,
+  Memory_null_pointer_deref,
+  Memory_buffer_overflow,
+  Memory_use_after_free,
+  Memory_double_free,
+  // Integer bugs
+  Integer_overflow,
+  Integer_underflow,
+  Integer_unsafe_downcast,
+  Integer_division_by_zero
+};
+
+
+/*******************************************************************
+ * Assertions for alias analysis
  *******************************************************************/
 
 void __assert_no_alias(void* x, void* y) {
@@ -122,3 +146,11 @@ void __assert_range_full(int x, int lb, int ub) {
     printf("FAILED!\n");
 #endif
 }
+
+/*******************************************************************
+ * assertions for integer bug
+ *******************************************************************/
+
+// Check if the integer stored in `ptr` of size `num_bytes` is overflow
+void __assert_integer_overflow(void* ptr, int num_bytes){}
+void __assert_no_integer_overflow(void* ptr, int num_bytes){}

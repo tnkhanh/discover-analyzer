@@ -7,12 +7,8 @@ build/
 *.out
 *.byte
 *.native
-discover
-discovery
-covalry
-llave
-cdetector
-infer
+/discover
+/normalizer
 
 # temporary files
 *.bc
@@ -41,6 +37,5 @@ setup.ml
 setup.data
 setup.log
 
-# sub-modules
+# Emacs temporary files
 .ccls-cache
-normalizer
