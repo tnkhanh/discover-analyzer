@@ -16,9 +16,13 @@ TODO LIST
 
 ## Finding integer bugs
 
-- [WORKING] Handle primitive functions for inputting integer in C/C++
-  https://github.com/sbip-sg/discover-analyzer/issues/10
+- [ ] Handle primitive functions for inputting integer in C/C++
+      https://github.com/sbip-sg/discover-analyzer/issues/10
 
 # Roadmap
+
+- Release v0.1:
+  + Find and report basic memory bugs.
+  + Find and report basic integer bugs.
 
 ...
