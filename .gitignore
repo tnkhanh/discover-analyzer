@@ -30,7 +30,6 @@ logs
 # configuration files
 _tags
 dune-project
-.merlin
 configure
 myocamlbuild.ml
 setup.ml

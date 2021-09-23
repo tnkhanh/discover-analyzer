@@ -23,7 +23,7 @@ let construct_map_llvalue_to_source_name (prog: program) : unit =
   let finstr = Some (fun instr ->
     match instr_opcode instr with
     | LO.Call | LO.Invoke ->
-      if is_func_llvm_debug (callee_of_instr_call_or_invoke instr) then
+      if is_func_llvm_debug (callee_of_callable_instr instr) then
         let vname = pr_value (operand instr 0) in
         let sname = LS.extract_name_from_metadata (operand instr 1) in
         Hashtbl.set prog.prog_llvalue_original_name ~key:vname ~data:sname
@@ -37,7 +37,7 @@ let compute_func_call_info (prog: program) : unit =
   let finstr = Some (fun instr ->
     match instr_opcode instr with
     | LO.Call | LO.Invoke ->
-      let callee = callee_of_instr_call_or_invoke instr in
+      let callee = callee_of_callable_instr instr in
       let vcallee = llvalue_of_func callee in
       let caller = func_of_instr instr in
       if is_llvalue_function vcallee then (

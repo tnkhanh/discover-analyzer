@@ -97,7 +97,7 @@ let build_reachability_graph (prog: program) : IG.t =
           IG.add_edge_e rg (IG.E.create src IG.NextInstr dst)) next_instrs in
         match instr_opcode instr with
         | LO.Call | LO.Invoke ->
-          let callee = callee_of_instr_call_or_invoke instr in
+          let callee = callee_of_callable_instr instr in
           let dst = llvalue_of_func callee in
           IG.add_edge_e rg (IG.E.create src IG.Callee dst)
         | _ -> ()) in

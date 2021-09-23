@@ -81,7 +81,7 @@ let elim_instr_load_of_const (modul: LL.llmodule) : unit =
       | LO.Call | LO.CallBr | LO.Invoke ->
         (* If a register is passed as an argument of a function call,
            then clear its stored constant, if any *)
-        let args = args_of_instr_call_or_invoke instr in
+        let args = args_of_callable_instr instr in
         List.iter ~f:(fun arg ->
           if is_llvalue_instr arg then
             Hashtbl.remove tbl_stored_values (mk_instr arg)

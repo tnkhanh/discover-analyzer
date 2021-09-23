@@ -64,11 +64,11 @@ let pr_assertion (ast: assertion) : string =
 let pr_assertion_status (func: LI.func) (ast: assertion) (status: bool) =
   let instr = ast.ast_instr in
   let fname = LI.func_name func in
-  let assertion = match LI.is_instr_call_or_invoke instr with
+  let assertion = match LI.is_callable_instr instr with
     | false -> herror "assertion must be a function call: " LI.pr_instr instr
     | true ->
-      let asname = LI.func_name (LI.callee_of_instr_call_or_invoke instr) in
-      let args = LI.args_of_instr_call_or_invoke instr in
+      let asname = LI.func_name (LI.callee_of_callable_instr instr) in
+      let args = LI.args_of_callable_instr instr in
       asname ^ "(" ^ (pr_args LI.pr_value args) ^ ")" in
   let location =
     try
@@ -94,7 +94,7 @@ let find_alias_assertions (func: LI.func) : assertion list =
     let vinstr = LI.llvalue_of_instr instr in
     match LL.instr_opcode vinstr with
     | LO.Call | LO.Invoke ->
-      let callee = LI.callee_of_instr_call_or_invoke instr in
+      let callee = LI.callee_of_callable_instr instr in
       let fname = LI.func_name callee in
       let operands = LI.operands instr in
       if String.is_substring fname ~substring:__assert_no_alias then

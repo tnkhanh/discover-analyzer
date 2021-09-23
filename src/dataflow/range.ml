@@ -637,6 +637,18 @@ module RangeTransfer : DF.ForwardDataTransfer= struct
       let opr0 = expr_operand instr 0 in
       let itv = get_interval opr0 input in
       replace_interval expr itv input
+    | LO.Load ->
+      let _ = print "[Range] WORKING: need to handle instr: LOAD" in
+      input
+    | LO.Store ->
+      let _ = print "[Range] WORKING: need to handle instr: STORE" in
+      input
+    | LO.Call | LO.Invoke ->
+      (* WORKING: *)
+      let callee = callee_of_callable_instr instr in
+      let _ = if is_func_scanf callee then
+          print "TODO: need to handle func call: scanf" in
+      input
     | _ -> input
 
   (*******************************************************************

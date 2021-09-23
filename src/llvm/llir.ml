@@ -1279,7 +1279,7 @@ let is_llvalue_instr_phi (v: llvalue) : bool =
   | LV.Instruction LO.PHI -> true
   | _ -> false
 
-let is_llvalue_instr_call_or_invoke (v: llvalue) : bool =
+let is_llvalue_callable_instr (v: llvalue) : bool =
   match LL.classify_value v with
   | LV.Instruction LO.Call -> true
   | LV.Instruction LO.Invoke -> true
@@ -1494,7 +1494,7 @@ let is_instr_invoke (i: instr) : bool =
   | LO.Invoke -> true
   | _ -> false
 
-let is_instr_call_or_invoke (i: instr) : bool =
+let is_callable_instr (i: instr) : bool =
   match instr_opcode i with
   | LO.Call | LO.Invoke -> true
   | _ -> false
@@ -1610,6 +1610,10 @@ let is_func_memcpy (f: func) : bool =
 
 let is_func_memmove (f: func) : bool =
   String.is_prefix (func_name f) ~prefix:"llvm.memmove"
+
+let is_func_scanf (f: func) : bool =
+  let fname = func_name f in
+  String.equal fname "__isoc99_scanf"
 
 let is_func_dynamic_cast (f: func) : bool =
   String.equal (func_name f) "__dynamic_cast"
@@ -2293,52 +2297,48 @@ let args_of_instr_invoke (i: instr) : llvalues =
     !args
   | _ -> herror "operand_args: not an instr Invoke: " pr_instr i
 
-(* Call and Invoke *)
+(* Callable instructions are: Call, CallBr, Invoke *)
 
-let num_args_of_instr_call_or_invoke (i: instr) : int =
+let num_args_of_callable_instr (i: instr) : int =
   match instr_opcode i with
   | LO.Call -> num_args_of_instr_call i
   | LO.CallBr -> num_args_of_instr_call i
   | LO.Invoke -> num_args_of_instr_invoke i
   | _ ->
-    herror "num_args_of_instr_call_or_invoke: expect Call, CallBr, or Invoke: "
-      pr_instr i
+    herror "num_args_of_callable_instr: not a callable instr: " pr_instr i
 
-let callee_of_instr_call_or_invoke (i: instr) : func =
+let callee_of_callable_instr (i: instr) : func =
   match instr_opcode i with
   | LO.Call -> callee_of_instr_call i
   | LO.CallBr -> callee_of_instr_callbr i
   | LO.Invoke -> callee_of_instr_invoke i
   | _ ->
-    herror "callee_of_instr_call_or_invoke: expect Call, CallBr, or Invoke: "
-      pr_instr i
+    herror "callee_of_callable_instr: not a callable instr: " pr_instr i
 
-let arg_of_instr_call_or_invoke (i: instr) (idx: int) : llvalue =
+let arg_of_callable_instr (i: instr) (idx: int) : llvalue =
   match instr_opcode i with
   | LO.Call -> arg_of_instr_call i idx
   | LO.CallBr -> arg_of_instr_callbr i idx
   | LO.Invoke -> arg_of_instr_invoke i idx
   | _ ->
-    herror "arg_of_instr_call_or_invoke: expect Call, CallBr, or Invoke: "
-      pr_instr i
+    herror "arg_of_callable_instr: not a callable instr: " pr_instr i
 
-let args_of_instr_call_or_invoke (i: instr) : llvalues =
+let args_of_callable_instr (i: instr) : llvalues =
   match instr_opcode i with
   | LO.Call -> args_of_instr_call i
   | LO.CallBr -> args_of_instr_callbr i
   | LO.Invoke -> args_of_instr_invoke i
   | _ ->
-    herror "args_of_instr_call_or_invoke: expect Call, CallBr, or Invoke: "
-      pr_instr i
+    herror "args_of_callable_instr: not a callable instr: " pr_instr i
 
 let get_origin_src_of_memcpy (i: instr) : llvalue =
-  let callee = callee_of_instr_call_or_invoke i in
+  let callee = callee_of_callable_instr i in
   if is_func_memcpy callee then
     operand (mk_instr (operand i 0)) 0
   else herror "get_origin_src_of_memcpy: not a memcopy Call: " pr_instr i
 
 let get_origin_dst_of_memcpy (i: instr) : llvalue =
-  let callee = callee_of_instr_call_or_invoke i in
+  let callee = callee_of_callable_instr i in
   if is_func_memcpy callee then
     operand (mk_instr (operand i 1)) 0
   else herror "get_origin_dst_of_memcpy: not a memcopy Call: " pr_instr i
