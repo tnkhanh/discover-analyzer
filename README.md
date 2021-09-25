@@ -132,6 +132,14 @@ with Ubuntu 21.04
   ninja ocaml_doc
   ninja install
   ```
+- Experimental: uninstall current llvm bindings and copy the new LLVM13 bindings to the opam install directory
+  ``` sh
+  opam uninstall llvm
+  cd $HOME/.opam/4.12.0/lib
+  mkdir -p llvm/static
+  cp ocaml/llvm/* llvm/static
+  cp ocaml/llvm/* llvm
+  ```
 
 ### OCaml for development
 
