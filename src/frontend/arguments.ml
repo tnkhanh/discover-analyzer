@@ -198,7 +198,7 @@ and arguments_raw = [
    Arg.Unit (fun () -> bug_integer_overflow := true));
 
   (["--bug-integer-underflow"], "Find integer-underflow bugs",
-   Arg.Unit (fun () -> bug_integer_overflow := true));
+   Arg.Unit (fun () -> bug_integer_underflow := true));
 
   (["--bug-memory-all"], "Find memory bugs",
    Arg.Unit (fun () -> bug_memory_all := true));

@@ -22,6 +22,7 @@ module MP = Map.Poly
 
 type big_int = Big_int.big_int
 
+(* TODO: refactoring: extract this library as an independent library *)
 module BInt = struct
   include Big_int
 
@@ -32,6 +33,14 @@ module BInt = struct
   let subtract = Big_int.sub_big_int
 
   let neg = Big_int.minus_big_int
+
+  let compute_lower_bound_two_complement (n : int) : big_int =
+    let x = Big_int.power_int_positive_int 2 (n - 1) in
+    neg x
+
+  let compute_upper_bound_two_complement (n : int) : big_int =
+    let x = Big_int.power_int_positive_int 2 (n - 1) in
+    subtract x one
 
   (** return lower bound, upper bound of a n bits two's complement number *)
   let compute_range_two_complement (n : int) : big_int * big_int =
@@ -152,7 +161,6 @@ module IntervalDomain = struct
     | BInt x, BInt y -> BInt.compare_big_int x y
     | Int64 x, BInt y -> BInt.compare_big_int (BInt.big_int_of_int64 x) y
     | BInt x, Int64 y -> BInt.compare_big_int x (BInt.big_int_of_int64 y)
-
 
   (* leq *)
 
@@ -731,27 +739,47 @@ module RangeTransfer : DF.ForwardDataTransfer= struct
       match get_instr_output fenv bof.bof_instr with
       | None -> False
       | Some data ->
-        let iinterval = get_interval (expr_of_llvalue bof.bof_index) data in
+        let itv = get_interval (expr_of_llvalue bof.bof_index) data in
         match bof.bof_size with
         | None -> False
         | Some n ->
-          if compare_interval_upper_bound_with_int iinterval n >= 0 then True
+          if compare_interval_upper_bound_with_int itv n >= 0 then True
           else False
     else False
 
   let check_integer_overflow fenv (iof: BG.integer_overflow) : ternary =
     if !bug_integer_all || !bug_integer_overflow then
       match get_instr_output fenv iof.iof_instr with
-      | None -> False
+      | None -> Unkn
       | Some data ->
-        let _ = print "TODO: IMPLEMENT: check_integer_overflow " in
-        False
-    else False
+        let itv = get_interval (expr_of_llvalue iof.iof_expr) data in
+        match itv with
+        | Bottom -> Unkn
+        | Range r ->
+          let ub = BInt.compute_upper_bound_two_complement iof.iof_bitwidth in
+          if compare_bound r.range_ub (BInt ub) > 0 then True
+          else False
+    else Unkn
+
+  let check_integer_underflow fenv (iuf: BG.integer_underflow) : ternary =
+    if !bug_integer_all || !bug_integer_underflow then
+      match get_instr_output fenv iuf.iuf_instr with
+      | None -> Unkn
+      | Some data ->
+        let itv = get_interval (expr_of_llvalue iuf.iuf_expr) data in
+        match itv with
+        | Bottom -> Unkn
+        | Range r ->
+          let lb = BInt.compute_lower_bound_two_complement iuf.iuf_bitwidth in
+          if compare_bound r.range_lb (BInt lb) < 0 then True
+          else False
+    else Unkn
 
   let check_bug (fenv: func_env) (bug: BG.bug) : ternary =
     match bug.BG.bug_type with
     | BG.BufferOverflow bof -> check_buffer_overflow fenv bof
     | BG.IntegerOverflow iof -> check_integer_overflow fenv iof
+    | BG.IntegerUnderflow iuf -> check_integer_underflow fenv iuf
     | _ -> Unkn
 
   let count_assertions (prog: program) : int =

@@ -128,16 +128,35 @@ let perform_main_analysis_passes (pdata: program_data) : program_data =
  ** Find bugs
  *******************************************************************)
 
+(*-------------------------------------------
+ * Integer bugs
+ *------------------------------------------*)
+
 let find_bug_integer_overflow (pdata: program_data) =
-  let pbugs = pdata.pdata_potential_bugs in
+  let pbugs = List.filter ~f:BG.is_bug_integer_overflow
+                pdata.pdata_potential_bugs in
   let bugs = match pdata.pdata_env_range with
     | None -> []
     | Some env ->
       List.filter ~f:(fun bug -> RG.check_bug env bug == True) pbugs in
   List.map ~f:(BG.mk_real_bug "RangeAnalysis") bugs
 
+let find_bug_integer_underflow (pdata: program_data) =
+  let pbugs = List.filter ~f:BG.is_bug_integer_underflow
+                pdata.pdata_potential_bugs in
+  let bugs = match pdata.pdata_env_range with
+    | None -> []
+    | Some env ->
+      List.filter ~f:(fun bug -> RG.check_bug env bug == True) pbugs in
+  List.map ~f:(BG.mk_real_bug "RangeAnalysis") bugs
+
+(*-------------------------------------------
+ * Memory bugs
+ *------------------------------------------*)
+
 let find_bug_buffer_overflow (pdata: program_data) =
-  let pbugs = pdata.pdata_potential_bugs in
+  let pbugs = List.filter ~f:BG.is_bug_buffer_overflow
+                pdata.pdata_potential_bugs in
   let bugs = match pdata.pdata_env_range with
     | None -> []
     | Some env ->
@@ -164,8 +183,9 @@ let find_all_bugs (pdata: program_data) : unit =
   let _ = println "Checking Bugs..." in
   let prog = pdata.pdata_program in
   let bugs = (find_bug_memory_leak pdata) @
-             (find_bug_buffer_overflow pdata) in
-  let bugs = [] in
+             (find_bug_buffer_overflow pdata) @
+             (find_bug_integer_overflow pdata) @
+             (find_bug_integer_underflow pdata) in
   let _ = List.iter ~f:BG.report_bug bugs in
   let _ = num_of_bugs := List.length bugs in
   BG.report_bug_stats bugs
@@ -195,7 +215,7 @@ let report_analysis_stats (pdata: program_data) : unit =
 let analyze_program_llvm (prog: LI.program) : unit =
   let _ = hprint ~ruler:`Long "Analyze program by " pr_dfa_mode !dfa_mode in
   let pdata = prog |> mk_program_data |>
-              (* perform_pre_analysis_passes |> *)
+              perform_pre_analysis_passes |>
               perform_main_analysis_passes in
   let _ = report_analysis_stats pdata in
   let _ = check_assertions pdata in
