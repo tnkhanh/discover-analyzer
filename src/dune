@@ -12,7 +12,7 @@
  (name Discover)
  (preprocess (pps ppx_compare ppx_sexp_conv
                   ppx_deriving.show ppx_deriving.ord ppx_deriving.eq))
- (libraries core unix str ocamlgraph fileutils yaml ezjsonm
+ (libraries core unix str ocamlgraph fileutils yaml ezjsonm num
             llvm llvm.target llvm.bitreader llvm.bitwriter llvm.irreader)
  (link_flags (-linkall))
  (modes native)

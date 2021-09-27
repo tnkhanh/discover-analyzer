@@ -19,6 +19,9 @@ module LA = List.Assoc
 module BG = Bug
 module SP = Set.Poly
 module MP = Map.Poly
+module BInt = Big_int
+
+type big_int = BInt.big_int
 
 (*******************************************************************
  ** Abstract domain for the analysis
@@ -26,14 +29,13 @@ module MP = Map.Poly
 
 module IntervalDomain = struct
 
-
   type bound =
     | PInf                         (* positive infinity *)
     | NInf                         (* negative infiinity *)
     (* | PTwoPower of int             (\* +(2^n) or 2^n for short, with n>=0 *\) *)
     (* | NTwoPower of int             (\* -(2^n): negative number, with n>=0 *\) *)
     | Int64 of int64               (* integer 64 bit *)
-    (* | BigInt of Big_int.big_int *)
+    | BInt of big_int
 
   type range = {
     range_lb : bound;             (* lower bound *)
@@ -58,9 +60,7 @@ module IntervalDomain = struct
     | PInf -> "+inf"
     | NInf -> "-inf"
     | Int64 x -> Int64.to_string x
-    (* | PTwoPower n -> "2^" ^ (pr_int n) *)
-    (* | NTwoPower n -> "-(2^" ^ (pr_int n) ^ ")" *)
-    (* | BigInt *)
+    | BInt x -> BInt.string_of_big_int x
 
   let pr_range (r: range) : string =
     let plb = if r.range_li then "[" else "(" in
@@ -128,33 +128,11 @@ module IntervalDomain = struct
     | NInf, NInf -> 0
     | NInf, _ -> -1
     | _, NInf -> 1
-    (* (\* a, b is either PTwoPower or NTwoPower *\) *)
-    (* | PTwoPower n, PTwoPower m -> Int.compare n m *)
-    (* | PTwoPower _, NTwoPower _ -> 1 *)
-    (* | NTwoPower _, PTwoPower _ -> -1 *)
-    (* | NTwoPower n, NTwoPower m -> -(Int.compare n m) *)
-    (* one of a, b is Int64, the other is either PTwoPower, NTwoPower, or Int64 *)
+    (* one of a, b is Int64, or Big_int *)
     | Int64 x, Int64 y -> Int64.compare x y
-    (* | Int64 x, PTwoPower m -> *)
-    (*   if m < 64 then *)
-    (*     let y = Int64.pow (Int64.of_int 2) (Int64.of_int m) in *)
-    (*     Int64.compare x y *)
-    (*   else  -1 *)
-    (* | Int64 x, NTwoPower m -> *)
-    (*   if m >= 64 then *)
-    (*     let y = Int64.neg (Int64.pow (Int64.of_int 2) (Int64.of_int m)) in *)
-    (*     Int64.compare x y *)
-    (*   else -1 *)
-    (* | PTwoPower n, Int64 y -> *)
-    (*   if n < 64 then *)
-    (*     let x = Int64.pow (Int64.of_int 2) (Int64.of_int n) in *)
-    (*     Int64.compare x y *)
-    (*   else 1 *)
-    (* | NTwoPower n, Int64 y -> *)
-    (*   if n < 64 then *)
-    (*     let x = Int64.neg (Int64.pow (Int64.of_int 2) (Int64.of_int n)) in *)
-    (*     Int64.compare x y *)
-    (*   else -1 *)
+    | BInt x, BInt y -> BInt.compare_big_int x y
+    | Int64 x, BInt y -> BInt.compare_big_int (BInt.big_int_of_int64 x) y
+    | BInt x, Int64 y -> BInt.compare_big_int x (BInt.big_int_of_int64 y)
 
 
   (* leq *)
@@ -214,14 +192,18 @@ module IntervalDomain = struct
     (* either a, b is NInf *)
     | NInf, _ -> NInf
     | _, NInf -> NInf
-    (**)
+    (* Int64, Big_int *)
     | Int64 x, Int64 y -> Int64 (Int64.(+) x y)
+    | BInt x, BInt y -> BInt (BInt.add_big_int x y)
+    | Int64 x, BInt y -> BInt (BInt.add_big_int (BInt.big_int_of_int64 x) y)
+    | BInt x, Int64 y -> BInt (BInt.add_big_int x (BInt.big_int_of_int64 y))
 
   let sub_bound (a: bound) (b: bound) =
     let neg_b = match b with
       | PInf -> NInf
       | NInf -> PInf
-      | Int64 x -> Int64 (Int64.neg x) in
+      | Int64 x -> Int64 (Int64.neg x)
+      | BInt x -> BInt (BInt.minus_big_int x) in
     add_bound a neg_b
 
   let mult_int_bound (i: int64) (b: bound) =
@@ -234,16 +216,34 @@ module IntervalDomain = struct
       if Int64.(=) i Int64.zero then error "mult_bound: 0 * NInf is undefined"
       else if Int64.is_positive i then NInf
       else PInf
-    | Int64 u -> Int64 (Int64.( * ) i u)
+    | Int64 x -> Int64 (Int64.( * ) i x)
+    | BInt x -> BInt (BInt.mult_big_int (BInt.big_int_of_int64 i) x)
+
+  let mult_big_int_bound (i: big_int) (b: bound) =
+    match b with
+    | PInf ->
+      if BInt.eq_big_int i BInt.zero_big_int then
+        error "mult_bound: 0 * PInf is undefined"
+      else if BInt.gt_big_int i BInt.zero_big_int then PInf
+      else NInf
+    | NInf ->
+      if BInt.eq_big_int i BInt.zero_big_int then
+        error "mult_bound: 0 * NInf is undefined"
+      else if BInt.gt_big_int i BInt.zero_big_int then NInf
+      else PInf
+    | Int64 x -> BInt (BInt.mult_big_int i (BInt.big_int_of_int64 x))
+    | BInt x -> BInt (BInt.mult_big_int i x)
 
   let mult_bound (a: bound) (b: bound) =
     match a, b with
+    | PInf, NInf -> error "mult_bound: PInf * NInf is undefined"
+    | NInf, PInf -> error "mult_bound: NInf * PInf is undefined"
+    | PInf, PInf -> PInf
+    | NInf, NInf -> PInf
     | Int64 x, _ -> mult_int_bound x b
     | _, Int64 x -> mult_int_bound x a
-    | PInf, NInf -> error "mult_bound: PInf * NInf is undefined"
-    | PInf, PInf -> PInf
-    | NInf, PInf -> error "mult_bound: NInf * PInf is undefined"
-    | NInf, NInf -> PInf
+    | BInt x, _ -> mult_big_int_bound x b
+    | _, BInt x -> mult_big_int_bound x a
 
   let add_range (a: range) (b: range) =
     let lb = add_bound a.range_lb b.range_lb in
@@ -359,8 +359,12 @@ module IntervalDomain = struct
     match r.range_ub with
     | PInf -> 1
     | NInf -> -1
-    | Int64 ir ->
-      let cmp = Int64.compare ir (Int64.of_int i) in
+    | Int64 x ->
+      let cmp = Int64.compare x (Int64.of_int i) in
+      if r.range_ui || cmp != 0 then cmp
+      else -1
+    | BInt x ->
+      let cmp = BInt.compare_big_int x (BInt.big_int_of_int i) in
       if r.range_ui || cmp != 0 then cmp
       else -1
 
@@ -740,8 +744,15 @@ module RangeTransfer : DF.ForwardDataTransfer= struct
         | PInf -> true
         | NInf -> false
         | Int64 i ->
-          let vlb = if r.range_li then i else Int64.(+) i Int64.one in
+          let vlb =
+            if r.range_li then i
+            else Int64.(+) i Int64.one in
           Int64.(>=) vlb lb
+        | BInt i ->
+          let vlb =
+            if r.range_li then i
+            else BInt.add_big_int i BInt.unit_big_int in
+          BInt.ge_big_int vlb (BInt.big_int_of_int64 lb)
 
   let check_range_upper_bound fenv instr (v: llvalue) (ub: int64) : bool =
     match get_instr_output fenv instr with
@@ -756,6 +767,11 @@ module RangeTransfer : DF.ForwardDataTransfer= struct
         | Int64 i ->
           let vub = if r.range_ui then i else Int64.(-) i Int64.one in
           Int64.(<=) vub ub
+        | BInt i ->
+          let vub =
+            if r.range_ui then i
+            else BInt.min_big_int i BInt.unit_big_int in
+          BInt.le_big_int vub (BInt.big_int_of_int64 ub)
 
   let check_range_full fenv instr (v: llvalue) (lb: int64) (ub: int64) : bool =
     (check_range_lower_bound fenv instr v lb) &&
