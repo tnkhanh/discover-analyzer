@@ -1,7 +1,7 @@
 Discover -- a source code static analyzer
 =====================================================
 
-*Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.*
+*Copyright (c) 2020-2021 Singapore Blockchain Innovation Program.*
 
 
 # Compiling Discover
@@ -9,49 +9,68 @@ Discover -- a source code static analyzer
 ## Prerequisites
 
 Preferably Ubuntu / Linux Mint. The following commands are tested and work well
-with Ubuntu 21.04
+with Linux Mint / Ubuntu 20.
 
 ### Tools and libraries
 
-- CMake, zlib, libedit, z3, ninja
+- LLVM and Clang 12
+
+  + Install from Linux repositories:
+
+    ``` sh
+    # Ubuntu, Linux Mint
+    sudo apt-get install llvm-12 llvm-12-dev clang-12 libclang-12-dev
+
+    # Arch Linux, Manjaro
+    sudo pacman -S llvm12 clang12
+    ```
+
+  + If LLVM and Clang cannot be installed automatically, then in Ubuntu-based
+    operating systems, user can download a pre-built LLVM and Clang version 12
+    from the [LLVM GitHub Releases](https://github.com/llvm/llvm-project/releases), and extract it to `$HOME/llvm/llvm-12`.
+
+    Then, run the following commands to update the environment variables:
+
+    ``` sh
+    # Assume that LLVM + Clang 12 binaries are stored at $HOME/llvm/llvm-12/
+    export PATH=$HOME/llvm/llvm-12/bin:$PATH
+    export LD_LIBRARY_PATH=$HOME/llvm/llvm-12/lib:$LD_LIBRARY_PATH
+    ```
+
+  + Otherwise, LLVM and Clang 12 can be downloaded and built from source code.
+    To do this, download source code of LLVM 12 from the [LLVM GitHub
+    Releases](https://github.com/llvm/llvm-project/releases) and extract it to `$HOME/llvm/src/llvm-project-12/`:
+
+    ``` sh
+    # Assume that LLVM 12 source code is stored at $HOME/llvm/src/llvm-project/
+    mkdir -p $HOME/llvm/llvm-12
+    cd $HOME/llvm/src/llvm-project/
+    mkdir -p build; cd build
+    cmake ../llvm -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$HOME/llvm/llvm-12 -Wno-dev -G Ninja
+    ninja
+    ninja install
+    export PATH=$HOME/llvm/llvm-12/bin:$PATH
+    export LD_LIBRARY_PATH=$HOME/llvm/llvm-12/lib:$LD_LIBRARY_PATH
+    ```
+
+- CMake, zlib, libedit, z3
 
   ``` sh
   # Ubuntu, Linux Mint
-  sudo apt-get install cmake zlib1g-dev libedit-dev z3 ninja-build
+  sudo apt-get install cmake zlib1g-dev libedit-dev z3
 
   # Arch Linux, Manjaro
   sudo pacman -S cmake zlib z3 libedit
   ```
 
-- LLVM and Clang 13
-
-  + Install from Linux repositories:
-
-    ```
-      To update when it is released
-    ```
-
-  + Or download prebuilt LLVM and Clang 
- 
-    ```
-      To update when it is released
-    ```
-
-  + Otherwise, LLVM and Clang 13 can be built from source.
-    To do this, download source code of LLVM 13 from [LLVM GitHub
-    Releases](https://github.com/llvm/llvm-project/releases) and run 
-    in the `llvm-project` directory:
-
-    ``` sh
-    mkdir -p build; cd build
-    cmake ../llvm -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_INSTALL_PREFIX=/path/to/your/installation -Wno-dev -G Ninja
-    ninja
-    ninja install
-    ```
-    
 ### Gollvm for compiling Hyperledger Fabric smart contracts
 
+- Install ninja-build
+
+  ``` sh
+  sudo apt-get install clang-12 ninja-build
+  ```
 
 - Run the following instructions to install `gollvm`.
 
@@ -73,32 +92,33 @@ with Ubuntu 21.04
   git clone https://github.com/libffi/libffi.git
   git clone https://github.com/ianlancetaylor/libbacktrace.git
   ```
-- Checkout the following commits for LLVM-13-compatible version:
+- Checkout the following commit for LLVM-11-compatible version:
+
+  (TODO: update Gollvm tutorial to LLVM 12 )
 
   ``` sh
-  # Git revisions for working with LLVM 13
-  # LLVM: f6b09e394a5fad4b33f8746195377f4f638e2c8d (tag: llvmorg-13.0.0-rc3)
-  # gollvm: 0f0479aa582cfa3bd9c17bd7d41d2e2bc9991958
-  # gofrontend: e3bfc0889237a5bb8aa7ae30e1cff14f90a5f941
-  # libbacktrace: d0f5e95a87a4d3e0a1ed6c069b5dae7cbab3ed2a
-  # libffi: 0f2dd369cd5edcefad29b3fca4e1d08cb34f8f19
+  # Git revisions for working with LLVM 11
+  # LLVM: 43ff75f2c3feef64f9d73328230d34dac8832a91
+  # gollvm: 44a7a475cfd3b871b7a5a0941b8ab1ea9d489adc
+  # gofrontend: be0d2cc2df9f98d967c242594838f86362dae2e7
+  # libbacktrace: 5a99ff7fed66b8ea8f09c9805c138524a7035ece
+  # libffi: 737d4faa00d681b4c758057f67e1a02d813d01c2
 
   # update LLVM to 11.1.0-rc3
   cd $LLVMGOLLVM
-  git checkout llvmorg-13.0.0-rc3
+  git checkout 1fdec59bffc11ae37eb51a1b9869f0696bfd5312
 
   cd $LLVMGOLLVM/llvm/tools/gollvm
-  git checkout 0f0479aa582cfa3bd9c17bd7d41d2e2bc9991958
+  git checkout 44a7a475cfd3b871b7a5a0941b8ab1ea9d489adc
 
   cd $LLVMGOLLVM/llvm/tools/gollvm/gofrontend
-  git checkout e3bfc0889237a5bb8aa7ae30e1cff14f90a5f941
+  git checkout be0d2cc2df9f98d967c242594838f86362dae2e7
+
+  cd $LLVMGOLLVM/llvm/tools/gollvm/libgo/libffi
+  git checkout 737d4faa00d681b4c758057f67e1a02d813d01c2
 
   cd $LLVMGOLLVM/llvm/tools/gollvm/libgo/libbacktrace
-  git checkout d0f5e95a87a4d3e0a1ed6c069b5dae7cbab3ed2a
-  
-  cd $LLVMGOLLVM/llvm/tools/gollvm/libgo/libffi
-  git checkout 0f2dd369cd5edcefad29b3fca4e1d08cb34f8f19
-
+  git checkout 5a99ff7fed66b8ea8f09c9805c138524a7035ece
   ```
 
 - Compiling Gollvm
@@ -110,7 +130,7 @@ with Ubuntu 21.04
   mkdir -p $LLVMGOLLVM/build
   cd $LLVMGOLLVM/build
 
-  # IMPORTANT: make sure to use clang and clang++ version 11-13
+  # IMPORTANT: make sure to use clang and clang++ version 11
   CC=clang CXX=clang++ \
            cmake ../llvm -DCMAKE_INSTALL_PREFIX=$GOLLVMDIR \
            -DLLVM_ENABLE_BINDINGS=OFF -DLLVM_ENABLE_RTTI=ON \
@@ -122,24 +142,8 @@ with Ubuntu 21.04
 
   After that, the gollvm compiler is installed to `$GOLLVMDIR/bin`.
 
-- Capture LLVM bitcode generated by Gollvm: see `README.md` of
+- Caputure LLVM bitcode generated by Gollvm: see `README.md` of
   `llvm-project/llvm/tools/gollvm`.
-  
-### Build OCaml bindings for LLVM
-- Again, from the `build` directory, run cmake and build
-  ``` sh
-  cmake ../llvm -DLLVM_ENABLE_BINDINGS=ON
-  ninja ocaml_doc
-  ninja install
-  ```
-- Experimental: uninstall current llvm bindings and copy the new LLVM13 bindings to the opam install directory
-  ``` sh
-  opam uninstall llvm
-  cd $HOME/.opam/4.12.0/lib
-  mkdir -p llvm/static
-  cp ocaml/llvm/* llvm/static
-  cp ocaml/llvm/* llvm
-  ```
 
 ### OCaml for development
 
@@ -165,12 +169,6 @@ with Ubuntu 21.04
   git clone https://github.com/sbip-sg/llvm-normalizer
   ```
 
-- Update environmental variables:
-  ```
-  PATH=/path-to-llvm-dir/bin:$PATH
-  LD_LIBRARY_PATH=/path-to-llvm-dir/lib:/path-to-llvm-dir/lib64:$LD_LIBRARY_PATH
-  ```
-  
 - Compile `discover`:
 
   ``` sh
