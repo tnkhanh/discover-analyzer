@@ -479,6 +479,9 @@ let pr_typekind (k: LT.t) : string =
   | LT.Metadata -> "Metadata"
   | LT.X86_mmx -> "X86_mmx"
   | LT.Token -> "Token"
+  | LT.ScalableVector -> "ScalableVector"
+  | LT.BFloat -> "BFloat"
+  | LT.X86_amx -> "X86_amx"
 
 let pr_icmp (cmp: LL.Icmp.t) : string =
   match cmp with
