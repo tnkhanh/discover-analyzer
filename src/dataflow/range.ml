@@ -19,9 +19,28 @@ module LA = List.Assoc
 module BG = Bug
 module SP = Set.Poly
 module MP = Map.Poly
-module BInt = Big_int
 
-type big_int = BInt.big_int
+type big_int = Big_int.big_int
+
+module BInt = struct
+  include Big_int
+
+  let one = Big_int.unit_big_int
+
+  let zero = Big_int.zero_big_int
+
+  let subtract = Big_int.sub_big_int
+
+  let neg = Big_int.minus_big_int
+
+  (** return lower bound, upper bound of a n bits two's complement number *)
+  let compute_range_two_complement (n : int) : big_int * big_int =
+    let x = Big_int.power_int_positive_int 2 (n - 1) in
+    let lb = neg x in
+    let ub = subtract x one in
+    (lb, ub)
+
+end
 
 (*******************************************************************
  ** Abstract domain for the analysis
@@ -203,7 +222,7 @@ module IntervalDomain = struct
       | PInf -> NInf
       | NInf -> PInf
       | Int64 x -> Int64 (Int64.neg x)
-      | BInt x -> BInt (BInt.minus_big_int x) in
+      | BInt x -> BInt (BInt.neg x) in
     add_bound a neg_b
 
   let mult_int_bound (i: int64) (b: bound) =
@@ -222,14 +241,14 @@ module IntervalDomain = struct
   let mult_big_int_bound (i: big_int) (b: bound) =
     match b with
     | PInf ->
-      if BInt.eq_big_int i BInt.zero_big_int then
+      if BInt.eq_big_int i BInt.zero then
         error "mult_bound: 0 * PInf is undefined"
-      else if BInt.gt_big_int i BInt.zero_big_int then PInf
+      else if BInt.gt_big_int i BInt.zero then PInf
       else NInf
     | NInf ->
-      if BInt.eq_big_int i BInt.zero_big_int then
+      if BInt.eq_big_int i BInt.zero then
         error "mult_bound: 0 * NInf is undefined"
-      else if BInt.gt_big_int i BInt.zero_big_int then NInf
+      else if BInt.gt_big_int i BInt.zero then NInf
       else PInf
     | Int64 x -> BInt (BInt.mult_big_int i (BInt.big_int_of_int64 x))
     | BInt x -> BInt (BInt.mult_big_int i x)
@@ -639,7 +658,6 @@ module RangeTransfer : DF.ForwardDataTransfer= struct
     (* TODO: default behavior, implement later if necessary *)
     input
 
-  (* TODO: need to consider `nuw`, `nsw` in arithmetic instructions *)
   let analyze_instr ?(widen=false) (penv: prog_env) fenv instr (input: t) : t =
     let func = func_of_instr instr in
     let expr = expr_of_instr instr in
@@ -682,16 +700,25 @@ module RangeTransfer : DF.ForwardDataTransfer= struct
       let itv = get_interval opr0 input in
       replace_interval expr itv input
     | LO.Load ->
-      let _ = print "[Range] WORKING: need to handle instr: LOAD" in
-      input
-    | LO.Store ->
-      let _ = print "[Range] WORKING: need to handle instr: STORE" in
-      input
+      let dst = dst_of_instr_load instr in
+      let dtyp = LL.type_of dst in
+      if is_type_integer dtyp then
+        let bw = LL.integer_bitwidth dtyp in
+        (* LLVM integers is represented in two's complement format *)
+        let lb, ub = BInt.compute_range_two_complement bw in
+        let ir = mk_interval_range ~li:true ~ui:true (BInt lb) (BInt ub) in
+        replace_interval expr ir input
+      else input
+    | LO.Store -> input
+    | LO.ZExt ->
+      let esrc = expr_of_llvalue (src_of_instr_zext instr) in
+      let itv = get_interval esrc input in
+      replace_interval expr itv input
     | LO.Call | LO.Invoke ->
-      (* WORKING: *)
-      let callee = callee_of_callable_instr instr in
-      let _ = if is_func_scanf callee then
-          print "TODO: need to handle func call: scanf" in
+      (* TODO: function call for inter-procedural analysis *)
+      (* let callee = callee_of_callable_instr instr in *)
+      (* let _ = if is_func_scanf callee then *)
+      (*     print "TODO: need to handle func call: scanf" in *)
       input
     | _ -> input
 
@@ -751,7 +778,7 @@ module RangeTransfer : DF.ForwardDataTransfer= struct
         | BInt i ->
           let vlb =
             if r.range_li then i
-            else BInt.add_big_int i BInt.unit_big_int in
+            else BInt.add_big_int i BInt.one in
           BInt.ge_big_int vlb (BInt.big_int_of_int64 lb)
 
   let check_range_upper_bound fenv instr (v: llvalue) (ub: int64) : bool =
@@ -768,9 +795,7 @@ module RangeTransfer : DF.ForwardDataTransfer= struct
           let vub = if r.range_ui then i else Int64.(-) i Int64.one in
           Int64.(<=) vub ub
         | BInt i ->
-          let vub =
-            if r.range_ui then i
-            else BInt.min_big_int i BInt.unit_big_int in
+          let vub = if r.range_ui then i else BInt.sub_big_int i BInt.one in
           BInt.le_big_int vub (BInt.big_int_of_int64 ub)
 
   let check_range_full fenv instr (v: llvalue) (lb: int64) (ub: int64) : bool =

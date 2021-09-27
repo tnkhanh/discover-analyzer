@@ -1160,6 +1160,11 @@ let is_type_void (typ: lltype) : bool =
   | LT.Void -> true
   | _ -> false
 
+let is_type_integer (typ: lltype) : bool =
+  match LL.classify_type typ with
+  | LT.Integer -> true
+  | _ -> false
+
 let is_type_array (typ: lltype) : bool =
   match LL.classify_type typ with
   | LT.Array -> true
@@ -2189,6 +2194,17 @@ let src_of_instr_sext (i: instr) : llvalue =
 let dst_of_instr_sext (i: instr) : llvalue = match instr_opcode i with
   | LO.SExt -> llvalue_of_instr i
   | _ -> herror "dst_of_instr: not an instr SExt: " pr_instr i
+
+(* ZExt *)
+
+let src_of_instr_zext (i: instr) : llvalue =
+  match instr_opcode i with
+  | LO.ZExt -> operand i 0
+  | _ -> herror "src_of_instr: not an instr ZExt: " pr_instr i
+
+let dst_of_instr_zext (i: instr) : llvalue = match instr_opcode i with
+  | LO.ZExt -> llvalue_of_instr i
+  | _ -> herror "dst_of_instr: not an instr ZExt: " pr_instr i
 
 (* Call *)
 
