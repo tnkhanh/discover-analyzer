@@ -128,6 +128,14 @@ let perform_main_analysis_passes (pdata: program_data) : program_data =
  ** Find bugs
  *******************************************************************)
 
+let find_bug_integer_overflow (pdata: program_data) =
+  let pbugs = pdata.pdata_potential_bugs in
+  let bugs = match pdata.pdata_env_range with
+    | None -> []
+    | Some env ->
+      List.filter ~f:(fun bug -> RG.check_bug env bug == True) pbugs in
+  List.map ~f:(BG.mk_real_bug "RangeAnalysis") bugs
+
 let find_bug_buffer_overflow (pdata: program_data) =
   let pbugs = pdata.pdata_potential_bugs in
   let bugs = match pdata.pdata_env_range with
@@ -183,7 +191,6 @@ let report_analysis_stats (pdata: program_data) : unit =
 (*******************************************************************
  ** Analysis functions
  *******************************************************************)
-
 
 let analyze_program_llvm (prog: LI.program) : unit =
   let _ = hprint ~ruler:`Long "Analyze program by " pr_dfa_mode !dfa_mode in

@@ -25,15 +25,21 @@ type bug_type =
   | MemoryLeak of memory_leak
   | NullPointerDeref
   | BufferOverflow of buffer_overflow
-  | IntegerOverflow
+  | IntegerOverflow of integer_overflow
   | IntegerUnderflow
   | DivisionByZero
 
+and integer_overflow = {
+  iof_expr : llvalue;
+  iof_bitwidth : int;
+  iof_instr : instr;
+}
+
 and buffer_overflow = {
-  bof_instr : instr;
   bof_pointer : llvalue;
   bof_size : int option;
   bof_index : llvalue;
+  bof_instr : instr;
 }
 
 and memory_leak = {
@@ -56,6 +62,8 @@ type bug = {
  ** printing
  *******************************************************************)
 
+(* memory bugs *)
+
 let pr_buffer_overflow (bof: buffer_overflow) : string =
   let size = match bof.bof_size with
     | None -> "unknown"
@@ -71,12 +79,20 @@ let pr_memory_leak (mlk: memory_leak) : string =
   "MEMORY LEAK\n" ^
   "  Reason: buffer size: " ^ size
 
+(* integer bugs *)
+
+let pr_integer_overflow (iof: integer_overflow) : string =
+  "INTEGER OVERFLOW\n" ^
+  "  Reason: expr: " ^ (pr_value iof.iof_expr) ^
+  ", bit width: " ^ (pr_int iof.iof_bitwidth)
+
+
 let pr_bug_type_detail (btype: bug_type) : string =
   match btype with
   | MemoryLeak mlk -> pr_memory_leak mlk
   | NullPointerDeref -> "NULL POINTER DEREFERENCE"
   | BufferOverflow bof -> pr_buffer_overflow bof
-  | IntegerOverflow -> "INTEGER OVERFLOW"
+  | IntegerOverflow iof -> pr_integer_overflow iof
   | IntegerUnderflow -> "INTEGER UNDERFLOW"
   | DivisionByZero -> "DIVISION BY ZERO"
 
@@ -85,7 +101,7 @@ let pr_bug_type_summary (btype: bug_type) : string =
   | MemoryLeak _ -> "Memory Leak"
   | NullPointerDeref -> "Null Pointer Dereference"
   | BufferOverflow _ -> "Buffer Overflow"
-  | IntegerOverflow -> "Integer Overflow"
+  | IntegerOverflow _ -> "Integer Overflow"
   | IntegerUnderflow -> "Integer Underflow"
   | DivisionByZero -> "Division By Zero"
 
@@ -146,6 +162,13 @@ let mk_potential_bug (instr: instr) (btype: bug_type) : bug =
  *         bof_index = index; }
  *     | _ -> error "mk_buffer_overflow: expect GetElementPtr" in
  *   mk_potential_bug instr (BufferOverflow bof) *)
+
+let mk_potential_integer_overflow (instr: instr) : bug =
+  let expr = llvalue_of_instr instr in
+  let iof = { iof_expr = expr;
+              iof_bitwidth = LL.integer_bitwidth (LL.type_of expr);
+              iof_instr = instr } in
+  mk_potential_bug instr (IntegerOverflow iof)
 
 let mk_potential_memory_leak (instr: instr) : bug =
   let mlk = { mlk_pointer = llvalue_of_instr instr;

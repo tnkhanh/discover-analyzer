@@ -26,11 +26,14 @@ module MP = Map.Poly
 
 module IntervalDomain = struct
 
+
   type bound =
-    | PInf
-    | NInf
-    | Int64 of int64
-    (* | Float of float *)        (* TRUNG: temporarily disable Float, implement later *)
+    | PInf                         (* positive infinity *)
+    | NInf                         (* negative infiinity *)
+    (* | PTwoPower of int             (\* +(2^n) or 2^n for short, with n>=0 *\) *)
+    (* | NTwoPower of int             (\* -(2^n): negative number, with n>=0 *\) *)
+    | Int64 of int64               (* integer 64 bit *)
+    (* | BigInt of Big_int.big_int *)
 
   type range = {
     range_lb : bound;             (* lower bound *)
@@ -55,7 +58,9 @@ module IntervalDomain = struct
     | PInf -> "+inf"
     | NInf -> "-inf"
     | Int64 x -> Int64.to_string x
-    (* | Float x -> pr_float x *)
+    (* | PTwoPower n -> "2^" ^ (pr_int n) *)
+    (* | NTwoPower n -> "-(2^" ^ (pr_int n) ^ ")" *)
+    (* | BigInt *)
 
   let pr_range (r: range) : string =
     let plb = if r.range_li then "[" else "(" in
@@ -115,13 +120,42 @@ module IntervalDomain = struct
 
   let compare_bound (a: bound) (b: bound) : int =
     match a, b with
+    (* either a, or b is PInf *)
     | PInf, PInf -> 0
     | PInf, _ -> 1
     | _, PInf -> -1
+    (* either a, or b is NInf *)
     | NInf, NInf -> 0
     | NInf, _ -> -1
     | _, NInf -> 1
+    (* (\* a, b is either PTwoPower or NTwoPower *\) *)
+    (* | PTwoPower n, PTwoPower m -> Int.compare n m *)
+    (* | PTwoPower _, NTwoPower _ -> 1 *)
+    (* | NTwoPower _, PTwoPower _ -> -1 *)
+    (* | NTwoPower n, NTwoPower m -> -(Int.compare n m) *)
+    (* one of a, b is Int64, the other is either PTwoPower, NTwoPower, or Int64 *)
     | Int64 x, Int64 y -> Int64.compare x y
+    (* | Int64 x, PTwoPower m -> *)
+    (*   if m < 64 then *)
+    (*     let y = Int64.pow (Int64.of_int 2) (Int64.of_int m) in *)
+    (*     Int64.compare x y *)
+    (*   else  -1 *)
+    (* | Int64 x, NTwoPower m -> *)
+    (*   if m >= 64 then *)
+    (*     let y = Int64.neg (Int64.pow (Int64.of_int 2) (Int64.of_int m)) in *)
+    (*     Int64.compare x y *)
+    (*   else -1 *)
+    (* | PTwoPower n, Int64 y -> *)
+    (*   if n < 64 then *)
+    (*     let x = Int64.pow (Int64.of_int 2) (Int64.of_int n) in *)
+    (*     Int64.compare x y *)
+    (*   else 1 *)
+    (* | NTwoPower n, Int64 y -> *)
+    (*   if n < 64 then *)
+    (*     let x = Int64.neg (Int64.pow (Int64.of_int 2) (Int64.of_int n)) in *)
+    (*     Int64.compare x y *)
+    (*   else -1 *)
+
 
   (* leq *)
 
@@ -169,15 +203,19 @@ module IntervalDomain = struct
 
   (* operations with bound *)
 
-  let add_bound (a: bound) (b: bound) =
+  (** add two bounds, return output bound *)
+  let add_bound (a: bound) (b: bound) : bound =
     match a, b with
+    (* either a, b is PInf *)
     | PInf, NInf -> error "add_bound: undefined for PInf + NInf"
-    | PInf, _ -> PInf
     | NInf, PInf -> error "add_bound: undefined for NInf + PInf"
+    | PInf, _ -> PInf
+    | _, PInf -> PInf
+    (* either a, b is NInf *)
     | NInf, _ -> NInf
+    | _, NInf -> NInf
+    (**)
     | Int64 x, Int64 y -> Int64 (Int64.(+) x y)
-    | Int64 _, PInf -> PInf
-    | Int64 _, NInf -> NInf
 
   let sub_bound (a: bound) (b: bound) =
     let neg_b = match b with
@@ -597,27 +635,29 @@ module RangeTransfer : DF.ForwardDataTransfer= struct
     (* TODO: default behavior, implement later if necessary *)
     input
 
+  (* TODO: need to consider `nuw`, `nsw` in arithmetic instructions *)
   let analyze_instr ?(widen=false) (penv: prog_env) fenv instr (input: t) : t =
     let func = func_of_instr instr in
     let expr = expr_of_instr instr in
     match instr_opcode instr with
     | LO.Unreachable -> least_data
-    | LO.Add | LO.FAdd ->
+    | LO.Add ->
       let opr0, opr1 = expr_operand instr 0, expr_operand instr 1 in
       let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
       let itv = add_interval itv0 itv1 in
       replace_interval expr itv input
-    | LO.Sub | LO.FSub ->
+    | LO.Sub ->
       let opr0, opr1 = expr_operand instr 0, expr_operand instr 1 in
       let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
       let itv = sub_interval itv0 itv1 in
       replace_interval expr itv input
-    | LO.Mul | LO.FMul ->
+    | LO.Mul ->
       let opr0, opr1 = expr_operand instr 0, expr_operand instr 1 in
       let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
       let itv = mult_interval itv0 itv1 in
       replace_interval expr itv input
-    | LO.UDiv | LO.SDiv | LO.FDiv ->  (* need to handle DIV *)
+    | LO.UDiv | LO.SDiv ->
+      (* TODO: need to handle Div *)
       input
     | LO.PHI ->
       let opr0 = expr_operand instr 0 in
@@ -655,20 +695,32 @@ module RangeTransfer : DF.ForwardDataTransfer= struct
    ** Bug and assertions
    *******************************************************************)
 
-  let check_buffer_overflow (fenv: func_env) (bof: BG.buffer_overflow) : ternary =
-    match get_instr_output fenv bof.bof_instr with
-    | None -> False
-    | Some data ->
-      let iinterval = get_interval (expr_of_llvalue bof.bof_index) data in
-      match bof.bof_size with
+  let check_buffer_overflow fenv (bof: BG.buffer_overflow) : ternary =
+    if !bug_memory_all || !bug_buffer_overflow then
+      match get_instr_output fenv bof.bof_instr with
       | None -> False
-      | Some n ->
-        if compare_interval_upper_bound_with_int iinterval n >= 0 then True
-        else False
+      | Some data ->
+        let iinterval = get_interval (expr_of_llvalue bof.bof_index) data in
+        match bof.bof_size with
+        | None -> False
+        | Some n ->
+          if compare_interval_upper_bound_with_int iinterval n >= 0 then True
+          else False
+    else False
+
+  let check_integer_overflow fenv (iof: BG.integer_overflow) : ternary =
+    if !bug_integer_all || !bug_integer_overflow then
+      match get_instr_output fenv iof.iof_instr with
+      | None -> False
+      | Some data ->
+        let _ = print "TODO: IMPLEMENT: check_integer_overflow " in
+        False
+    else False
 
   let check_bug (fenv: func_env) (bug: BG.bug) : ternary =
     match bug.BG.bug_type with
     | BG.BufferOverflow bof -> check_buffer_overflow fenv bof
+    | BG.IntegerOverflow iof -> check_integer_overflow fenv iof
     | _ -> Unkn
 
   let count_assertions (prog: program) : int =

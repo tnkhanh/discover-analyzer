@@ -187,6 +187,24 @@ and arguments_raw = [
    "Enable/disable compute used globals in function pointers",
    Arg.Bool (fun b -> dfa_used_globals_in_func_ptrs := b));
 
+  (*--------------------------------------------------------
+   * bug passes
+   *--------------------------------------------------------*)
+
+  (["--bug-integer-all"], "Find all integer bugs",
+   Arg.Unit (fun () -> bug_integer_all := true));
+
+  (["--bug-integer-overflow"], "Find integer-overflow bugs",
+   Arg.Unit (fun () -> bug_integer_overflow := true));
+
+  (["--bug-integer-underflow"], "Find integer-underflow bugs",
+   Arg.Unit (fun () -> bug_integer_overflow := true));
+
+  (["--bug-memory-all"], "Find memory bugs",
+   Arg.Unit (fun () -> bug_memory_all := true));
+
+  (["--bug-all"], "Find all bugs",
+   Arg.Unit (fun () -> bug_integer_all := true; bug_memory_all := true;));
 
   (*--------------------------------------------------------
    * reporting

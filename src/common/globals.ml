@@ -67,9 +67,6 @@ let skip_analysis = ref false
 (* build and release mode *)
 let release_mode = ref false              (* "false" means debug mode *)
 
-(***************************************)
-(********* Data-flow analysis **********)
-
 (* analysis properties *)
 let dfa_mode = ref DfaInterProc
 
@@ -110,6 +107,18 @@ let dfa_context_split_phi = ref false
 let dfa_used_globals_selective = ref true
 (* let dfa_used_globals_in_func_ptrs = ref true *)
 let dfa_used_globals_in_func_ptrs = ref true
+
+(* integer bugs *)
+let bug_integer_all = ref false
+let bug_integer_overflow = ref false
+let bug_integer_underflow = ref false
+let bug_divizion_by_zero = ref false
+
+(* memory bugs *)
+let bug_memory_all = ref false
+let bug_memory_leak = ref false
+let bug_null_pointer_deref = ref false
+let bug_buffer_overflow = ref false
 
 (*******************************************************************
  ** global variables
