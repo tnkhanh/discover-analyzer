@@ -731,7 +731,7 @@ module RangeTransfer : DF.ForwardDataTransfer= struct
     | _ -> input
 
   (*******************************************************************
-   ** Bug and assertions
+   ** Checking bugs
    *******************************************************************)
 
   let check_buffer_overflow fenv (bof: BG.buffer_overflow) : ternary =
@@ -781,6 +781,10 @@ module RangeTransfer : DF.ForwardDataTransfer= struct
     | BG.IntegerOverflow iof -> check_integer_overflow fenv iof
     | BG.IntegerUnderflow iuf -> check_integer_underflow fenv iuf
     | _ -> Unkn
+
+  (*******************************************************************
+   ** Checking assertions
+   *******************************************************************)
 
   let count_assertions (prog: program) : int =
     (* TODO: implement later if necessary *)
@@ -868,7 +872,6 @@ module RangeTransfer : DF.ForwardDataTransfer= struct
         print_endline (AS.pr_assertion_status func ast res)
       | None -> ()) assertions in
     !num_checked_assertions
-
 
 end
 

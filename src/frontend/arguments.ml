@@ -191,16 +191,25 @@ and arguments_raw = [
    * bug passes
    *--------------------------------------------------------*)
 
-  (["--bug-integer-all"], "Find all integer bugs",
-   Arg.Unit (fun () -> bug_integer_all := true));
-
   (["--bug-integer-overflow"], "Find integer-overflow bugs",
    Arg.Unit (fun () -> bug_integer_overflow := true));
 
   (["--bug-integer-underflow"], "Find integer-underflow bugs",
    Arg.Unit (fun () -> bug_integer_underflow := true));
 
-  (["--bug-memory-all"], "Find memory bugs",
+  (["--bug-memory-leak"], "Find memory leak bugs",
+   Arg.Unit (fun () -> bug_memory_leak := true));
+
+  (["--bug-null-pointer-deref"], "Find null pointer dereference bugs",
+   Arg.Unit (fun () -> bug_null_pointer_deref := true));
+
+  (["--bug-buffer-overflow"], "Find buffer overflow bugs",
+   Arg.Unit (fun () -> bug_buffer_overflow := true));
+
+  (["--bug-integer-all"], "Find all integer bugs",
+   Arg.Unit (fun () -> bug_integer_all := true));
+
+  (["--bug-memory-all"], "Find all memory bugs",
    Arg.Unit (fun () -> bug_memory_all := true));
 
   (["--bug-all"], "Find all bugs",

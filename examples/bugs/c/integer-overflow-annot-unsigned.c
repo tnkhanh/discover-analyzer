@@ -8,15 +8,15 @@ int main(int argc, char** argv) {
   scanf("%d", &a);
 
   // BUG: there is an integer overflow bug in the below line
-  unsigned int x = /*{bug:integer_overflow*/ a * 4 /*:bug}*/;
+  unsigned int x = /*{Bug:IntegerOverflow*/ a * 4 /*:Bug}*/;
 
   // BUG: there is an integer overflow bug in the below line
-  unsigned long y = /*{bug:integer_overflow*/ a * 10 /*:bug}*/;
+  unsigned long y = /*{Bug:IntegerOverflow*/ a * 10 /*:Bug}*/;
 
   // SAFE: there is NO integer overflow bug in the below line
-  // The conversion `long b = a` can guarantee that `b * 10` is SAFE.
+  // The conversion `long b = a` implies that `b * 10` is SAFE from integer overflow.
   unsigned long b = a;
-  unsigned long z = /*{safe:integer_overflow*/ b * 10 /*:safe}*/;
+  unsigned long z = /*{Safe:IntegerOverflow*/ b * 10 /*:Safe}*/;
 
   printf("x: %u\n", x);
   printf("y: %lu\n", y);
