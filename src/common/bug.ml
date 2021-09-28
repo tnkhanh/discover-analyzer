@@ -43,7 +43,7 @@ and integer_underflow = {
 
 and buffer_overflow = {
   bof_pointer : llvalue;
-  bof_size : int option;
+  bof_size : expr option;
   bof_index : llvalue;
   bof_instr : instr;
 }
@@ -73,7 +73,7 @@ type bug = {
 let pr_buffer_overflow (bof: buffer_overflow) : string =
   let size = match bof.bof_size with
     | None -> "unknown"
-    | Some size -> pr_int size in
+    | Some size -> pr_expr size in
   "BUFFER OVERFLOW\n" ^
   "  Reason: buffer size: " ^ size ^
   ", accessing index: " ^ (pr_value bof.bof_index)
@@ -184,7 +184,7 @@ let mk_potential_buffer_overflow (instr: instr) : bug =
         match LL.classify_type elem_typ with
         (* pointer to an array *)
         | LL.TypeKind.Array ->
-          let size = LL.array_length elem_typ in
+          let size = mk_expr_int64 (Int64.of_int (LL.array_length elem_typ)) in
           let array_idx = match List.nth idxs 1 with
             | Some idx -> idx
             | None ->

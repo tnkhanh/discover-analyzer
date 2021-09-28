@@ -379,23 +379,23 @@ module IntervalDomain = struct
 
   let extract_constant_bound (e: expr) : bound option =
     match e with
-    | Integer i -> Some (Int64 i)
+    | Int64 i -> Some (Int64 i)
     | _ -> None
 
-  let compare_range_upper_bound_with_int (r: range) (i: int) : int =
+  let compare_range_upper_bound_with_int (r: range) (i: int64) : int =
     match r.range_ub with
     | PInf -> 1
     | NInf -> -1
     | Int64 x ->
-      let cmp = Int64.compare x (Int64.of_int i) in
+      let cmp = Int64.compare x i in
       if r.range_ui || cmp != 0 then cmp
       else -1
     | BInt x ->
-      let cmp = BInt.compare_big_int x (BInt.big_int_of_int i) in
+      let cmp = BInt.compare_big_int x (BInt.big_int_of_int64 i) in
       if r.range_ui || cmp != 0 then cmp
       else -1
 
-  let compare_interval_upper_bound_with_int (it: interval) (i: int) : int =
+  let compare_interval_upper_bound_with_int (it: interval) (i: int64) : int =
     match it with
     | Bottom -> -1
     | Range r -> compare_range_upper_bound_with_int r i
@@ -482,7 +482,7 @@ module RangeTransfer : DF.ForwardDataTransfer= struct
 
   let get_interval (e: expr) (d: t) : interval =
     match e with
-    | Integer i -> interval_of_bound (Int64 i)
+    | Int64 i -> interval_of_bound (Int64 i)
     | _ ->
       match MP.find d e with
       | Some i -> i
@@ -742,9 +742,10 @@ module RangeTransfer : DF.ForwardDataTransfer= struct
         let itv = get_interval (expr_of_llvalue bof.bof_index) data in
         match bof.bof_size with
         | None -> False
-        | Some n ->
+        | Some (Int64 n) ->
           if compare_interval_upper_bound_with_int itv n >= 0 then True
           else False
+        | _ -> False  (* TODO: check symbolic size *)
     else False
 
   let check_integer_overflow fenv (iof: BG.integer_overflow) : ternary =
