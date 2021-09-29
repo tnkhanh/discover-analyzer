@@ -620,6 +620,9 @@ let mk_expr_undef (typ: lltype) : expr =
 let mk_expr_int64 (i: int64)  : expr =
   Int64 i
 
+let mk_expr_int64_of_int (i: int)  : expr =
+  Int64 (Int64.of_int i)
+
 let mk_expr_float (f: float)  : expr =
   Float f
 

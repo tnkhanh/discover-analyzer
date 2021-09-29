@@ -35,6 +35,7 @@ type dfa_analysis =
   | DfaUndef
   | DfaMemsize
   | DfaPointer
+  | DfaAutoSchedule
   | DfaAllAnalyses
 
 type input_mode =
@@ -291,6 +292,7 @@ let name_of_dfa (dfa: dfa_analysis) : string =
   | DfaUndef -> "Undef Analysis"
   | DfaMemsize -> "Memsize Analysis"
   | DfaPointer -> "Pointer Analysis"
+  | DfaAutoSchedule -> "Auto-schedule DFA Analyses"
   | DfaAllAnalyses -> "All Analyses"
 
 

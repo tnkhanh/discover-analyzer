@@ -158,6 +158,11 @@ and arguments_raw = [
      work_mode := WkmDFA;
      dfa_analyses := [DfaAllAnalyses]));
 
+  (["--dfa-auto-schedule"], "Auto schedule DFA analyses by bug types",
+   Arg.Unit (fun () ->
+     work_mode := WkmDFA;
+     dfa_analyses := [DfaAutoSchedule]));
+
   (["--dfa-func"], "Function to be analyzed",
    Arg.String (fun s -> dfa_func_name := Some s));
 
@@ -214,6 +219,7 @@ and arguments_raw = [
 
   (["--bug-all"], "Find all bugs",
    Arg.Unit (fun () -> bug_integer_all := true; bug_memory_all := true;));
+
 
   (*--------------------------------------------------------
    * reporting

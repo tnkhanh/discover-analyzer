@@ -883,4 +883,19 @@ end
 module RangeAnalysis = struct
   include RangeTransfer
   include DF.ForwardDataFlow(RangeTransfer)
+
+  module RT = RangeTransfer
+  module ID = IntervalDomain
+
+  (* TODO: how to expose some internal function here? *)
+
+  (* let get_interval (e: expr) (d: t) : ID.interval = *)
+  (*   match e with *)
+  (*   | Int64 i -> ID.interval_of_bound (Int64 i) *)
+  (*   | _ -> *)
+  (*     match MP.find d e with *)
+  (*     | Some i -> i *)
+  (*     | None -> IntervalDomain.least_interval *)
+
+
 end

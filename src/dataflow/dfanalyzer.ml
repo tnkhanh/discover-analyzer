@@ -156,17 +156,27 @@ let find_bug_integer_underflow (pdata: program_data) =
 
 (* let get_buffer_size *)
 
-(* let check_buffer_overflow fenv (bof: BG.buffer_overflow) (pdata: program_data) : ternary = *)
+(* (\* TODO: use 2 analyses for buffer overflow: range anlaysis and memsize *\) *)
+(* let check_buffer_overflow (bof: BG.buffer_overflow) pdata : ternary = *)
 (*   if !bug_memory_all || !bug_buffer_overflow then *)
-(*     match get_instr_output fenv bof.bof_instr with *)
+(*     match pdata.pdata_env_range with *)
 (*     | None -> False *)
-(*     | Some data -> *)
-(*       let itv = get_interval (expr_of_llvalue bof.bof_index) data in *)
-(*       match bof.bof_size with *)
-(*       | None -> False *)
-(*       | Some n -> *)
-(*         if compare_interval_upper_bound_with_int itv n >= 0 then True *)
-(*         else False *)
+(*     | Some penv -> *)
+(*       let func = LI.func_of_instr bof.bof_instr in *)
+(*       let fenvs = match Hashtbl.find penv.penv_func_envs func with *)
+(*         | None -> [] *)
+(*         | Some fenvs -> fenvs in *)
+(*       let res = List.exists ~f:(fun fenv -> *)
+(*         match RG.get_instr_output fenv bof.bof_instr with *)
+(*         | None -> false *)
+(*         | Some data -> *)
+(*           let itv = RG.get_interval (LI.expr_of_llvalue bof.bof_index) data in *)
+(*           match bof.bof_size with *)
+(*           | None -> false *)
+(*           | Some n -> *)
+(*             if compare_interval_upper_bound_with_int itv n >= 0 then true *)
+(*             else false) fenvs in *)
+(*       if res then True else False *)
 (*   else False *)
 
 let find_bug_buffer_overflow (pdata: program_data) =
@@ -193,6 +203,11 @@ let find_bug_memory_leak (pdata: program_data) =
       List.filter ~f:(fun bug -> PA.check_bug env bug == True) |>
       List.map ~f:(BG.mk_real_bug "PointerAnalysis") in
   bugs1 @ bugs2
+
+
+(* TODO: need a mechanism to schedule analyses based on bugs:
+   1. Indetify the type of bugs will be checked
+   2. Determine which analyeses need to be performed. *)
 
 let find_all_bugs (pdata: program_data) : unit =
   let _ = println "Checking Bugs..." in

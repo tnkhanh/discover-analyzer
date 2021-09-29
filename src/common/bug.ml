@@ -184,7 +184,7 @@ let mk_potential_buffer_overflow (instr: instr) : bug =
         match LL.classify_type elem_typ with
         (* pointer to an array *)
         | LL.TypeKind.Array ->
-          let size = mk_expr_int64 (Int64.of_int (LL.array_length elem_typ)) in
+          let size = mk_expr_int64_of_int (LL.array_length elem_typ) in
           let array_idx = match List.nth idxs 1 with
             | Some idx -> idx
             | None ->
