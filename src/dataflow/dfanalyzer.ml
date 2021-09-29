@@ -138,6 +138,7 @@ let find_bug_integer_overflow (pdata: program_data) =
   let bugs = match pdata.pdata_env_range with
     | None -> []
     | Some env ->
+      (* TODO: may need to run analysis passes to update bug infor *)
       List.filter ~f:(fun bug -> RG.check_bug env bug == True) pbugs in
   List.map ~f:(BG.mk_real_bug "RangeAnalysis") bugs
 
@@ -180,6 +181,15 @@ let find_bug_integer_underflow (pdata: program_data) =
 (*   else False *)
 
 let find_bug_buffer_overflow (pdata: program_data) =
+  let pbugs = List.filter ~f:BG.is_bug_buffer_overflow
+                pdata.pdata_potential_bugs in
+  let bugs = match pdata.pdata_env_range with
+    | None -> []
+    | Some env ->
+      List.filter ~f:(fun bug -> RG.check_bug env bug == True) pbugs in
+  List.map ~f:(BG.mk_real_bug "RangeAnalysis") bugs
+
+let propopage_info_buffer_overflow (pdata: program_data) =
   let pbugs = List.filter ~f:BG.is_bug_buffer_overflow
                 pdata.pdata_potential_bugs in
   let bugs = match pdata.pdata_env_range with

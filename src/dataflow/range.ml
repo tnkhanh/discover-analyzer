@@ -739,8 +739,8 @@ module RangeTransfer : DF.ForwardDataTransfer= struct
       match get_instr_output fenv bof.bof_instr with
       | None -> False
       | Some data ->
-        let itv = get_interval (expr_of_llvalue bof.bof_index) data in
-        match bof.bof_size with
+        let itv = get_interval (expr_of_llvalue bof.bof_elem_index) data in
+        match bof.bof_num_elem with
         | None -> False
         | Some (Int64 n) ->
           if compare_interval_upper_bound_with_int itv n >= 0 then True

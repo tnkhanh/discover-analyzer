@@ -43,9 +43,9 @@ and integer_underflow = {
 
 and buffer_overflow = {
   bof_pointer : llvalue;
-  bof_size : expr option;
-  bof_index : llvalue;
+  bof_elem_index : llvalue;
   bof_instr : instr;
+  bof_num_elem : expr option;
 }
 
 and memory_leak = {
@@ -71,12 +71,12 @@ type bug = {
 (* memory bugs *)
 
 let pr_buffer_overflow (bof: buffer_overflow) : string =
-  let size = match bof.bof_size with
-    | None -> "unknown"
-    | Some size -> pr_expr size in
+  let num_elem = match bof.bof_num_elem with
+    | None -> "Unknown"
+    | Some e -> pr_expr e in
   "BUFFER OVERFLOW\n" ^
-  "  Reason: buffer size: " ^ size ^
-  ", accessing index: " ^ (pr_value bof.bof_index)
+  "  Reason: num elements: " ^ num_elem ^
+  ", accessing index: " ^ (pr_value bof.bof_elem_index)
 
 let pr_memory_leak (mlk: memory_leak) : string =
   let size = match mlk.mlk_size with
@@ -195,8 +195,8 @@ let mk_potential_buffer_overflow (instr: instr) : bug =
         | _ -> (None, List.hd_exn idxs) in
       { bof_instr = instr;
         bof_pointer = ptr;
-        bof_size = size;
-        bof_index = index; }
+        bof_num_elem = size;
+        bof_elem_index = index; }
     | _ -> error "mk_buffer_overflow: expect GetElementPtr" in
   mk_potential_bug instr (BufferOverflow bof)
 
