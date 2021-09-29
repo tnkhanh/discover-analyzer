@@ -186,6 +186,7 @@ with Ubuntu 21.04
   ```
   PATH=/path-to-llvm-dir/bin:$PATH
   LD_LIBRARY_PATH=/path-to-llvm-dir/lib:/path-to-llvm-dir/lib64:$LD_LIBRARY_PATH
+  export LIBRARY_PATH=$HOME/llvm/llvm-13/lib:$HOME/llvm/llvm-13/lib64:$LIBRARY_PATH  #if you build LLVM13 from source
   ```
 
 - Compile `discover`:
