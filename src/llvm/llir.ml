@@ -353,6 +353,7 @@ type program = {
   prog_module_id : string;
   prog_data_layout : string;
   prog_target_platform : string;
+  prog_llmodule : llmodule;
 }
 
 exception Llvm_invalid_instr of string
@@ -2780,7 +2781,8 @@ let mk_program (filename: string) (m: llmodule) : program =
     prog_llvalue_original_name = Hashtbl.create (module String);
     prog_module_id = "<unknown>"; (* module_id; *)
     prog_data_layout = data_layout;
-    prog_target_platform = compiled_target; }
+    prog_target_platform = compiled_target;
+    prog_llmodule = m; }
 
 (*******************************************************************
  ** more advanced printing
