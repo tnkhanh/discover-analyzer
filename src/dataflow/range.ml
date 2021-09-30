@@ -740,7 +740,7 @@ module RangeTransfer : DF.ForwardDataTransfer= struct
       | None -> False
       | Some data ->
         let itv = get_interval (expr_of_llvalue bof.bof_elem_index) data in
-        match bof.bof_num_elem with
+        match bof.bof_buff_size with
         | None -> False
         | Some (Int64 n) ->
           if compare_interval_upper_bound_with_int itv n >= 0 then True
@@ -781,6 +781,31 @@ module RangeTransfer : DF.ForwardDataTransfer= struct
     | BG.BufferOverflow bof -> check_buffer_overflow fenv bof
     | BG.IntegerOverflow iof -> check_integer_overflow fenv iof
     | BG.IntegerUnderflow iuf -> check_integer_underflow fenv iuf
+    | _ -> Unkn
+
+  (*******************************************************************
+   ** Propagate bug infor
+   *******************************************************************)
+
+  let propagate_buffer_overflow_info fenv (bof: BG.buffer_overflow) : BG.buffer_overflow =
+    if !bug_memory_all || !bug_buffer_overflow then
+      match get_instr_output fenv bof.bof_instr with
+      | None -> bof
+      | Some data ->
+        let itv = get_interval (expr_of_llvalue bof.bof_elem_index) data in
+        match bof.bof_buff_size with
+        | None -> False
+        | Some (Int64 n) ->
+          if compare_interval_upper_bound_with_int itv n >= 0 then True
+          else False
+        | _ -> False  (* TODO: check symbolic size *)
+    else bof
+
+  let propage_bug_infor (fenv: func_env) (bug: BG.bug) : BG.bug =
+    match bug.BG.bug_type with
+    | BG.BufferOverflow bof -> check_buffer_overflow fenv bof
+    (* | BG.IntegerOverflow iof -> check_integer_overflow fenv iof *)
+    (* | BG.IntegerUnderflow iuf -> check_integer_underflow fenv iuf *)
     | _ -> Unkn
 
   (*******************************************************************
