@@ -49,7 +49,7 @@ type const = Constant of llvalue       (* constant expression *)
 
 type expr =                            (* expression *)
   | Undef of lltype
-  | Integer of int64                   (* integer value and bitwidth *)
+  | Int64 of int64
   | Float of float
   | String of string
   | Var of llvalue
@@ -620,8 +620,11 @@ let llvalues_of_params (ps: params) : llvalues =
 let mk_expr_undef (typ: lltype) : expr =
   Undef typ
 
-let mk_expr_integer (i: int64)  : expr =
-  Integer i
+let mk_expr_int64 (i: int64)  : expr =
+  Int64 i
+
+let mk_expr_int64_of_int (i: int)  : expr =
+  Int64 (Int64.of_int i)
 
 let mk_expr_float (f: float)  : expr =
   Float f
@@ -648,12 +651,12 @@ let mk_expr_exn (tinfo: llvalue) : expr =
   Exn (mk_expr_var tinfo)
 
 let expr_of_int32 (i: int) =
-  mk_expr_integer (Int64.of_int i)
+  mk_expr_int64 (Int64.of_int i)
 
 let expr_of_llvalue (v: llvalue) : expr =
   match LL.int64_of_const v, LL.float_of_const v, LL.string_of_const v with
   | None, None, None -> mk_expr_var v
-  | Some i, _, _ -> mk_expr_integer i
+  | Some i, _, _ -> mk_expr_int64 i
   | _, Some f, _ -> mk_expr_float f
   | _, _, Some s -> mk_expr_string s
 
@@ -732,8 +735,8 @@ let rec equal_expr (e1: expr) (e2: expr) : bool =
   match e1, e2 with
   | Undef t1, Undef t2 -> equal_lltype t1 t2
   | Undef _, _ -> false
-  | Integer i1, Integer i2 -> Int64.equal i1 i2
-  | Integer _, _ -> false
+  | Int64 i1, Int64 i2 -> Int64.equal i1 i2
+  | Int64 _, _ -> false
   | Float f1, Float f2 -> Float.equal f1 f2
   | Float _, _ -> false
   | String s1, String s2 -> String.equal s1 s2
@@ -785,7 +788,7 @@ let pr_global ?(detailed=false) (g: global) : string =
 let rec pr_expr (e: expr) : string =
   match e with
   | Undef t -> "undef"
-  | Integer i -> Int64.to_string i
+  | Int64 i -> Int64.to_string i
   | Float f -> string_of_float f
   | String s -> "\"" ^ s ^ "\""
   | Var v -> pr_value v
@@ -1163,6 +1166,11 @@ let is_type_void (typ: lltype) : bool =
   | LT.Void -> true
   | _ -> false
 
+let is_type_integer (typ: lltype) : bool =
+  match LL.classify_type typ with
+  | LT.Integer -> true
+  | _ -> false
+
 let is_type_array (typ: lltype) : bool =
   match LL.classify_type typ with
   | LT.Array -> true
@@ -1212,7 +1220,7 @@ let rec get_elemptr_typ (typ: lltype) (idxs: expr list) : lltype =
     let ntyp = match LL.classify_type typ with
       | LT.Struct ->
         let fld_idx = match idx with
-          | Integer i -> Int64.to_int_exn i
+          | Int64 i -> Int64.to_int_exn i
           | _ -> error "get_elemptr_typ: can't get struct field idx" in
         Array.get (LL.subtypes typ) fld_idx
       | LT.Array -> LL.element_type typ
@@ -1380,39 +1388,39 @@ let is_expr_var (e: expr) : bool =
 
 let is_integer_expr (e: expr) : bool =
   match e with
-  | Integer _ -> true
+  | Int64 _ -> true
   | _ -> false
 
 let is_float_expr (e: expr) : bool =
   match e with
-  | Integer _ -> true
+  | Int64 _ -> true
   | _ -> false
 
 let is_constant_expr (e: expr) : bool =
   match e with
-  | Integer _ | Float _ -> true
+  | Int64 _ | Float _ -> true
   | _ -> false
 
 let is_zero_expr (e: expr) : bool =
   match e with
-  | Integer i -> Int64.(=) i Int64.zero
+  | Int64 i -> Int64.(=) i Int64.zero
   | _ -> false
 
 let is_symbolic_expr (e: expr) : bool =
   match e with
-  | Integer _ | Float _ -> false
+  | Int64 _ | Float _ -> false
   | Var v -> not (LL.is_constant v)
   | _ -> false
 
 let rec get_expr_depth (e: expr) : int =
   match e with
-  | Undef _ | Integer _ | Float _ | String _ | Var _ | OldE _ | FuncRes _ -> 1
+  | Undef _ | Int64 _ | Float _ | String _ | Var _ | OldE _ | FuncRes _ -> 1
   | Deref ne | ElemPtr (ne, _, _) | Malloc ne | Exn ne ->
     (get_expr_depth ne) + 1
 
 let rec is_sub_expr (e: expr) ~(sub: expr) : bool =
   match e with
-  | Undef _ | Integer _ | Float _ | String _ | Var _ | OldE _ | FuncRes _ -> false
+  | Undef _ | Int64 _ | Float _ | String _ | Var _ | OldE _ | FuncRes _ -> false
   | Deref ne | ElemPtr (ne, _, _) | Malloc ne | Exn ne ->
     (equal_expr ne sub) || (is_sub_expr ne ~sub)
 
@@ -1420,7 +1428,7 @@ let rec type_of_expr (e: expr) : lltype =
   let llcontext = LL.global_context () in
   match e with
   | Undef t -> t
-  | Integer _ -> LL.integer_type llcontext 64
+  | Int64 _ -> LL.integer_type llcontext 64
   | Float _ -> LL.float_type llcontext
   | String s -> LL.type_of (LL.const_string llcontext s)
   | Var v -> LL.type_of v
@@ -1821,7 +1829,7 @@ let rec subst_expr ?(sstv: substv = []) ?(sstve: substve = []) ?(sste: subste = 
     (* if not successful, substitute llvalue or llvalue/expr *)
     if List.not_empty sstv then
       match e with
-      | Undef _ | Integer _ | Float _ | String _ -> e
+      | Undef _ | Int64 _ | Float _ | String _ -> e
       | Var v -> Var (subst_value sstv v)
       | OldE e -> OldE (subst_expr ~sstv ~sstve ~sste e)
       | Deref e -> Deref (subst_expr ~sstv ~sstve ~sste e)
@@ -1834,7 +1842,7 @@ let rec subst_expr ?(sstv: substv = []) ?(sstve: substve = []) ?(sste: subste = 
       | Exn e -> Exn (subst_expr ~sstv ~sstve ~sste e)
     else
       match e with
-      | Undef _ | Integer _ | Float _ | String _ -> e
+      | Undef _ | Int64 _ | Float _ | String _ -> e
       | Var v -> subst_value_expr sstve v
       | OldE _ -> e
       | Deref e -> Deref (subst_expr ~sstv ~sstve ~sste e)
@@ -1857,7 +1865,7 @@ let get_undef_values_at_instr (prog: program) (instr: instr) : llvalues =
 
 let collect_llvalue_of_expr (e: expr) : llvalues =
   let rec collect e acc = match e with
-    | Undef _ | Integer _ | Float _ | String _ -> acc
+    | Undef _ | Int64 _ | Float _ | String _ -> acc
     | Var v -> List.insert_dedup acc v ~equal:equal_llvalue
     | OldE e -> collect e acc
     | Deref e -> collect e acc
@@ -2192,6 +2200,17 @@ let src_of_instr_sext (i: instr) : llvalue =
 let dst_of_instr_sext (i: instr) : llvalue = match instr_opcode i with
   | LO.SExt -> llvalue_of_instr i
   | _ -> herror "dst_of_instr: not an instr SExt: " pr_instr i
+
+(* ZExt *)
+
+let src_of_instr_zext (i: instr) : llvalue =
+  match instr_opcode i with
+  | LO.ZExt -> operand i 0
+  | _ -> herror "src_of_instr: not an instr ZExt: " pr_instr i
+
+let dst_of_instr_zext (i: instr) : llvalue = match instr_opcode i with
+  | LO.ZExt -> llvalue_of_instr i
+  | _ -> herror "dst_of_instr: not an instr ZExt: " pr_instr i
 
 (* Call *)
 

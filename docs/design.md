@@ -19,25 +19,16 @@ Brainstorming on the design of Discover
   + Used for small programs, small scale projects.
   + Slow, but highly precise.
 
+# Combining multiple analyses
+
+- Using only one analysis might not be enough for detecting bugs. For example,
+  to detect a buffer-overflow we might need to use 3 analyses:
+
+  + Pointer analysis: to capture aliasing information of pointers.
+  + Memory size analysis: to capture allocated size of buffers.
+  + Range analysis: to capture value of accessing indices.
+
 # Specifying bugs:
-
-- Two methods: using annotation (comments) or assertions (code instructions)?
-
-- Sample program:
-
-  ```c
-  #include <stdio.h>
-
-  void main(int argc, char** argv) {
-    int a = 1;
-    printf("Input an integer: ");
-    scanf("%d", &a);
-
-    int x = a * 4;       // Potential integer overflow at `a * 4`.
-
-    long y = a * 10;     // Potential integer overflow at `a * 10`.
-  }
-  ```
 
 - Specifying bugs using annotations:
 
@@ -50,37 +41,17 @@ Brainstorming on the design of Discover
     scanf("%d", &a);
 
     // Potential integer overflow at `a *  4`.
-    int x = /*{bug:integer_overflow*/ a * 4 /*:bug}*/;
+    int x = /*{Bug:IntegerOverflow*/ a * 4 /*:Bug}*/;
 
     // Potential integer overflow at `a * 10`.
-    long y = /*{bug:integer_overflow*/ a * 10 /*:bug}*/;
+    long y = /*{Bug:IntegerOverflow*/ a * 10 /*:Bug}*/;
+
+    // Potential integer overflow at `a * 10`.
+    long b = a;
+    long y = /*{Safe:IntegerOverflow*/ b * 10 /*:Safe}*/;
+
   }
   ```
 
-- Specifying bugs using assertions:
-
-  ```c
-  #include <stdio.h>
-
-  void main(int argc, char** argv) {
-    int a = 1;
-    printf("Input an integer: ");
-    scanf("%d", &a);
-
-    // Potential integer overflow at `a *  4`.
-    int x = a * 4;
-    __assert_integer_overflow(&x, sizeof(x));  // need type infor of x
-
-    // Potential integer overflow at `a * 10`.
-    long y = a * 10;
-    __assert_integer_overflow(&y, sizeof(y));  // need type infor of y
-  }
-  ```
-
-- Points need to consider when specifying bugs:
-  + Bug location needs to be as precise as possible.
-  + Metadata information needs to be maintained during the compilation, and is
-    accessible at the LLVM IR level.
-  + What else?
-
-- QUESTION: which method is better to specify bugs?
+- Discover will analyze the program to find bugs, and read the annotations to
+  check if a bug really happens as annotated.

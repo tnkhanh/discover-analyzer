@@ -1100,7 +1100,7 @@ module PointerDomain = struct
 
   let rec get_bitcast_alias (e: expr) : expr =
     let res = match e with
-      | Undef _ | Integer _ | Float _ | String _ | FuncRes _ -> e
+      | Undef _ | Int64 _ | Float _ | String _ | FuncRes _ -> e
       | Var v -> Var (get_root_src_of_bitcast v)
       | OldE e -> OldE (get_bitcast_alias e)
       | Exn e -> Exn (get_bitcast_alias e)
@@ -1209,21 +1209,21 @@ module PointerDomain = struct
       | [] -> List.rev acc
       | (PG.GEP (t1, idxs1, PG.From) as lbl1)::nlbls ->
         (match acc with
-         | PG.GEP (t2, (Integer i2)::nidxs2, From)::nacc ->
+         | PG.GEP (t2, (Int64 i2)::nidxs2, From)::nacc ->
            if Int64.(=) i2 Int64.zero then
              let combined_idxs = idxs1 @ nidxs2 in
              let combined_lbl = PG.GEP (t1, combined_idxs, PG.From) in
              accumulate_gep_indices nlbls (combined_lbl::nacc)
            else (
              match List.rev idxs1 with
-             | (Integer i1)::nridxs1 ->
-               let nidx = Integer (Int64.(+) i1 i2) in
+             | (Int64 i1)::nridxs1 ->
+               let nidx = Int64 (Int64.(+) i1 i2) in
                let combined_idxs = (List.rev nridxs1) @ [nidx] @ nidxs2 in
                let combined_lbl = PG.GEP (t1, combined_idxs, PG.From) in
                accumulate_gep_indices nlbls (combined_lbl::nacc)
              | _ -> accumulate_gep_indices nlbls (lbl1::acc))
          | _ -> accumulate_gep_indices nlbls (lbl1::acc))
-      | (PG.GEP (t1, (Integer i1)::nidxs1, PG.To) as lbl1)::nlbls ->
+      | (PG.GEP (t1, (Int64 i1)::nidxs1, PG.To) as lbl1)::nlbls ->
         (match acc with
          | PG.GEP (t2, idxs2, To)::nacc ->
            if Int64.(=) i1 Int64.zero then
@@ -1232,8 +1232,8 @@ module PointerDomain = struct
              accumulate_gep_indices nlbls (combined_lbl::nacc)
            else (
              match List.rev idxs2 with
-             | (Integer i2)::nridxs2 ->
-               let nidx = Integer (Int64.(+) i1 i2) in
+             | (Int64 i2)::nridxs2 ->
+               let nidx = Int64 (Int64.(+) i1 i2) in
                let combined_idxs = (List.rev nridxs2) @ [nidx] @ nidxs1 in
                let combined_lbl = PG.GEP (t2, combined_idxs, PG.To) in
                accumulate_gep_indices nlbls (combined_lbl::nacc)
@@ -1320,9 +1320,9 @@ module PointerDomain = struct
                   (* handling pointer arithmetic *)
                   let ridxs1, ridxs2 = List.rev idxs1, List.rev idxs2 in
                   match ridxs1, ridxs2 with
-                  | (Integer i1)::nridxs1, (Integer i2)::nridxs2 ->
+                  | (Int64 i1)::nridxs1, (Int64 i2)::nridxs2 ->
                     if List.for_all2_exn ~f:equal_expr nridxs1 nridxs2 then
-                      let idx = mk_expr_integer (Int64.(-) i1 i2) in
+                      let idx = mk_expr_int64 (Int64.(-) i1 i2) in
                       let lbl = PG.GEP (t1, [idx], PG.To) in
                       (* let _ = hdebug "New Label: " PG.pr_label lbl in *)
                       check_balance (lbl::nlabels) nvisited
@@ -1989,7 +1989,7 @@ module PointerTransfer : DF.ForwardDataTransfer = struct
   let is_removeable_vertex penv func (e: expr) =
     let rec root_llvalue_of_vertex (e: expr) =
       match e with
-      | Undef _ | Integer _ | Float _ | String _ -> []
+      | Undef _ | Int64 _ | Float _ | String _ -> []
       | Malloc e -> []
       | Var v -> [v]
       | OldE e -> root_llvalue_of_vertex e
@@ -2982,9 +2982,9 @@ module PointerTransfer : DF.ForwardDataTransfer = struct
           if equal_type styp dtyp && is_type_struct elem_typ then
             let struct_subelem_types = LL.struct_element_types elem_typ in
             let num_subelem_types = Array.length struct_subelem_types in
-            let base_idx = mk_expr_integer Int64.zero in
+            let base_idx = mk_expr_int64 Int64.zero in
             for i = 0 to num_subelem_types -1 do
-              let fld_idx = mk_expr_integer (Int64.of_int i) in
+              let fld_idx = mk_expr_int64 (Int64.of_int i) in
               let idxs = [base_idx; fld_idx] in
               let selem = mk_expr_elemptr sexp styp idxs in
               let delem = mk_expr_elemptr dexp dtyp idxs in

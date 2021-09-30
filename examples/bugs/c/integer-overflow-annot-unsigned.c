@@ -2,23 +2,23 @@
 #include <discover.h>
 
 int main(int argc, char** argv) {
-  int a = 1;
+  unsigned int a = 1;
 
   printf("Input an integer: ");
   scanf("%d", &a);
 
   // BUG: there is an integer overflow bug in the below line
-  int x = /*{Bug:IntegerOverflow*/ a * 4 /*:Bug}*/;
+  unsigned int x = /*{Bug:IntegerOverflow*/ a * 4 /*:Bug}*/;
 
   // BUG: there is an integer overflow bug in the below line
-  long y = /*{Bug:IntegerOverflow*/ a * 10 /*:Bug}*/;
+  unsigned long y = /*{Bug:IntegerOverflow*/ a * 10 /*:Bug}*/;
 
   // SAFE: there is NO integer overflow bug in the below line
   // The conversion `long b = a` implies that `b * 10` is SAFE from integer overflow.
-  long b = a;
-  long z = /*{Safe:IntegerOverflow*/ b * 10 /*:Safe}*/;
+  unsigned long b = a;
+  unsigned long z = /*{Safe:IntegerOverflow*/ b * 10 /*:Safe}*/;
 
-  printf("x: %d\n", x);
+  printf("x: %u\n", x);
   printf("y: %lu\n", y);
   return 0;
 }

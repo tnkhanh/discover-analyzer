@@ -63,7 +63,6 @@ module type DataUtil = sig
     wf_func: func;
     wf_input: t;
   }
-
   type global_env = {
     genv_global_output : (global, t) Base.Hashtbl.t;
     mutable genv_globals_data : t;

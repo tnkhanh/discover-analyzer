@@ -35,6 +35,7 @@ type dfa_analysis =
   | DfaUndef
   | DfaMemsize
   | DfaPointer
+  | DfaAutoSchedule
   | DfaAllAnalyses
 
 type input_mode =
@@ -141,7 +142,7 @@ let lib_core_file = ref (lib_path ^ "/libcore.sc")
 let user_config_file = "discover.yaml"
 
 (* llvm and clang version *)
-let llvm_version = "11"              (* using LLVM 11 *)
+let llvm_version = "13"              (* using LLVM 13 *)
 let llvm_path = ref ""
 let clang_path = ref "clang"
 let opt_path = ref "opt"
@@ -291,6 +292,7 @@ let name_of_dfa (dfa: dfa_analysis) : string =
   | DfaUndef -> "Undef Analysis"
   | DfaMemsize -> "Memsize Analysis"
   | DfaPointer -> "Pointer Analysis"
+  | DfaAutoSchedule -> "Auto-schedule DFA Analyses"
   | DfaAllAnalyses -> "All Analyses"
 
 
