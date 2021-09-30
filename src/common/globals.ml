@@ -142,7 +142,7 @@ let lib_core_file = ref (lib_path ^ "/libcore.sc")
 let user_config_file = "discover.yaml"
 
 (* llvm and clang version *)
-let llvm_version = "11"              (* using LLVM 11 *)
+let llvm_version = "13"              (* using LLVM 13 *)
 let llvm_path = ref ""
 let clang_path = ref "clang"
 let opt_path = ref "opt"
