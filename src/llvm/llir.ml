@@ -532,7 +532,8 @@ let pr_value (v: llvalue) : string =
       | LT.Pointer ->
         if LL.is_null v then "null"
         else LL.value_name v
-      | _ -> LL.value_name v in
+      | LT.Metadata -> LL.string_of_llvalue v
+      | _ -> LL.string_of_llvalue v in
   if String.is_empty vname then "<empty-name>"
   else vname
 
