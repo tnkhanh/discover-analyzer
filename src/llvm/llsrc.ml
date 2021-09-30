@@ -9,6 +9,7 @@ open Core
 open Dcore
 
 module LL = Llvm
+module LD = Llvm_debuginfo
 module LI = Llir
 module SP = Set.Poly
 
@@ -17,7 +18,7 @@ module SP = Set.Poly
  *******************************************************************)
 
 let extract_line_column_from_metadata (md: LL.llvalue) : (int * int) =
-  try
+(*  try
     let str = LL.string_of_llvalue md in
     let re = Str.regexp ".*line:[ ]*\\([0-9]+\\).*column:[ ]*\\([0-9]+\\).*" in
     if (Str.string_match re str 0) then (
@@ -25,10 +26,15 @@ let extract_line_column_from_metadata (md: LL.llvalue) : (int * int) =
       let column = int_of_string (Str.matched_group 2 str) in
       (line, column - 1))
     else (-1, -1)
-  with _ -> (-1, -1)
+  with _ -> (-1, -1) *)
+  match LD.instr_get_debug_loc md with
+  | None -> (-1, -1)
+  | Some location_metadata 
+    -> (LD.di_location_get_line ~location:location_metadata,
+        LD.di_location_get_column ~location:location_metadata)
 
 let extract_filename_from_metadata (md: LL.llvalue) : string =
-  try
+(*  try
     let md_location =
       if (LL.num_operands md > 0) then
         LL.operand md 0
@@ -42,7 +48,10 @@ let extract_filename_from_metadata (md: LL.llvalue) : string =
       | None -> extract_filename ((LL.operand md_file 0))
       | Some s -> s in
     extract_filename md_filename
-  with _ -> ""
+  with _ -> "" *)
+  match LD.get_subprogram md with
+  | None -> ""
+  | Some metadata -> LD.di_file_get_filename ~file:metadata
 
 let extract_name_from_metadata (md: LL.llvalue) : string =
   let str = LL.string_of_llvalue md in
