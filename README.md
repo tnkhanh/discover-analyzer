@@ -58,7 +58,8 @@ with Ubuntu 21.04
     cd $HOME/llvm/src/llvm-project-13/
     mkdir -p build; cd build
     cmake ../llvm -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_INSTALL_PREFIX=$HOME/llvm/llvm-13 -Wno-dev -G Ninja
+          -DLLVM_ENABLE_BINDINGS=ON -DCMAKE_INSTALL_PREFIX=$HOME/llvm/llvm-13 \
+          -Wno-dev -G Ninja
     ninja
 
     # Build OCaml doc bindings
@@ -182,11 +183,12 @@ with Ubuntu 21.04
   git clone https://github.com/sbip-sg/llvm-normalizer
   ```
 
-- Update environmental variables:
-  ```
-  PATH=/path-to-llvm-dir/bin:$PATH
-  LD_LIBRARY_PATH=/path-to-llvm-dir/lib:/path-to-llvm-dir/lib64:$LD_LIBRARY_PATH
-  export LIBRARY_PATH=$HOME/llvm/llvm-13/lib:$HOME/llvm/llvm-13/lib64:$LIBRARY_PATH  #if you build LLVM13 from source
+- Update environmental variables, if you build LLVM-13 from source:
+
+  ``` sh
+  PATH=$HOME/llvm/llvm-13/bin:$PATH
+  LD_LIBRARY_PATH=$HOME/llvm/llvm-13/lib:$HOME/llvm/llvm-13/lib64:$LD_LIBRARY_PATH
+  export LIBRARY_PATH=$HOME/llvm/llvm-13/lib:$HOME/llvm/llvm-13/lib64:$LIBRARY_PATH
   ```
 
 - Compile `discover`:
