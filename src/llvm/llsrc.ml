@@ -9,6 +9,7 @@ open Core
 open Dcore
 
 module LL = Llvm
+module LD = Llvm_debuginfo
 module LI = Llir
 module SP = Set.Poly
 
@@ -26,11 +27,11 @@ let extract_line_column_from_metadata (md: LL.llvalue) : (int * int) =
       (line, column - 1))
     else (-1, -1)
   with _ -> (-1, -1) *)
-  match Llvm_debuginfo.instr_get_debug_loc md with
+  match LD.instr_get_debug_loc md with
   | None -> (-1, -1)
   | Some location_metadata 
-    -> (Llvm_debuginfo.di_location_get_line ~location:location_metadata,
-        Llvm_debuginfo.di_location_get_column ~location:location_metadata)
+    -> (LD.di_location_get_line ~location:location_metadata,
+        LD.di_location_get_column ~location:location_metadata)
 
 let extract_filename_from_metadata (md: LL.llvalue) : string =
 (*  try
@@ -48,9 +49,9 @@ let extract_filename_from_metadata (md: LL.llvalue) : string =
       | Some s -> s in
     extract_filename md_filename
   with _ -> "" *)
-  match Llvm_debuginfo.get_subprogram md with
+  match LD.get_subprogram md with
   | None -> ""
-  | Some metadata -> Llvm_debuginfo.di_file_get_filename ~file:metadata
+  | Some metadata -> LD.di_file_get_filename ~file:metadata
 
 let extract_name_from_metadata (md: LL.llvalue) : string =
   let str = LL.string_of_llvalue md in
