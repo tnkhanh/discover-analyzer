@@ -1,0 +1,56 @@
+/********************************************************************
+ * This file is part of the tool Normalizer of the project Discover.
+ *
+ * Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.
+ * All rights reserved.
+ *******************************************************************/
+
+#include "Debug/PrintIR.h"
+
+using namespace discover;
+using namespace llvm;
+
+char PrintIR::ID = 0;
+
+void printFunc(Function &F) {
+  outs() << "Function: " << F.getName() << "\n";
+  BasicBlockList &BS = F.getBasicBlockList();
+
+  for (BasicBlock &B : BS) {
+    outs() << " " << B.getName() << "\n";
+    for (Instruction &I: B) {
+      outs() << "  " << I << "\n";
+
+      if (DbgDeclareInst *dbgDeclare = dyn_cast<DbgDeclareInst>(&I)) {
+        DIVariable* var = dbgDeclare->getVariable();
+        outs() << "      var: " << var->getName() << "\n";
+      }
+      else if (DbgValueInst *dbgValue = dyn_cast<DbgValueInst>(&I)) {
+        DIVariable* var = dbgValue->getVariable();
+        outs() << "      var: " << var->getName() << "\n";
+      }
+    }
+    outs() << "\n";
+  }
+
+  outs() << "\n\n";
+}
+
+bool PrintIR::runOnModule(Module &M) {
+  for (Function &F : M.getFunctionList())
+    printFunc(F);
+
+  return true;
+}
+
+
+static RegisterPass<PrintIR> X("PrintIR",
+                               "Print LLVM IR",
+                               false /* Only looks at CFG */,
+                               false /* Analysis Pass */);
+
+static RegisterStandardPasses Y(PassManagerBuilder::EP_EarlyAsPossible,
+                                [](const PassManagerBuilder &Builder,
+                                   legacy::PassManagerBase &PM) {
+                                  PM.add(new PrintIR());
+                                });

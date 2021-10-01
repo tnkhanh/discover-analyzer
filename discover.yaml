@@ -9,5 +9,8 @@
 # User configurations for Discover
 # --------------------------------
 
+# LLVM binary path containing Clang, Opt
+LLVM_BINARY_PATH: ~/llvm/llvm-13/bin
+
 # Gollvm compiler
 GOLLVM_BINARY_PATH: ~/workspace/gollvm/bin

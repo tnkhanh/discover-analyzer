@@ -353,6 +353,7 @@ type program = {
   prog_module_id : string;
   prog_data_layout : string;
   prog_target_platform : string;
+  prog_llmodule : llmodule;
 }
 
 exception Llvm_invalid_instr of string
@@ -531,7 +532,8 @@ let pr_value (v: llvalue) : string =
       | LT.Pointer ->
         if LL.is_null v then "null"
         else LL.value_name v
-      | _ -> LL.value_name v in
+      | LT.Metadata -> LL.string_of_llvalue v
+      | _ -> LL.string_of_llvalue v in
   if String.is_empty vname then "<empty-name>"
   else vname
 
@@ -2780,7 +2782,8 @@ let mk_program (filename: string) (m: llmodule) : program =
     prog_llvalue_original_name = Hashtbl.create (module String);
     prog_module_id = "<unknown>"; (* module_id; *)
     prog_data_layout = data_layout;
-    prog_target_platform = compiled_target; }
+    prog_target_platform = compiled_target;
+    prog_llmodule = m; }
 
 (*******************************************************************
  ** more advanced printing

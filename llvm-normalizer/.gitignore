@@ -1,0 +1,8 @@
+# VS Code
+.vscode
+
+# Emacs
+.ccls-cache
+
+# Build
+build
