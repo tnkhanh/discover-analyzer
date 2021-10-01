@@ -21,17 +21,13 @@ void printFunc(Function &F) {
     for (Instruction &I: B) {
       outs() << "  " << I << "\n";
 
-      if (CallInst *callInst = dyn_cast<CallInst>(&I)) {
-        Function *callee = callInst->getCalledFunction();
-        if (callee->getName().equals("llvm.dbg.value")) {
-          outs() << "      Callee: " << callee->getName() << "\n";
-          outs() << "       num args: " << callInst->getNumArgOperands() << "\n";
-          Value* arg0 = callInst->getArgOperand(0);
-          ValueName* vname = arg0->getValueName();
-          outs() << "       is metadata? " << arg0->getType()->isMetadataTy() << "\n";
-          outs() << "       arg0: " << arg0->getValueName() << "\n";
-          outs() << "       arg0: " << arg0->getName() << "\n";
-        }
+      if (DbgDeclareInst *dbgDeclare = dyn_cast<DbgDeclareInst>(&I)) {
+        DIVariable* var = dbgDeclare->getVariable();
+        outs() << "      var: " << var->getName() << "\n";
+      }
+      else if (DbgValueInst *dbgValue = dyn_cast<DbgValueInst>(&I)) {
+        DIVariable* var = dbgValue->getVariable();
+        outs() << "      var: " << var->getName() << "\n";
       }
     }
     outs() << "\n";
