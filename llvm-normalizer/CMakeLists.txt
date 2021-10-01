@@ -33,7 +33,7 @@ set(
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_DIR})
 
 # Set LLVM version
-set(LLVM_VERSION 12.0)
+set(LLVM_VERSION 13.0)
 message (STATUS "Looking for LLVM ${LLVM_VERSION}")
 
 # Set LLVM preferred path

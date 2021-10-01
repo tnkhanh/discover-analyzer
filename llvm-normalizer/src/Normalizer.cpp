@@ -23,6 +23,7 @@
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/PrettyStackTrace.h"
+#include "llvm/Support/FileSystem.h"
 
 #include "llvm/Transforms/Utils/Debugify.h"
 // #include "llvm/Transforms/AggressiveInstCombine/AggressiveInstCombine.h"
@@ -254,7 +255,7 @@ int main(int argc, char** argv) {
   // write output
   if (!OutputFilename.empty()) {
     std::error_code EC;
-    raw_fd_ostream OS(OutputFilename, EC, llvm::sys::fs::F_None);
+    raw_fd_ostream OS(OutputFilename, EC, llvm::sys::fs::OF_None);
     WriteBitcodeToFile(*M, OS);
     OS.flush();
   }
