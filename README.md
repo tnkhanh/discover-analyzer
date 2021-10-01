@@ -60,6 +60,7 @@ with Linux Mint / Ubuntu 20.
     # Build OCaml doc bindings
     cmake ../llvm -DLLVM_ENABLE_BINDINGS=ON
     ninja ocaml_doc
+    # ninja ocaml_all
 
     # Install LLVM
     ninja install

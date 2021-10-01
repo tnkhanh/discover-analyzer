@@ -1,4 +1,0 @@
-[submodule "llvm-normalizer"]
-	path = llvm-normalizer
-	url = https://github.com/sbip-sg/llvm-normalizer
-	branch = master

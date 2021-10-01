@@ -70,13 +70,12 @@ let pr_assertion_status (func: LI.func) (ast: assertion) (status: bool) =
       let asname = LI.func_name (LI.callee_of_callable_instr instr) in
       let args = LI.args_of_callable_instr instr in
       asname ^ "(" ^ (pr_args LI.pr_value args) ^ ")" in
-  let location =
-    try
-      let loc = LS.location_of_instr instr in
+  let location = match LS.location_of_instr instr with
+    | None -> "Function: " ^ fname
+    | Some loc ->
       let file = get_file_name_of_location loc in
       let line, _ = get_line_numbers_of_location loc in
-      "File: " ^ file ^ ", function: " ^ fname ^ ", line: " ^ (pr_int line)
-    with _ -> "Function: " ^ fname in
+      "File: " ^ file ^ ", function: " ^ fname ^ ", line: " ^ (pr_int line) in
   location ^ "\n  " ^ assertion ^
   (if status then ": OK!" else ": FAILED!")
 

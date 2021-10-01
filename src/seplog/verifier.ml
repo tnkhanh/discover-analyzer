@@ -154,9 +154,9 @@ let pr_buggy_exps prog exps : string =
     else cur_exps ^ " (llvm) ~~ " ^ source_exps ^ " (source)"
 
 let report_bug prog bug exps (instr: LI.instr): bool =
-  let location = match !llvm_orig_source_name with
-    | false -> ""
-    | true -> "   at " ^ (pr_location (LS.location_of_instr instr)) in
+  let location = match !llvm_orig_source_name, LS.location_of_instr instr with
+    | false, _ | _, None -> ""
+    | true, Some loc -> "   at " ^ (pr_location loc) in
   let msg =
     "#########################################################\n" ^
     " DETECTING A BUG: " ^ bug ^ "\n" ^

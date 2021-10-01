@@ -87,15 +87,22 @@ let pr_memory_leak (mlk: memory_leak) : string =
 
 (* integer bugs *)
 
+let pr_instr_location instr =
+  match LS.location_of_instr instr with
+  | None -> ""
+  | Some loc -> "  Location: " ^ (pr_location loc) ^ "\n"
+
 let pr_integer_overflow (iof: integer_overflow) : string =
   "INTEGER OVERFLOW\n" ^
-  "  Instruction: " ^ (pr_instr iof.iof_instr) ^
+  "  Instruction: " ^ (pr_instr iof.iof_instr) ^ "\n" ^
+  (pr_instr_location iof.iof_instr) ^
   "  Reason: expr: " ^ (pr_value iof.iof_expr) ^
   ", bit width: " ^ (pr_int iof.iof_bitwidth)
 
 let pr_integer_underflow (iuf: integer_underflow) : string =
   "INTEGER UNDERFLOW\n" ^
-  "  Instruction: " ^ (pr_instr iuf.iuf_instr) ^
+  "  Instruction: " ^ (pr_instr iuf.iuf_instr) ^ "\n" ^
+  (pr_instr_location iuf.iuf_instr) ^
   "  Reason: expr: " ^ (pr_value iuf.iuf_expr) ^
   ", bit width: " ^ (pr_int iuf.iuf_bitwidth)
 
@@ -222,9 +229,9 @@ let mk_real_bug ?(reason=None) (analyzer: string) (bug: bug) : bug =
 let report_bug (bug: bug) : unit =
   let location = match !llvm_orig_source_name with
     | false -> ""
-    | true ->
-      let loc = LS.location_of_instr bug.bug_instr in
-      " Location: at " ^ (pr_location loc) ^ "\n" in
+    | true -> match LS.location_of_instr bug.bug_instr with
+      | None -> ""
+      | Some loc -> " Location: at " ^ (pr_location loc) ^ "\n" in
   let msg = "BUG: " ^ (pr_bug_type_detail bug.bug_type) ^ "\n" ^ location in
   print_endline ("\n" ^ msg)
 

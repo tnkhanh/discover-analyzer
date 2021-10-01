@@ -41,16 +41,19 @@ let get_os_type () =
   else UnknOS
 
 let config_llvm_core_tools () =
-  (* TODO: implement llvm path finding for Linux, MacOS, Windows, etc *)
+  (* TODO:
+     1. implement llvm path finding for Linux, MacOS, Windows
+     2. Check clang, opt version by running `clang --version`,
+        `opt --version` and check if they statisfy LLVM version *)
   let os = get_os_type () in
   match os with
   | Linux ->
-    let _ = if String.equal !llvm_path "" then llvm_path := "/usr/bin/" in
-    let _ =
-      if not (String.is_suffix !llvm_path ~suffix:"/") then
-        llvm_path := !llvm_path ^ "/" in
-    let _ = clang_path := !llvm_path ^ "clang-" ^ llvm_version in
-    opt_path := !llvm_path ^ "opt-" ^ llvm_version
+    (* let _ = if String.equal !llvm_path "" then llvm_path := "/usr/bin/" in *)
+    let clang_bin = "clang-" ^ llvm_version in
+    (* let opt_bin = "opt-" ^ llvm_version in *)
+    let opt_bin = "opt" in
+    let _ = clang_path := !llvm_path ^ clang_bin in
+    opt_path := !llvm_path ^ opt_bin
   | MacOS ->
     let llvm_root_path = "/usr/local/Cellar/llvm@" ^ llvm_version in
     let llvm_version_paths = Sys.ls_dir llvm_root_path in
