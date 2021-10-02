@@ -14,12 +14,12 @@ type bin_op =
   | Add | Sub | Mul | Div
 
 type exp =
-  | Int of (int * location)
-  | Float of (float * location)
-  | String of (string * location)
-  | Var of (var * location)
-  | BinExp of (bin_op * exp * exp * location)
-  | Func of (string * exp list * typ * location)
+  | Int of (int * position)
+  | Float of (float * position)
+  | String of (string * position)
+  | Var of (var * position)
+  | BinExp of (bin_op * exp * exp * position)
+  | Func of (string * exp list * typ * position)
 
 type addr_exp = {            (* similar to getelementptr of LLVM*)
   addr_base : exp;
@@ -34,14 +34,14 @@ type bin_rel =
 [@@deriving equal]
 
 type formula =
-  | Bool of (bool * location)
-  | BVar of (var * location)
+  | Bool of (bool * position)
+  | BVar of (var * position)
   | BEq of (exp * formula)
-  | Emp of location
-  | BinRel of (bin_rel * exp * exp * location)
-  | Data of (exp * typ * exp list * (addr_exp option) * location)
-  | Pred of (string * exp list * location)
-  | Array of (exp * exp * typ * location)
+  | Emp of position
+  | BinRel of (bin_rel * exp * exp * position)
+  | Data of (exp * typ * exp list * (addr_exp option) * position)
+  | Pred of (string * exp list * position)
+  | Array of (exp * exp * typ * position)
   | Neg of formula
   | Conj of (formula * formula)
   | Disj of (formula * formula)
@@ -63,13 +63,13 @@ type func_defn = {
   funcd_params : var list;
   funcd_body : exp option;
   funcd_ret_typ : typ;
-  funcd_loc : location;
+  funcd_loc : position;
 }
 
 type data_defn = {
   datad_typ : typ;
   datad_fields : (typ * string) list;
-  datad_loc : location;
+  datad_loc : position;
 }
 
 type pred_typ =
@@ -82,7 +82,7 @@ type pred_defn = {
   predd_params : var list;
   predd_body : formula list;
   predd_typ : pred_typ;
-  predd_loc : location;
+  predd_loc : position;
 }
 
 type proc_specs = {
@@ -95,13 +95,13 @@ type proc_defn = {
   procd_params : var list;
   procd_return_typ : typ;
   procd_specs : proc_specs list;
-  procd_loc : location;
+  procd_loc : position;
 }
 
 type command =
-  | CheckSat of (formula * location)
-  | ProveEntails of (entailment list * location)
-  | InferFrame of (entailment * location)
+  | CheckSat of (formula * position)
+  | ProveEntails of (entailment list * position)
+  | InferFrame of (entailment * position)
 
 type program = {
   prog_file_name : string;

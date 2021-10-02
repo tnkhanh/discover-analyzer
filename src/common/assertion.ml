@@ -70,10 +70,10 @@ let pr_assertion_status (func: LI.func) (ast: assertion) (status: bool) =
       let asname = LI.func_name (LI.callee_of_instr_func_call instr) in
       let args = LI.args_of_instr_func_app instr in
       asname ^ "(" ^ (pr_args LI.pr_value args) ^ ")" in
-  let location = match LS.location_of_instr instr with
+  let location = match LS.position_of_instr instr with
     | None -> "Function: " ^ func_name
     | Some l ->
-      let file_name, line = l.loc_filename, l.loc_line_start in
+      let file_name, line = l.pos_file_name, l.pos_line_start in
       "File: " ^ file_name ^
       ", function: " ^ func_name ^
       ", line: " ^ (pr_int line) in

@@ -42,7 +42,7 @@ let get_original_name_of_llvalue (v: LL.llvalue) : string option =
     None
   | _ -> None
 
-let location_of_instr (instr: LI.instr) : location option =
+let position_of_instr (instr: LI.instr) : position option =
   let vinstr = LI.llvalue_of_instr instr in
   let llctx = LL.global_context () in
   let instr_dbg = LL.metadata vinstr (LL.mdkind_id llctx "dbg") in
@@ -60,4 +60,4 @@ let location_of_instr (instr: LI.instr) : location option =
       | None -> ""
       | Some file_md -> LD.di_file_get_filename ~file:file_md in
     (* let _ = hprint "Filename: " pr_id filename in *)
-    Some (mk_location filename line line column column)
+    Some (mk_position filename line line column column)

@@ -13,7 +13,7 @@
 open Dcore
 open Slast
 
-let get_loc l = mk_location_lexing (fst l) (snd l)
+let get_loc l = mk_position_lexing (fst l) (snd l)
 
 %}
 

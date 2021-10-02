@@ -193,56 +193,60 @@ let num_invalid_asserts = ref 0
  ** location
  *******************************************************************)
 
-type location = { loc_filename : string;
-                  loc_line_start : int;
-                  loc_line_end : int;
-                  loc_column_start : int;
-                  loc_column_end : int; }
+type position = { pos_file_name : string;
+                  pos_line_start : int;
+                  pos_line_end : int;
+                  pos_col_start : int;
+                  pos_col_end : int; }
 
-let mk_location fname lstart lend cstart cend =
-  { loc_filename = fname;
-    loc_line_start = lstart;
-    loc_line_end = lend;
-    loc_column_start = cstart;
-    loc_column_end = cend; }
+let mk_position fname lstart lend cstart cend =
+  { pos_file_name = fname;
+    pos_line_start = lstart;
+    pos_line_end = lend;
+    pos_col_start = cstart;
+    pos_col_end = cend; }
 
-let mk_location_lexing (pstart: Lexing.position) (pend: Lexing.position) : location =
-  { loc_filename = pstart.Lexing.pos_fname;
-    loc_line_start = pstart.Lexing.pos_lnum;
-    loc_line_end = pend.Lexing.pos_lnum;
-    loc_column_start = pstart.Lexing.pos_cnum - pstart.Lexing.pos_bol + 1;
-    loc_column_end = pend.Lexing.pos_cnum - pend.Lexing.pos_bol + 1; }
+let mk_position_lexing (pstart: LX.position) (pend: LX.position) : position =
+  { pos_file_name = pstart.Lexing.pos_fname;
+    pos_line_start = pstart.Lexing.pos_lnum;
+    pos_line_end = pend.Lexing.pos_lnum;
+    pos_col_start = pstart.Lexing.pos_cnum - pstart.Lexing.pos_bol + 1;
+    pos_col_end = pend.Lexing.pos_cnum - pend.Lexing.pos_bol + 1; }
 
-let dummy_loc = mk_location_lexing Lexing.dummy_pos Lexing.dummy_pos
-
-let pr_code_segment filename lstart lend cstart cend =
+let pr_file_excerpt filename (lstart: int) (lend: int) (cstart: int) (cend: int) =
   let _ = print_endline ("File: " ^ filename) in
-  let lines = In_channel.read_lines filename in
-  let start_pr = if lstart < 3 then 3 else lstart in
-  let stop_pr =
-    if lend > (List.length lines) - 2 then (List.length lines) - 2
-    else lend in
-  let rec format_code line acc = function
+  let code_lines = In_channel.read_lines filename in
+  let num_lines = List.length code_lines in
+  let lstart = if lstart < 3 then 3 else lstart in
+  let lend = if lend > num_lines - 2 then num_lines - 2 else lend in
+  let rec format_code code_lines lcur acc =
+    match code_lines with
     | [] -> List.rev acc
-    | h :: t ->
-      if (line < lstart - 1 || line >= lend) then
-        format_code (line+1)
-          (("   " ^ string_of_int (line+1) ^ ".  " ^ h ^ "\n")::acc) t
+    | code :: ncode_lines ->
+      if lcur < lstart - 1 || lcur >= lend then
+        let code = "   " ^ string_of_int (lcur + 1) ^ ".  " ^ code ^ "\n" in
+        format_code ncode_lines (lcur + 1) (code::acc)
       else
-        format_code (line+1)
-          (("   " ^ string_of_int (line+1) ^ ".> " ^ h ^ "\n")::acc) t in
-  let lines_str = List.slice lines (start_pr - 3) (stop_pr + 2) in
-  let format_str = format_code (start_pr - 3) [] lines_str in
+        let code = "   " ^ string_of_int (lcur + 1) ^ ".> " ^ code ^ "\n" in
+        let indicator =
+          if lcur = lstart - 1 then
+            "      " ^ (String.make cstart ' ') ^ "^^^\n"
+          else if lcur = lend - 1 then
+            "      " ^ (String.make cend ' ') ^ "^^^\n"
+          else "" in
+        format_code ncode_lines (lcur + 1) (indicator::code::acc) in
+  let code_lines = List.slice code_lines (lstart - 3) (lend + 2) in
+  let format_str = format_code code_lines (lstart - 3) [] in
   String.concat ~sep:"" (format_str)
 
-let pr_location (l: location) =
-  let fname = l.loc_filename in
-  let lstart, lend = l.loc_line_start, l.loc_line_end in
-  let cstart, cend = l.loc_column_start, l.loc_column_end in
+let pr_file_position_and_excerpt (p: position) =
+  let fname = p.pos_file_name in
+  let lstart, lend = p.pos_line_start, p.pos_line_end in
+  let cstart, cend = p.pos_col_start, p.pos_col_end in
   "file: " ^ fname ^ ", " ^
   (pr_int lstart) ^ ":" ^ (pr_int cstart) ^ " ~> " ^
   (pr_int lend) ^ ":" ^ (pr_int cend) ^
-  "\n\n" ^ (pr_code_segment fname lstart lend cstart cend)
+  "\n\n" ^ (pr_file_excerpt fname lstart lend cstart cend)
 
 (*******************************************************************
  ** Data flow analysis
