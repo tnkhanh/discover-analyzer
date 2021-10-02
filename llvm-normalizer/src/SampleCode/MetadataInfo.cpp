@@ -1,3 +1,9 @@
+/********************************************************************
+ * This file is part of the tool Normalizer of the project Discover.
+ *
+ * Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.
+ * All rights reserved.
+ *******************************************************************/
 
 // Print variable names from Metadata
 // References:
@@ -14,13 +20,18 @@ void printVariableOriginalName(Function &F) {
       outs() << "  " << I << "\n";
 
       if (DbgDeclareInst *dbgDeclare = dyn_cast<DbgDeclareInst>(&I)) {
+        Value* dclValue = dbgDeclare->getAddress();
+        outs() << "      Declare value: " << *dclValue << "\n";
         DIVariable* var = dbgDeclare->getVariable();
-        outs() << "      var name: " << var->getName() << "\n";
+        outs() << "      Declare name: " << var->getName() << "\n";
       }
       else if (DbgValueInst *dbgValue = dyn_cast<DbgValueInst>(&I)) {
+        Value* varValue = dbgValue->getValue();
+        outs() << "      Var value: " << *varValue << "\n";
         DIVariable* var = dbgValue->getVariable();
-        outs() << "      var name: " << var->getName() << "\n";
+        outs() << "      Var name: " << var->getName() << "\n";
       }
+
     }
     outs() << "\n";
   }

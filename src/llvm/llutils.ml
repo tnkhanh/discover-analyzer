@@ -65,7 +65,7 @@ let print_pointer_stats (modul: LL.llmodule) : unit =
   let finstr = Some (fun instr ->
     let vinstr = llvalue_of_instr instr in
     let _ = update_stats_of_llvalue vinstr in
-    let _ = if is_callable_instr instr then incr num_func_calls in
+    let _ = if is_instr_call_invoke instr then incr num_func_calls in
     incr num_instrs) in
   let fblock = Some (fun blk ->
     let _ = incr num_blks in

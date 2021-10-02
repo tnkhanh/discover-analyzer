@@ -10,6 +10,7 @@ open Dcore
 
 module LL = Llvm
 module LD = Llvm_debuginfo
+module LV = Llvm.ValueKind
 module LI = Llir
 module SP = Set.Poly
 
@@ -23,6 +24,23 @@ let extract_name_from_metadata (md: LL.llvalue) : string =
   if (Str.string_match re str 0) then
     Str.matched_group 1 str
   else ""
+
+let get_original_name_of_llvalue (v: LL.llvalue) : string option =
+  let _ = hprint "get_original_name_of_llvalue: " LI.pr_value v in
+  match LL.classify_value v with
+  | LV.Instruction _ ->
+    let func = LI.func_of_instr (LI.mk_instr v) in
+    let _ = LI.iter_blocks ~f:(fun blk ->
+      LI.iter_instrs ~f:(fun instr ->
+        if LI.is_instr_call_invoke instr then
+          let callee = LI.callee_of_instr_func_call instr in
+          if LI.is_func_llvm_debug_declare callee ||
+             LI.is_func_llvm_debug_value callee then
+            hprint "Instr: " LI.pr_instr instr
+          else ()
+      ) blk) func in
+    None
+  | _ -> None
 
 let location_of_instr (instr: LI.instr) : location option =
   let vinstr = LI.llvalue_of_instr instr in
@@ -42,4 +60,4 @@ let location_of_instr (instr: LI.instr) : location option =
       | None -> ""
       | Some file_md -> LD.di_file_get_filename ~file:file_md in
     (* let _ = hprint "Filename: " pr_id filename in *)
-    Some (mk_location_point filename line column)
+    Some (mk_location filename line line column column)

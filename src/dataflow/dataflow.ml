@@ -11,6 +11,7 @@ open Llir
 
 module AS = Assertion
 module LL = Llvm
+module LV = Llvm.ValueKind
 module LO = Llvm.Opcode
 module LC = Llvm.Icmp
 module LP = Llloop
@@ -804,7 +805,7 @@ module ForwardDataFlow = functor (T: ForwardDataTransfer) -> struct
       if is_sparse_instr penv instr then (
         let vinstr = llvalue_of_instr instr in
         let _ = update_stats_of_llvalue vinstr in
-        let _ = if is_callable_instr instr then incr num_func_calls in
+        let _ = if is_instr_call_invoke instr then incr num_func_calls in
         incr num_instrs)
       else ()) in
     let fblock = Some (fun blk ->
@@ -1558,13 +1559,13 @@ module ForwardDataFlow = functor (T: ForwardDataTransfer) -> struct
       match pblk.pblk_pathcond with
       | PIcmp (LL.Icmp.Eq, v1, v2) when is_llvalue_instr v1 && is_llvalue_instr v2 ->
         let iv1, iv2 = mk_instr v1, mk_instr v2 in
-        if is_callable_instr iv1 && is_instr_extractvalue iv2 &&
-           is_func_eh_typeid_for (callee_of_callable_instr iv1) then
-          let args = args_of_callable_instr iv1 in
+        if is_instr_call_invoke iv1 && is_instr_extractvalue iv2 &&
+           is_func_eh_typeid_for (callee_of_instr_func_call iv1) then
+          let args = args_of_instr_func_app iv1 in
           Some (get_root_src_of_bitcast (List.hd_exn args))
-        else if is_callable_instr iv2 && is_instr_extractvalue iv1 &&
-                is_func_eh_typeid_for (callee_of_callable_instr iv2) then
-          let args = args_of_callable_instr iv2 in
+        else if is_instr_call_invoke iv2 && is_instr_extractvalue iv1 &&
+                is_func_eh_typeid_for (callee_of_instr_func_call iv2) then
+          let args = args_of_instr_func_app iv2 in
           Some (get_root_src_of_bitcast (List.hd_exn args))
         else None
       | _ -> None
@@ -1606,8 +1607,8 @@ module ForwardDataFlow = functor (T: ForwardDataTransfer) -> struct
           let _ = analyze_instr_landingpad penv fenv instr in
           (input, true)
         | LO.Call | LO.Invoke ->
-          let callee = callee_of_callable_instr instr in
-          let args = args_of_callable_instr instr in
+          let callee = callee_of_instr_func_call instr in
+          let args = args_of_instr_func_app instr in
           if is_func_clang_call_terminate callee then
             (input, true)
           else if is_func_throw_exception callee then
@@ -2193,7 +2194,7 @@ module ForwardDataFlow = functor (T: ForwardDataTransfer) -> struct
                 if is_llvalue_pointer (src_of_instr_return instr) then
                   has_pointer_related_instr := true
               | LO.Call | LO.Invoke ->
-                let callee = callee_of_callable_instr instr in
+                let callee = callee_of_instr_func_call instr in
                 if not (is_func_pointer callee) &&
                    not (is_sparse_func penv callee) then ()
                 else has_pointer_related_instr := true

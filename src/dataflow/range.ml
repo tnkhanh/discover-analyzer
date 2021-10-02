@@ -724,7 +724,7 @@ module RangeTransfer : DF.ForwardDataTransfer= struct
       replace_interval expr itv input
     | LO.Call | LO.Invoke ->
       (* TODO: function call for inter-procedural analysis *)
-      (* let callee = callee_of_callable_instr instr in *)
+      (* let callee = callee_of_instr_func_call instr in *)
       (* let _ = if is_func_scanf callee then *)
       (*     print "TODO: need to handle func call: scanf" in *)
       input
