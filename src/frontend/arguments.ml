@@ -88,6 +88,9 @@ and arguments_raw = [
      export_cfg_prog := true;
      export_debug_info := true));
 
+  (["--msg-source-code"], "Report bug at source code",
+   Arg.Set location_source_code_only);
+
   (*--------------------------------------------------------
    * input and compilation
    *--------------------------------------------------------*)
@@ -219,17 +222,6 @@ and arguments_raw = [
 
   (["--bug-all"], "Find all bugs",
    Arg.Unit (fun () -> bug_integer_all := true; bug_memory_all := true;));
-
-
-  (*--------------------------------------------------------
-   * reporting
-   *--------------------------------------------------------*)
-
-  (["--location-source"], "Report bug at source code",
-   Arg.Set location_source);
-
-  (["--location-bitcode"], "Report bug at LLVM bitcode",
-   Arg.Set location_bitcode);
 
   (*--------------------------------------------------------
    * llvm options

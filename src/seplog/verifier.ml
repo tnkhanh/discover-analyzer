@@ -150,7 +150,7 @@ let pr_buggy_exps prog exps : string =
            | Some v -> acc @ [v])
         | _ -> acc) ~init:[] |>
       String.concat ~sep:", " in
-    if !location_source then source_exps
+    if !location_source_code_only then source_exps
     else cur_exps ^ " (llvm) ~~ " ^ source_exps ^ " (source)"
 
 let report_bug prog bug exps (instr: LI.instr): bool =

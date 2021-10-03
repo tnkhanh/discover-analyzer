@@ -61,6 +61,9 @@ let print_concise_debug = ref false
 
 let print_stats_prog = ref false
 
+(* reporting *)
+let location_source_code_only = ref false
+
 (* work mode *)
 let work_mode = ref WkmNoAnalysis
 let skip_analysis = ref false
@@ -84,10 +87,6 @@ let export_proof_ascii = ref false
 let export_core_prog = ref false
 let export_debug_info = ref false
 let export_cfg_prog = ref false
-
-(* reporting *)
-let location_source = ref false
-let location_bitcode = ref true
 
 (* llvm mode *)
 let llvm_orig_source_name = ref false
@@ -215,28 +214,31 @@ let mk_position_lexing (pstart: LX.position) (pend: LX.position) : position =
 
 let pr_file_excerpt filename (lstart: int) (lend: int) (cstart: int) (cend: int) =
   let _ = print_endline ("File: " ^ filename) in
-  let code_lines = In_channel.read_lines filename in
-  let num_lines = List.length code_lines in
+  let file_lines = In_channel.read_lines filename in
+  let num_lines = List.length file_lines in
   let lstart = if lstart < 3 then 3 else lstart in
   let lend = if lend > num_lines - 2 then num_lines - 2 else lend in
-  let rec format_code code_lines lcur acc =
-    match code_lines with
+  let rec pr_excerpt lines lcur acc =
+    match lines with
     | [] -> List.rev acc
-    | code :: ncode_lines ->
+    | line::nlines ->
+      let nl = lcur + 1 in
       if lcur < lstart - 1 || lcur >= lend then
-        let code = "   " ^ string_of_int (lcur + 1) ^ ".  " ^ code ^ "\n" in
-        format_code ncode_lines (lcur + 1) (code::acc)
+        let marked_line = (Printf.sprintf "%6d" nl) ^ ".  " ^ line ^ "\n" in
+        pr_excerpt nlines (lcur + 1) (marked_line::acc)
       else
-        let code = "   " ^ string_of_int (lcur + 1) ^ ".> " ^ code ^ "\n" in
-        let indicator =
+        let marked_line = (Printf.sprintf "%6d" nl) ^ ".> " ^ line ^ "\n" in
+        let marked_col =
           if lcur = lstart - 1 then
-            "      " ^ (String.make cstart ' ') ^ "^^^\n"
+            let nc = if cstart > 2 then cstart - 2 else 0 in
+            "       > " ^ (String.make nc ' ') ^ "^^^\n"
           else if lcur = lend - 1 then
-            "      " ^ (String.make cend ' ') ^ "^^^\n"
+            let nc = if cend > 2 then cend - 2 else 0 in
+            "       > " ^ (String.make nc ' ') ^ "^^^\n"
           else "" in
-        format_code ncode_lines (lcur + 1) (indicator::code::acc) in
-  let code_lines = List.slice code_lines (lstart - 3) (lend + 2) in
-  let format_str = format_code code_lines (lstart - 3) [] in
+        pr_excerpt nlines (lcur + 1) (marked_col::marked_line::acc) in
+  let excerpt_lines = List.slice file_lines (lstart - 3) (lend + 2) in
+  let format_str = pr_excerpt excerpt_lines (lstart - 3) [] in
   String.concat ~sep:"" (format_str)
 
 let pr_file_position_and_excerpt (p: position) =
@@ -246,7 +248,7 @@ let pr_file_position_and_excerpt (p: position) =
   "file: " ^ fname ^ ", " ^
   (pr_int lstart) ^ ":" ^ (pr_int cstart) ^ " ~> " ^
   (pr_int lend) ^ ":" ^ (pr_int cend) ^
-  "\n\n" ^ (pr_file_excerpt fname lstart lend cstart cend)
+  "\n" ^ (pr_file_excerpt fname lstart lend cstart cend)
 
 (*******************************************************************
  ** Data flow analysis

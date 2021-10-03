@@ -88,9 +88,12 @@ let pr_memory_leak (mlk: memory_leak) : string =
 (* integer bugs *)
 
 let pr_instr_detailed_position instr =
-  match LS.position_of_instr instr with
-  | None -> ""
-  | Some p -> "  Location: " ^ (pr_file_position_and_excerpt p) ^ "\n"
+  let code_excerpt = match LS.position_of_instr instr with
+    | None -> ""
+    | Some p -> "  Location: " ^ (pr_file_position_and_excerpt p) ^ "\n" in
+  if !location_source_code_only then code_excerpt
+  else "  Instruction: " ^ (pr_instr instr) ^ "\n" ^ code_excerpt
+
 
 let pr_llvalue_name (v: LL.llvalue) : string =
   match LS.get_original_name_of_llvalue v with
@@ -99,7 +102,6 @@ let pr_llvalue_name (v: LL.llvalue) : string =
 
 let pr_integer_overflow (iof: integer_overflow) : string =
   "INTEGER OVERFLOW\n" ^
-  "  Instruction: " ^ (pr_instr iof.iof_instr) ^ "\n" ^
   (pr_instr_detailed_position iof.iof_instr) ^
   "  Reason: the variable " ^ (pr_llvalue_name iof.iof_expr) ^
   " has bit width: " ^ (pr_int iof.iof_bitwidth) ^
@@ -107,7 +109,6 @@ let pr_integer_overflow (iof: integer_overflow) : string =
 
 let pr_integer_underflow (iuf: integer_underflow) : string =
   "INTEGER UNDERFLOW\n" ^
-  "  Instruction: " ^ (pr_instr iuf.iuf_instr) ^ "\n" ^
   (pr_instr_detailed_position iuf.iuf_instr) ^
   "  Reason: the variable " ^ (pr_llvalue_name iuf.iuf_expr) ^
   " has bit width: " ^ (pr_int iuf.iuf_bitwidth) ^
