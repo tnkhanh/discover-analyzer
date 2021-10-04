@@ -14,6 +14,7 @@ module LI = Llir
 module LU = Llutils
 module LN = Llnorm
 module LS = Llsimp
+module LT = Llinstrument
 module LP = Llpass
 module PS = Process
 
@@ -103,6 +104,8 @@ let process_module (filename: string) (modul: LL.llmodule) : LI.program =
   let _ = if !llvm_simplify then
       let _ = report_runtime ~task:"Time simplifying bitcode"
                 (fun () -> LS.simplify_module filename modul) in
+      let _ = report_runtime ~task:"Time instrumenting bitcode"
+                (fun () -> LT.instrument_bitcode filename modul) in
       if !export_bitcode then (
         let basename = Filename.chop_extension (Filename.basename filename) in
         let dirname = Filename.dirname filename in
