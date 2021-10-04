@@ -104,8 +104,8 @@ let process_module (filename: string) (modul: LL.llmodule) : LI.program =
   let _ = if !llvm_simplify then
       let _ = report_runtime ~task:"Time simplifying bitcode"
                 (fun () -> LS.simplify_module filename modul) in
-      let _ = report_runtime ~task:"Time instrumenting bitcode"
-                (fun () -> LT.instrument_bitcode filename modul) in
+(*      let _ = report_runtime ~task:"Time instrumenting bitcode"
+                (fun () -> LT.instrument_bitcode filename modul) in *)
       if !export_bitcode then (
         let basename = Filename.chop_extension (Filename.basename filename) in
         let dirname = Filename.dirname filename in
@@ -196,6 +196,13 @@ let compile_c_cpp (filename: string) : LI.program =
               clang_all_options in
     let _ = debug (String.concat ~sep:" " cmd) in
     PS.run_command cmd in
+  let annotations = LT.extract_annotations filename in
+  let _ = print_endline "Annotations: " in
+  let _ = 
+    List.iter 
+      ~f:(fun (x, y, s) -> print_endline ((string_of_int x)^" "^(string_of_int y)^" "^s))
+      annotations in
+ 
   compile_bitcode output_filename
 
 let compile_golang (filename: string) : LI.program =
