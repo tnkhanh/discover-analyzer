@@ -22,13 +22,18 @@ void printFunc(Function &F) {
       outs() << "  " << I << "\n";
 
       if (DbgDeclareInst *dbgDeclare = dyn_cast<DbgDeclareInst>(&I)) {
+        Value* dclValue = dbgDeclare->getAddress();
+        outs() << "      Declare value: " << *dclValue << "\n";
         DIVariable* var = dbgDeclare->getVariable();
-        outs() << "      var: " << var->getName() << "\n";
+        outs() << "      Declare name: " << var->getName() << "\n";
       }
       else if (DbgValueInst *dbgValue = dyn_cast<DbgValueInst>(&I)) {
+        Value* varValue = dbgValue->getValue();
+        outs() << "      Var value: " << *varValue << "\n";
         DIVariable* var = dbgValue->getVariable();
-        outs() << "      var: " << var->getName() << "\n";
+        outs() << "      Var name: " << var->getName() << "\n";
       }
+
     }
     outs() << "\n";
   }

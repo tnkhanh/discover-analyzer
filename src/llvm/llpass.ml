@@ -24,7 +24,7 @@ let construct_map_llvalue_to_source_name (prog: program) : unit =
   let finstr = Some (fun instr ->
     match instr_opcode instr with
     | LO.Call | LO.Invoke ->
-      if is_func_llvm_debug (callee_of_callable_instr instr) then
+      if is_func_llvm_debug (callee_of_instr_func_call instr) then
         let _ = hprint "instr: " pr_instr instr in
         let v0, v1 = operand instr 0, operand instr 1 in
         let mdv0, mdv1 = LL.value_as_metadata v0, LL.value_as_metadata v1 in
@@ -48,7 +48,7 @@ let compute_func_call_info (prog: program) : unit =
   let finstr = Some (fun instr ->
     match instr_opcode instr with
     | LO.Call | LO.Invoke ->
-      let callee = callee_of_callable_instr instr in
+      let callee = callee_of_instr_func_call instr in
       let vcallee = llvalue_of_func callee in
       let caller = func_of_instr instr in
       if is_llvalue_function vcallee then (

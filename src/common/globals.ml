@@ -61,6 +61,9 @@ let print_concise_debug = ref false
 
 let print_stats_prog = ref false
 
+(* reporting *)
+let location_source_code_only = ref false
+
 (* work mode *)
 let work_mode = ref WkmNoAnalysis
 let skip_analysis = ref false
@@ -84,10 +87,6 @@ let export_proof_ascii = ref false
 let export_core_prog = ref false
 let export_debug_info = ref false
 let export_cfg_prog = ref false
-
-(* reporting *)
-let location_source = ref false
-let location_bitcode = ref true
 
 (* llvm mode *)
 let llvm_orig_source_name = ref false
@@ -193,77 +192,63 @@ let num_invalid_asserts = ref 0
  ** location
  *******************************************************************)
 
-type location =
-  | LRange of { lrg_filename : string;
-                lrg_linum_begin : int;
-                lrg_linum_end : int;
-                lrg_colnum_begin : int;
-                lrg_colnum_end : int; }
-  | LPoint of { lpt_filename : string;
-                lpt_linum : int;
-                lpt_colnum : int; }
+type position = { pos_file_name : string;
+                  pos_line_start : int;
+                  pos_line_end : int;
+                  pos_col_start : int;
+                  pos_col_end : int; }
 
-let mk_location_range (bpos: Lexing.position) (epos: Lexing.position) : location =
-  let lnum_begin = bpos.Lexing.pos_lnum in
-  let cnum_begin = bpos.Lexing.pos_cnum - bpos.Lexing.pos_bol + 1 in
-  let lnum_end = epos.Lexing.pos_lnum in
-  let cnum_end = epos.Lexing.pos_cnum - epos.Lexing.pos_bol + 1 in
-  LRange { lrg_filename = bpos.Lexing.pos_fname;
-           lrg_linum_begin = lnum_begin;
-           lrg_linum_end = lnum_end;
-           lrg_colnum_begin = cnum_begin;
-           lrg_colnum_end = cnum_end; }
+let mk_position fname lstart lend cstart cend =
+  { pos_file_name = fname;
+    pos_line_start = lstart;
+    pos_line_end = lend;
+    pos_col_start = cstart;
+    pos_col_end = cend; }
 
-let mk_location_point filename linum colnum : location =
-  LPoint { lpt_filename = filename;
-           lpt_linum = linum;
-           lpt_colnum = colnum;}
+let mk_position_lexing (pstart: LX.position) (pend: LX.position) : position =
+  { pos_file_name = pstart.Lexing.pos_fname;
+    pos_line_start = pstart.Lexing.pos_lnum;
+    pos_line_end = pend.Lexing.pos_lnum;
+    pos_col_start = pstart.Lexing.pos_cnum - pstart.Lexing.pos_bol + 1;
+    pos_col_end = pend.Lexing.pos_cnum - pend.Lexing.pos_bol + 1; }
 
-let dummy_loc = mk_location_range Lexing.dummy_pos Lexing.dummy_pos
-
-let pr_file filename start stop =
+let pr_file_excerpt filename (lstart: int) (lend: int) (cstart: int) (cend: int) =
   let _ = print_endline ("File: " ^ filename) in
-  let lines = In_channel.read_lines filename in
-  let start_pr = if start < 3 then 3 else start in
-  let stop_pr =
-    if stop > (List.length lines) - 2 then (List.length lines) - 2
-    else stop in
-  let rec format_code line acc = function
+  let file_lines = In_channel.read_lines filename in
+  let num_lines = List.length file_lines in
+  let lstart = if lstart < 3 then 3 else lstart in
+  let lend = if lend > num_lines - 2 then num_lines - 2 else lend in
+  let rec pr_excerpt lines lcur acc =
+    match lines with
     | [] -> List.rev acc
-    | h :: t ->
-      if (line < start-1 || line >= stop) then
-        format_code (line+1)
-          (("   " ^ string_of_int (line+1) ^ ".  " ^ h ^ "\n")::acc) t
+    | line::nlines ->
+      let nl = lcur + 1 in
+      if lcur < lstart - 1 || lcur >= lend then
+        let marked_line = (Printf.sprintf "%6d" nl) ^ ".  " ^ line ^ "\n" in
+        pr_excerpt nlines (lcur + 1) (marked_line::acc)
       else
-        format_code (line+1)
-          (("   " ^ string_of_int (line+1) ^ ".> " ^ h ^ "\n")::acc) t in
-  let lines_str = List.slice lines (start_pr-3) (stop_pr+2) in
-  let format_str = format_code (start_pr-3) [] lines_str in
+        let marked_line = (Printf.sprintf "%6d" nl) ^ ".> " ^ line ^ "\n" in
+        let marked_col =
+          if lcur = lstart - 1 then
+            let nc = if cstart > 2 then cstart - 2 else 0 in
+            "       > " ^ (String.make nc ' ') ^ "^^^\n"
+          else if lcur = lend - 1 then
+            let nc = if cend > 2 then cend - 2 else 0 in
+            "       > " ^ (String.make nc ' ') ^ "^^^\n"
+          else "" in
+        pr_excerpt nlines (lcur + 1) (marked_col::marked_line::acc) in
+  let excerpt_lines = List.slice file_lines (lstart - 3) (lend + 2) in
+  let format_str = pr_excerpt excerpt_lines (lstart - 3) [] in
   String.concat ~sep:"" (format_str)
 
-let pr_location loc =
-  match loc with
-  | LRange l ->
-    "file: " ^ l.lrg_filename ^ ", " ^
-    (pr_int l.lrg_linum_begin) ^ ":" ^ (pr_int l.lrg_colnum_begin) ^ " ~> " ^
-    (pr_int l.lrg_linum_end) ^ ":" ^ (pr_int l.lrg_colnum_end) ^
-    "\n\n" ^ (pr_file l.lrg_filename l.lrg_linum_begin l.lrg_linum_end)
-  | LPoint l ->
-    "file: " ^ l.lpt_filename ^ ", " ^
-    "line: " ^ (pr_int l.lpt_linum) ^ ", " ^
-    "col: " ^ (pr_int l.lpt_colnum) ^
-    "\n\n" ^ (pr_file l.lpt_filename l.lpt_linum l.lpt_linum)
-
-let get_file_name_of_location (loc: location) : string =
-  match loc with
-  | LRange l -> l.lrg_filename
-  | LPoint l -> l.lpt_filename
-
-let get_line_numbers_of_location (loc: location) : (int * int) =
-  match loc with
-  | LRange l -> (l.lrg_linum_begin, l.lrg_linum_end)
-  | LPoint l -> (l.lpt_linum, l.lpt_linum)
-
+let pr_file_position_and_excerpt (p: position) =
+  let fname = p.pos_file_name in
+  let lstart, lend = p.pos_line_start, p.pos_line_end in
+  let cstart, cend = p.pos_col_start, p.pos_col_end in
+  "file: " ^ fname ^ ", " ^
+  (pr_int lstart) ^ ":" ^ (pr_int cstart) ^ " ~> " ^
+  (pr_int lend) ^ ":" ^ (pr_int cend) ^
+  "\n" ^ (pr_file_excerpt fname lstart lend cstart cend)
 
 (*******************************************************************
  ** Data flow analysis

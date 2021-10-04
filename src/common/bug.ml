@@ -87,24 +87,32 @@ let pr_memory_leak (mlk: memory_leak) : string =
 
 (* integer bugs *)
 
-let pr_instr_location instr =
-  match LS.location_of_instr instr with
-  | None -> ""
-  | Some loc -> "  Location: " ^ (pr_location loc) ^ "\n"
+let pr_instr_detailed_position instr =
+  let code_excerpt = match LS.position_of_instr instr with
+    | None -> ""
+    | Some p -> "  Location: " ^ (pr_file_position_and_excerpt p) ^ "\n" in
+  if !location_source_code_only then code_excerpt
+  else "  Instruction: " ^ (pr_instr instr) ^ "\n" ^ code_excerpt
+
+
+let pr_llvalue_name (v: LL.llvalue) : string =
+  match LS.get_original_name_of_llvalue v with
+  | Some str -> str
+  | None -> pr_value v
 
 let pr_integer_overflow (iof: integer_overflow) : string =
   "INTEGER OVERFLOW\n" ^
-  "  Instruction: " ^ (pr_instr iof.iof_instr) ^ "\n" ^
-  (pr_instr_location iof.iof_instr) ^
-  "  Reason: expr: " ^ (pr_value iof.iof_expr) ^
-  ", bit width: " ^ (pr_int iof.iof_bitwidth)
+  (pr_instr_detailed_position iof.iof_instr) ^
+  "  Reason: the variable " ^ (pr_llvalue_name iof.iof_expr) ^
+  " has bit width: " ^ (pr_int iof.iof_bitwidth) ^
+  " but can take value of <...>"
 
 let pr_integer_underflow (iuf: integer_underflow) : string =
   "INTEGER UNDERFLOW\n" ^
-  "  Instruction: " ^ (pr_instr iuf.iuf_instr) ^ "\n" ^
-  (pr_instr_location iuf.iuf_instr) ^
-  "  Reason: expr: " ^ (pr_value iuf.iuf_expr) ^
-  ", bit width: " ^ (pr_int iuf.iuf_bitwidth)
+  (pr_instr_detailed_position iuf.iuf_instr) ^
+  "  Reason: the variable " ^ (pr_llvalue_name iuf.iuf_expr) ^
+  " has bit width: " ^ (pr_int iuf.iuf_bitwidth) ^
+  " but can take value of <...>"
 
 let pr_bug_type_detail (btype: bug_type) : string =
   match btype with
@@ -229,9 +237,9 @@ let mk_real_bug ?(reason=None) (analyzer: string) (bug: bug) : bug =
 let report_bug (bug: bug) : unit =
   let location = match !llvm_orig_source_name with
     | false -> ""
-    | true -> match LS.location_of_instr bug.bug_instr with
+    | true -> match LS.position_of_instr bug.bug_instr with
       | None -> ""
-      | Some loc -> " Location: at " ^ (pr_location loc) ^ "\n" in
+      | Some p -> " Location: at " ^ (pr_file_position_and_excerpt p) ^ "\n" in
   let msg = "BUG: " ^ (pr_bug_type_detail bug.bug_type) ^ "\n" ^ location in
   print_endline ("\n" ^ msg)
 

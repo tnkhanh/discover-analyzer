@@ -18,6 +18,6 @@
  (link_flags (-linkall))
  (modes native)
  ; (modes byte)
- (flags (:standard -w -3-26-27-28-32-33 -g))       ;; for development
+ (flags (:standard -w -3-26-27-28-32-33 -g -bin-annot))       ;; for development
  ; (flags (:standard -w -3-27-28-32-33))  ;; for cleaning code
 )

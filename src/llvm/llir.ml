@@ -973,7 +973,7 @@ type iter_instr = instr -> unit
 type iter_param = param -> unit
 type iter_global = global -> unit
 type iter_block = block -> unit option
-type iter_function = func -> unit option
+type iter_func = func -> unit option
 
 let deep_iter_instr
       ?(finstr: iter_instr option = None)
@@ -1010,7 +1010,7 @@ let deep_iter_block
     | Some _ -> ()
 
 let deep_iter_func
-      ?(ffunc: iter_function option = None)
+      ?(ffunc: iter_func option = None)
       ?(fparam: iter_param option = None)
       ?(fblock: iter_block option = None)
       ?(finstr: iter_instr option = None)
@@ -1027,7 +1027,7 @@ let deep_iter_func
 
 let deep_iter_module
       ?(fglobal: iter_global option = None)
-      ?(ffunc: iter_function option = None)
+      ?(ffunc: iter_func option = None)
       ?(fparam: iter_param option = None)
       ?(fblock: iter_block option = None)
       ?(finstr: iter_instr option = None)
@@ -1039,7 +1039,7 @@ let deep_iter_module
 
 let deep_iter_program
       ?(fglobal: iter_global option = None)
-      ?(ffunc: iter_function option = None)
+      ?(ffunc: iter_func option = None)
       ?(fparam: iter_param option = None)
       ?(fblock: iter_block option = None)
       ?(finstr: iter_instr option = None)
@@ -1056,7 +1056,7 @@ type 'a fold_instr = 'a -> instr -> 'a
 type 'a fold_param = 'a -> param -> 'a
 type 'a fold_global = 'a -> global -> 'a
 type 'a fold_block = 'a -> block -> 'a option
-type 'a fold_function = 'a -> func -> 'a option
+type 'a fold_func = 'a -> func -> 'a option
 
 let deep_fold_instr
       ?(finstr: 'a fold_instr option = None)
@@ -1092,7 +1092,7 @@ let deep_fold_block
     | Some v -> v
 
 let deep_fold_func
-      ?(ffunc: 'a fold_function option = None)
+      ?(ffunc: 'a fold_func option = None)
       ?(fparam: 'a fold_param option = None)
       ?(fblock: 'a fold_block option = None)
       ?(finstr: 'a fold_instr option = None)
@@ -1111,7 +1111,7 @@ let deep_fold_func
 
 let deep_fold_module
       ?(fglobal: 'a fold_global option = None)
-      ?(ffunc: 'a fold_function option = None)
+      ?(ffunc: 'a fold_func option = None)
       ?(fparam: 'a fold_param option = None)
       ?(fblock: 'a fold_block option = None)
       ?(finstr: 'a fold_instr option = None)
@@ -1123,7 +1123,7 @@ let deep_fold_module
 
 let deep_fold_program
       ?(fglobal: 'a fold_global option = None)
-      ?(ffunc: 'a fold_function option = None)
+      ?(ffunc: 'a fold_func option = None)
       ?(fparam: 'a fold_param option = None)
       ?(fblock: 'a fold_block option = None)
       ?(finstr: 'a fold_instr option = None)
@@ -1507,9 +1507,9 @@ let is_instr_invoke (i: instr) : bool =
   | LO.Invoke -> true
   | _ -> false
 
-let is_callable_instr (i: instr) : bool =
+let is_instr_call_invoke (i: instr) : bool =
   match instr_opcode i with
-  | LO.Call | LO.Invoke -> true
+  | LO.Call | LO.CallBr | LO.Invoke -> true
   | _ -> false
 
 let is_instr_return (i: instr) : bool =
@@ -1647,6 +1647,12 @@ let is_func_llvm_debug (f: func) : bool =
   let fname = func_name f in
   (String.equal fname "llvm.dbg.declare" ||
    String.equal fname "llvm.dbg.value")
+
+let is_func_llvm_debug_declare (f: func) : bool =
+  String.equal (func_name f) "llvm.dbg.declare"
+
+let is_func_llvm_debug_value (f: func) : bool =
+  String.equal (func_name f) "llvm.dbg.value"
 
 let is_library_function (f: func) : bool =
   List.is_empty (blocks_of_func f) ||
@@ -2321,48 +2327,48 @@ let args_of_instr_invoke (i: instr) : llvalues =
     !args
   | _ -> herror "operand_args: not an instr Invoke: " pr_instr i
 
-(* Callable instructions are: Call, CallBr, Invoke *)
+(* Function application instructions are: Call, CallBr, Invoke *)
 
-let num_args_of_callable_instr (i: instr) : int =
+let num_args_of_instr_func_app (i: instr) : int =
   match instr_opcode i with
   | LO.Call -> num_args_of_instr_call i
   | LO.CallBr -> num_args_of_instr_call i
   | LO.Invoke -> num_args_of_instr_invoke i
   | _ ->
-    herror "num_args_of_callable_instr: not a callable instr: " pr_instr i
+    herror "num_args_of_instr_func_app: not a callable instr: " pr_instr i
 
-let callee_of_callable_instr (i: instr) : func =
+let callee_of_instr_func_call (i: instr) : func =
   match instr_opcode i with
   | LO.Call -> callee_of_instr_call i
   | LO.CallBr -> callee_of_instr_callbr i
   | LO.Invoke -> callee_of_instr_invoke i
   | _ ->
-    herror "callee_of_callable_instr: not a callable instr: " pr_instr i
+    herror "callee_of_instr_func_call: not a callable instr: " pr_instr i
 
-let arg_of_callable_instr (i: instr) (idx: int) : llvalue =
+let arg_of_instr_func_app (i: instr) (idx: int) : llvalue =
   match instr_opcode i with
   | LO.Call -> arg_of_instr_call i idx
   | LO.CallBr -> arg_of_instr_callbr i idx
   | LO.Invoke -> arg_of_instr_invoke i idx
   | _ ->
-    herror "arg_of_callable_instr: not a callable instr: " pr_instr i
+    herror "arg_of_instr_func_app: not a callable instr: " pr_instr i
 
-let args_of_callable_instr (i: instr) : llvalues =
+let args_of_instr_func_app (i: instr) : llvalues =
   match instr_opcode i with
   | LO.Call -> args_of_instr_call i
   | LO.CallBr -> args_of_instr_callbr i
   | LO.Invoke -> args_of_instr_invoke i
   | _ ->
-    herror "args_of_callable_instr: not a callable instr: " pr_instr i
+    herror "args_of_instr_func_app: not a callable instr: " pr_instr i
 
 let get_origin_src_of_memcpy (i: instr) : llvalue =
-  let callee = callee_of_callable_instr i in
+  let callee = callee_of_instr_func_call i in
   if is_func_memcpy callee then
     operand (mk_instr (operand i 0)) 0
   else herror "get_origin_src_of_memcpy: not a memcopy Call: " pr_instr i
 
 let get_origin_dst_of_memcpy (i: instr) : llvalue =
-  let callee = callee_of_callable_instr i in
+  let callee = callee_of_instr_func_call i in
   if is_func_memcpy callee then
     operand (mk_instr (operand i 1)) 0
   else herror "get_origin_dst_of_memcpy: not a memcopy Call: " pr_instr i

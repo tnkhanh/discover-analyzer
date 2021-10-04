@@ -2512,7 +2512,7 @@ module PointerTransfer : DF.ForwardDataTransfer = struct
     | LO.PHI ->
       is_llvalue_contain_pointer (dst_of_instr_phi instr)
     | LO.Call | LO.Invoke ->
-      let callee = callee_of_callable_instr instr in
+      let callee = callee_of_instr_func_call instr in
       let is_pointer_library_func func =
         let candidate_funcs = [is_alias_check_func;
                                is_func_malloc; is_func_free;
@@ -2952,7 +2952,7 @@ module PointerTransfer : DF.ForwardDataTransfer = struct
         output
       else input
     | LO.Call | LO.Invoke ->
-      let callee = callee_of_callable_instr instr in
+      let callee = callee_of_instr_func_call instr in
       let output = PG.copy input in
       if is_func_malloc callee then
         output
