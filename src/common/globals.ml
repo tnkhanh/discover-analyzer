@@ -213,7 +213,7 @@ let mk_position_lexing (pstart: LX.position) (pend: LX.position) : position =
     pos_col_end = pend.Lexing.pos_cnum - pend.Lexing.pos_bol + 1; }
 
 let pr_file_excerpt filename (lstart: int) (lend: int) (cstart: int) (cend: int) =
-  let _ = print_endline ("File: " ^ filename) in
+  (* let _ = print_endline ("File: " ^ filename) in *)
   let file_lines = In_channel.read_lines filename in
   let num_lines = List.length file_lines in
   let lstart = if lstart < 3 then 3 else lstart in

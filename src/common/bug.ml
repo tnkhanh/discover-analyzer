@@ -102,17 +102,19 @@ let pr_llvalue_name (v: LL.llvalue) : string =
 
 let pr_integer_overflow (iof: integer_overflow) : string =
   "INTEGER OVERFLOW\n" ^
-  (pr_instr_detailed_position iof.iof_instr) ^
-  "  Reason: the variable " ^ (pr_llvalue_name iof.iof_expr) ^
-  " has bit width: " ^ (pr_int iof.iof_bitwidth) ^
-  " but can take value of <...>"
+  (pr_instr_detailed_position iof.iof_instr)
+  (* ^ *)
+  (* "  Reason: the variable " ^ (pr_llvalue_name iof.iof_expr) ^ *)
+  (* " has bit width: " ^ (pr_int iof.iof_bitwidth) ^ *)
+  (* " but can take value of <...>" *)
 
 let pr_integer_underflow (iuf: integer_underflow) : string =
   "INTEGER UNDERFLOW\n" ^
-  (pr_instr_detailed_position iuf.iuf_instr) ^
-  "  Reason: the variable " ^ (pr_llvalue_name iuf.iuf_expr) ^
-  " has bit width: " ^ (pr_int iuf.iuf_bitwidth) ^
-  " but can take value of <...>"
+  (pr_instr_detailed_position iuf.iuf_instr)
+  (* ^ *)
+  (* "  Reason: the variable " ^ (pr_llvalue_name iuf.iuf_expr) ^ *)
+  (* " has bit width: " ^ (pr_int iuf.iuf_bitwidth) ^ *)
+  (* " but can take value of <...>" *)
 
 let pr_bug_type_detail (btype: bug_type) : string =
   match btype with

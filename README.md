@@ -46,12 +46,35 @@ on how to compile Discover in Ubuntu, Linux Mint.
 IMPORTANT NOTE: this tutorial is a work-in-progress. We will update more
 information soon to show how to run Discover to find bugs.
 
-- Run pointer analysis on C program:
+- Example of checking bugs using integer interval analysis (range analysis):
 
   ``` sh
   cd $WORKDIR/discover-analyzer
-  ./discover --clang-option "-I ./lib/discover" --dfa-pointer --dfa-inter \
-             examples/c/field-read.c
+  ./discover --clang-option "-I ./lib/discover/ -g" --dfa-range --bug-all \
+             examples/bugs/c/integer-overflow-annot.c
+  ```
+
+  Sample output:
+
+  ```sh
+  BUG: INTEGER OVERFLOW
+  Instruction: %v27 = mul nsw i32 %v26, 4, !dbg !24
+  Location: file: examples/bugs/c/integer-overflow-annot.c, 11:38 ~> 11:38
+     9.
+    10.    // BUG: there is an integer overflow bug in the below line
+    11.>   int x = /*{Bug:IntegerOverflow*/ a * 4 /*:Bug}*/;
+       >                                     ^^^
+    12.
+
+
+  BUG: INTEGER OVERFLOW
+    Instruction: %v29 = mul nsw i32 %v28, 10, !dbg !27
+    Location: file: examples/bugs/c/integer-overflow-annot.c, 14:39 ~> 14:39
+      12.
+      13.    // BUG: there is an integer overflow bug in the below line
+      14.>   long y = /*{Bug:IntegerOverflow*/ a * 10 /*:Bug}*/;
+         >                                      ^^^
+      15.
   ```
 
 # Contributing to Discover
