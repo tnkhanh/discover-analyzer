@@ -48,34 +48,92 @@ information soon to show how to run Discover to find bugs.
 
 - Example of checking bugs using integer interval analysis (range analysis):
 
-  ``` sh
-  cd $WORKDIR/discover-analyzer
-  ./discover --clang-option "-I ./lib/discover/ -g" --dfa-range --bug-all \
-             examples/bugs/c/integer-overflow-annot.c
-  ```
+  + Input file: `integer-multiplication.c` (this file is also stored at
+    `examples/bugs/c/integer-multiplication.c`):
 
-  Sample output:
+    ```c
+    #include <stdio.h>
+    #include <discover.h>
 
-  ```sh
-  BUG: INTEGER OVERFLOW
-  Instruction: %v27 = mul nsw i32 %v26, 4, !dbg !24
-  Location: file: examples/bugs/c/integer-overflow-annot.c, 11:38 ~> 11:38
-     9.
-    10.    // BUG: there is an integer overflow bug in the below line
-    11.>   int x = /*{Bug:IntegerOverflow*/ a * 4 /*:Bug}*/;
-       >                                     ^^^
-    12.
+    int main(int argc, char** argv) {
+      int a = 1;
+
+      printf("Input an integer: ");
+      scanf("%d", &a);
+
+      // There is 1 integer overflow and 1 integer underflow bug in the below line
+      int x = /*{Bug:IntegerOverflow*/ a * 4 /*:Bug}*/;
+
+      // There is 1 integer overflow and 1 integer underflow bug in the below line
+      long y = /*{Bug:IntegerOverflow*/ a * 10 /*:Bug}*/;
+
+      long b = a;
+      // There is no integer overflow/underflow bug in the below line
+      long z = b * 10;
+
+      printf("x: %d\n", x);
+      printf("y: %lu\n", y);
+      return 0;
+    }
+    ```
+
+  + Command to run Discover:
+
+    ``` sh
+    cd $WORKDIR/discover-analyzer
+    ./discover --clang-option "-I ./lib/discover/ -g" --dfa-range --bug-all \
+               examples/bugs/c/integer-multiplication.c
+    ```
+
+  + Sample output:
+
+    ```sh
+    BUG: INTEGER OVERFLOW
+      Instruction: %v27 = mul nsw i32 %v26, 4, !dbg !24
+      Location: file: examples/bugs/c/integer-multiplication.c, 11:38 ~> 11:38
+         9.
+        10.    // There is 1 integer overflow and 1 integer underflow bug in the below line
+        11.>   int x = /*{Bug:IntegerOverflow*/ a * 4 /*:Bug}*/;
+           >                                     ^^^
+        12.
+        13.    // There is 1 integer overflow and 1 integer underflow bug in the below line
+
+    BUG: INTEGER OVERFLOW
+      Instruction: %v29 = mul nsw i32 %v28, 10, !dbg !27
+      Location: file: examples/bugs/c/integer-multiplication.c, 14:39 ~> 14:39
+        12.
+        13.    // There is 1 integer overflow and 1 integer underflow bug in the below line
+        14.>   long y = /*{Bug:IntegerOverflow*/ a * 10 /*:Bug}*/;
+           >                                      ^^^
+        15.
+        16.    long b = a;
+
+    BUG: INTEGER UNDERFLOW
+      Instruction: %v27 = mul nsw i32 %v26, 4, !dbg !24
+      Location: file: examples/bugs/c/integer-multiplication.c, 11:38 ~> 11:38
+         9.
+        10.    // There is 1 integer overflow and 1 integer underflow bug in the below line
+        11.>   int x = /*{Bug:IntegerOverflow*/ a * 4 /*:Bug}*/;
+           >                                     ^^^
+        12.
+        13.    // There is 1 integer overflow and 1 integer underflow bug in the below line
+
+    BUG: INTEGER UNDERFLOW
+      Instruction: %v29 = mul nsw i32 %v28, 10, !dbg !27
+      Location: file: examples/bugs/c/integer-multiplication.c, 14:39 ~> 14:39
+        12.
+        13.    // There is 1 integer overflow and 1 integer underflow bug in the below line
+        14.>   long y = /*{Bug:IntegerOverflow*/ a * 10 /*:Bug}*/;
+           >                                      ^^^
+        15.
+        16.    long b = a;
 
 
-  BUG: INTEGER OVERFLOW
-    Instruction: %v29 = mul nsw i32 %v28, 10, !dbg !27
-    Location: file: examples/bugs/c/integer-overflow-annot.c, 14:39 ~> 14:39
-      12.
-      13.    // BUG: there is an integer overflow bug in the below line
-      14.>   long y = /*{Bug:IntegerOverflow*/ a * 10 /*:Bug}*/;
-         >                                      ^^^
-      15.
-  ```
+    Bug Summary:
+
+      Integer Underflow: 2
+      Integer Overflow: 2
+    ```
 
 # Contributing to Discover
 
