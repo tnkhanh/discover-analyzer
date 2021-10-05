@@ -7,11 +7,11 @@ int main(int argc, char** argv) {
   printf("Input an integer: ");
   scanf("%d", &a);
 
-  // There is 1 integer overflow and 1 integer underflow bug in the below line
-  int x = /*{Bug:IntegerOverflow*/ a * 4 /*:Bug}*/;
+  // There are potential integer overflow/underflow bugs in the below line
+  int x = a * 4;
 
-  // There is 1 integer overflow and 1 integer underflow bug in the below line
-  long y = /*{Bug:IntegerOverflow*/ a * 10 /*:Bug}*/;
+  // There are potential integer overflow/underflow bugs in the below line
+  long y = a * 10;
 
   long b = a;
   // There is no integer overflow/underflow bug in the below line

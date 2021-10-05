@@ -257,10 +257,14 @@ let report_bug_stats (bugs: bug list) : unit =
         | None -> 1 in
       Hashtbl.set tbl_stats ~key:bug_name ~data:times) bugs in
     let bug_stats = Hashtbl.to_alist tbl_stats in
-    let bug_info = List.fold_left ~f:(fun acc (bug_name, times) ->
-      acc ^ "\n  " ^ bug_name ^ ": " ^ (string_of_int times)
-    ) ~init:"Bug Summary:\n" bug_stats in
-    print bug_info
+    let bug_summary =
+      let all_bugs = List.fold_left ~f:(fun acc (bug_name, times) ->
+        acc ^ "\n  " ^ bug_name ^ ": " ^ (string_of_int times)
+      ) ~init:"" bug_stats in
+      "==============================\n" ^
+      "Bug Summary:\n" ^
+      all_bugs in
+    print bug_summary
 
 
 (*******************************************************************

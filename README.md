@@ -51,7 +51,7 @@ information soon to show how to run Discover to find bugs.
   + Input file: `integer-multiplication.c` (this file is also stored at
     `examples/bugs/c/integer-multiplication.c`):
 
-    ```c
+    ``` c
     #include <stdio.h>
     #include <discover.h>
 
@@ -61,11 +61,11 @@ information soon to show how to run Discover to find bugs.
       printf("Input an integer: ");
       scanf("%d", &a);
 
-      // There is 1 integer overflow and 1 integer underflow bug in the below line
-      int x = /*{Bug:IntegerOverflow*/ a * 4 /*:Bug}*/;
+      // There are potential integer overflow/underflow bugs in the below line
+      int x = a * 4;
 
-      // There is 1 integer overflow and 1 integer underflow bug in the below line
-      long y = /*{Bug:IntegerOverflow*/ a * 10 /*:Bug}*/;
+      // There are potential integer overflow/underflow bugs in the below line
+      long y = a * 10;
 
       long b = a;
       // There is no integer overflow/underflow bug in the below line
@@ -80,55 +80,60 @@ information soon to show how to run Discover to find bugs.
   + Command to run Discover:
 
     ``` sh
-    cd $WORKDIR/discover-analyzer
+    cd discover-analyzer
+
     ./discover --clang-option "-I ./lib/discover/ -g" --dfa-range --bug-all \
                examples/bugs/c/integer-multiplication.c
     ```
 
   + Sample output:
 
-    ```sh
+    ``` sh
     BUG: INTEGER OVERFLOW
       Instruction: %v27 = mul nsw i32 %v26, 4, !dbg !24
-      Location: file: examples/bugs/c/integer-multiplication.c, 11:38 ~> 11:38
+      Location: file: examples/bugs/c/integer-multiplication.c, 11:13 ~> 11:13
          9.
-        10.    // There is 1 integer overflow and 1 integer underflow bug in the below line
-        11.>   int x = /*{Bug:IntegerOverflow*/ a * 4 /*:Bug}*/;
-           >                                     ^^^
+        10.    // There are potential integer overflow/underflow bugs in the below line
+        11.>   int x = a * 4;
+           >            ^^^
         12.
-        13.    // There is 1 integer overflow and 1 integer underflow bug in the below line
+        13.    // There are potential integer overflow/underflow bugs in the below line
+
 
     BUG: INTEGER OVERFLOW
       Instruction: %v29 = mul nsw i32 %v28, 10, !dbg !27
-      Location: file: examples/bugs/c/integer-multiplication.c, 14:39 ~> 14:39
+      Location: file: examples/bugs/c/integer-multiplication.c, 14:14 ~> 14:14
         12.
-        13.    // There is 1 integer overflow and 1 integer underflow bug in the below line
-        14.>   long y = /*{Bug:IntegerOverflow*/ a * 10 /*:Bug}*/;
-           >                                      ^^^
-        15.
-        16.    long b = a;
-
-    BUG: INTEGER UNDERFLOW
-      Instruction: %v27 = mul nsw i32 %v26, 4, !dbg !24
-      Location: file: examples/bugs/c/integer-multiplication.c, 11:38 ~> 11:38
-         9.
-        10.    // There is 1 integer overflow and 1 integer underflow bug in the below line
-        11.>   int x = /*{Bug:IntegerOverflow*/ a * 4 /*:Bug}*/;
-           >                                     ^^^
-        12.
-        13.    // There is 1 integer overflow and 1 integer underflow bug in the below line
-
-    BUG: INTEGER UNDERFLOW
-      Instruction: %v29 = mul nsw i32 %v28, 10, !dbg !27
-      Location: file: examples/bugs/c/integer-multiplication.c, 14:39 ~> 14:39
-        12.
-        13.    // There is 1 integer overflow and 1 integer underflow bug in the below line
-        14.>   long y = /*{Bug:IntegerOverflow*/ a * 10 /*:Bug}*/;
-           >                                      ^^^
+        13.    // There are potential integer overflow/underflow bugs in the below line
+        14.>   long y = a * 10;
+           >             ^^^
         15.
         16.    long b = a;
 
 
+    BUG: INTEGER UNDERFLOW
+      Instruction: %v27 = mul nsw i32 %v26, 4, !dbg !24
+      Location: file: examples/bugs/c/integer-multiplication.c, 11:13 ~> 11:13
+         9.
+        10.    // There are potential integer overflow/underflow bugs in the below line
+        11.>   int x = a * 4;
+           >            ^^^
+        12.
+        13.    // There are potential integer overflow/underflow bugs in the below line
+
+
+    BUG: INTEGER UNDERFLOW
+      Instruction: %v29 = mul nsw i32 %v28, 10, !dbg !27
+      Location: file: examples/bugs/c/integer-multiplication.c, 14:14 ~> 14:14
+        12.
+        13.    // There are potential integer overflow/underflow bugs in the below line
+        14.>   long y = a * 10;
+           >             ^^^
+        15.
+        16.    long b = a;
+
+
+    ==============================
     Bug Summary:
 
       Integer Underflow: 2
