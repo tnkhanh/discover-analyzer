@@ -10,7 +10,7 @@ open Dcore
 open Llir
 
 module LL = Llvm
-module LG = Llcfg
+module LG = Llcallgraph
 module BG = BlockGraph
 module BGSCC = LG.BlockGraphSCC
 

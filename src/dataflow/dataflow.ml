@@ -15,7 +15,7 @@ module LV = Llvm.ValueKind
 module LO = Llvm.Opcode
 module LC = Llvm.Icmp
 module LP = Llloop
-module LG = Llcfg
+module LG = Llcallgraph
 module BG = Bug
 module SP = Set.Poly
 

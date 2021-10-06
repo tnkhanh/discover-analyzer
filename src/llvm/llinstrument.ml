@@ -12,11 +12,11 @@ open Llir
 module LL = Llvm
 module LO = Llvm.Opcode
 module LD = Llvm_debuginfo
-module LS = Llsrc
+module LS = Lldebug
 module LV = Llvm.ValueKind
 module SP = Set.Poly
 module LP = Llloop
-module LG = Llcfg
+module LG = Llcallgraph
 
 
 let instrument_bug_annotation (modul: LL.llmodule) : unit =

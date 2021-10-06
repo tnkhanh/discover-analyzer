@@ -11,12 +11,11 @@ open Llir
 
 module LL = Llvm
 module LO = Llvm.Opcode
-module LD = Llvm_debuginfo
-module LS = Llsrc
+module LD = Lldebug
 module LV = Llvm.ValueKind
 module SP = Set.Poly
 module LP = Llloop
-module LG = Llcfg
+module LG = Llcallgraph
 
 let construct_map_llvalue_to_source_name (prog: program) : unit =
   let _ = ddebugc "Construct mapping llvalue to source name" in
@@ -32,11 +31,8 @@ let construct_map_llvalue_to_source_name (prog: program) : unit =
         let _ = hprint "opr 1: " LL.value_name (operand instr 1) in
         let _ = hprint "opr 0: " LL.string_of_llvalue (operand instr 0) in
         let _ = hprint "opr 1: " LL.string_of_llvalue (operand instr 1) in
-        (* let _ = hprint "opr 1 md: " pr_int (LD.di_variable_get_line mdv1) in *)
-        (* let _ = hprint "opr 1 md: " pr_int (LD.di_variable_get_line mdv1) in *)
         let vname = pr_value (operand instr 0) in
-        (* let _ = hprint "value: " pr_id in *)
-        let sname = LS.extract_name_from_metadata (operand instr 1) in
+        let sname = LD.extract_name_from_metadata (operand instr 1) in
         Hashtbl.set prog.prog_llvalue_original_name ~key:vname ~data:sname
       else ()
     | _ -> ()) in

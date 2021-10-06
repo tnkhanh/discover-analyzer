@@ -14,8 +14,9 @@ open Bug
 module PV = Prover
 module LL = Llvm
 module LI = Llir
+module LD = Lldebug
 module OC = Llvm.Opcode
-module LD = Llvm_target.DataLayout
+module LTD = Llvm_target.DataLayout
 module NO = Normalize
 module AG = Arguments
 module SMT = Smt.SmtSL
@@ -154,7 +155,7 @@ let pr_buggy_exps prog exps : string =
     else cur_exps ^ " (llvm) ~~ " ^ source_exps ^ " (source)"
 
 let report_bug prog bug exps (instr: LI.instr): bool =
-  let location = match !llvm_orig_source_name, LS.position_of_instr instr with
+  let location = match !llvm_orig_source_name, LD.position_of_instr instr with
     | false, _ | _, None -> ""
     | true, Some p -> "   at " ^ (pr_file_position_and_excerpt p) in
   let msg =
@@ -658,7 +659,7 @@ let analyze_instr_bitcast vstate pstates (instr: LI.instr) =
   let dst = translate_instr instr in
   let src_mem_size =
     let src_mem_lltyp = LL.element_type (LL.type_of (LI.operand instr 0)) in
-    let size = LD.abi_size src_mem_lltyp (LD.of_string !data_layout) in
+    let size = LTD.abi_size src_mem_lltyp (LTD.of_string !data_layout) in
     mk_exp_int (Int64.to_int_exn size) in
   List.map ~f:(fun ps ->
     process_one_state_instr_bitcast vstate ps instr src dst) pstates

@@ -10,7 +10,7 @@ open Dcore
 open Llir
 
 module LL = Llvm
-module LS = Llsrc
+module LD = Lldebug
 module LO = Llvm.Opcode
 module LC = Llvm.Icmp
 module LA = List.Assoc
@@ -88,7 +88,7 @@ let pr_memory_leak (mlk: memory_leak) : string =
 (* integer bugs *)
 
 let pr_instr_detailed_position instr =
-  let code_excerpt = match LS.position_of_instr instr with
+  let code_excerpt = match LD.position_of_instr instr with
     | None -> ""
     | Some p -> "  Location: " ^ (pr_file_position_and_excerpt p) ^ "\n" in
   if !location_source_code_only then code_excerpt
@@ -96,7 +96,7 @@ let pr_instr_detailed_position instr =
 
 
 let pr_llvalue_name (v: LL.llvalue) : string =
-  match LS.get_original_name_of_llvalue v with
+  match LD.get_original_name_of_llvalue v with
   | Some str -> str
   | None -> pr_value v
 
@@ -239,7 +239,7 @@ let mk_real_bug ?(reason=None) (analyzer: string) (bug: bug) : bug =
 let report_bug (bug: bug) : unit =
   let location = match !llvm_orig_source_name with
     | false -> ""
-    | true -> match LS.position_of_instr bug.bug_instr with
+    | true -> match LD.position_of_instr bug.bug_instr with
       | None -> ""
       | Some p -> " Location: at " ^ (pr_file_position_and_excerpt p) ^ "\n" in
   let msg = "BUG: " ^ (pr_bug_type_detail bug.bug_type) ^ "\n" ^ location in
