@@ -1,5 +1,5 @@
 Development Guide
--------------------
+======================
 
 # IDE environment
 

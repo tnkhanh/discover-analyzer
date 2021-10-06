@@ -142,13 +142,14 @@ information soon to show how to run Discover to find bugs.
 
 # Contributing to Discover
 
-## Current contributors
+- Discover is developed using OCaml and LLVM. Please see our [development
+  guide](docs/development.md) for some detailed information about the development environment,
+  coding convention, etc.
 
-- [Ta Quang Trung](https://github.com/taquangtrung/)
-- [Ren Kunpeng](https://github.com/kunpengren)
-- [Trinh Ngoc Khanh](https://github.com/tnkhanh)
-- [Huang Lung-Chen](https://github.com/lung21)
+- We maintain two active branches in this GitHub repositories:
+  + The [`develop`](https://github.com/sbip-sg/discover-analyzer/tree/develop) branch: is updated regularly along with the current
+    development.
+  + The [`master`](https://github.com/sbip-sg/discover-analyzer/tree/master) branch: is updated occasionally with stable features.
 
-## Want to contribute to our project?
-
-- Please create issues or pull requests to help us improve our tool! :)
+- If you want to be contribute to the development of Discover, please consider
+  create issues or pull requests to help us improve our tool! :)
