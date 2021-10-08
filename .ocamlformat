@@ -1,0 +1,9 @@
+profile = ocamlformat
+break-cases = fit
+margin = 80
+parse-docstrings = true
+wrap-comments = true
+line-endings = lf
+
+# See `ocamlformat --help` for more options
+# Run `ocamlformat --print-config` to show the current configuration

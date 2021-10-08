@@ -5,14 +5,36 @@ Development Guide
 
 - Suggested editor: Emacs, Vim, Visual Studio Code, Sublime Text, Atom, etc.
 
-- Using [Ocp-indent](https://github.com/OCamlPro/ocp-indent) for automatic coding indentation, [merlin](https://github.com/ocaml/merlin) for code
-  completion, navigation, outline, etc.
-
+- Code completion, navigation, outline: use merlin
   ```sh
   opam install merlin ocp-indent
   ```
 
-- Coding convention:
+- Code indentation: 2 methods:
+  + Use [ocp-indent](https://github.com/OCamlPro/ocp-indent) for automatic coding indentation: (very fast)
+
+    ```sh
+    opam install merlin ocp-indent
+    ```
+
+  + Use `ocamlformat`: general, can indent comments, (but somehow very slow).
+
+    ```sh
+    opam install ocaml-lsp-server merlin ocamlformat
+    ```
+
+    Configuration is stored at `.ocamlformat` and `.ocamlformat-ignore` at the
+    root of your project.
+
+    To disable OCamlFormat for certain code, use `[@ocamlformat "disable"]`:
+
+    ```ocaml
+    let do_not_touch (x : t) (y : t) (z : t) = [
+      x; y; z
+    ] [@ocamlformat "disable"]
+    ```
+
+# Coding convention:
   + Use only white-spaces for indentation, each indentation is 2 whitespaces
   + The length of each code line is at most 80 column.
   + Naming style:
