@@ -10,6 +10,12 @@ with Linux Mint / Ubuntu 20.
 
 ## Tools and libraries
 
+- Ninja-build, z3
+
+  ``` sh
+  sudo apt-get install ninja-build, z3
+  ```
+
 - LLVM and Clang 13
 
   + Install from Linux repositories:
@@ -34,30 +40,24 @@ with Linux Mint / Ubuntu 20.
     # export LD_LIBRARY_PATH=$HOME/llvm/llvm-13/lib:$LD_LIBRARY_PATH
     ```
 
-  + Otherwise, LLVM and Clang 13 can be built from source. To do this, download
-    source code of LLVM 13 from [LLVM GitHub Releases](https://github.com/llvm/llvm-project-13/releases), and extract it to
-    `$HOME/llvm/src/llvm-project-13` (or any other custom directory), and run
-    in the `llvm-project-13` directory:
+  + Otherwise, LLVM and Clang 13 can be built from the branch `sbip-llvm-13` of
+    our custom [LLVM 13](https://github.com/sbip-sg/llvm-project), and install to `$HOME/llvm/llvm-13`:
 
     ``` sh
-    # Suppose LLVM 13 source code is stored at $HOME/llvm/src/llvm-project-13/
-    # The following code will build and install it to $HOME/llvm/llvm-13.
-
     # Prepare installation folder
     mkdir -p $HOME/llvm/llvm-13
 
     # Build LLVM
-    cd $HOME/llvm/src/llvm-project-13/
+    mkdir -p $HOME/llvm/src/
+    git clone https://github.com/sbip-sg/llvm-project llvm-project-13
+    cd llvm-project-13
+    git checkout sbip-llvm-13
+
     mkdir -p build; cd build
     cmake ../llvm -DCMAKE_INSTALL_PREFIX=$HOME/llvm/llvm-13 \
           -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release \
           -DLLVM_ENABLE_BINDINGS=ON -Wno-dev -G Ninja
     ninja
-
-    # Build OCaml doc bindings
-    cmake ../llvm -DLLVM_ENABLE_BINDINGS=ON
-    ninja ocaml_doc
-    # ninja ocaml_all
 
     # Install LLVM
     ninja install
@@ -69,35 +69,30 @@ with Linux Mint / Ubuntu 20.
 
 ## Gollvm for compiling Hyperledger Fabric smart contracts
 
-- Install ninja-build
-
-  ``` sh
-  sudo apt-get install clang-12 ninja-build
-  ```
-
 - Run the following instructions to install `gollvm`.
 
   ``` sh
   export LLVMDIR=$HOME/llvm                   # path to LLVM directory
 
-  mkdir -p $LLVMDIR/src
-  cd $LLVMDIR/src
-  git clone https://github.com/llvm/llvm-project.git llvm-project-gollvm
+  # This step may be skip if our custom LLVM 13 repository already downloaded
+  mkdir -p $HOME/llvm/src/
+  git clone https://github.com/sbip-sg/llvm-project llvm-project-13
+  cd llvm-project-13
+  git checkout sbip-llvm-13
 
-  export LLVMGOLLVM=$LLVMDIR/src/llvm-project-gollvm
-  cd $LLVMGOLLVM/llvm/tools
+  # Download source code and libraries of gollvm
+  export LLVMPROJECT=$LLVMDIR/src/llvm-project-13
+  cd $LLVMPROJECT/llvm/tools
   git clone https://go.googlesource.com/gollvm
 
-  cd $LLVMGOLLVM/llvm/tools/gollvm
+  cd $LLVMPROJECT/llvm/tools/gollvm
   git clone https://go.googlesource.com/gofrontend
 
-  cd $LLVMGOLLVM/llvm/tools/gollvm/libgo
+  cd $LLVMPROJECT/llvm/tools/gollvm/libgo
   git clone https://github.com/libffi/libffi.git
   git clone https://github.com/ianlancetaylor/libbacktrace.git
   ```
-- Checkout the following commit for LLVM-11-compatible version:
-
-  (TODO: update Gollvm tutorial to LLVM 12 )
+- Checkout the following commit for LLVM-13 compatible version:
 
   ``` sh
   # Git revisions for working with LLVM 11
@@ -108,22 +103,22 @@ with Linux Mint / Ubuntu 20.
   # libffi: 737d4faa00d681b4c758057f67e1a02d813d01c2
 
   # update LLVM to 11.1.0-rc3
-  cd $LLVMGOLLVM
+  cd $LLVMPROJECT
   git checkout 1fdec59bffc11ae37eb51a1b9869f0696bfd5312
 
-  cd $LLVMGOLLVM/llvm/tools/gollvm
+  cd $LLVMPROJECT/llvm/tools/gollvm
   git checkout 44a7a475cfd3b871b7a5a0941b8ab1ea9d489adc
 
-  cd $LLVMGOLLVM/llvm/tools/gollvm/gofrontend
+  cd $LLVMPROJECT/llvm/tools/gollvm/gofrontend
   git checkout be0d2cc2df9f98d967c242594838f86362dae2e7
 
-  cd $LLVMGOLLVM/llvm/tools/gollvm/libgo/libbacktrace
+  cd $LLVMPROJECT/llvm/tools/gollvm/libgo/libbacktrace
   git checkout d0f5e95a87a4d3e0a1ed6c069b5dae7cbab3ed2a
 
-  cd $LLVMGOLLVM/llvm/tools/gollvm/libgo/libffi
+  cd $LLVMPROJECT/llvm/tools/gollvm/libgo/libffi
   git checkout 737d4faa00d681b4c758057f67e1a02d813d01c2
 
-  cd $LLVMGOLLVM/llvm/tools/gollvm/libgo/libbacktrace
+  cd $LLVMPROJECT/llvm/tools/gollvm/libgo/libbacktrace
   git checkout 5a99ff7fed66b8ea8f09c9805c138524a7035ece
   ```
 
@@ -133,14 +128,19 @@ with Linux Mint / Ubuntu 20.
   mkdir -p $LLVMDIR/gollvm
   export GOLLVMDIR=$LLVMDIR/gollvm
 
-  mkdir -p $LLVMGOLLVM/build
-  cd $LLVMGOLLVM/build
+  mkdir -p $LLVMPROJECT/build
+  cd $LLVMPROJECT/build
 
   # IMPORTANT: make sure to use clang and clang++ version 11
   CC=clang CXX=clang++ \
            cmake ../llvm -DCMAKE_INSTALL_PREFIX=$GOLLVMDIR \
-           -DLLVM_ENABLE_BINDINGS=OFF -DLLVM_ENABLE_RTTI=ON \
-           -DCMAKE_BUILD_TYPE=Release -DLLVM_USE_LINKER=gold -G Ninja
+           -DLLVM_ENABLE_BINDINGS=ON -DLLVM_ENABLE_RTTI=ON \
+           -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release \
+           -DLLVM_USE_LINKER=gold -Wno-dev -G Ninja
+
+    <!-- cmake ../llvm -DCMAKE_INSTALL_PREFIX=$HOME/llvm/llvm-13 \ -->
+    <!--       -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release \ -->
+    <!--       -DLLVM_ENABLE_BINDINGS=ON -Wno-dev -G Ninja -->
 
   ninja gollvm
   ninja install # or ninja install-gollvm
