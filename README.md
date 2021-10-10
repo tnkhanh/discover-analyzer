@@ -98,36 +98,30 @@ with Linux Mint / Ubuntu 20.
   git clone https://github.com/libffi/libffi.git
   git clone https://github.com/ianlancetaylor/libbacktrace.git
   ```
-- Checkout the following commit for LLVM-11-compatible version:
-
-  (TODO: update Gollvm tutorial to LLVM 12 )
-
+- Checkout the following commit for LLVM-13-compatible version:
   ``` sh
-  # Git revisions for working with LLVM 11
-  # LLVM: 43ff75f2c3feef64f9d73328230d34dac8832a91
-  # gollvm: 44a7a475cfd3b871b7a5a0941b8ab1ea9d489adc
-  # gofrontend: be0d2cc2df9f98d967c242594838f86362dae2e7
-  # libbacktrace: 5a99ff7fed66b8ea8f09c9805c138524a7035ece
-  # libffi: 737d4faa00d681b4c758057f67e1a02d813d01c2
+    # Git revisions for working with LLVM 13
+    # LLVM: f6b09e394a5fad4b33f8746195377f4f638e2c8d (tag: llvmorg-13.0.0-rc3, also tested with rc4)
+    # gollvm: 0f0479aa582cfa3bd9c17bd7d41d2e2bc9991958
+    # gofrontend: e3bfc0889237a5bb8aa7ae30e1cff14f90a5f941
+    # libbacktrace: d0f5e95a87a4d3e0a1ed6c069b5dae7cbab3ed2a
+    # libffi: 0f2dd369cd5edcefad29b3fca4e1d08cb34f8f19
 
-  # update LLVM to 11.1.0-rc3
-  cd $LLVMGOLLVM
-  git checkout 1fdec59bffc11ae37eb51a1b9869f0696bfd5312
+    # update LLVM to 11.1.0-rc3
+    cd $LLVMGOLLVM
+    git checkout llvmorg-13.0.0-rc3
 
-  cd $LLVMGOLLVM/llvm/tools/gollvm
-  git checkout 44a7a475cfd3b871b7a5a0941b8ab1ea9d489adc
+    cd $LLVMGOLLVM/llvm/tools/gollvm
+    git checkout 0f0479aa582cfa3bd9c17bd7d41d2e2bc9991958
 
-  cd $LLVMGOLLVM/llvm/tools/gollvm/gofrontend
-  git checkout be0d2cc2df9f98d967c242594838f86362dae2e7
+    cd $LLVMGOLLVM/llvm/tools/gollvm/gofrontend
+    git checkout e3bfc0889237a5bb8aa7ae30e1cff14f90a5f941
 
-  cd $LLVMGOLLVM/llvm/tools/gollvm/libgo/libbacktrace
-  git checkout d0f5e95a87a4d3e0a1ed6c069b5dae7cbab3ed2a
+    cd $LLVMGOLLVM/llvm/tools/gollvm/libgo/libbacktrace
+    git checkout d0f5e95a87a4d3e0a1ed6c069b5dae7cbab3ed2a
 
-  cd $LLVMGOLLVM/llvm/tools/gollvm/libgo/libffi
-  git checkout 737d4faa00d681b4c758057f67e1a02d813d01c2
-
-  cd $LLVMGOLLVM/llvm/tools/gollvm/libgo/libbacktrace
-  git checkout 5a99ff7fed66b8ea8f09c9805c138524a7035ece
+    cd $LLVMGOLLVM/llvm/tools/gollvm/libgo/libffi
+    git checkout 0f2dd369cd5edcefad29b3fca4e1d08cb34f8f19
   ```
 
 - Compiling Gollvm
