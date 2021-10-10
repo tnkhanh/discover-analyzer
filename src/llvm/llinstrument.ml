@@ -17,6 +17,11 @@ module LV = Llvm.ValueKind
 module SP = Set.Poly
 module LP = Llloop
 module LG = Llcfg
+module FM = Map.Make(String)
+
+type annotation =
+  | Bug of position
+  | Safe of position
 
 let extract_annotations (filename: string) = 
   let _ = print_endline ("File:.........."^filename) in
@@ -31,24 +36,88 @@ let extract_annotations (filename: string) =
           try
           (*NOTE: no asterisk allowed in Bug string*)
             Str.search_forward
-            (Str.regexp "/\\*[ \t]*{[ \t]*Bug:\\([^*]*\\)\\*/") line col_number
+            (Str.regexp "/\\*{\\(Bug|Safe\\):\\([^*]*\\)\\*/") line col_number
           with Not_found -> -1 in
         if match_pos = -1 then old_list
         else
           find_annot (Str.match_end ())
-            ((line_number, (Str.match_end ()) + 1, Str.matched_group 1 line)::old_list) in
+            (((line_number, (Str.match_end ()) + 1), Str.matched_group 1 line)::old_list) in
       let new_list = find_annot 0 annot_list in
       read_line (line_number+1) new_list
     with End_of_file -> annot_list in
   read_line 1 []
 
-let instrument_bug_annotation (modul: LL.llmodule) : unit =
+let func_map ann =
+  "__assert_integer_overflow"
+
+let apply_annotation ann_str instr modul=
+  match instr with Instr inx ->
+    let insert_pos = LL.instr_succ inx in
+    let builder = LL.builder_at (LL.module_context modul) insert_pos in
+    let assert_func_opt = LL.lookup_function (func_map ann_str) modul in
+    let _ = match assert_func_opt with
+    | None -> print_endline "NOOOOOOOOOOOOOONEE!"
+    | Some assert_func ->
+        let assert_ins = 
+          LL.build_call assert_func 
+            (Array.create ~len:1 inx)
+              "" builder in print_endline "SOMETHINGGGG!" in
+
+    print_endline (ann_str^"...."^(LL.string_of_llvalue inx))
+
+let instrument_bug_annotation annotations (modul: LL.llmodule) : unit =
   (* TODO: fill code here.
      See module llsimp.ml, function elim_instr_intrinsic_lifetime ...
      for how to manipulating LLVM bitcode *)
   let _ = print "INSTRUMENT BUG ANNOTATION" in
 
-  ()
+  let sorted_anns = List.rev annotations in
+  let _ =
+    List.iter ~f:(fun ((line, col), ann) ->
+      print_endline (ann^"----------"^(pr_int line)^"------------"^(pr_int col))
+    ) sorted_anns in
+  let finstr = Some (fun acc instr ->
+    let pos = LS.position_of_instr instr in
+    match pos with
+    | None -> acc
+    | Some p -> ((p.pos_line_start, p.pos_col_start), instr)::acc) in
+  let instr_wps = deep_fold_module ~finstr [] modul in
+  let compare (p1, inx1) (p2, inx2) =
+    if Poly.(p1 > p2) then 1
+    else if Poly.(p1 < p2) then -1
+    else 0 in
 
-let instrument_bitcode filename (modul: LL.llmodule) : unit =
-  instrument_bug_annotation modul
+  let sorted_instr_wps = List.stable_sort ~compare instr_wps in
+  let _ = List.iter ~f:(fun instr_wp ->
+    match instr_wp with ((line, col), instr) ->
+    match instr with Instr inx
+      ->  let pos = LS.position_of_instr instr in
+          match pos with
+          | None -> ()
+          | Some p 
+            -> print_endline ((LL.string_of_llvalue inx)^"++++ "^
+                         (pr_int line) ^ "__" ^
+                         (pr_int col))
+  ) instr_wps in
+
+  let rec resolve anns instr_wps =
+    match anns with
+    | [] -> ()
+    | (pa, stra)::ta ->
+        match instr_wps with
+        | [] -> ()
+        | (pi, instr)::ti -> 
+            if Poly.(pa > pi) then resolve anns ti
+            else
+              match instr with Instr inx ->
+                match instr_opcode instr with
+                | LO.Load | LO.SExt -> resolve anns ti
+                | _ -> let _ = apply_annotation stra instr modul in
+                  resolve ta ti in
+  let _ = resolve sorted_anns sorted_instr_wps in
+  print_endline ("***********************\n" ^ 
+                (LL.string_of_llmodule modul) ^
+                "***********************")
+
+let instrument_bitcode annotations filename (modul: LL.llmodule) : unit =
+  instrument_bug_annotation annotations modul

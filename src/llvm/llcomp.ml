@@ -98,14 +98,14 @@ let print_module_stats filename =
     LL.MemoryBuffer.dispose llmem
   else ()
 
-let process_module (filename: string) (modul: LL.llmodule) : LI.program =
+let process_module annotations (filename: string) (modul: LL.llmodule) : LI.program =
   let _ = hprint "Simplifying bitcode: " pr_id filename in
   let _ = LN.rename_vars_and_params modul in
   let _ = if !llvm_simplify then
       let _ = report_runtime ~task:"Time simplifying bitcode"
                 (fun () -> LS.simplify_module filename modul) in
-(*      let _ = report_runtime ~task:"Time instrumenting bitcode"
-                (fun () -> LT.instrument_bitcode filename modul) in *)
+      let _ = report_runtime ~task:"Time instrumenting bitcode"
+                (fun () -> LT.instrument_bitcode annotations filename modul) in
       if !export_bitcode then (
         let basename = Filename.chop_extension (Filename.basename filename) in
         let dirname = Filename.dirname filename in
@@ -128,7 +128,7 @@ let compile_llir (filename: string) : LI.program =
   let llcontext = LL.create_context () in
   let llmem = LL.MemoryBuffer.of_file filename in
       let modul = Llvm_irreader.parse_ir llcontext llmem in
-  process_module filename modul
+  process_module [] filename modul
 
 let optimize_bitcode (filename: string) : string =
   (* run mem2reg optimization to promote memory to registers *)
@@ -163,16 +163,20 @@ let optimize_bitcode (filename: string) : string =
     else PS.run_command ["cp"; opted_filename; output_filename] in
   output_filename
 
-let compile_bitcode (filename: string) : LI.program =
+let compile_bitcode annotations (filename: string) : LI.program =
   let _ = print_module_stats filename in
   let output_filename = optimize_bitcode filename in
   let llcontext = LL.create_context () in
   let llmem = LL.MemoryBuffer.of_file output_filename in
   let modul = Llvm_bitreader.parse_bitcode llcontext llmem in
+  let _ = print_endline ("=======================================\n" ^ output_filename ^
+                          (LL.string_of_llmodule modul) ^
+                         "=======================================") in
+
   let _ = LL.MemoryBuffer.dispose llmem in
   let _ = if !print_input_prog then
       hprint ~ruler:`Long "ORIGINAL BITCODE MODULE" LI.pr_module modul in
-  process_module output_filename modul
+  process_module annotations output_filename modul
 
 let compile_c_cpp (filename: string) : LI.program =
   let _ = hdebug "Compiling file: " pr_str filename in
@@ -197,13 +201,8 @@ let compile_c_cpp (filename: string) : LI.program =
     let _ = debug (String.concat ~sep:" " cmd) in
     PS.run_command cmd in
   let annotations = LT.extract_annotations filename in
-  let _ = print_endline "Annotations: " in
-  let _ = 
-    List.iter 
-      ~f:(fun (x, y, s) -> print_endline ((string_of_int x)^" "^(string_of_int y)^" "^s))
-      annotations in
- 
-  compile_bitcode output_filename
+
+  compile_bitcode annotations output_filename
 
 let compile_golang (filename: string) : LI.program =
   let _ = hdebug "Compiling Go file: " pr_str filename in
@@ -257,4 +256,4 @@ let compile_golang (filename: string) : LI.program =
   let _ = PS.run_command
             [script_name; filename; bitcode_filename; !gollvm_path ^ "go";
               go_build_output] in
-  compile_bitcode bitcode_filename
+  compile_bitcode [] bitcode_filename
