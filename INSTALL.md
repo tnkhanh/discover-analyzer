@@ -5,8 +5,11 @@ Copyright (c) 2020-2021 Singapore Blockchain Innovation Program.
 
 # Prerequisites
 
-Preferably Ubuntu / Linux Mint. The following commands are tested and work well
-with Linux Mint / Ubuntu 20.
+To build Discover, you need to have LLVM and OCaml installed in your machine.
+Currently, we support the compilation of Discover Linux and macOS, while we have
+not tested on Windows yet.
+
+The following commands are tested and work well with Linux Mint / Ubuntu 20.
 
 ## Tools and libraries
 
@@ -41,7 +44,8 @@ with Linux Mint / Ubuntu 20.
     ```
 
   + Otherwise, LLVM and Clang 13 can be built from the branch `sbip-llvm-13` of
-    our custom [LLVM 13](https://github.com/sbip-sg/llvm-project), and install to `$HOME/llvm/llvm-13`:
+    our custom [LLVM 13](https://github.com/sbip-sg/llvm-project), and install to `$HOME/llvm/llvm-13`. Note that it
+    might take 2 to 3 hours to finish the compilation of LLVM.
 
     ``` sh
     # Prepare installation folder
@@ -49,7 +53,7 @@ with Linux Mint / Ubuntu 20.
     export LLVMINSTALLDIR=$LLVMDIR/llvm-13
     mkdir -p $LLVMINSTALLDIR
 
-    # Build LLVM
+    # Prepare source code
     export LLVMSRCDIR=$LLVMDIR/src
     mkdir -p $LLVMSRCDIR
     cd $LLVMSRCDIR
@@ -58,13 +62,17 @@ with Linux Mint / Ubuntu 20.
     cd $LLVMPROJECT
     git checkout sbip-llvm-13
 
+    # Configure compilation
     mkdir -p $LLVMPROJECT/build
     cd $LLVMPROJECT/build
     cmake ../llvm -DCMAKE_INSTALL_PREFIX=$LLVMINSTALLDIR \
           -DLLVM_ENABLE_BINDINGS=ON -DLLVM_ENABLE_RTTI=ON \
           -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release \
           -DLLVM_USE_LINKER=gold -Wno-dev -G Ninja
+
+    # Build LLVM
     ninja
+    ninja ocaml_doc
 
     # Install LLVM
     ninja install
