@@ -36,15 +36,15 @@ let extract_annotations (filename: string) =
           try
           (*NOTE: no asterisk allowed in Bug string*)
             Str.search_forward
-            (Str.regexp "/\\*{\\(Bug|Safe\\):\\([^*]*\\)\\*/") line col_number
+            (Str.regexp "/\\*{\\(Bug\\):\\([^*]*\\)\\*/") line col_number
           with Not_found -> -1 in
         if match_pos = -1 then old_list
         else
           find_annot (Str.match_end ())
-            (((line_number, (Str.match_end ()) + 1), Str.matched_group 1 line)::old_list) in
+            (((line_number, (Str.match_end ()) + 1), Str.matched_group 2 line)::old_list) in
       let new_list = find_annot 0 annot_list in
       read_line (line_number+1) new_list
-    with End_of_file -> annot_list in
+    with End_of_file -> let _ = close_in inchan in annot_list in
   read_line 1 []
 
 let func_map ann =
@@ -56,12 +56,12 @@ let apply_annotation ann_str instr modul=
     let builder = LL.builder_at (LL.module_context modul) insert_pos in
     let assert_func_opt = LL.lookup_function (func_map ann_str) modul in
     let _ = match assert_func_opt with
-    | None -> print_endline "NOOOOOOOOOOOOOONEE!"
+    | None -> ()
     | Some assert_func ->
         let assert_ins = 
           LL.build_call assert_func 
             (Array.create ~len:1 inx)
-              "" builder in print_endline "SOMETHINGGGG!" in
+              "" builder in print_endline "!----------!" in
 
     print_endline (ann_str^"...."^(LL.string_of_llvalue inx))
 
