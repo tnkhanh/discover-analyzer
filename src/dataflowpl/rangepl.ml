@@ -10,7 +10,7 @@ open Dcore
 open Llir
 
 module AS = Assertion
-module DF = Dataflow
+module DF = Dataflowpl
 module LL = Llvm
 module LO = Llvm.Opcode
 module LC = Llvm.Icmp
