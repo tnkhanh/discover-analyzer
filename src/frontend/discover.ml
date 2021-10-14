@@ -13,6 +13,7 @@ module AS = Assertion
 module BG = Bug
 module CI = Commonir
 module DA = Dfanalyzer
+module DAO = Dfanalyzeroo
 module DF = Dataflow
 module LC = Llcompile
 module LI = Llir
@@ -154,7 +155,8 @@ let analyze_program (prog: CI.program) : unit =
       let num_assertions = AS.count_all_assertions prog in
       let _ = print ("Found total assertions: " ^ (pr_int num_assertions)) in
       match !work_mode with
-      | WkmDFA -> DA.analyze_program_llvm prog
+      (* | WkmDFA -> DA.analyze_program_llvm prog *)
+      | WkmDFA -> DAO.analyze_program_llvm prog
       | WkmSymExec -> SE.analyze_program_llvm prog
       | WkmNoAnalysis -> print "No analysis mode is performed!"
       | _ -> ())
