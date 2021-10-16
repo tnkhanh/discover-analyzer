@@ -412,15 +412,32 @@ module IntervalData = struct
   (* FIXME: use Map to represent it *)
   type t = (expr, interval) MP.t
 
+  type t2 = (expr, interval) MP.t
+
   (* type t = einterval list         (\* sorted by expr *\) *)
 
 end
 
-module RangeTransfer : DF.ForwardDataTransfer = struct
+module RangeTransfer : (DF.ForwardDataTransfer with type t = IntervalData.t) = struct
   open IntervalDomain
 
-  include IntervalData
-  include DF.DataUtilGenerator(IntervalData)
+  type t = IntervalData.t
+
+  type global_env = {
+    genv_global_output : (global, t) Hashtbl.t;
+    mutable genv_globals_data : t;
+  }
+
+  type prog_env = {
+    penv_prog : program;
+    penv_global_env : global_env;
+  }
+
+  let get_global_output (genv: global_env) global : t option =
+    Hashtbl.find genv.genv_global_output global
+
+  let set_global_output (genv: global_env) global (data: t) : unit =
+    Hashtbl.set genv.genv_global_output ~key:global ~data
 
   let analysis = DfaRange
 
@@ -439,465 +456,8 @@ module RangeTransfer : DF.ForwardDataTransfer = struct
     pr_list_square (fun (e, i) ->
       (pr_expr e) ^ ": " ^ (pr_interval i)) expr_interval_lst
 
-  let pr_data_checksum = pr_data
-
-  (* comparison*)
-
-  let equal_data (a: t) (b: t) : bool =
-    MP.equal equal_interval a b
-
-  let lequal_data (a: t)  (b: t) : bool =
-    MP.for_alli ~f:(fun ~key:ea ~data:ia ->
-      MP.existsi ~f:(fun ~key:eb ~data:ib ->
-        equal_expr ea eb &&
-        lequal_interval ia ib
-      ) b
-    ) a
-
-  let copy_data d =
-    d
-
-  (* substitution *)
-
-  let subst_data ?(sstv: substv = []) ?(sstve: substve = [])
-        ?(sste: subste = []) (d: t) : t =
-    MP.fold ~f:(fun ~key:e ~data:i acc ->
-      let ne = subst_expr ~sstv ~sstve ~sste e in
-      match MP.add acc ~key:ne ~data:i with
-      | `Ok res -> res
-      | `Duplicate ->
-        let _ = warning ("Range.subst_data: duplicate expr after substitution" ^
-                         (pr_expr ne)) in
-        acc) ~init:MP.empty d
-
-  let merge_data ?(widen=false) (a: t) (b: t) : t =
-    MP.merge ~f:(fun ~key:e i -> match i with
-      | `Both (ia, ib) -> Some (combine_interval ia ib)
-      | `Left ia -> Some ia
-      | `Right ib -> Some ib) a b
-
-  (* FIXME: fix this later *)
-  let join_data (a: t) (b: t) : t =
-    merge_data a b
-
-  let get_interval (e: expr) (d: t) : interval =
-    match e with
-    | Int64 i -> interval_of_bound (Int64 i)
-    | _ ->
-      match MP.find d e with
-      | Some i -> i
-      | None -> least_interval
-
-  let replace_interval (e: expr) (i: interval) (d: t) : t =
-    let nd = match MP.find d e with
-      | None -> d
-      | Some a -> MP.remove d e in
-    MP.add_exn ~key:e ~data:i nd
-
-  let clean_irrelevant_info_from_data penv func (d: t) : t =
-    MP.filteri ~f:(fun ~key:e ~data:i ->
-      let vs = collect_llvalue_of_expr e in
-      not (List.exists ~f:is_local_llvalue vs)) d
-
-  let clean_info_of_vars (input: t) (vs: llvalues) : t =
-    (* TODO: implement later *)
-    input
-
-  let extract_data_from_predicate ~(widen: bool) (p: predicate) (d: t) : t =
-    match p with
-    | PBool _ -> MP.empty
-    | PIcmp (cmp, lhs, rhs) ->
-      let lhs, rhs = expr_of_llvalue lhs, expr_of_llvalue rhs in
-      if is_constant_expr lhs && not (is_constant_expr rhs) then (
-        let b = match extract_constant_bound lhs with
-          | Some b -> b
-          | None -> herror "extract_const_bound_lhs: not found:" pr_expr lhs in
-        match cmp with
-        | LC.Eq -> MP.of_alist_exn [(rhs, interval_of_bound b)]
-        | LC.Ne -> MP.empty  (* TODO: can be improved here to be more precise *)
-        | LC.Ugt | LC.Sgt ->
-          MP.of_alist_exn [(rhs, mk_interval_range ~ui:false NInf b)]
-        | LC.Uge | LC.Sge ->
-          MP.of_alist_exn [(rhs, mk_interval_range ~ui:true NInf b)]
-        | LC.Ult | LC.Slt ->
-          MP.of_alist_exn [(rhs, mk_interval_range ~li:false b PInf)]
-        | LC.Ule | LC.Sle ->
-          MP.of_alist_exn [(rhs, mk_interval_range ~li:true b PInf)])
-      else if not (is_constant_expr lhs) && is_constant_expr rhs then (
-        let b = match extract_constant_bound rhs with
-          | Some b -> b
-          | None -> herror "extract_const_bound_rhs: not found:" pr_expr rhs in
-        match cmp with
-        | LC.Eq -> MP.of_alist_exn [lhs, interval_of_bound b]
-        | LC.Ne -> MP.empty  (* TODO: can be improved here to be more precise *)
-        | LC.Ugt | LC.Sgt ->
-          MP.of_alist_exn [lhs, mk_interval_range ~li:false b PInf]
-        | LC.Uge | LC.Sge ->
-          MP.of_alist_exn [lhs, mk_interval_range ~li:true b PInf]
-        | LC.Ult | LC.Slt ->
-          MP.of_alist_exn [lhs, mk_interval_range ~ui:false NInf b]
-        | LC.Ule | LC.Sle ->
-          MP.of_alist_exn [lhs, mk_interval_range ~ui:true NInf b])
-      else (
-        let ilhs, irhs = get_interval lhs d, get_interval rhs d in
-        match cmp with
-        | LC.Eq -> MP.of_alist_exn [(lhs, irhs); (rhs, ilhs)]
-        | LC.Ne -> MP.empty  (* TODO: can be improved here to be more precise *)
-        | LC.Ugt | LC.Sgt ->
-          let nilhs = match irhs with
-            | Range r ->
-              if widen then mk_interval_range ~li:false r.range_lb PInf
-              else mk_interval_range ~li:false r.range_ub PInf
-            | Bottom -> Bottom in
-          let nirhs = match ilhs with
-            | Range r ->
-              if widen then mk_interval_range ~ui:false NInf r.range_ub
-              else mk_interval_range ~ui:false NInf r.range_lb
-            | Bottom -> Bottom in
-          MP.of_alist_exn [(lhs, nilhs); (rhs, nirhs)]
-        | LC.Uge | LC.Sge ->
-          let nilhs = match irhs with
-            | Range r ->
-              if widen then mk_interval_range ~li:true r.range_lb PInf
-              else mk_interval_range ~li:true r.range_ub PInf
-            | Bottom -> Bottom in
-          let nirhs = match ilhs with
-            | Range r ->
-              if widen then mk_interval_range ~ui:true NInf r.range_ub
-              else mk_interval_range ~ui:true NInf r.range_lb
-            | Bottom -> Bottom in
-          MP.of_alist_exn [(lhs, nilhs); (rhs, nirhs)]
-        | LC.Ult | LC.Slt ->
-          let nilhs = match irhs with
-            | Range r ->
-              if widen then mk_interval_range ~ui:false NInf r.range_ub
-              else mk_interval_range ~ui:false NInf r.range_lb
-            | Bottom -> Bottom in
-          let nirhs = match ilhs with
-            | Range r ->
-              if widen then mk_interval_range ~li:false r.range_lb PInf
-              else mk_interval_range ~li:false r.range_ub PInf
-            | Bottom -> Bottom in
-          MP.of_alist_exn [(lhs, nilhs); (rhs, nirhs)]
-        | LC.Ule | LC.Sle ->
-          let nilhs = match irhs with
-            | Range r ->
-              if widen then mk_interval_range ~ui:true NInf r.range_ub
-              else mk_interval_range ~ui:true NInf r.range_lb
-            | Bottom -> Bottom in
-          let nirhs = match ilhs with
-            | Range r ->
-              if widen then mk_interval_range ~li:true r.range_lb PInf
-              else mk_interval_range ~li:true r.range_ub PInf
-            | Bottom -> Bottom in
-          MP.of_alist_exn [(lhs, nilhs); (rhs, nirhs)])
-    | PFcmp _ -> MP.empty
-    | PNeg _ | PConj _ | PDisj _ ->
-      herror "extract_data_from_predicate: need to handle: " pr_pred p
-
-  let is_data_satisfied_predicate (d: t) (p: predicate) : bool =
-    let pdata = extract_data_from_predicate ~widen:false p d in
-    MP.for_alli ~f:(fun ~key:v ~data:vip ->
-      let vid = get_interval v d in
-      lequal_interval vid vip) pdata
-
-  let refine_data_by_predicate ?(widen=false) (d: t) (p: predicate) : t =
-    let refine_interval (a: interval) (b: interval) : interval =
-      match a, b with
-      | Bottom, _ -> Bottom
-      | _, Bottom -> Bottom
-      | Range ra, Range rb ->
-        let lb, li =
-          let cmp = compare_bound ra.range_lb rb.range_lb in
-          if cmp > 0 then (ra.range_lb, ra.range_li)
-          else if cmp < 0 then (ra.range_lb, ra.range_li)
-          else (ra.range_lb, ra.range_li && rb.range_li) in
-        let ub, ui =
-          let cmp = compare_bound ra.range_ub rb.range_ub in
-          if cmp < 0 then (ra.range_ub, ra.range_ui)
-          else if cmp > 0 then (ra.range_ub, ra.range_ui)
-          else (ra.range_ub, ra.range_ui && rb.range_ui) in
-        if compare_bound lb ub > 0 then Bottom
-        else Range (mk_range lb ub ~li ~ui) in
-    let pcond_data = extract_data_from_predicate ~widen p d in
-    MP.merge ~f:(fun ~key:e i -> match i with
-      | `Both (id, ip) -> Some (intersect_interval id ip)
-      | `Left id -> Some id
-      | `Right _ -> None) d pcond_data
-
-    (* List.fold_left ~f:(fun acc ep ->
-     *   let e = ep.ei_expr in
-     *   match List.find ~f:(fun a -> equal_expr e a.ei_expr) acc with
-     *   | None -> acc
-     *   | Some ed ->
-     *     let nacc = List.exclude acc ~f:(fun a -> equal_expr e a.ei_expr) in
-     *     let nint = intersect_interval ep.ei_interval ed.ei_interval in
-     *     (mk_einterval e nint)::nacc) ~init:d pcond_data *)
-
-  (*******************************************************************
-   ** Core analysis functions
-   *******************************************************************)
-
-  let need_widening func : bool =
-    true
-
-  let refine_widening func instr widen : bool =
-    let users = get_users (llvalue_of_instr instr) in
-    let has_int_cmp_relation = List.exists ~f:(fun u ->
-      match LL.classify_value u with
-      | LV.Instruction LO.ICmp -> false
-      | _ -> true) users in
-    if not has_int_cmp_relation then widen
-    else true
-
-  let prepare_callee_input penv instr func args (input: t) : t =
-    input
-
-  let compute_callee_output_exns penv instr callee args input fsum : t * exns =
-    (input, [])
-
-  let prepare_thrown_exception_data penv exn_ptr tinfo input : t =
-    input
-
-  let compute_catch_exception_data penv instr ptr input exn : t =
-    input
-
-  let analyze_global (g: global) (input: t) : t =
-    (* TODO: default behavior, implement later if necessary *)
-    input
-
-  let analyze_instr ?(widen=false) (penv: prog_env) fenv instr (input: t) : t =
-    let func = func_of_instr instr in
-    let expr = expr_of_instr instr in
-    match instr_opcode instr with
-    | LO.Unreachable -> least_data
-    | LO.Add ->
-      let opr0, opr1 = expr_operand instr 0, expr_operand instr 1 in
-      let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
-      let itv = add_interval itv0 itv1 in
-      replace_interval expr itv input
-    | LO.Sub ->
-      let opr0, opr1 = expr_operand instr 0, expr_operand instr 1 in
-      let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
-      let itv = sub_interval itv0 itv1 in
-      replace_interval expr itv input
-    | LO.Mul ->
-      let opr0, opr1 = expr_operand instr 0, expr_operand instr 1 in
-      let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
-      let itv = mult_interval itv0 itv1 in
-      replace_interval expr itv input
-    | LO.UDiv | LO.SDiv ->
-      (* TODO: need to handle Div *)
-      input
-    | LO.PHI ->
-      let opr0 = expr_operand instr 0 in
-      let itv = ref (get_interval opr0 input) in
-      let _ = hdebug "Before refine widening: " pr_bool widen in
-      let widen = refine_widening func instr widen in
-      let _ = hdebug "After refine widening: " pr_bool widen in
-      for i = 1 to (num_operands instr) - 1 do
-        let opri = expr_operand instr i in
-        let itvi = get_interval opri input in
-        (* TODO: need to refine widening here *)
-        itv := combine_interval ~widen !itv itvi
-      done;
-      replace_interval (expr_of_instr instr) !itv input
-    | LO.Ret ->
-      let expr = mk_expr_func_result func in
-      let opr0 = expr_operand instr 0 in
-      let itv = get_interval opr0 input in
-      replace_interval expr itv input
-    | LO.Load ->
-      let dst = dst_of_instr_load instr in
-      let dtyp = LL.type_of dst in
-      if is_type_integer dtyp then
-        let bw = LL.integer_bitwidth dtyp in
-        (* LLVM integers is represented in two's complement format *)
-        let lb, ub = BInt.compute_range_two_complement bw in
-        let ir = mk_interval_range ~li:true ~ui:true (BInt lb) (BInt ub) in
-        replace_interval expr ir input
-      else input
-    | LO.Store -> input
-    | LO.ZExt ->
-      let esrc = expr_of_llvalue (src_of_instr_zext instr) in
-      let itv = get_interval esrc input in
-      replace_interval expr itv input
-    | LO.Call | LO.Invoke ->
-      (* TODO: function call for inter-procedural analysis *)
-      (* let callee = callee_of_instr_func_call instr in *)
-      (* let _ = if is_func_scanf callee then *)
-      (*     print "TODO: need to handle func call: scanf" in *)
-      input
-    | _ -> input
-
-  (*******************************************************************
-   ** Checking bugs
-   *******************************************************************)
-
-  let check_buffer_overflow fenv (bof: BG.buffer_overflow) : ternary =
-    if !bug_memory_all || !bug_buffer_overflow then
-      match get_instr_output fenv bof.bof_instr with
-      | None -> False
-      | Some data ->
-        let itv = get_interval (expr_of_llvalue bof.bof_elem_index) data in
-        match bof.bof_buff_size with
-        | None -> False
-        | Some (Int64 n) ->
-          if compare_interval_upper_bound_with_int itv n >= 0 then True
-          else False
-        | _ -> False  (* TODO: check symbolic size *)
-    else False
-
-  let check_integer_overflow fenv (iof: BG.integer_overflow) : ternary =
-    if !bug_integer_all || !bug_integer_overflow then
-      match get_instr_output fenv iof.iof_instr with
-      | None -> Unkn
-      | Some data ->
-        let itv = get_interval (expr_of_llvalue iof.iof_expr) data in
-        match itv with
-        | Bottom -> Unkn
-        | Range r ->
-          let ub = BInt.compute_upper_bound_two_complement iof.iof_bitwidth in
-          if compare_bound r.range_ub (BInt ub) > 0 then True
-          else False
-    else Unkn
-
-  let check_integer_underflow fenv (iuf: BG.integer_underflow) : ternary =
-    if !bug_integer_all || !bug_integer_underflow then
-      match get_instr_output fenv iuf.iuf_instr with
-      | None -> Unkn
-      | Some data ->
-        let itv = get_interval (expr_of_llvalue iuf.iuf_expr) data in
-        match itv with
-        | Bottom -> Unkn
-        | Range r ->
-          let lb = BInt.compute_lower_bound_two_complement iuf.iuf_bitwidth in
-          if compare_bound r.range_lb (BInt lb) < 0 then True
-          else False
-    else Unkn
-
-  let check_bug (fenv: func_env) (bug: BG.bug) : ternary =
-    match bug.BG.bug_type with
-    | BG.BufferOverflow bof -> check_buffer_overflow fenv bof
-    | BG.IntegerOverflow iof -> check_integer_overflow fenv iof
-    | BG.IntegerUnderflow iuf -> check_integer_underflow fenv iuf
-    | _ -> Unkn
-
-  (*******************************************************************
-   ** Propagate bug infor
-   *******************************************************************)
-
-  (* let propagate_buffer_overflow_info fenv (bof: BG.buffer_overflow) : BG.buffer_overflow = *)
-  (*   if !bug_memory_all || !bug_buffer_overflow then *)
-  (*     match get_instr_output fenv bof.bof_instr with *)
-  (*     | None -> bof *)
-  (*     | Some data -> *)
-  (*       let itv = get_interval (expr_of_llvalue bof.bof_elem_index) data in *)
-  (*       match bof.bof_buff_size with *)
-  (*       | None -> False *)
-  (*       | Some (Int64 n) -> *)
-  (*         if compare_interval_upper_bound_with_int itv n >= 0 then True *)
-  (*         else False *)
-  (*       | _ -> False  (\* TODO: check symbolic size *\) *)
-  (*   else bof *)
-
-  (* let propage_bug_infor (fenv: func_env) (bug: BG.bug) : BG.bug = *)
-  (*   match bug.BG.bug_type with *)
-  (*   | BG.BufferOverflow bof -> check_buffer_overflow fenv bof *)
-  (*   (\* | BG.IntegerOverflow iof -> check_integer_overflow fenv iof *\) *)
-  (*   (\* | BG.IntegerUnderflow iuf -> check_integer_underflow fenv iuf *\) *)
-  (*   | _ -> Unkn *)
-
-  (*******************************************************************
-   ** Checking assertions
-   *******************************************************************)
-
-  let count_assertions (prog: program) : int =
-    (* TODO: implement later if necessary *)
-    let assertions = List.fold_left ~f:(fun acc func ->
-      acc @(AS.find_range_assertions func)) ~init:[] prog.prog_user_funcs in
-    List.length assertions
-
-  let check_range_lower_bound fenv instr (v: llvalue) (lb: int64) : bool =
-    match get_instr_output fenv instr with
-    | None -> false
-    | Some data ->
-      match get_interval (expr_of_llvalue v) data with
-      | Bottom -> false
-      | Range r ->
-        match r.range_lb with
-        | PInf -> true
-        | NInf -> false
-        | Int64 i ->
-          let vlb =
-            if r.range_li then i
-            else Int64.(+) i Int64.one in
-          Int64.(>=) vlb lb
-        | BInt i ->
-          let vlb =
-            if r.range_li then i
-            else BInt.add_big_int i BInt.one in
-          BInt.ge_big_int vlb (BInt.big_int_of_int64 lb)
-
-  let check_range_upper_bound fenv instr (v: llvalue) (ub: int64) : bool =
-    match get_instr_output fenv instr with
-    | None -> false
-    | Some data ->
-      match get_interval (expr_of_llvalue v) data with
-      | Bottom -> true
-      | Range r ->
-        match r.range_ub with
-        | PInf -> false
-        | NInf -> true
-        | Int64 i ->
-          let vub = if r.range_ui then i else Int64.(-) i Int64.one in
-          Int64.(<=) vub ub
-        | BInt i ->
-          let vub = if r.range_ui then i else BInt.sub_big_int i BInt.one in
-          BInt.le_big_int vub (BInt.big_int_of_int64 ub)
-
-  let check_range_full fenv instr (v: llvalue) (lb: int64) (ub: int64) : bool =
-    (check_range_lower_bound fenv instr v lb) &&
-    (check_range_upper_bound fenv instr v ub)
-
-  let check_assertion (fenvs: func_env list) (ast: AS.assertion) : bool option =
-    let instr = ast.AS.ast_instr in
-    match ast.AS.ast_type, ast.AS.ast_predicate with
-    | AS.Assert, AS.RangeLB (v::lb::_) -> (
-        match LL.int64_of_const lb with
-        | None -> None
-        | Some lb ->
-          Some (List.exists ~f:(fun fe ->
-            check_range_lower_bound fe instr v lb) fenvs))
-    | AS.Assert, AS.RangeUB (v::ub::_) -> (
-        match LL.int64_of_const ub with
-        | None -> None
-        | Some ub ->
-          Some (List.exists ~f:(fun fe ->
-            check_range_upper_bound fe instr v ub) fenvs))
-    | AS.Assert, AS.RangeFull (v::lb::ub::_) -> (
-        match LL.int64_of_const lb, LL.int64_of_const ub with
-        | None, _ | _, None -> None
-        | Some lb, Some ub ->
-          Some (List.exists ~f:(fun fe ->
-            check_range_full fe instr v lb ub) fenvs))
-    | _ -> None
-
-  let check_assertions (penv: prog_env) func : int =
-    let prog = penv.penv_prog in
-    let assertions = AS.find_range_assertions func in
-    let fenvs = match Hashtbl.find penv.penv_func_envs func with
-      | None -> []
-      | Some fenvs -> fenvs in
-    let num_checked_assertions = ref 0 in
-    let results = List.iter ~f:(fun ast ->
-      match check_assertion fenvs ast with
-      | Some res ->
-        let _ = incr num_checked_assertions in
-        let _ = incr (if res then num_valid_asserts else num_invalid_asserts) in
-        print_endline (AS.pr_assertion_status func ast res)
-      | None -> ()) assertions in
-    !num_checked_assertions
+  let foo () =
+    ()
 
 end
 
@@ -914,13 +474,15 @@ module RangeAnalysis = struct
 
   (* TODO: how to expose some internal function here? *)
 
-  (* let get_interval (e: expr) (d: t) : ID.interval = *)
-  (*   match e with *)
-  (*   | Int64 i -> ID.interval_of_bound (Int64 i) *)
-  (*   | _ -> *)
-  (*     match MP.find d e with *)
-  (*     | Some i -> i *)
-  (*     | None -> IntervalDomain.least_interval *)
+  (* let a = RT.foo () *)
+
+  let get_interval (e: expr) (d: RT.t) : ID.interval =
+    match e with
+    | Int64 i -> ID.interval_of_bound (Int64 i)
+    | _ ->
+      match MP.find d e with
+      | Some i -> i
+      | None -> IntervalDomain.least_interval
 
 
 end

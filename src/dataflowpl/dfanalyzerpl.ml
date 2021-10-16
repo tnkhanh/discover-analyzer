@@ -76,10 +76,12 @@ let perform_range_analysis (pdata: program_data) : program_data =
     let _ = if not (is_analysis_enabled DfaRange) then raise ESkip in
     let _ = debug ~ruler:`Header "Performing Range Analysis..." in
     let prog = pdata.pdata_program in
-    let penv = RG.analyze_program prog in
-    let _ = if not !print_concise_output && !print_analyzed_prog then
-        hprint ~ruler:`Header "RANGE INFO" RG.pr_prog_env penv in
-    {pdata with pdata_env_range = Some penv}
+    (* let penv = RG.analyze_program prog in *)
+    let _ = RG.analyze_program prog in
+    (* let _ = if not !print_concise_output && !print_analyzed_prog then *)
+    (*     hprint ~ruler:`Header "RANGE INFO" RG.pr_prog_env penv in *)
+    (* {pdata with pdata_env_range = Some penv} *)
+    pdata
   with ESkip -> pdata
 
 (* let perform_undef_analysis (pdata: program_data) : program_data = *)
@@ -133,24 +135,24 @@ let perform_main_analysis_passes (pdata: program_data) : program_data =
  * Integer bugs
  *------------------------------------------*)
 
-let find_bug_integer_overflow (pdata: program_data) =
-  let pbugs = List.filter ~f:BG.is_bug_integer_overflow
-                pdata.pdata_potential_bugs in
-  let bugs = match pdata.pdata_env_range with
-    | None -> []
-    | Some env ->
-      (* TODO: may need to run analysis passes to update bug infor *)
-      List.filter ~f:(fun bug -> RG.check_bug env bug == True) pbugs in
-  List.map ~f:(BG.mk_real_bug "RangeAnalysis") bugs
+(* let find_bug_integer_overflow (pdata: program_data) = *)
+(*   let pbugs = List.filter ~f:BG.is_bug_integer_overflow *)
+(*                 pdata.pdata_potential_bugs in *)
+(*   let bugs = match pdata.pdata_env_range with *)
+(*     | None -> [] *)
+(*     | Some env -> *)
+(*       (\* TODO: may need to run analysis passes to update bug infor *\) *)
+(*       List.filter ~f:(fun bug -> RG.check_bug env bug == True) pbugs in *)
+(*   List.map ~f:(BG.mk_real_bug "RangeAnalysis") bugs *)
 
-let find_bug_integer_underflow (pdata: program_data) =
-  let pbugs = List.filter ~f:BG.is_bug_integer_underflow
-                pdata.pdata_potential_bugs in
-  let bugs = match pdata.pdata_env_range with
-    | None -> []
-    | Some env ->
-      List.filter ~f:(fun bug -> RG.check_bug env bug == True) pbugs in
-  List.map ~f:(BG.mk_real_bug "RangeAnalysis") bugs
+(* let find_bug_integer_underflow (pdata: program_data) = *)
+(*   let pbugs = List.filter ~f:BG.is_bug_integer_underflow *)
+(*                 pdata.pdata_potential_bugs in *)
+(*   let bugs = match pdata.pdata_env_range with *)
+(*     | None -> [] *)
+(*     | Some env -> *)
+(*       List.filter ~f:(fun bug -> RG.check_bug env bug == True) pbugs in *)
+(*   List.map ~f:(BG.mk_real_bug "RangeAnalysis") bugs *)
 
 (*-------------------------------------------
  * Memory bugs
@@ -181,14 +183,14 @@ let find_bug_integer_underflow (pdata: program_data) =
 (*       if res then True else False *)
 (*   else False *)
 
-let find_bug_buffer_overflow (pdata: program_data) =
-  let pbugs = List.filter ~f:BG.is_bug_buffer_overflow
-                pdata.pdata_potential_bugs in
-  let bugs = match pdata.pdata_env_range with
-    | None -> []
-    | Some env ->
-      List.filter ~f:(fun bug -> RG.check_bug env bug == True) pbugs in
-  List.map ~f:(BG.mk_real_bug "RangeAnalysis") bugs
+(* let find_bug_buffer_overflow (pdata: program_data) = *)
+(*   let pbugs = List.filter ~f:BG.is_bug_buffer_overflow *)
+(*                 pdata.pdata_potential_bugs in *)
+(*   let bugs = match pdata.pdata_env_range with *)
+(*     | None -> [] *)
+(*     | Some env -> *)
+(*       List.filter ~f:(fun bug -> RG.check_bug env bug == True) pbugs in *)
+(*   List.map ~f:(BG.mk_real_bug "RangeAnalysis") bugs *)
 
 (* let propopage_info_buffer_overflow (pdata: program_data) = *)
 (*   let pbugs = List.filter ~f:BG.is_bug_buffer_overflow *)
@@ -223,11 +225,11 @@ let find_bug_buffer_overflow (pdata: program_data) =
 let find_all_bugs (pdata: program_data) : unit =
   let _ = println "Checking Bugs..." in
   let prog = pdata.pdata_program in
-  let bugs =
+  let bugs = [] in
     (* (find_bug_memory_leak pdata) @ *)
     (*          (find_bug_buffer_overflow pdata) @ *)
-             (find_bug_integer_overflow pdata) @
-             (find_bug_integer_underflow pdata) in
+             (* (find_bug_integer_overflow pdata) @ *)
+             (* (find_bug_integer_underflow pdata) in *)
   let _ = List.iter ~f:BG.report_bug bugs in
   let _ = num_of_bugs := List.length bugs in
   BG.report_bug_stats bugs
@@ -243,7 +245,7 @@ let check_assertions (pdata: program_data) : unit =
   (*   | Some env -> PA.check_assertions env in *)
   match pdata.pdata_env_range with
   | None -> ()
-  | Some env -> RG.check_assertions env
+  | Some env -> () (* RG.check_assertions env *)
 
 let report_analysis_stats (pdata: program_data) : unit =
   ()

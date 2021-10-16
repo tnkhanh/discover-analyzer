@@ -58,7 +58,7 @@ The following commands are tested and work well with Linux Mint / Ubuntu 20.
     mkdir -p $LLVMSRCDIR
     cd $LLVMSRCDIR
     git clone https://github.com/sbip-sg/llvm-project llvm-project-sbip
-    export $LLVMPROJECT=$LLVMSRCDIR/llvm-project-sbip
+    export LLVMPROJECT=$LLVMSRCDIR/llvm-project-sbip
     cd $LLVMPROJECT
     git checkout sbip-llvm-13
 
@@ -146,14 +146,16 @@ The following commands are tested and work well with Linux Mint / Ubuntu 20.
                llvm llvm.target llvm.bitreader llvm.bitwriter llvm.irreader
   ```
 
-- Manually configure LLVM 13 bindings to the opam install directory:
+- If LLVM 13 is installed from source code, then we also need to copy LLVM 13
+  bindings to the opam install directory:
 
   ``` sh
   opam uninstall llvm
-  cd $HOME/.opam/4.12.0/lib
-  mkdir -p llvm/static
-  cp ocaml/llvm/* llvm/static
-  cp ocaml/llvm/* llvm
+  cd $HOME/.opam/4.12.0
+
+  # manually copy llvm libraries and metadata files
+  cp -r lib/ocaml/llvm lib/
+  cp lib/ocaml/META.llvm* lib/
   ```
 
 # Compilation

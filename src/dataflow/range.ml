@@ -416,7 +416,8 @@ module IntervalData = struct
 
 end
 
-module RangeTransfer : DF.ForwardDataTransfer = struct
+(* module RangeTransfer : DF.ForwardDataTransfer = struct *)
+module RangeTransfer : (DF.ForwardDataTransfer with type t = IntervalData.t) = struct
   open IntervalDomain
 
   include IntervalData
@@ -914,13 +915,12 @@ module RangeAnalysis = struct
 
   (* TODO: how to expose some internal function here? *)
 
-  (* let get_interval (e: expr) (d: t) : ID.interval = *)
-  (*   match e with *)
-  (*   | Int64 i -> ID.interval_of_bound (Int64 i) *)
-  (*   | _ -> *)
-  (*     match MP.find d e with *)
-  (*     | Some i -> i *)
-  (*     | None -> IntervalDomain.least_interval *)
-
+  let get_interval (e: expr) (d: t) : ID.interval =
+    match e with
+    | Int64 i -> ID.interval_of_bound (Int64 i)
+    | _ ->
+      match MP.find d e with
+      | Some i -> i
+      | None -> IntervalDomain.least_interval
 
 end
