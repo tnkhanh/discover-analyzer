@@ -76,10 +76,21 @@ The following commands are tested and work well with Linux Mint / Ubuntu 20.
 
     # Install LLVM
     ninja install
+    ```
 
-    # Update environment
+    To update your environment with this LLVM 13 installation:
+
+    ```sh
+    # Option 1: run these commands to update the environment temporarily
     export PATH=$LLVMINSTALLDIR/bin:$PATH
     export LD_LIBRARY_PATH=$LLVMINSTALLDIR/lib:$LD_LIBRARY_PATH
+    export LIBRARY_PATH=$LLVMINSTALLDIR/lib:$LIBRARY_PATH
+
+    # Option 2: put the following to ~/.profile to configure the environment permanently
+    export LLVMINSTALLDIR=$HOME/llvm/llvm-13
+    export PATH=$LLVMINSTALLDIR/bin:$PATH
+    export LD_LIBRARY_PATH=$LLVMINSTALLDIR/lib:$LD_LIBRARY_PATH
+    export LIBRARY_PATH=$LLVMINSTALLDIR/lib:$LIBRARY_PATH
     ```
 
 ## Gollvm for compiling Hyperledger Fabric smart contracts

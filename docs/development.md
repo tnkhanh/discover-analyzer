@@ -35,13 +35,17 @@ Development Guide
     ```
 
 # Coding convention:
-  + Use only white-spaces for indentation, each indentation is 2 whitespaces
-  + The length of each code line is at most 80 column.
-  + Naming style:
-    * Functions and variables' names: snake case (`lower_case_with_underscore`):
-    * Modules' names: Camel Case (`UpperCaseWithouthUnderscore`)
+
+- Use only white-spaces for indentation, each indentation is 2 whitespaces
+- The length of each code line is at most 80 column.
+- Naming style:
+  + Functions and variables' names: snake case (`lower_case_with_underscore`):
+  + Modules' names: Camel Case (`UpperCaseWithouthUnderscore`)
 
 # Tutorials
+
+- OCaml programming:
+  + [Real World Ocaml](https://dev.realworldocaml.org/index.html): free, online book.
 
 - OCaml binding for LLVM:
   + https://llvm.org/docs/tutorial/OCamlLangImpl1.html
