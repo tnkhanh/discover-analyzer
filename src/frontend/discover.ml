@@ -108,7 +108,7 @@ let compile_input_file (filename: string) : CI.program =
   let input_type = get_input_type filename in
   match input_type with
   | InpSepLogic -> filename |> SE.compile_sep_logic |> CI.mk_seplogic_prog
-  | InpBitcode -> filename |> (LC.compile_bitcode []) |> CI.mk_llvm_prog
+  | InpBitcode -> filename |> LC.compile_bitcode [] |> CI.mk_llvm_prog
   | InpLlir -> filename |> LC.compile_llir |> CI.mk_llvm_prog
   | InpCCpp -> filename |> LC.compile_c_cpp |> CI.mk_llvm_prog
   | InpGolang -> filename |> LC.compile_golang |> CI.mk_llvm_prog

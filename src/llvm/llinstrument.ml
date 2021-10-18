@@ -18,13 +18,14 @@ module SP = Set.Poly
 module LP = Llloop
 module LG = Llcfg
 module FM = Map.Make(String)
+module AP = Annparser
 
 type annotation =
   | Bug of position
   | Safe of position
 
-let extract_annotations (filename: string) = 
-  let _ = print_endline ("File:.........."^filename) in
+let extract_ann_marks (filename: string) = 
+(*  let _ = print_endline ("File:.........."^filename) in
   let inchan = 
     try open_in filename 
     with e -> error ("Unable to open file: " ^ filename) in
@@ -45,7 +46,18 @@ let extract_annotations (filename: string) =
       let new_list = find_annot 0 annot_list in
       read_line (line_number+1) new_list
     with End_of_file -> let _ = close_in inchan in annot_list in
-  read_line 1 []
+  read_line 1 [] *)
+  let inx = In_channel.create filename in 
+  let lexbuf = Lexing.from_channel inx in
+  let mark_list =
+    Annparser.prog Annlexer.read lexbuf in
+  mark_list
+(*    try Annparser.program Annlexer.read lexbuf with
+    | SyntaxError _ -> []
+    | Annparser.Error -> []
+
+  let _ = In_channel.close inx in *)
+(*  mark_list *)
 
 let func_map ann =
   "__assert_integer_overflow"
@@ -58,18 +70,19 @@ let apply_annotation ann_str instr modul=
     let _ = match assert_func_opt with
     | None -> ()
     | Some assert_func ->
-        let assert_ins = 
-          LL.build_call assert_func 
-            (Array.create ~len:1 inx)
-              "" builder in print_endline "!----------!" in
+        let assert_ins = LL.build_call assert_func 
+            (Array.create ~len:1 inx) "" builder in 
+        print_endline "!----------!" in
 
     print_endline (ann_str^"...."^(LL.string_of_llvalue inx))
 
-let instrument_bug_annotation annotations (modul: LL.llmodule) : unit =
+let instrument_bug_annotation ann_marks (modul: LL.llmodule) : unit =
   (* TODO: fill code here.
      See module llsimp.ml, function elim_instr_intrinsic_lifetime ...
      for how to manipulating LLVM bitcode *)
-  let _ = print "INSTRUMENT BUG ANNOTATION" in
+  ()
+  (* print_endline (Ann.str_of_prog ann_marks) *)
+(*  let _ = print "INSTRUMENT BUG ANNOTATION" in
 
   let sorted_anns = List.rev annotations in
   let _ =
@@ -117,7 +130,7 @@ let instrument_bug_annotation annotations (modul: LL.llmodule) : unit =
   let _ = resolve sorted_anns sorted_instr_wps in
   print_endline ("***********************\n" ^ 
                 (LL.string_of_llmodule modul) ^
-                "***********************")
+                "***********************") *)
 
-let instrument_bitcode annotations filename (modul: LL.llmodule) : unit =
-  instrument_bug_annotation annotations modul
+let instrument_bitcode ann_marks filename (modul: LL.llmodule) : unit =
+  instrument_bug_annotation ann_marks modul
