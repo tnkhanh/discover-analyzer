@@ -71,10 +71,11 @@ module MemsizeData = struct
 
 end
 
-module SizeTransfer : DF.ForwardDataTransfer = struct
+module SizeTransfer : (DF.ForwardDataTransfer with type t = MemsizeData.t) =
+struct
 
   include MemsizeData
-  include DF.DataUtilGenerator(MemsizeData)
+  include DF.MakeDefaultEnv(MemsizeData)
 
   let analysis = DfaMemsize
 

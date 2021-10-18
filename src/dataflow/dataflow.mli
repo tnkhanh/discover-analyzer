@@ -30,7 +30,7 @@ end
  ** Data Environment
  *******************************************************************)
 
-(* module type 't DataUtil = sig *)
+(* module type 't Env = sig *)
 
 (*   type callsite = { *)
 (*     cs_instr_call : instr; *)
@@ -42,7 +42,7 @@ end
 (*   } *)
 (* end *)
 
-module type DataUtil = sig
+module type Env = sig
 
   type t
 
@@ -160,9 +160,9 @@ end
  ** Default Data Environment Generator
  *******************************************************************)
 
-module DataUtilGenerator : functor (M: Data) -> sig
+module MakeDefaultEnv : functor (M: Data) -> sig
 
-  include (DataUtil with type t := M.t)
+  include (Env with type t := M.t)
 
 end
 
@@ -174,7 +174,7 @@ end
 module type ForwardDataTransfer = sig
 
   include Data
-  include DataUtil
+  include Env
 
   val analysis : dfa_analysis
 

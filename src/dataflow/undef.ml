@@ -87,10 +87,11 @@ module UndefData = struct
 
 end
 
-module UndefTransfer : DF.ForwardDataTransfer= struct
+module UndefTransfer : (DF.ForwardDataTransfer with type t = UndefData.t) =
+struct
 
   include UndefData
-  include DF.DataUtilGenerator(UndefData)
+  include DF.MakeDefaultEnv(UndefData)
 
   let analysis = DfaUndef
 

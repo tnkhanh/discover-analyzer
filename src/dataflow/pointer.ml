@@ -1808,12 +1808,13 @@ module PointerData = struct
 
 end
 
-module PointerTransfer : DF.ForwardDataTransfer = struct
+module PointerTransfer : (DF.ForwardDataTransfer with type t = PointerData.t) =
+struct
 
   open PointerDomain
 
   include PointerData
-  include DF.DataUtilGenerator(PointerData)
+  include DF.MakeDefaultEnv(PointerData)
 
   let analysis = DfaPointer
 

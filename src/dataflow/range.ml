@@ -416,12 +416,12 @@ module IntervalData = struct
 
 end
 
-(* module RangeTransfer : DF.ForwardDataTransfer = struct *)
-module RangeTransfer : (DF.ForwardDataTransfer with type t = IntervalData.t) = struct
+module RangeTransfer : (DF.ForwardDataTransfer with type t = IntervalData.t) =
+struct
   open IntervalDomain
 
   include IntervalData
-  include DF.DataUtilGenerator(IntervalData)
+  include DF.MakeDefaultEnv(IntervalData)
 
   let analysis = DfaRange
 
@@ -870,12 +870,12 @@ module RangeTransfer : (DF.ForwardDataTransfer with type t = IntervalData.t) = s
         | Some lb ->
           Some (List.exists ~f:(fun fe ->
             check_range_lower_bound fe instr v lb) fenvs))
-    | AS.Assert, AS.RangeUB (v::ub::_) -> (
+    | AS.Assert, AS.RangeUB (v::ub::_) -> ((
         match LL.int64_of_const ub with
         | None -> None
         | Some ub ->
           Some (List.exists ~f:(fun fe ->
-            check_range_upper_bound fe instr v ub) fenvs))
+            check_range_upper_bound fe instr v ub) fenvs)) : bool option)
     | AS.Assert, AS.RangeFull (v::lb::ub::_) -> (
         match LL.int64_of_const lb, LL.int64_of_const ub with
         | None, _ | _, None -> None

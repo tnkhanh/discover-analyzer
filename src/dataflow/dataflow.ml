@@ -30,7 +30,7 @@ module type Data = sig
 
 end
 
-module type DataUtil = sig
+module type Env = sig
 
   include Data
 
@@ -163,10 +163,10 @@ module type DataUtil = sig
 end
 
 (*******************************************************************
- ** Default analysis environment generator
+ ** Functor to generate default analysis environment
  *******************************************************************)
 
-module DataUtilGenerator (M: Data) = struct
+module MakeDefaultEnv (M: Data) = struct
   type t = M.t
 
   type callsite = {
@@ -343,7 +343,7 @@ end
 module type ForwardDataTransfer = sig
 
   include Data
-  include DataUtil
+  include Env
 
   (************************************************************
    ** functions that need to be implemented for each analysis
