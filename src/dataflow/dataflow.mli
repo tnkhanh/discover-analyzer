@@ -30,18 +30,6 @@ end
  ** Data Environment
  *******************************************************************)
 
-(* module type 't Env = sig *)
-
-(*   type callsite = { *)
-(*     cs_instr_call : instr; *)
-(*     cs_caller : func; *)
-(*     cs_caller_input : 't; *)
-(*     cs_caller_callsites : callsite list; *)
-(*     cs_callee : func; *)
-(*     cs_callee_input : 't; *)
-(*   } *)
-(* end *)
-
 module type Env = sig
 
   type t

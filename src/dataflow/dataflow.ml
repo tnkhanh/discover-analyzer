@@ -2112,6 +2112,7 @@ module ForwardDataFlow = functor (T: ForwardDataTransfer) -> struct
             let num_instrs = fold_left_instrs ~f:(fun acc instr ->
               if is_sparse_instr penv instr then acc + 1
               else acc) ~init:0 blk in
+
             let num_sblks = blk |> get_succeeding_blocks penv.penv_prog |>
                             List.length in
             if num_instrs = 0 then

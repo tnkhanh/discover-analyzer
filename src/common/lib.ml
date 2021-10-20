@@ -34,6 +34,8 @@ module Basic = struct
     | False
     | Unkn
 
+  exception ETern of ternary
+
   let pr_ternary = function
     | True -> "True"
     | False -> "False"

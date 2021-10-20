@@ -276,6 +276,11 @@ let is_bug_buffer_overflow (bug: bug) =
   | BufferOverflow _ -> true
   | _ -> false
 
+let is_bug_memory_leak (bug: bug) =
+  match bug.bug_type with
+  | MemoryLeak _ -> true
+  | _ -> false
+
 let is_bug_integer_overflow (bug: bug) =
   match bug.bug_type with
   | IntegerOverflow _ -> true

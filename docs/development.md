@@ -17,10 +17,10 @@ Development Guide
     opam install merlin ocp-indent
     ```
 
-  + Use `ocamlformat`: general, can indent comments, (but somehow very slow).
+  + Use `ocamlformat`: general, can indent comments, (slower, but RECOMMENDED).
 
     ```sh
-    opam install ocaml-lsp-server merlin ocamlformat
+    opam install ocaml-lsp-server merlin ocamlformat ocamlformat-rpc
     ```
 
     Configuration is stored at `.ocamlformat` and `.ocamlformat-ignore` at the
@@ -37,10 +37,14 @@ Development Guide
 # Coding convention:
 
 - Use only white-spaces for indentation, each indentation is 2 whitespaces
+
 - The length of each code line is at most 80 column.
+
 - Naming style:
   + Functions and variables' names: snake case (`lower_case_with_underscore`):
   + Modules' names: Camel Case (`UpperCaseWithouthUnderscore`)
+
+- Use 2 blank lines between to separate functions.
 
 # Tutorials
 
