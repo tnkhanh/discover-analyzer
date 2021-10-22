@@ -29,6 +29,7 @@ let raise_int i = raise (EInt i)
 
 module Basic = struct
 
+  (* TODO: replace Ternary by `bool option` to use monad *)
   type ternary =
     | True
     | False
@@ -36,10 +37,12 @@ module Basic = struct
 
   exception ETern of ternary
 
+
   let pr_ternary = function
     | True -> "True"
     | False -> "False"
     | Unkn -> "Unkn"
+
 
   let negate_ternary tern =
     match tern with
@@ -47,11 +50,14 @@ module Basic = struct
     | False -> True
     | Unkn -> Unkn
 
+
   let is_true (t: ternary) =
     t == True
 
+
   let is_false (t: ternary) =
     t == False
+
 
   let is_unknown (t: ternary) =
     t == Unkn
@@ -65,28 +71,36 @@ end;;
 
 module List = struct
 
+
   let not_empty (l: 'a list) : bool =
     match l with
     | [] -> false
     | _ -> true
 
+
   let not_mem (l: 'a list) (e: 'a) ~equal : bool =
     not (List.mem l e ~equal)
+
 
   let is_inter (l1: 'a list) (l2: 'a list) ~equal : bool =
     List.exists ~f:(fun e -> List.mem l2 e ~equal) l1
 
+
   let not_inter (l1: 'a list) (l2: 'a list) ~equal : bool =
     List.for_all ~f:(fun e -> not (List.mem l2 e ~equal)) l1
+
 
   let is_subset (l1: 'a list) (l2: 'a list) ~equal : bool =
     List.for_all ~f:(fun e -> List.mem l2 e ~equal) l1
 
+
   let not_subset (l1: 'a list) (l2: 'a list) ~equal : bool =
     List.exists ~f:(fun e -> not (List.mem l2 e ~equal)) l1
 
+
   let exclude ~(f: 'a -> bool) l : 'a list =
     List.filter ~f:(fun x -> not (f x)) l
+
 
   let extract_nth (n: int) (lst: 'a list) : ('a * 'a list) option =
     let rec extract i head tail =
@@ -102,27 +116,33 @@ module List = struct
     if List.mem l x ~equal then l
     else x::l
 
+
   let append_dedup (l: 'a list) (x: 'a) ~(equal: 'a -> 'a -> bool) =
     if List.mem l x ~equal then l
     else l @ [x]
 
+
   let concat_dedup (l1: 'a list) (l2: 'a list) ~(equal: 'a -> 'a -> bool) =
     List.fold_right ~f:(fun x acc ->
-      insert_dedup acc x ~equal) ~init:l2 l1
+                         insert_dedup acc x ~equal) ~init:l2 l1
+
 
   let dedup (l: 'a list) ~(equal: 'a -> 'a -> bool) =
     List.fold_right ~f:(fun x acc ->
-      insert_dedup acc x ~equal) ~init:[] l
+                         insert_dedup acc x ~equal) ~init:[] l
+
 
   let diff (l1: 'a list) (l2: 'a list) ~(equal: 'a -> 'a -> bool) =
     List.fold_right ~f:(fun x acc ->
-      if List.mem l2 x ~equal then acc
-      else x::acc) ~init:[] l1
+                         if List.mem l2 x ~equal then acc
+                         else x::acc) ~init:[] l1
+
 
   let diff_dedup (l1: 'a list) (l2: 'a list) ~(equal: 'a -> 'a -> bool) =
     List.fold_right ~f:(fun x acc ->
-      if List.mem l2 x ~equal then acc
-      else insert_dedup acc x ~equal) ~init:[] l1
+                         if List.mem l2 x ~equal then acc
+                         else insert_dedup acc x ~equal) ~init:[] l1
+
 
   let remove (l: 'a list) (x: 'a) ~(equal: 'a -> 'a -> bool) =
     List.filter ~f:(fun u -> not (equal u x)) l
@@ -132,9 +152,11 @@ module List = struct
   let sorti ~(compare: 'a -> 'a -> int) (lst: 'a list) : 'a list =
     List.sort ~compare lst
 
+
   let sortd ~(compare: 'a -> 'a -> int) (lst: 'a list) : 'a list =
     let compare x y = - (compare x y) in
     List.sort ~compare lst
+
 
   let insert_sorti_dedup (l: 'a list) (x: 'a) ~(compare: 'a -> 'a -> int) =
     let rec insert lst res = match lst with
@@ -145,6 +167,7 @@ module List = struct
         else if cmp = 0 then res @ lst
         else insert nlst (res @ [u]) in
     insert l []
+
 
   let concat_sorti_dedup (l1: 'a list) (l2: 'a list) ~(compare: 'a -> 'a -> int) =
     let rec concat lst1 lst2 res = match lst1, lst2 with
@@ -157,6 +180,18 @@ module List = struct
         else concat lst1 nlst2 (res @ [v]) in
     concat l1 l2 []
 
+  (* monadic support *)
+
+  (* TODO: what is the most reasonable monadic version of List.exists? *)
+  let exists_opt ~(f: 'a -> bool option) (l: 'a list) : bool option =
+    let rec loop l =
+      match l with
+      | [] -> false
+      | x::l' -> match f x with
+        | Some true -> true
+        | _ -> loop l' in
+    Some (loop l)
+
   (* include the original List module *)
   include List
 
@@ -168,6 +203,7 @@ end
 
 module Hashtbl = struct
 
+
   let find_or_compute (tbl: ('a, 'b) Hashtbl.t) ~(key: 'a)
         ~(f: unit -> 'b) : 'b =
     match Hashtbl.find tbl key with
@@ -177,10 +213,12 @@ module Hashtbl = struct
       let _ = Hashtbl.set tbl ~key ~data in
       data
 
+
   let find_default (tbl: ('a, 'b) Hashtbl.t) (key: 'a) ~(default:'b) : 'b =
     match Hashtbl.find tbl key with
     | None -> default
     | Some v -> v
+
 
   (* include the original Hashtbl *)
   include Hashtbl
@@ -193,32 +231,40 @@ end
 
 module String = struct
 
+
   let not_empty (str: string) : bool =
     not (String.is_empty str)
+
 
   let is_infix ~(infix:string) (str: string) : bool =
     let idxs = String.substr_index_all ~may_overlap:false ~pattern:infix str in
     let len, sublen = String.length str, String.length infix in
     List.exists ~f:(fun idx -> (idx > 0) && (idx < len - sublen)) idxs
 
+
   let strip_newline (str: string) : string =
     String.strip ~drop:(fun c -> c == '\n') str
+
 
   let prefix_if_not_empty (s: string) ~(prefix: string) : string =
     if String.is_empty s then s
     else prefix ^ s
 
+
   let suffix_if_not_empty (s: string) ~(suffix: string) : string =
     if String.is_empty s then s
     else s ^ suffix
+
 
   let surround_if_not_empty (s: string) ~prefix ~suffix : string =
     if String.is_empty s then s
     else prefix ^ s ^ suffix
 
+
   let replace_if_empty (s: string) ~(replacer: string) : string =
     if String.is_empty s then replacer
     else s
+
 
   (* include the original String *)
   include String
