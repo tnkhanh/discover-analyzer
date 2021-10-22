@@ -212,9 +212,9 @@ struct
    ** Bug and assertions
    *******************************************************************)
 
-  let check_bug (fenv: func_env) (bug: BG.bug) : ternary =
+  let check_bug (fenv: func_env) (bug: BG.bug) : bool option =
     (* TODO: implement later if necessary *)
-    Unkn
+    None
 
   let count_assertions (prog: program) : int =
     (* TODO: implement later if necessary *)

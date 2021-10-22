@@ -183,14 +183,28 @@ module List = struct
   (* monadic support *)
 
   (* TODO: what is the most reasonable monadic version of List.exists? *)
-  let exists_opt ~(f: 'a -> bool option) (l: 'a list) : bool option =
+  let exists_monad ~(f: 'a -> bool option) (l: 'a list) : bool option =
+
+
     let rec loop l =
       match l with
-      | [] -> false
+      | [] -> Some false
       | x::l' -> match f x with
-        | Some true -> true
-        | _ -> loop l' in
-    Some (loop l)
+        | Some true -> Some true
+        | Some false -> loop l'
+        | None -> match loop l' with
+          | Some true -> Some true
+          | _ -> None in
+    loop l
+
+
+  let filter_monad ~(f: 'a -> bool option) (l: 'a list) : 'a list =
+    List.filter ~f:(fun x -> Option.value (f x) ~default:false) l
+
+  (* let fold_left_monad ~(f: 'a -> bool option) ~(init: 'a) (l: 'a list) : 'a list = *)
+  (*   List.fold_left *)
+  (*     ~f:(fun x -> Option.value (f x) ~default:false) *)
+  (*     ~init l *)
 
   (* include the original List module *)
   include List

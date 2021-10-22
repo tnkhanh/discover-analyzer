@@ -390,7 +390,7 @@ module type ForwardDataTransfer = sig
    *-----------------------------------------*)
 
   (** Check and return if a potential bug is a real bug *)
-  val check_bug : func_env -> BG.bug -> ternary
+  val check_bug : func_env -> BG.bug -> bool option
 
   (** Count the number of assertions relevant to an analysis *)
   val count_assertions : program -> int
@@ -2360,19 +2360,24 @@ module ForwardDataFlow = functor (T: ForwardDataTransfer) -> struct
 
   (* bug checking *)
 
-  let check_bug (penv: T.prog_env) (bug: BG.bug) : ternary =
+  let check_bug (penv: T.prog_env) (bug: BG.bug) : bool option =
     let func = bug.BG.bug_func in
-    match Hashtbl.find penv.penv_func_envs func with
-    | None -> Unkn
-    | Some fenvs ->
-      List.fold_left ~f:(fun acc fenv ->
-        match acc with
-        | True -> True
-        | Unkn ->
-          let res = T.check_bug fenv bug in
-          if res == False then acc
-          else res
-        | False -> T.check_bug fenv bug) ~init:False fenvs
+    let open Option.Let_syntax in
+    let%bind fenvs = Hashtbl.find penv.penv_func_envs func in
+    List.exists_monad ~f:(fun fenv -> T.check_bug fenv bug) fenvs
+
+
+    (* match Hashtbl.find penv.penv_func_envs func with *)
+    (* | None -> Unkn *)
+    (* | Some fenvs -> *)
+    (*   List.fold_left ~f:(fun acc fenv -> *)
+    (*     match acc with *)
+    (*     | True -> True *)
+    (*     | Unkn -> *)
+    (*       let res = T.check_bug fenv bug in *)
+    (*       if res == False then acc *)
+    (*       else res *)
+    (*     | False -> T.check_bug fenv bug) ~init:False fenvs *)
 
   let check_assertions (penv: T.prog_env) : unit =
     let prog = penv.penv_prog in

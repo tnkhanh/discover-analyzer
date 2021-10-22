@@ -227,30 +227,16 @@ struct
     | None -> SD.least_size
     | Some data -> get_size (llvalue_of_instr instr) data
 
-  let check_memory_leak (fenv: func_env) (mlk: BG.memory_leak) : ternary =
+  let check_memory_leak (fenv: func_env) (mlk: BG.memory_leak) : bool option =
     match mlk.mlk_size with
-    | None -> False
-    | Some size -> True
-
-  (* let check_buffer_overflow fenv (bof: BG.buffer_overflow) : ternary = *)
-  (*   if !bug_memory_all || !bug_buffer_overflow then *)
-  (*     match get_instr_output fenv bof.bof_instr with *)
-  (*     | None -> False *)
-  (*     | Some data -> *)
-  (*       let itv = get_interval (expr_of_llvalue bof.bof_index) data in *)
-  (*       match bof.bof_size with *)
-  (*       | None -> False *)
-  (*       | Some n -> *)
-  (*         if compare_interval_upper_bound_with_int itv n >= 0 then True *)
-  (*         else False *)
-  (*   else False *)
+    | None -> None
+    | Some size -> Some (size > 0)
 
 
-  let check_bug (fenv: func_env) (bug: BG.bug) : ternary =
+  let check_bug (fenv: func_env) (bug: BG.bug) : bool option =
     match bug.BG.bug_type with
     | BG.MemoryLeak mlk -> check_memory_leak fenv mlk
-    (* | BG.BufferOverflow bof -> check_buffer_overflow fenv bof *)
-    | _ -> Unkn
+    | _ -> None
 
   (*******************************************************************
    ** Checking assertions

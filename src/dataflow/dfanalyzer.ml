@@ -144,23 +144,25 @@ let perform_main_analysis_passes (pdata: program_data) : program_data =
  *------------------------------------------*)
 
 let find_bug_integer_overflow (pdata: program_data) =
+  let open Option.Let_syntax in
   let pbugs = List.filter ~f:BG.is_bug_integer_overflow
                 pdata.pdata_potential_bugs in
-  let bugs = List.filter
+  let bugs = List.filter_monad
                ~f:(fun bug ->
-                    Option.exists ~f:(fun env -> RG.check_bug env bug == True)
-                      pdata.pdata_env_range)
+                    let%bind penv = pdata.pdata_env_range in
+                    RG.check_bug penv bug)
                pbugs in
   List.map ~f:(BG.mk_real_bug "RangeAnalysis") bugs
 
 
 let find_bug_integer_underflow (pdata: program_data) =
+  let open Option.Let_syntax in
   let pbugs = List.filter ~f:BG.is_bug_integer_underflow
                 pdata.pdata_potential_bugs in
-  let bugs = List.filter
+  let bugs = List.filter_monad
                ~f:(fun bug ->
-                    Option.exists ~f:(fun env -> RG.check_bug env bug == True)
-                      pdata.pdata_env_range)
+                    let%bind penv = pdata.pdata_env_range in
+                    RG.check_bug penv bug)
                pbugs in
   List.map ~f:(BG.mk_real_bug "RangeAnalysis") bugs
 
@@ -176,12 +178,13 @@ let check_buffer_overflow (bof: BG.buffer_overflow) pdata : bool option =
   if (!bug_memory_all || !bug_buffer_overflow) then
     let func = LI.func_of_instr bof.bof_instr in
     let%bind fenvs = Hashtbl.find penv.penv_func_envs func in
-    List.exists_opt
+    List.exists_monad
       ~f:(fun fenv ->
            let%bind data = RG.get_instr_output fenv bof.bof_instr in
            let itv = RG.get_interval
                        (LI.expr_of_llvalue bof.bof_elem_index) data in
            (* let%bind bsize = bof.bof_buff_size in *)
+           (* TODO: fix this, this is a temporarily hard code the size to 1 *)
            let%bind bsize = Some Int64.one in
            Some (RG.ID.compare_interval_upper_bound_with_int itv bsize >= 0))
       fenvs
@@ -189,25 +192,36 @@ let check_buffer_overflow (bof: BG.buffer_overflow) pdata : bool option =
 
 
 let find_bug_buffer_overflow (pdata: program_data) =
-  List.fold_left
-    ~f:(fun acc bug ->
-         if not (BG.is_bug_buffer_overflow bug) then acc
-         else if Option.exists ~f:(fun env -> RG.check_bug env bug == True)
-                   pdata.pdata_env_range then
-           acc @ [BG.mk_real_bug "RangeAnalysis" bug]
-         else acc)
-    ~init:[] pdata.pdata_potential_bugs
+  let open Option.Let_syntax in
+  let bugs = List.filter_monad
+    ~f:(fun bug ->
+         if not (BG.is_bug_buffer_overflow bug) then Some false
+         else
+           let%bind penv = pdata.pdata_env_range in
+           RG.check_bug penv bug)
+    pdata.pdata_potential_bugs in
+  List.map ~f:(BG.mk_real_bug "RangeAnalysis") bugs
+
+
+  (* List.fold_left *)
+  (*   ~f:(fun acc bug -> *)
+  (*        if not (BG.is_bug_buffer_overflow bug) then acc *)
+  (*        else if%bind (pdata.pdata_env_range >>= check_bug bug) then *)
+  (*          acc @ [BG.mk_real_bug "RangeAnalysis" bug] *)
+  (*        else acc) *)
+  (*   ~init:[] pdata.pdata_potential_bugs *)
 
 
 let find_bug_memory_leak (pdata: program_data) : BG.bug list =
+  let open Option.Let_syntax in
   List.fold_left
     ~f:(fun acc bug ->
          if not (BG.is_bug_memory_leak bug) then acc
-         else if Option.exists ~f:(fun env -> MS.check_bug env bug == True)
-                   pdata.pdata_env_memsize then
+         else if (let%bind penv = pdata.pdata_env_memsize in
+                  MS.check_bug penv bug) == Some true then
            acc @ [BG.mk_real_bug "MemsizeAnalysis" bug]
-         else if Option.exists ~f:(fun env -> PA.check_bug env bug == True)
-                   pdata.pdata_env_pointer then
+         else if (let%bind penv = pdata.pdata_env_pointer in
+                  PA.check_bug penv bug) == Some true then
            acc @ [BG.mk_real_bug "PointerAnalysis" bug]
          else acc)
     ~init:[] pdata.pdata_potential_bugs

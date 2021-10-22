@@ -818,57 +818,50 @@ struct
    ** Checking bugs
    *******************************************************************)
 
-  let check_buffer_overflow fenv (bof: BG.buffer_overflow) : ternary =
+  let check_buffer_overflow fenv (bof: BG.buffer_overflow) : bool option =
     if !bug_memory_all || !bug_buffer_overflow then
-      match get_instr_output fenv bof.bof_instr with
-      | None -> False
-      | Some data ->
-        let itv = get_interval (expr_of_llvalue bof.bof_elem_index) data in
-        match bof.bof_buff_size with
-        | None -> False
-        | Some (Int64 n) ->
-          if compare_interval_upper_bound_with_int itv n >= 0 then True
-          else False
-        | _ -> False  (* TODO: check symbolic size *)
-    else False
+      let open Option.Let_syntax in
+      let%bind data = get_instr_output fenv bof.bof_instr in
+      let itv = get_interval (expr_of_llvalue bof.bof_elem_index) data in
+      let%bind bsize = bof.bof_buff_size in
+      match bsize with
+      | Int64 n -> Some (compare_interval_upper_bound_with_int itv n >= 0)
+      | _ -> None
+    else None
 
 
-  let check_integer_overflow fenv (iof: BG.integer_overflow) : ternary =
+  let check_integer_overflow fenv (iof: BG.integer_overflow) : bool option =
     if !bug_integer_all || !bug_integer_overflow then
-      match get_instr_output fenv iof.iof_instr with
-      | None -> Unkn
-      | Some data ->
-        let itv = get_interval (expr_of_llvalue iof.iof_expr) data in
-        match itv with
-        | Bottom -> Unkn
-        | Range r ->
-          let ub = BInt.compute_upper_bound_two_complement iof.iof_bitwidth in
-          if compare_bound r.range_ub (BInt ub) > 0 then True
-          else False
-    else Unkn
+      let open Option.Let_syntax in
+      let%bind data = get_instr_output fenv iof.iof_instr in
+      let itv = get_interval (expr_of_llvalue iof.iof_expr) data in
+      match itv with
+      | Bottom -> None
+      | Range r ->
+        let ub = BInt.compute_upper_bound_two_complement iof.iof_bitwidth in
+        Some (compare_bound r.range_ub (BInt ub) > 0)
+    else None
 
 
-  let check_integer_underflow fenv (iuf: BG.integer_underflow) : ternary =
+  let check_integer_underflow fenv (iuf: BG.integer_underflow) : bool option =
     if !bug_integer_all || !bug_integer_underflow then
-      match get_instr_output fenv iuf.iuf_instr with
-      | None -> Unkn
-      | Some data ->
-        let itv = get_interval (expr_of_llvalue iuf.iuf_expr) data in
-        match itv with
-        | Bottom -> Unkn
-        | Range r ->
-          let lb = BInt.compute_lower_bound_two_complement iuf.iuf_bitwidth in
-          if compare_bound r.range_lb (BInt lb) < 0 then True
-          else False
-    else Unkn
+      let open Option.Let_syntax in
+      let%bind data = get_instr_output fenv iuf.iuf_instr in
+      let itv = get_interval (expr_of_llvalue iuf.iuf_expr) data in
+      match itv with
+      | Bottom -> None
+      | Range r ->
+        let lb = BInt.compute_lower_bound_two_complement iuf.iuf_bitwidth in
+        Some (compare_bound r.range_lb (BInt lb) < 0)
+    else None
 
 
-  let check_bug (fenv: func_env) (bug: BG.bug) : ternary =
+  let check_bug (fenv: func_env) (bug: BG.bug) : bool option =
     match bug.BG.bug_type with
     | BG.BufferOverflow bof -> check_buffer_overflow fenv bof
     | BG.IntegerOverflow iof -> check_integer_overflow fenv iof
     | BG.IntegerUnderflow iuf -> check_integer_underflow fenv iuf
-    | _ -> Unkn
+    | _ -> None
 
   (*******************************************************************
    ** Checking assertions
