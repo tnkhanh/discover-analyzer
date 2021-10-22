@@ -2366,6 +2366,10 @@ module ForwardDataFlow = functor (T: ForwardDataTransfer) -> struct
     let%bind fenvs = Hashtbl.find penv.penv_func_envs func in
     List.exists_monad ~f:(fun fenv -> T.check_bug fenv bug) fenvs
 
+  let check_bug_opt (penv: T.prog_env option) (bug: BG.bug) : bool option =
+    let open Option.Let_syntax in
+    let%bind penv = penv in
+    check_bug penv bug
 
     (* match Hashtbl.find penv.penv_func_envs func with *)
     (* | None -> Unkn *)

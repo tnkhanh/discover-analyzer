@@ -212,6 +212,7 @@ module ForwardDataFlow : functor (T: ForwardDataTransfer) -> sig
   val analyze_program_interproc : ?func: func option -> T.prog_env -> T.prog_env
   val analyze_program : ?interproc:bool -> program -> T.prog_env
   val check_bug : T.prog_env -> BG.bug -> bool option
+  val check_bug_opt : T.prog_env option -> BG.bug -> bool option
   val check_assertions : T.prog_env -> unit
   val report_analysis_stats : T.prog_env -> unit
 end

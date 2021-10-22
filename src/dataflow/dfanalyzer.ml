@@ -186,45 +186,33 @@ let check_buffer_overflow (bof: BG.buffer_overflow) pdata : bool option =
            (* let%bind bsize = bof.bof_buff_size in *)
            (* TODO: fix this, this is a temporarily hard code the size to 1 *)
            let%bind bsize = Some Int64.one in
-           Some (RG.ID.compare_interval_upper_bound_with_int itv bsize >= 0))
+           return (RG.ID.compare_interval_upper_bound_with_int itv bsize >= 0))
       fenvs
   else None
 
 
 let find_bug_buffer_overflow (pdata: program_data) =
   let open Option.Let_syntax in
-  let bugs = List.filter_monad
-    ~f:(fun bug ->
-         if not (BG.is_bug_buffer_overflow bug) then Some false
-         else
-           let%bind penv = pdata.pdata_env_range in
-           RG.check_bug penv bug)
-    pdata.pdata_potential_bugs in
-  List.map ~f:(BG.mk_real_bug "RangeAnalysis") bugs
-
-
-  (* List.fold_left *)
-  (*   ~f:(fun acc bug -> *)
-  (*        if not (BG.is_bug_buffer_overflow bug) then acc *)
-  (*        else if%bind (pdata.pdata_env_range >>= check_bug bug) then *)
-  (*          acc @ [BG.mk_real_bug "RangeAnalysis" bug] *)
-  (*        else acc) *)
-  (*   ~init:[] pdata.pdata_potential_bugs *)
+  pdata.pdata_potential_bugs |>
+  List.map ~f:(fun bug ->
+                if not (BG.is_bug_buffer_overflow bug) then None
+                else if%bind RG.check_bug_opt pdata.pdata_env_range bug then
+                  return (BG.mk_real_bug "RangeAnalysis" bug)
+                else None) |>
+  List.filter_opt
 
 
 let find_bug_memory_leak (pdata: program_data) : BG.bug list =
   let open Option.Let_syntax in
-  List.fold_left
-    ~f:(fun acc bug ->
-         if not (BG.is_bug_memory_leak bug) then acc
-         else if (let%bind penv = pdata.pdata_env_memsize in
-                  MS.check_bug penv bug) == Some true then
-           acc @ [BG.mk_real_bug "MemsizeAnalysis" bug]
-         else if (let%bind penv = pdata.pdata_env_pointer in
-                  PA.check_bug penv bug) == Some true then
-           acc @ [BG.mk_real_bug "PointerAnalysis" bug]
-         else acc)
-    ~init:[] pdata.pdata_potential_bugs
+  pdata.pdata_potential_bugs |>
+  List.map ~f:(fun bug ->
+                if not (BG.is_bug_memory_leak bug) then None
+                else if%bind MS.check_bug_opt pdata.pdata_env_memsize bug then
+                  return (BG.mk_real_bug "MemsizeAnalysis" bug)
+                else if%bind PA.check_bug_opt pdata.pdata_env_pointer bug then
+                  return (BG.mk_real_bug "PointerAnalysis" bug)
+                else None) |>
+  List.filter_opt
 
 
 (** TODO: need a mechanism to schedule analyses based on bugs:
