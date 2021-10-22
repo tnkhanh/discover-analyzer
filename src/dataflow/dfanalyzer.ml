@@ -34,6 +34,7 @@ type program_data = {
   pdata_env_undef : UA.prog_env list;
 }
 
+
 (*******************************************************************
  ** Constructor
  *******************************************************************)
@@ -46,6 +47,7 @@ let mk_program_data (prog: LI.program) : program_data =
     pdata_env_range = [];
     pdata_env_undef = []; }
 
+
 (*******************************************************************
  ** Supporting functions
  *******************************************************************)
@@ -53,6 +55,7 @@ let mk_program_data (prog: LI.program) : program_data =
 let is_analysis_enabled (analysis: dfa_analysis) : bool =
   (List.mem !dfa_analyses analysis ~equal:(==)) ||
   (List.mem !dfa_analyses DfaAllAnalyses ~equal:(==))
+
 
 (*******************************************************************
  ** Perform pre-analysis passes
@@ -68,6 +71,7 @@ let annotate_potential_bugs (pdata: program_data) : program_data =
 
 let perform_pre_analysis_passes (pdata: program_data) : program_data =
   annotate_potential_bugs pdata
+
 
 (*******************************************************************
  ** Perform main analysis passes
@@ -130,10 +134,10 @@ let perform_main_analysis_passes (pdata: program_data) : program_data =
   perform_memsize_analysis |>
   perform_range_analysis
 
+
 (*******************************************************************
  ** Find bugs
  *******************************************************************)
-
 
 (*-------------------------------------------
  * Integer bugs
@@ -144,18 +148,19 @@ let find_bug_integer_overflow (pdata: program_data) =
                 pdata.pdata_potential_bugs in
   let bugs = List.filter
                ~f:(fun bug ->
-                   List.exists ~f:(fun env -> RG.check_bug env bug == True)
-                     pdata.pdata_env_range)
+                    List.exists ~f:(fun env -> RG.check_bug env bug == True)
+                      pdata.pdata_env_range)
                pbugs in
   List.map ~f:(BG.mk_real_bug "RangeAnalysis") bugs
+
 
 let find_bug_integer_underflow (pdata: program_data) =
   let pbugs = List.filter ~f:BG.is_bug_integer_underflow
                 pdata.pdata_potential_bugs in
   let bugs = List.filter
                ~f:(fun bug ->
-                   List.exists ~f:(fun env -> RG.check_bug env bug == True)
-                     pdata.pdata_env_range)
+                    List.exists ~f:(fun env -> RG.check_bug env bug == True)
+                      pdata.pdata_env_range)
                pbugs in
   List.map ~f:(BG.mk_real_bug "RangeAnalysis") bugs
 
@@ -163,7 +168,6 @@ let find_bug_integer_underflow (pdata: program_data) =
 (*-------------------------------------------
  * Memory bugs
  *------------------------------------------*)
-
 
 (* TODO: use 2 analyses for buffer overflow: range anlaysis and memsize *)
 let check_buffer_overflow (bof: BG.buffer_overflow) pdata : ternary =
@@ -250,8 +254,10 @@ let check_assertions (pdata: program_data) : unit =
   List.iter ~f:PA.check_assertions pdata.pdata_env_pointer;
   List.iter ~f:RG.check_assertions pdata.pdata_env_range
 
+
 let report_analysis_stats (pdata: program_data) : unit =
   List.iter ~f:PA.report_analysis_stats pdata.pdata_env_pointer
+
 
 (*******************************************************************
  ** Analysis functions
