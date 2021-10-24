@@ -6,7 +6,12 @@
  ********************************************************************)
 
 open Core
-open Dcore
+open Globals
+open Lib
+open Sprinter
+open Printer
+open Debugger
+
 open Llir
 
 module AS = Assertion
@@ -980,7 +985,6 @@ module RangeAnalysis = struct
   module RT = RangeTransfer
   module ID = IntervalDomain
 
-  (* TODO: how to expose some internal function here? *)
 
   let get_interval (e: expr) (d: t) : ID.interval =
     match e with

@@ -6,7 +6,12 @@
  ********************************************************************)
 
 open Core
-open Dcore
+open Globals
+open Lib
+open Sprinter
+open Printer
+open Debugger
+
 
 module LL = Llvm
 module LO = Llvm.Opcode
@@ -174,10 +179,12 @@ let find_bug_integer_underflow (pdata: program_data) =
 (* TODO: use 2 analyses for buffer overflow: range anlaysis and memsize *)
 let check_buffer_overflow (bof: BG.buffer_overflow) pdata : bool option =
   let open Option.Let_syntax in
-  let%bind penv = pdata.pdata_env_range in
+  let%bind prange = pdata.pdata_env_range in
+  let%bind ppointer = pdata.pdata_env_pointer in
+  let%bind pmemsize = pdata.pdata_env_memsize in
   if (!bug_memory_all || !bug_buffer_overflow) then
     let func = LI.func_of_instr bof.bof_instr in
-    let%bind fenvs = Hashtbl.find penv.penv_func_envs func in
+    let%bind fenvs = Hashtbl.find prange.penv_func_envs func in
     List.exists_monad
       ~f:(fun fenv ->
            let%bind data = RG.get_instr_output fenv bof.bof_instr in
