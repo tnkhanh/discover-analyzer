@@ -24,7 +24,7 @@ mark: *)
 | WORD | OPEN_COM | CLOSE_COM | OPEN | CLOSE | COLON | BUG | SAFE | EOF { `Word }
 | w=WORD { `Word w }; *)
 
-%token SLASH
+(*%token SLASH
 %token ASTER
 %token OBRAC
 %token CBRAC
@@ -60,4 +60,44 @@ tok:
   | OBRAC { "OBRAC" } %prec DUMMY
   | CBRAC { "CBRAC" } %prec DUMMY
   | COLON { ":" }  %prec DUMMY
-  | a = ATYPE { a } %prec DUMMY
+  | a = ATYPE { a } %prec DUMMY *)
+
+%token ANNSTART
+%token SLASH
+%token ASTER
+%token OBRAC
+%token CBRAC
+%token COLON
+%token <string> ATYPE
+%token <string> WORD
+%token EOF
+(*%right DUMMY
+%right SLASH ASTER OBRAC CBRAC COLON ATYPE WORD EOF *)
+
+%start <string list> prog
+%%
+
+prog:
+| EOF (* empty *) {[]}
+| ts = toks; EOF {ts};
+
+toks:
+| t = tok {[t]}
+| ts = toks; t = tok { t::ts };
+
+tok:
+  | WORD { "skip " }
+  | SLASH { "skip" }
+  | ASTER { "skip" }
+  | OBRAC { "skip" }
+  | CBRAC { "skip" }
+  | COLON { ":" }
+  | ATYPE { "skip "  }
+  | a = ann_begin {"Begin: " ^ a }
+  | a = ann_end {"End: " ^ a };
+
+ann_begin:
+  | ANNSTART; OBRAC; a = ATYPE; COLON; w = WORD; ASTER; SLASH { a^": "^w };
+
+ann_end:
+  | ANNSTART;COLON; a = ATYPE; { a };

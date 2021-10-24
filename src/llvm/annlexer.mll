@@ -43,10 +43,25 @@ let newline = '\r' | '\n' | "\r\n"
 let word = ['a'-'z' 'A'-'Z' '_' '0'-'9' '[' ']' '.' ',' '"' '#' '%' '(' ')'
 '<' '>' '=' '+' '-' '\\' ';' '&' '`' '\''] +
 
+(*rule read =
+  parse
+  | white    { read lexbuf }
+  | newline  { next_line lexbuf; read lexbuf }
+  | "Bug" | "Safe" { ATYPE (Lexing.lexeme lexbuf) }
+  | '/' { SLASH }
+  | '*' { ASTER }
+  | '{' { OBRAC }
+  | '}' { CBRAC }
+  | ':' { COLON }
+  | word       { WORD (Lexing.lexeme lexbuf) }
+  | eof { EOF }
+  | _ { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) } *)
+
 rule read =
   parse
   | white    { read lexbuf }
   | newline  { next_line lexbuf; read lexbuf }
+  | "/*@" { ANNSTART }
   | "Bug" | "Safe" { ATYPE (Lexing.lexeme lexbuf) }
   | '/' { SLASH }
   | '*' { ASTER }
