@@ -178,14 +178,11 @@ let find_bug_integer_underflow (pdata: program_data) =
 
 let check_bug_buffer_overflow (bug: BG.bug) pdata : BG.bug option =
   let open Option.Let_syntax in
-  let%bind penv_rng = pdata.pdata_env_range in
-  let%bind penv_ptr = pdata.pdata_env_pointer in
-  let%bind penv_msz = pdata.pdata_env_memsize in
   match bug.BG.bug_type with
   | BG.BufferOverflow bof ->
     let func = LI.func_of_instr bof.bof_instr in
+    let%bind penv_rng = pdata.pdata_env_range in
     let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
-    let%bind fenvs_msz = Hashtbl.find penv_msz.penv_func_envs func in
     List.fold_left
       ~f:(fun acc fenv_rng ->
            if acc != None then acc
@@ -196,17 +193,20 @@ let check_bug_buffer_overflow (bug: BG.bug) pdata : BG.bug option =
              let%bind bsize = bof.bof_buff_size in
              match bsize with
              | Int64 n ->
-               if RG.ID.compare_interval_upper_bound_with_int itv n >= 0 then
+               if RG.ID.compare_interval_ub_int itv n >= 0 then
                  return (BG.mk_real_bug ~analysis:"RangeAnalysis" bug)
                else None
              | Var v ->
                let vinstr = LI.mk_instr v in
                let is_bug =
+                 (* FIXME: the current memory size information isn't computed correctly*)
+                 let%bind penv_msz = pdata.pdata_env_memsize in
+                 let%bind fenvs_msz = Hashtbl.find penv_msz.penv_func_envs func in
                  List.exists_monad
                    ~f:(fun fenv_msz ->
                         let%bind data_msz = MS.get_instr_output fenv_msz vinstr in
                         let sz = MS.get_size v data_msz in
-                        return (RG.ID.compare_interval_upper_bound_with_int itv sz.size_max >= 0))
+                        return (RG.ID.compare_interval_ub_int itv sz.size_max >= 0))
                    fenvs_msz in
                if%bind is_bug then
                  return (BG.mk_real_bug ~analysis:"RangeAnalysis" bug)

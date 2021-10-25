@@ -68,18 +68,16 @@ end
 module IntervalDomain = struct
 
   type bound =
-    | PInf                         (* positive infinity *)
-    | NInf                         (* negative infiinity *)
-    (* | PTwoPower of int             (\* +(2^n) or 2^n for short, with n>=0 *\) *)
-    (* | NTwoPower of int             (\* -(2^n): negative number, with n>=0 *\) *)
-    | Int64 of int64               (* integer 64 bit *)
+    | PInf                                     (* positive infinity *)
+    | NInf                                     (* negative infiinity *)
+    | Int64 of int64                           (* integer 64 bit *)
     | BInt of big_int
 
   type range = {
-    range_lb : bound;             (* lower bound *)
-    range_lb_inclusive : bool;    (* lower inclusive *)
-    range_ub : bound;             (* upper bound *)
-    range_ub_inclusive : bool;              (* upper inclusive *)
+    range_lb : bound;                          (* lower bound *)
+    range_lb_inclusive : bool;                 (* lower inclusive *)
+    range_ub : bound;                          (* upper bound *)
+    range_ub_inclusive : bool;                 (* upper inclusive *)
   }
 
   type interval =
@@ -435,24 +433,22 @@ module IntervalDomain = struct
     | Int64 i -> Some (Int64 i)
     | _ -> None
 
-
-  let compare_range_upper_bound_with_int (r: range) (i: int64) : int =
+  let compare_range_ub_int (r: range) (i: int64) : int =
     match r.range_ub with
     | PInf -> 1
     | NInf -> -1
     | Int64 x ->
-      let cmp = Int64.compare x i in
-      if r.range_ub_inclusive || cmp != 0 then cmp
-      else -1
+      if r.range_ub_inclusive then Int64.compare x i
+      else Int64.compare (Int64.(-) x Int64.one) i
     | BInt x ->
-      let cmp = BInt.compare_big_int x (BInt.big_int_of_int64 i) in
-      if r.range_ub_inclusive || cmp != 0 then cmp
-      else -1
+      let bi = BInt.big_int_of_int64 i in
+      if r.range_ub_inclusive then BInt.compare_big_int x bi
+      else BInt.compare_big_int (BInt.subtract x BInt.one) bi
 
-  let compare_interval_upper_bound_with_int (it: interval) (i: int64) : int =
-    match it with
+  let compare_interval_ub_int (itv: interval) (i: int64) : int =
+    match itv with
     | Bottom -> -1
-    | Range r -> compare_range_upper_bound_with_int r i
+    | Range r -> compare_range_ub_int r i
 
 end;;
 
@@ -837,7 +833,7 @@ struct
       let itv = get_interval (expr_of_llvalue bof.bof_elem_index) data in
       let%bind bsize = bof.bof_buff_size in
       match bsize with
-      | Int64 n -> Some (compare_interval_upper_bound_with_int itv n >= 0)
+      | Int64 n -> Some (compare_interval_ub_int itv n >= 0)
       | _ -> None
     else None
 
