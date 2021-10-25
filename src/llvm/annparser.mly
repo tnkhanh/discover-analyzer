@@ -62,8 +62,8 @@ tok:
   | COLON { ":" }  %prec DUMMY
   | a = ATYPE { a } %prec DUMMY *)
 
-%token ANNSTART
-%token SLASH
+%token <int * int> ANNSTART
+%token <int * int> SLASH
 %token ASTER
 %token OBRAC
 %token CBRAC
@@ -71,10 +71,11 @@ tok:
 %token <string> ATYPE
 %token <string> WORD
 %token EOF
+%token COMMA
 (*%right DUMMY
 %right SLASH ASTER OBRAC CBRAC COLON ATYPE WORD EOF *)
 
-%start <string list> prog
+%start <Ann.program> prog
 %%
 
 prog:
@@ -82,22 +83,54 @@ prog:
 | ts = toks; EOF {ts};
 
 toks:
-| t = tok {[t]}
-| ts = toks; t = tok { t::ts };
+  | t = tok { 
+    match t with 
+    | Ann.Skip -> [] 
+    | _ as m -> [m]
+    }
+  | ts = toks; t = tok {
+    match t with 
+    | Ann.Skip -> ts 
+    | _ as m -> m::ts
+    };
 
 tok:
-  | WORD { "skip " }
-  | SLASH { "skip" }
-  | ASTER { "skip" }
-  | OBRAC { "skip" }
-  | CBRAC { "skip" }
-  | COLON { ":" }
-  | ATYPE { "skip "  }
-  | a = ann_begin {"Begin: " ^ a }
-  | a = ann_end {"End: " ^ a };
+  | WORD { Skip  }
+  | SLASH { Skip }
+  | ASTER { Skip }
+  | OBRAC { Skip }
+  | CBRAC { Skip }
+  | COLON { Skip }
+  | ATYPE { Skip }
+  | COMMA { Skip }
+  | a = ann_begin { a }
+  | a = ann_end { a };
+
+bugs:
+  value = separated_list(COMMA, bug) { value };
+
+bug:
+  w = WORD {
+    match w with
+    | "MemoryLeak" -> Ann.MemoryLeak
+    | "NullPointerDeref" -> NullPointerDeref
+    | "BufferOverflow" -> BufferOverflow
+    | "IntegerOverflow" -> IntegerOverflow
+    | "IntegerUnderflow" -> IntegerUnderflow
+    | _ as s -> NewType s
+  }
 
 ann_begin:
-  | ANNSTART; OBRAC; a = ATYPE; COLON; w = WORD; ASTER; SLASH { a^": "^w };
+  | ANNSTART; OBRAC; a = ATYPE; COLON; b = bugs; ASTER; p = SLASH 
+    {if a = "Bug" then Bug_start (p, b) 
+     else
+       Safe_start (p, b)
+    };
 
 ann_end:
-  | ANNSTART;COLON; a = ATYPE; { a };
+  | p = ANNSTART;COLON; a = ATYPE; CBRAC; ASTER; SLASH 
+    {
+      if a = "Bug" then Bug_end p
+      else
+        Safe_end p
+    };

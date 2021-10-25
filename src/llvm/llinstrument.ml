@@ -49,15 +49,15 @@ let extract_ann_marks (filename: string) =
   read_line 1 [] *)
   let inx = In_channel.create filename in 
   let lexbuf = Lexing.from_channel inx in
-  let mark_list =
-    Annparser.prog Annlexer.read lexbuf in
-  mark_list
-(*    try Annparser.program Annlexer.read lexbuf with
-    | SyntaxError _ -> []
-    | Annparser.Error -> []
+  let rev_mark_list =
+    try Annparser.prog Annlexer.read lexbuf with 
+      Annparser.Error -> 
+        let _ = hdebug "Parsing failed. Annotations ignored in file: " pr_str filename in 
+        [] in
 
-  let _ = In_channel.close inx in *)
-(*  mark_list *)
+  (*print all marks*)
+  let _ = List.iter (List.rev (List.map rev_mark_list ~f:Ann.str_of_mark)) ~f:print_endline in
+  List.rev rev_mark_list
 
 let func_map ann =
   "__assert_integer_overflow"
@@ -80,15 +80,15 @@ let instrument_bug_annotation ann_marks (modul: LL.llmodule) : unit =
   (* TODO: fill code here.
      See module llsimp.ml, function elim_instr_intrinsic_lifetime ...
      for how to manipulating LLVM bitcode *)
-  ()
-  (* print_endline (Ann.str_of_prog ann_marks) *)
+
 (*  let _ = print "INSTRUMENT BUG ANNOTATION" in
 
   let sorted_anns = List.rev annotations in
   let _ =
     List.iter ~f:(fun ((line, col), ann) ->
       print_endline (ann^"----------"^(pr_int line)^"------------"^(pr_int col))
-    ) sorted_anns in
+    ) sorted_anns in *)
+
   let finstr = Some (fun acc instr ->
     let pos = LS.position_of_instr instr in
     match pos with
@@ -127,10 +127,10 @@ let instrument_bug_annotation ann_marks (modul: LL.llmodule) : unit =
                 | LO.Load | LO.SExt -> resolve anns ti
                 | _ -> let _ = apply_annotation stra instr modul in
                   resolve ta ti in
-  let _ = resolve sorted_anns sorted_instr_wps in
+  let _ = resolve ann_marks sorted_instr_wps in
   print_endline ("***********************\n" ^ 
                 (LL.string_of_llmodule modul) ^
-                "***********************") *)
+                "***********************")
 
 let instrument_bitcode ann_marks filename (modul: LL.llmodule) : unit =
   instrument_bug_annotation ann_marks modul

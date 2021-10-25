@@ -10,7 +10,11 @@ let next_line lexbuf =
     { pos with pos_bol = pos.pos_cnum;
                pos_lnum = pos.pos_lnum + 1
     }
+
+let curr_pos lexbuf =
+  let pos = lexbuf.lex_curr_p in (pos.pos_lnum, pos.pos_cnum - pos.pos_bol + 1)
 }
+
 
 (*let int = '-'? ['0'-'9'] ['0'-'9']*
 
@@ -40,7 +44,7 @@ rule read =
 
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
-let word = ['a'-'z' 'A'-'Z' '_' '0'-'9' '[' ']' '.' ',' '"' '#' '%' '(' ')'
+let word = ['a'-'z' 'A'-'Z' '_' '0'-'9' '[' ']' '.' '"' '#' '%' '(' ')'
 '<' '>' '=' '+' '-' '\\' ';' '&' '`' '\''] +
 
 (*rule read =
@@ -61,13 +65,14 @@ rule read =
   parse
   | white    { read lexbuf }
   | newline  { next_line lexbuf; read lexbuf }
-  | "/*@" { ANNSTART }
+  | "/*@" { ANNSTART (curr_pos lexbuf) }
   | "Bug" | "Safe" { ATYPE (Lexing.lexeme lexbuf) }
-  | '/' { SLASH }
+  | '/' { SLASH ( curr_pos lexbuf ) }
   | '*' { ASTER }
   | '{' { OBRAC }
   | '}' { CBRAC }
   | ':' { COLON }
-  | word       { WORD (Lexing.lexeme lexbuf) }
+  | ',' { COMMA }
+  | word { WORD (Lexing.lexeme lexbuf) }
   | eof { EOF }
   | _ { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
