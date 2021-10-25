@@ -184,8 +184,6 @@ module List = struct
 
   (* TODO: what is the most reasonable monadic version of List.exists? *)
   let exists_monad ~(f: 'a -> bool option) (l: 'a list) : bool option =
-
-
     let rec loop l =
       match l with
       | [] -> Some false

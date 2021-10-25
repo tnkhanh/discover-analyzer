@@ -122,7 +122,6 @@ align_ops = true
 #      ^^parameter          #           ^^parameter
 align_params = always
 
-
 #
 #    SYNTAX EXTENSIONS
 #

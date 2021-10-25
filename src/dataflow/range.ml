@@ -11,7 +11,6 @@ open Lib
 open Sprinter
 open Printer
 open Debugger
-
 open Llir
 
 module AS = Assertion
@@ -450,7 +449,6 @@ module IntervalDomain = struct
       if r.range_ub_inclusive || cmp != 0 then cmp
       else -1
 
-
   let compare_interval_upper_bound_with_int (it: interval) (i: int64) : int =
     match it with
     | Bottom -> -1
@@ -469,15 +467,40 @@ module IntervalData = struct
   type t = (expr, interval) MP.t
 
   (* type t = einterval list         (\* sorted by expr *\) *)
-
 end
+
+
+module RangeUtil = struct
+  include IntervalDomain
+  include IntervalData
+
+  let get_interval (e: expr) (d: t) : interval =
+    match e with
+    | Int64 i -> interval_of_bound (Int64 i)
+    | _ ->
+      match MP.find d e with
+      | Some i -> i
+      | None -> least_interval
+
+
+  let replace_interval (e: expr) (i: interval) (d: t) : t =
+    let nd = match MP.find d e with
+      | None -> d
+      | Some a -> MP.remove d e in
+    MP.add_exn ~key:e ~data:i nd
+end
+
 
 module RangeTransfer : (DF.ForwardDataTransfer with type t = IntervalData.t) =
 struct
+
   open IntervalDomain
 
+
   include IntervalData
-  include DF.MakeDefaultEnv(IntervalData)
+  include RangeUtil
+  include DF.MakeDefaultEnv
+      (IntervalData)
 
 
   let analysis = DfaRange
@@ -547,22 +570,6 @@ struct
   (* FIXME: fix this later *)
   let join_data (a: t) (b: t) : t =
     merge_data a b
-
-
-  let get_interval (e: expr) (d: t) : interval =
-    match e with
-    | Int64 i -> interval_of_bound (Int64 i)
-    | _ ->
-      match MP.find d e with
-      | Some i -> i
-      | None -> least_interval
-
-
-  let replace_interval (e: expr) (i: interval) (d: t) : t =
-    let nd = match MP.find d e with
-      | None -> d
-      | Some a -> MP.remove d e in
-    MP.add_exn ~key:e ~data:i nd
 
 
   let clean_irrelevant_info_from_data penv func (d: t) : t =
@@ -982,16 +989,12 @@ module RangeAnalysis = struct
   include RangeTransfer
   include DF.ForwardDataFlow(RangeTransfer)
 
-  module RT = RangeTransfer
   module ID = IntervalDomain
+  module RU = RangeUtil
+  module RT = RangeTransfer
 
 
   let get_interval (e: expr) (d: t) : ID.interval =
-    match e with
-    | Int64 i -> ID.interval_of_bound (Int64 i)
-    | _ ->
-      match MP.find d e with
-      | Some i -> i
-      | None -> IntervalDomain.least_interval
+    RU.get_interval e d
 
 end

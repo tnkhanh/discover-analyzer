@@ -78,18 +78,20 @@ module SizeDomain = struct
 
 end;;
 
+
 module SD = SizeDomain
+
 
 (*******************************************************************
  ** Core data transfer modules
  *******************************************************************)
+
 
 module SizeData = struct
 
   type t = (llvalue * SD.size) list      (* maintained as a sorted list *)
 
 end
-
 
 
 module SizeUtil = struct
@@ -110,11 +112,14 @@ struct
   include SizeUtil
   include DF.MakeDefaultEnv(SizeData)
 
+
   let analysis = DfaMemsize
+
 
   (*******************************************************************
    ** Handling abstract data
    *******************************************************************)
+
 
   let least_data = []
 
@@ -145,12 +150,15 @@ struct
         else false in
     leq a b
 
+
   let copy_data d =
     d
+
 
   let subst_data ?(sstv: substv = []) ?(sstve: substve = [])
         ?(sste: subste = []) (d: t) : t =
     List.map ~f:(fun (v, s) -> (subst_value sstv v, s)) d
+
 
   let merge_data ?(widen=false) (a: t) (b: t) : t =
     let rec combine xs ys acc = match xs, ys with
@@ -166,22 +174,29 @@ struct
           combine xs nys (acc @ [yv, yr]) in
     combine a b []
 
+
   let clean_irrelevant_info_from_data prog func (d: t) : t =
     List.exclude ~f:(fun (v, s) -> is_local_llvalue v) d
+
 
   let clean_info_of_vars (input: t) (vs: llvalues) : t =
     (* TODO: implement later *)
     input
 
+
   let is_data_satisfied_predicate (d: t) (p: predicate) : bool =
     true
+
 
   let refine_data_by_predicate ?(widen=false) (d: t) (p: predicate) : t =
     d
 
+
   (* FIXME: fix this later *)
+
   let join_data (a: t) (b: t) : t =
     merge_data a b
+
 
   let update_size (v: llvalue) (s: SD.size) (d: t) : t =
     let rec replace xs acc = match xs with
@@ -193,31 +208,40 @@ struct
         else replace nxs (acc @ [(xv, xr)]) in
     replace d []
 
+
   let combine_size (a: SD.size) (b: SD.size) =
     SD.union_size a b
+
 
   (*******************************************************************
    ** Core analysis functions
    *******************************************************************)
 
+
   let prepare_callee_input penv instr callee args (input: t) : t =
     input
+
 
   let compute_callee_output_exns penv instr callee args input fsum : t * exns =
     (input, [])
 
+
   let prepare_thrown_exception_data penv exn_ptr tinfo input : t =
     input
+
 
   let compute_catch_exception_data penv instr ptr input exn : t =
     input
 
+
   let need_widening func : bool =
     false
+
 
   let analyze_global (g: global) (input: t) : t =
     (* TODO: default behavior, implement later if necessary *)
     input
+
 
   let analyze_instr ?(widen=false) penv fenv (instr: instr) (input: t) : t =
     let vinstr = llvalue_of_instr instr in
@@ -250,6 +274,7 @@ struct
       update_size vinstr !ns input
     | _ -> input
 
+
   (*******************************************************************
    ** Checking bugs
    *******************************************************************)
@@ -258,6 +283,7 @@ struct
     match get_instr_output fenv instr with
     | None -> SD.least_size
     | Some data -> get_size (llvalue_of_instr instr) data
+
 
   let check_memory_leak (fenv: func_env) (mlk: BG.memory_leak) : bool option =
     match mlk.mlk_size with
@@ -270,6 +296,7 @@ struct
     | BG.MemoryLeak mlk -> check_memory_leak fenv mlk
     | _ -> None
 
+
   (*******************************************************************
    ** Checking assertions
    *******************************************************************)
@@ -277,6 +304,7 @@ struct
   let count_assertions (prog: program) : int =
     (* TODO: implement later if necessary *)
     0
+
 
   let check_assertions (penv: prog_env) func : int =
     (* TODO: implement later if necessary *)

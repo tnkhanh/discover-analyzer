@@ -65,7 +65,7 @@ type bug = {
   bug_func : func;
   bug_type : bug_type;
   bug_status : ternary;          (* True, False, or Unknown *)
-  bug_analyzer : string option;
+  bug_analysis : string option;
   bug_reason : string option;
 }
 
@@ -171,7 +171,7 @@ let mk_potential_bug (instr: instr) (btype: bug_type) : bug =
     bug_func = func_of_instr instr;
     bug_type = btype;
     bug_status = Unkn;
-    bug_analyzer = None;
+    bug_analysis = None;
     bug_reason = None; }
 
 (*-------------------------------------------
@@ -231,10 +231,10 @@ let mk_potential_memory_leak (instr: instr) : bug =
  * Real bugs
  *------------------------------------------*)
 
-let mk_real_bug ?(reason=None) (analyzer: string) (bug: bug) : bug =
+let mk_real_bug ?(reason=None) ~(analysis: string) (bug: bug) : bug =
   { bug with
     bug_status = True;
-    bug_analyzer = Some analyzer;
+    bug_analysis = Some analysis;
     bug_reason = reason; }
 
 (*******************************************************************

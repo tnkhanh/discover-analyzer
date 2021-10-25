@@ -11,7 +11,6 @@ open Sprinter
 
 module LL = Llvm
 module LX = Lexing
-
 (*******************************************************************
  ** data structures
  *******************************************************************)
@@ -294,11 +293,9 @@ let pr_work_mode wm =
   | WkmDFA -> "Data Flow Analysis"
   | WkmAbsInt -> "Abstract Interpretation"
   | WkmNoAnalysis -> "No Analysis"
-
 (*******************************************************************
  ** Warning and error
  *******************************************************************)
-
 let warning msg =
   let msg = "Warning: " ^ msg in
   if not !print_concise_output then

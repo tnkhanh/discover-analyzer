@@ -12,7 +12,6 @@ open Sprinter
 open Printer
 open Debugger
 
-
 module LL = Llvm
 module LO = Llvm.Opcode
 module LC = Llvm.Icmp
@@ -28,7 +27,6 @@ module UA = Undef.UndefAnalysis
 (*******************************************************************
  ** Data structures
  *******************************************************************)
-
 
 type program_data = {
   pdata_program : LI.program;
@@ -157,7 +155,7 @@ let find_bug_integer_overflow (pdata: program_data) =
                     let%bind penv = pdata.pdata_env_range in
                     RG.check_bug penv bug)
                pbugs in
-  List.map ~f:(BG.mk_real_bug "RangeAnalysis") bugs
+  List.map ~f:(BG.mk_real_bug ~analysis:"RangeAnalysis") bugs
 
 
 let find_bug_integer_underflow (pdata: program_data) =
@@ -169,7 +167,7 @@ let find_bug_integer_underflow (pdata: program_data) =
                     let%bind penv = pdata.pdata_env_range in
                     RG.check_bug penv bug)
                pbugs in
-  List.map ~f:(BG.mk_real_bug "RangeAnalysis") bugs
+  List.map ~f:(BG.mk_real_bug ~analysis:"RangeAnalysis") bugs
 
 
 (*-------------------------------------------
@@ -177,48 +175,67 @@ let find_bug_integer_underflow (pdata: program_data) =
  *------------------------------------------*)
 
 (* TODO: use 2 analyses for buffer overflow: range anlaysis and memsize *)
-let check_buffer_overflow (bof: BG.buffer_overflow) pdata : bool option =
+
+let check_bug_buffer_overflow (bug: BG.bug) pdata : BG.bug option =
   let open Option.Let_syntax in
-  let%bind prange = pdata.pdata_env_range in
-  let%bind ppointer = pdata.pdata_env_pointer in
-  let%bind pmemsize = pdata.pdata_env_memsize in
-  if (!bug_memory_all || !bug_buffer_overflow) then
+  let%bind penv_rng = pdata.pdata_env_range in
+  let%bind penv_ptr = pdata.pdata_env_pointer in
+  let%bind penv_msz = pdata.pdata_env_memsize in
+  match bug.BG.bug_type with
+  | BG.BufferOverflow bof ->
     let func = LI.func_of_instr bof.bof_instr in
-    let%bind fenvs = Hashtbl.find prange.penv_func_envs func in
-    List.exists_monad
-      ~f:(fun fenv ->
-           let%bind data = RG.get_instr_output fenv bof.bof_instr in
-           let itv = RG.get_interval
-                       (LI.expr_of_llvalue bof.bof_elem_index) data in
-           (* let%bind bsize = bof.bof_buff_size in *)
-           (* TODO: fix this, this is a temporarily hard code the size to 1 *)
-           let%bind bsize = Some Int64.one in
-           return (RG.ID.compare_interval_upper_bound_with_int itv bsize >= 0))
-      fenvs
-  else None
+    let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
+    let%bind fenvs_msz = Hashtbl.find penv_msz.penv_func_envs func in
+    List.fold_left
+      ~f:(fun acc fenv_rng ->
+           if acc != None then acc
+           else
+             let%bind data_rng = RG.get_instr_output fenv_rng bof.bof_instr in
+             let itv = RG.get_interval (LI.expr_of_llvalue bof.bof_elem_index)
+                         data_rng in
+             let%bind bsize = bof.bof_buff_size in
+             match bsize with
+             | Int64 n ->
+               if RG.ID.compare_interval_upper_bound_with_int itv n >= 0 then
+                 return (BG.mk_real_bug ~analysis:"RangeAnalysis" bug)
+               else None
+             | Var v ->
+               let vinstr = LI.mk_instr v in
+               let is_bug =
+                 List.exists_monad
+                   ~f:(fun fenv_msz ->
+                        let%bind data_msz = MS.get_instr_output fenv_msz vinstr in
+                        let sz = MS.get_size v data_msz in
+                        return (RG.ID.compare_interval_upper_bound_with_int itv sz.size_max >= 0))
+                   fenvs_msz in
+               if%bind is_bug then
+                 return (BG.mk_real_bug ~analysis:"RangeAnalysis" bug)
+               else None
+             | _ -> None)
+      ~init:None fenvs_rng
+  | _ -> None
 
 
-let find_bug_buffer_overflow (pdata: program_data) =
-  let open Option.Let_syntax in
-  pdata.pdata_potential_bugs |>
-  List.map ~f:(fun bug ->
-                if not (BG.is_bug_buffer_overflow bug) then None
-                else if%bind RG.check_bug_opt pdata.pdata_env_range bug then
-                  return (BG.mk_real_bug "RangeAnalysis" bug)
-                else None) |>
-  List.filter_opt
+let find_bug_buffer_overflow (pdata: program_data) : BG.bug list =
+  if (!bug_memory_all || !bug_buffer_overflow) then
+    let open Option.Let_syntax in
+    pdata.pdata_potential_bugs |>
+    List.map ~f:(fun bug -> check_bug_buffer_overflow bug pdata) |>
+    List.filter_opt
+  else []
 
 
 let find_bug_memory_leak (pdata: program_data) : BG.bug list =
   let open Option.Let_syntax in
   pdata.pdata_potential_bugs |>
-  List.map ~f:(fun bug ->
-                if not (BG.is_bug_memory_leak bug) then None
-                else if%bind MS.check_bug_opt pdata.pdata_env_memsize bug then
-                  return (BG.mk_real_bug "MemsizeAnalysis" bug)
-                else if%bind PA.check_bug_opt pdata.pdata_env_pointer bug then
-                  return (BG.mk_real_bug "PointerAnalysis" bug)
-                else None) |>
+  List.map
+    ~f:(fun bug ->
+         if not (BG.is_bug_memory_leak bug) then None
+         else if%bind MS.check_bug_opt pdata.pdata_env_memsize bug then
+           return (BG.mk_real_bug ~analysis:"MemsizeAnalysis" bug)
+         else if%bind PA.check_bug_opt pdata.pdata_env_pointer bug then
+           return (BG.mk_real_bug ~analysis:"PointerAnalysis" bug)
+         else None) |>
   List.filter_opt
 
 
