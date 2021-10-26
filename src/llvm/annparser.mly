@@ -68,6 +68,12 @@ tok:
 %token OBRAC
 %token CBRAC
 %token COLON
+%token MEMORY_LEAK
+%token NULL_POINTER_DEREF
+%token BUFFER_OVERFLOW
+%token INTEGER_OVERFLOW
+%token INTEGER_UNDERFLOW
+%token DIVISION_BY_ZERO
 %token <string> ATYPE
 %token <string> WORD
 %token EOF
@@ -95,13 +101,13 @@ toks:
     };
 
 tok:
-  | WORD { Skip  }
-  | SLASH { Skip }
-  | ASTER { Skip }
-  | OBRAC { Skip }
-  | CBRAC { Skip }
-  | COLON { Skip }
-  | ATYPE { Skip }
+  | WORD
+  | SLASH
+  | ASTER
+  | OBRAC
+  | CBRAC
+  | COLON
+  | ATYPE
   | COMMA { Skip }
   | a = ann_begin { a }
   | a = ann_end { a };
@@ -110,15 +116,13 @@ bugs:
   value = separated_list(COMMA, bug) { value };
 
 bug:
-  w = WORD {
-    match w with
-    | "MemoryLeak" -> Ann.MemoryLeak
-    | "NullPointerDeref" -> NullPointerDeref
-    | "BufferOverflow" -> BufferOverflow
-    | "IntegerOverflow" -> IntegerOverflow
-    | "IntegerUnderflow" -> IntegerUnderflow
-    | _ as s -> NewType s
-  }
+    | MEMORY_LEAK { MemoryLeak }
+    | NULL_POINTER_DEREF { NullPointerDeref }
+    | BUFFER_OVERFLOW { BufferOverflow }
+    | INTEGER_OVERFLOW { IntegerOverflow }
+    | INTEGER_UNDERFLOW { IntegerUnderflow }
+    | DIVISION_BY_ZERO { DivisionByZero }
+    | w = WORD { Ann.NewType w };
 
 ann_begin:
   | ANNSTART; OBRAC; a = ATYPE; COLON; b = bugs; ASTER; p = SLASH 

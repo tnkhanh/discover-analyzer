@@ -67,6 +67,12 @@ rule read =
   | newline  { next_line lexbuf; read lexbuf }
   | "/*@" { ANNSTART (curr_pos lexbuf) }
   | "Bug" | "Safe" { ATYPE (Lexing.lexeme lexbuf) }
+  | "MemoryLeak" { MEMORY_LEAK }
+  | "NullPointerDeref" { NULL_POINTER_DEREF }
+  | "BufferOverflow" { BUFFER_OVERFLOW }
+  | "IntegerOverflow" { INTEGER_OVERFLOW }
+  | "IntegerUnderflow" { INTEGER_UNDERFLOW }
+  | "DivisionByZero" { DIVISION_BY_ZERO }
   | '/' { SLASH ( curr_pos lexbuf ) }
   | '*' { ASTER }
   | '{' { OBRAC }

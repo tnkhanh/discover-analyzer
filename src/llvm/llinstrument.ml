@@ -24,6 +24,20 @@ type annotation =
   | Bug of position
   | Safe of position
 
+type instr_with_tag = {
+  line: int;
+  col: int;
+  tag: int;
+  ins: instr;
+}
+
+let make_tagged_ins line_ col_ tag_ ins_= 
+  { line = line_;
+    col = col_;
+    tag = tag_;
+    ins = ins_;
+  }
+
 let extract_ann_marks (filename: string) = 
 (*  let _ = print_endline ("File:.........."^filename) in
   let inchan = 
@@ -89,31 +103,41 @@ let instrument_bug_annotation ann_marks (modul: LL.llmodule) : unit =
       print_endline (ann^"----------"^(pr_int line)^"------------"^(pr_int col))
     ) sorted_anns in *)
 
+  (* map each instr to (line, col) * tag * instr *)
   let finstr = Some (fun acc instr ->
     let pos = LS.position_of_instr instr in
     match pos with
     | None -> acc
-    | Some p -> ((p.pos_line_start, p.pos_col_start), instr)::acc) in
-  let instr_wps = deep_fold_module ~finstr [] modul in
-  let compare (p1, inx1) (p2, inx2) =
+    | Some p -> 
+        match acc with
+        | [] -> (make_tagged_ins p.pos_line_start p.pos_col_start 1 instr)::acc
+        | hd::tl -> 
+            (make_tagged_ins p.pos_line_start p.pos_col_start (hd.tag + 1) instr)::acc) in
+  let tagged_ins = deep_fold_module ~finstr [] modul in
+  let compare ins1 ins2 =
+    let p1 = (ins1.line, ins1.col) in
+    let p2 = (ins2.line, ins2.col) in
     if Poly.(p1 > p2) then 1
     else if Poly.(p1 < p2) then -1
     else 0 in
 
-  let sorted_instr_wps = List.stable_sort ~compare instr_wps in
-  let _ = List.iter ~f:(fun instr_wp ->
-    match instr_wp with ((line, col), instr) ->
-    match instr with Instr inx
-      ->  let pos = LS.position_of_instr instr in
-          match pos with
-          | None -> ()
-          | Some p 
-            -> print_endline ((LL.string_of_llvalue inx)^"++++ "^
+  let sorted_ins = List.stable_sort ~compare tagged_ins in
+  let _ = List.iter ~f:(fun tin ->
+    match tin.ins with 
+    | Instr inx ->  
+      print_endline ((LL.string_of_llvalue inx) ^ " +++ " ^ (pr_int tin.line) ^ " .. "
+        ^ (pr_int tin.col) ^ " .. tag: " ^ (pr_int tin.tag) )
+(*      let pos = LS.position_of_instr instr in
+        match pos with
+        | None -> ()
+        | Some p -> print_endline ((LL.string_of_llvalue inx)^"++++ "^
                          (pr_int line) ^ "__" ^
-                         (pr_int col))
-  ) instr_wps in
+                         (pr_int col)) *)
+  ) sorted_ins in
+  
+  ()
 
-  let rec resolve anns instr_wps =
+  (*let rec resolve anns instr_wps =
     match anns with
     | [] -> ()
     | (pa, stra)::ta ->
@@ -130,7 +154,7 @@ let instrument_bug_annotation ann_marks (modul: LL.llmodule) : unit =
   let _ = resolve ann_marks sorted_instr_wps in
   print_endline ("***********************\n" ^ 
                 (LL.string_of_llmodule modul) ^
-                "***********************")
+                "***********************") *)
 
 let instrument_bitcode ann_marks filename (modul: LL.llmodule) : unit =
   instrument_bug_annotation ann_marks modul
