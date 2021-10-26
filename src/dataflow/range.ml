@@ -831,10 +831,9 @@ struct
       let open Option.Let_syntax in
       let%bind data = get_instr_output fenv bof.bof_instr in
       let itv = get_interval (expr_of_llvalue bof.bof_elem_index) data in
-      let%bind bsize = bof.bof_buff_size in
-      match bsize with
-      | Int64 n -> Some (compare_interval_ub_int itv n >= 0)
-      | _ -> None
+      match bof.bof_buff_size with
+      | BG.NumElem (n, _) -> Some (compare_interval_ub_int itv n >= 0)
+      | MemSizeOf _ -> None
     else None
 
 
@@ -992,5 +991,8 @@ module RangeAnalysis = struct
 
   let get_interval (e: expr) (d: t) : ID.interval =
     RU.get_interval e d
+
+
+  let pr_interval = ID.pr_interval
 
 end

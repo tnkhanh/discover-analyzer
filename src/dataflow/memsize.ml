@@ -331,4 +331,7 @@ module MemsizeAnalysis = struct
   let get_size (v: llvalue) (d: t) : SD.size =
     SU.get_size v d
 
+
+  let pr_size = SD.pr_size
+
 end

@@ -46,10 +46,15 @@ and integer_underflow = {
   iuf_instr : instr;
 }
 
+and buffer_size =
+  (* FIXME: need to change name of this variant type *)
+  | NumElem of (int64 * lltype)     (* number of element of type lltype *)
+  | MemSizeOf of llvalue               (* size of allocated memory of pointer *)
+
 and buffer_overflow = {
   bof_pointer : llvalue;
   bof_elem_index : llvalue;
-  bof_buff_size : expr option;
+  bof_buff_size : buffer_size;
   bof_instr : instr;
 }
 
@@ -76,11 +81,8 @@ type bug = {
 (* memory bugs *)
 
 let pr_buffer_overflow (bof: buffer_overflow) : string =
-  let num_elem = match bof.bof_buff_size with
-    | None -> "Unknown"
-    | Some e -> pr_expr e in
   "BUFFER OVERFLOW\n" ^
-  "  Reason: num elements: " ^ num_elem ^
+  "  Root pointer: " ^ (pr_value bof.bof_pointer) ^
   ", accessing index: " ^ (pr_value bof.bof_elem_index)
 
 let pr_memory_leak (mlk: memory_leak) : string =
@@ -206,15 +208,15 @@ let mk_potential_buffer_overflow (instr: instr) : bug =
         match LL.classify_type elem_typ with
         (* pointer to an array *)
         | LL.TypeKind.Array ->
-          let size = mk_expr_int64_of_int (LL.array_length elem_typ) in
+          let size = Int64.of_int (LL.array_length elem_typ) in
           let array_idx = match List.nth idxs 1 with
             | Some idx -> idx
             | None ->
               herror "mk_potential_buffer_overflow: array index not available:"
                 pr_instr instr in
-          (Some size, array_idx)
+          (NumElem (size, elem_typ), array_idx)
         (* pointer to a dynamically allocated memory *)
-        | _ -> (None, List.hd_exn idxs) in
+        | _ -> (MemSizeOf ptr, List.hd_exn idxs) in
       { bof_instr = instr;
         bof_pointer = ptr;
         bof_buff_size = size;
@@ -231,11 +233,11 @@ let mk_potential_memory_leak (instr: instr) : bug =
  * Real bugs
  *------------------------------------------*)
 
-let mk_real_bug ?(reason=None) ~(analysis: string) (bug: bug) : bug =
+let mk_real_bug ~(reason: string) ~(analysis: string) (bug: bug) : bug =
   { bug with
     bug_status = True;
     bug_analysis = Some analysis;
-    bug_reason = reason; }
+    bug_reason = Some reason; }
 
 (*******************************************************************
  ** reporting
@@ -247,7 +249,12 @@ let report_bug (bug: bug) : unit =
     | true -> match LD.position_of_instr bug.bug_instr with
       | None -> ""
       | Some p -> " Location: at " ^ (pr_file_position_and_excerpt p) ^ "\n" in
-  let msg = "BUG: " ^ (pr_bug_type_detail bug.bug_type) ^ "\n" ^ location in
+  let reason = match bug.bug_reason with
+    | None -> ""
+    | Some s -> s ^ "\n" in
+  let msg =
+    "BUG: " ^ (pr_bug_type_detail bug.bug_type) ^ "\n" ^
+    reason ^ location in
   print_endline ("\n" ^ msg)
 
 let report_bug_stats (bugs: bug list) : unit =

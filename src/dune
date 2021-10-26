@@ -25,6 +25,6 @@
 
  ;; For develoment
  (modes byte)
- (flags (:standard -w -3-26-27-28-32-33 -g -annot -bin-annot))
+ (flags (:standard -w -3-26-27-28-32-33 -g -annot))
 
  (link_flags (-linkall)))

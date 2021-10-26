@@ -587,7 +587,7 @@ let pr_value (v: llvalue) : string =
         else LL.value_name v
       | LT.Metadata -> LL.string_of_llvalue v
       | _ -> LL.string_of_llvalue v in
-  if String.is_empty vname then "<empty-name>"
+  if String.is_empty vname then "<raw-name: " ^ (LL.string_of_llvalue v) ^ ">"
   else vname
 
 
@@ -1396,6 +1396,14 @@ let is_type_pointer_to_func (typ: lltype) : bool =
   match LL.classify_type typ with
   | LT.Pointer -> is_type_func (LL.element_type typ)
   | _ -> false
+
+
+(** Memory size in bytes of an element of type `typ' *)
+
+let memsize_of_type (typ: lltype) : int64 =
+  match LL.classify_type typ with
+  | LT.Integer -> Int64.of_int ((LL.integer_bitwidth typ) / 8)
+  | _ -> herror "memsize_of_size: need to implement: " pr_type typ
 
 
 let rec get_elemptr_typ (typ: lltype) (idxs: expr list) : lltype =
