@@ -3,8 +3,6 @@ Discover -- a source code static analyzer
 
 Copyright (c) 2020-2021 Singapore Blockchain Innovation Program.
 
-Homepage: https://www.comp.nus.edu.sg/~dbsystem/discover/
-
 # Overview
 
 Discover is a static analysis tool that aims find bugs and vulnerabilities in
@@ -30,7 +28,17 @@ static analysis techniques to find different bug types:
 To handle large program (of thousands of lines of code), we also develop a
 sparse analysis framework based on data-flow analysis.
 
-# Compiling Discover
+# Documentation
+
+- [Homepage](https://www.comp.nus.edu.sg/~dbsystem/discover/).
+
+- [Full documentation](https://discover.readthedocs.io/en/latest/#).
+
+- [Installation guide](INSTALL.md).
+
+# Getting Started
+
+## Compiling Discover
 
 Discover is developed using the OCaml programming language and is built on top
 of the LLVM compiler infrastructure. Currently, it can be compiled and works
@@ -41,7 +49,7 @@ tested in Windows yet.
 Please see our detailed tutorial at [INSTALL.md](INSTALL.md) for step-by-step guidelines
 on how to compile Discover in Ubuntu, Linux Mint.
 
-# Running Discover
+## Running Discover
 
 IMPORTANT NOTE: this tutorial is a work-in-progress. We will update more
 information soon to show how to run Discover to find bugs.
