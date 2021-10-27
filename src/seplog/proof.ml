@@ -251,7 +251,7 @@ type goal = {
 }
 
 type derivation_kind =
-  | DrvStatus of ternary
+  | DrvStatus of bool option
   | DrvSubgoals of goal list
 
 type derivation = {
@@ -264,7 +264,7 @@ type proof_tree = {
   ptr_goal : goal;
   ptr_rule : rule option;
   ptr_sub_trees : proof_tree list;
-  ptr_status : ternary;
+  ptr_status : bool option;
   ptr_frames : formula list;    (* NOTE: can magicwand maintain only one frame? *)
 }
 
@@ -820,17 +820,17 @@ let mk_derivation_subgoals goal sub_goals rule =
 
 let mk_derivation_valid goal rule =
   {drv_goal = goal;
-   drv_kind = DrvStatus True;
+   drv_kind = DrvStatus (Some true);
    drv_rule = rule;}
 
 let mk_derivation_invalid goal rule =
   {drv_goal = goal;
-   drv_kind = DrvStatus False;
+   drv_kind = DrvStatus (Some false);
    drv_rule = rule;}
 
 let mk_derivation_unknown goal rule =
   {drv_goal = goal;
-   drv_kind = DrvStatus Unkn;
+   drv_kind = DrvStatus None;
    drv_rule = rule;}
 
 let mk_proof_tree ?(frames=[]) goal rule subtrees status =
@@ -855,13 +855,13 @@ let mk_proof_tree_valid goal rule subtrees : proof_tree =
     | RlEmptyArrayRight r ->
       List.map ~f:(fun f -> mk_f_star_with f ~pfs:[r.rear_empty_form]) frames
     | _ -> frames in
-  mk_proof_tree goal (Some rule) subtrees True ~frames
+  mk_proof_tree goal (Some rule) subtrees (Some true) ~frames
 
 let mk_proof_tree_invalid goal rule subtrees : proof_tree =
-  mk_proof_tree goal (Some rule) subtrees False
+  mk_proof_tree goal (Some rule) subtrees (Some false)
 
 let mk_proof_tree_unknown goal : proof_tree =
-  mk_proof_tree goal None [] Unkn
+  mk_proof_tree goal None [] None
 
 let mk_prover_state prog : prover_state =
   {prs_prog = prog;

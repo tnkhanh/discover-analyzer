@@ -24,53 +24,6 @@ let raise_int i = raise (EInt i)
 
 
 (*******************************************************************
- ** Basic
- *******************************************************************)
-
-module Basic = struct
-
-  (* TODO: replace Ternary by `bool option` to use monad *)
-  type ternary =
-    | True
-    | False
-    | Unkn
-
-  exception ETern of ternary
-
-
-  let pr_ternary = function
-    | True -> "True"
-    | False -> "False"
-    | Unkn -> "Unkn"
-
-
-  let negate_ternary tern =
-    match tern with
-    | True -> False
-    | False -> True
-    | Unkn -> Unkn
-
-
-  let is_true (t: ternary) =
-    t == True
-
-
-  let is_false (t: ternary) =
-    t == False
-
-
-  let is_unknown (t: ternary) =
-    t == Unkn
-
-end;;
-
-
-(*******************************************************************
- ** Extended List library
- *******************************************************************)
-
-
-(*******************************************************************
  ** Extended Hashtbl
  *******************************************************************)
 
@@ -211,7 +164,6 @@ end;;
  *******************************************************************)
 
 
-include Basic
 include Math
 
 include Libdiscover

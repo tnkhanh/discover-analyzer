@@ -69,7 +69,7 @@ type bug = {
   bug_instr : instr;
   bug_func : func;
   bug_type : bug_type;
-  bug_status : ternary;          (* True, False, or Unknown *)
+  bug_status : bool option;          (* None means Unknown *)
   bug_analysis : string option;
   bug_reason : string option;
 }
@@ -144,7 +144,8 @@ let pr_bug ?(detailed=true) (bug: bug) : string =
   let details =
     if detailed then
       "    Type: " ^ (pr_bug_type ~detailed bug.bug_type) ^
-      "    Status: " ^ pr_ternary bug.bug_status
+      "    Status: " ^ (match bug.bug_status with | None -> "Unknown"
+                                                  | Some b -> pr_bool b)
     else "" in
   "Bug: " ^ (pr_instr bug.bug_instr) ^
   (String.prefix_if_not_empty ~prefix:"\n" details )
@@ -164,7 +165,7 @@ let mk_potential_bug (instr: instr) (btype: bug_type) : bug =
   { bug_instr = instr;
     bug_func = func_of_instr instr;
     bug_type = btype;
-    bug_status = Unkn;
+    bug_status = None;
     bug_analysis = None;
     bug_reason = None; }
 
@@ -227,7 +228,7 @@ let mk_potential_memory_leak (instr: instr) : bug =
 
 let mk_real_bug ~(reason: string) ~(analysis: string) (bug: bug) : bug =
   { bug with
-    bug_status = True;
+    bug_status = (Some true);
     bug_analysis = Some analysis;
     bug_reason = Some reason; }
 
