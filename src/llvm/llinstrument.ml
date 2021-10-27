@@ -25,15 +25,13 @@ type annotation =
   | Safe of position
 
 type instr_with_tag = {
-  line: int;
-  col: int;
+  pos: position;
   tag: int;
   ins: instr;
 }
 
-let make_tagged_ins line_ col_ tag_ ins_= 
-  { line = line_;
-    col = col_;
+let make_tagged_ins pos_ tag_ ins_= 
+  { pos = pos_;
     tag = tag_;
     ins = ins_;
   }
@@ -71,7 +69,7 @@ let extract_ann_marks (filename: string) =
 
   (*print all marks*)
   let _ = List.iter (List.rev (List.map rev_mark_list ~f:Ann.str_of_mark)) ~f:print_endline in
-  List.rev rev_mark_list
+  (List.rev rev_mark_list, filename)
 
 let func_map ann =
   "__assert_integer_overflow"
@@ -86,11 +84,10 @@ let apply_annotation ann_str instr modul=
     | Some assert_func ->
         let assert_ins = LL.build_call assert_func 
             (Array.create ~len:1 inx) "" builder in 
-        print_endline "!----------!" in
 
     print_endline (ann_str^"...."^(LL.string_of_llvalue inx))
 
-let instrument_bug_annotation ann_marks (modul: LL.llmodule) : unit =
+let instrument_bug_annotation ann_marks source_name (modul: LL.llmodule) : unit =
   (* TODO: fill code here.
      See module llsimp.ml, function elim_instr_intrinsic_lifetime ...
      for how to manipulating LLVM bitcode *)
@@ -104,36 +101,53 @@ let instrument_bug_annotation ann_marks (modul: LL.llmodule) : unit =
     ) sorted_anns in *)
 
   (* map each instr to (line, col) * tag * instr *)
+
+  let _ = hprint "======== Source file: " pr_str source_name in
+
+  let _ = hprint "Module  ============\n" pr_str (LL.string_of_llmodule modul) in
+  
   let finstr = Some (fun acc instr ->
-    let pos = LS.position_of_instr instr in
-    match pos with
+    let pos_op = LS.position_of_instr instr in
+    match pos_op with
+    (* ignoring instructions without location *)
     | None -> acc
-    | Some p -> 
-        match acc with
-        | [] -> (make_tagged_ins p.pos_line_start p.pos_col_start 1 instr)::acc
-        | hd::tl -> 
-            (make_tagged_ins p.pos_line_start p.pos_col_start (hd.tag + 1) instr)::acc) in
+       (* ( let pop = mk_position "Hi!" (-1) (-1) (-1) (-1) in
+        let ins = make_tagged_ins pop (-1) instr in
+        ins::acc ) *)
+    | Some pos -> 
+        if (not (String.equal pos.pos_file_name source_name)) then
+          acc
+        else
+          match acc with
+          | [] -> (make_tagged_ins pos 1 instr)::acc
+          | hd::tl -> 
+              (make_tagged_ins pos (hd.tag + 1) instr)::acc) in
   let tagged_ins = deep_fold_module ~finstr [] modul in
   let compare ins1 ins2 =
-    let p1 = (ins1.line, ins1.col) in
-    let p2 = (ins2.line, ins2.col) in
+    let p1 = (ins1.pos.pos_line_end, ins1.pos.pos_col_end) in
+    let p2 = (ins2.pos.pos_line_end, ins2.pos.pos_col_end) in
     if Poly.(p1 > p2) then 1
     else if Poly.(p1 < p2) then -1
     else 0 in
 
+  let _ = hprint "Tags  =====================\n" pr_str ":tags" in
+
   let sorted_ins = List.stable_sort ~compare tagged_ins in
   let _ = List.iter ~f:(fun tin ->
-    match tin.ins with 
+    match tin.ins with
     | Instr inx ->  
-      print_endline ((LL.string_of_llvalue inx) ^ " +++ " ^ (pr_int tin.line) ^ " .. "
-        ^ (pr_int tin.col) ^ " .. tag: " ^ (pr_int tin.tag) )
+      hprint " .. tag: " pr_str ((pr_int tin.tag) ^ " : " ^
+        (LL.string_of_llvalue inx) ^ " +++ " ^ (pr_int tin.pos.pos_line_end) ^ " .. "
+        ^ (pr_int tin.pos.pos_col_end)
+        ^ " .. file: " ^ tin.pos.pos_file_name
+      )
 (*      let pos = LS.position_of_instr instr in
         match pos with
         | None -> ()
         | Some p -> print_endline ((LL.string_of_llvalue inx)^"++++ "^
                          (pr_int line) ^ "__" ^
                          (pr_int col)) *)
-  ) sorted_ins in
+  ) tagged_ins (*sorted_ins*) in
   
   ()
 
@@ -156,5 +170,5 @@ let instrument_bug_annotation ann_marks (modul: LL.llmodule) : unit =
                 (LL.string_of_llmodule modul) ^
                 "***********************") *)
 
-let instrument_bitcode ann_marks filename (modul: LL.llmodule) : unit =
-  instrument_bug_annotation ann_marks modul
+let instrument_bitcode ann_marks source_name (modul: LL.llmodule) : unit =
+  instrument_bug_annotation ann_marks source_name modul

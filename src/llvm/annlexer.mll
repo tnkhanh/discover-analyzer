@@ -12,7 +12,7 @@ let next_line lexbuf =
     }
 
 let curr_pos lexbuf =
-  let pos = lexbuf.lex_curr_p in (pos.pos_lnum, pos.pos_cnum - pos.pos_bol + 1)
+  let pos = lexbuf.lex_curr_p in (pos.pos_lnum, pos.pos_cnum - pos.pos_bol)
 }
 
 
