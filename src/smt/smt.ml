@@ -18,13 +18,17 @@ module LI = Llir
 module Z3SL = Z3.Z3SL
 module Z3LL = Z3.Z3LL
 
+
 type smt_solver =
   | SolverZ3
   | SolverOmega
 
+
 let time_smt = ref 0.
 
+
 let smt_solver = ref SolverZ3
+
 
 (*******************************************************************
  ** utilities
@@ -37,19 +41,23 @@ let set_solver name =
     smt_solver := SolverZ3
   else ()
 
+
 let pr_solver solver = match solver with
   | SolverOmega -> "Omega"
   | SolverZ3 -> "Z3"
+
 
 let stop_solver () =
   match !smt_solver with
   | SolverZ3 -> Z3.stop_solver ()
   | _ -> ()
 
+
 let restart_solver () =
   match !smt_solver with
   | SolverZ3 -> Z3.restart_solver ()
   | _ -> ()
+
 
 (*******************************************************************
  ** SMT support for SLIR
@@ -63,18 +71,23 @@ module SmtSL = struct
       | _ -> herror "check_sat: unknown solver" pr_solver !smt_solver in
     Sys.record_runtime (fun () -> check_sat fs) time_smt
 
-  let is_sat ?(prog=None) f : bool =
-    f |> check_sat ~prog:prog |> fst |> is_true
+  let is_sat ?(prog=None) (fs: SI.pure_forms) : bool =
+    let res, _ = check_sat ~prog:prog fs in
+    match res with
+    | Some true -> true
+    | _ -> false
 
-  let is_unsat ?(prog=None) f : bool =
-    f |> check_sat ~prog:prog |> fst |> is_false
+  let is_unsat ?(prog=None) (fs: SI.pure_forms) : bool =
+    let res, _ = check_sat ~prog:prog fs in
+    match res with
+    | Some false -> true
+    | _ -> false
 
-  let check_imply ?(prog=None) ?(norm=false) f1 f2 : ternary =
+  let check_imply ?(prog=None) ?(norm=false) f1 f2 : bool option =
     let check_imply = match !smt_solver with
       | SolverZ3 -> Z3SL.check_imply
       | _ -> herror "check_imply: unknown solver" pr_solver !smt_solver in
-    let res = check_imply f1 f2 in
-    res
+    check_imply f1 f2
 
   (* NOTE: should use horn clause solving, or other solving technique? *)
   let check_sat_horn ?(prog=None) ?(mvars=[])
@@ -100,16 +113,20 @@ end
 
 module SmtLL = struct
 
-  let check_sat (p: LI.predicate) : ternary=
+  let check_sat (p: LI.predicate) : bool option =
     let check_sat = match !smt_solver with
       | SolverZ3 -> Z3LL.check_sat
       | _ -> herror "check_sat: unknown solver" pr_solver !smt_solver in
     Sys.record_runtime (fun () -> check_sat p) time_smt
 
   let is_sat ?(prog=None) (p: LI.predicate) : bool =
-    p |> check_sat |> is_true
+    match check_sat p with
+    | Some true -> true
+    | _ -> false
 
   let is_unsat ?(prog=None) (p: LI.predicate) : bool =
-    p |> check_sat |> is_false
+    match check_sat p with
+    | Some false -> true
+    | _ -> false
 
 end

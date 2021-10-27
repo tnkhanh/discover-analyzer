@@ -264,10 +264,10 @@ module Z3SL = struct
       let model = List.sort
                     ~compare:(fun (v1, _) (v2, _) -> SI.compare_var v2 v1)
                     model in
-      (True, model)
-    | Unsat -> (False, [])
-    | Unk -> (Unkn, [])
-    | Error _ -> (Unkn, [])
+      (Some true, model)
+    | Unsat -> (Some true, [])
+    | Unk -> (None, [])
+    | Error _ -> (None, [])
 
   let check_sat ?(prog=None) ?(logic="") ?(mvars=[]) fs : SI.smt_result =
     let set_logic =
@@ -294,14 +294,18 @@ module Z3SL = struct
                      (pr_align  "  - z3 input:\n" z3_input) ^ "\n" ^
                      (pr_align  "  - z3 output:\n" z3_output) ^ "\n" ^
                      "  - error: " ^ msg) in
-      (Unkn, [])
+      (None, [])
     | _ ->
       let res, model = get_result ~mvars:mvars output in
       (res, model)
 
-  let check_imply ?(prog=None) ?(logic="") f1 f2 : ternary =
+
+  let check_imply ?(prog=None) ?(logic="") f1 f2 : bool option =
+    let open Option.Let_syntax in
     let nf2 = SI.mk_pneg f2 in
-    [f1; nf2] |> check_sat ~prog:prog ~logic:logic |> fst |> negate_ternary
+    let res, _ = check_sat ~prog:prog ~logic:logic [f1; nf2] in
+    let%bind b = res in
+    Option.return (not b)
 
 end
 
@@ -366,13 +370,13 @@ module Z3LL = struct
     let assertion = mk_assertion p in
     var_decls ^ "\n" ^ assertion
 
-  let get_result z3output : ternary =
+  let get_result z3output : bool option =
     match z3output with
-    | Sat model -> True
-    | Unsat -> False
-    | _ -> Unkn
+    | Sat model -> Some true
+    | Unsat -> Some false
+    | _ -> None
 
-  let check_sat (p: LI.predicate) : ternary =
+  let check_sat (p: LI.predicate) : bool option =
     let z3_input =
       "(set-option :produce-models false)\n" ^
       (mk_z3_input p) ^ "\n" ^
@@ -389,7 +393,7 @@ module Z3LL = struct
                      (pr_align  "  - z3 input:\n" z3_input) ^ "\n" ^
                      (pr_align  "  - z3 output:\n" z3_output) ^ "\n" ^
                      "  - error: " ^ msg) in
-      Unkn
+      None
     | _ -> get_result output
 
 end

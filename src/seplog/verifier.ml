@@ -233,7 +233,7 @@ let check_buffer_overflow vstate instr pstate ptr size index : bool =
   let prog = vstate.vrs_llvm_prog in
   let pf = NO.encode_formula_to_pure pstate.pgs_formula in
   let overflow_cond = mk_ge index size in
-  if (SMT.check_imply pf overflow_cond) == True then
+  if is_true (SMT.check_imply pf overflow_cond) then
     let buggy_exps = (find_source_pointers pstate [ptr]) @ [ptr] in
     report_bug prog "BUFFER OVERFLOW" buggy_exps instr
   else false
@@ -421,10 +421,10 @@ let process_one_state_inst_load vstate instr src dst pstate =
   let ent = mk_entailment pstate.pgs_formula (mk_f_exists evs curr_data) in
   let _ = hdebugc "LOAD: Prove Pre-Condition By Frame:\n\n" pr_ent ent in
   let res, frames = PV.infer_entailment_frame vstate.vrs_core_prog ent in
-  let _ = hdebugc "==> Result: " pr_ternary res in
+  let _ = hdebugc "==> Result: " pr_bresult res in
   let _ = hdebugc "==> Frame: " pr_fs frames in
   match res, frames with
-  | True, [frame] ->
+  | Some true, [frame] ->
     let npf = mk_eq dst data_value in
     let nf = mk_f_exists evs (mk_f_star_with frame ~fs:[curr_data] ~pfs:[npf]) in
     let nf = NO.simplify_f nf in
@@ -460,10 +460,10 @@ let process_one_state_instr_store vstate instr dst new_val pstate =
   let ent = mk_entailment pstate.pgs_formula (mk_f_exists evs curr_data) in
   let _ = hdebugc "STORE: Entailment:\n" pr_ent ent in
   let res, frames = PV.infer_entailment_frame vstate.vrs_core_prog ent in
-  let _ = hdebugc "==> Result: " pr_ternary res in
+  let _ = hdebugc "==> Result: " pr_bresult res in
   let _ = hdebugc "==> Frame: " pr_fs frames in
   match res, frames with
-  | True, [frame] ->
+  | Some true, [frame] ->
     let new_data = mk_data elem_typ dst [new_val] in
     let nf = mk_f_exists evs (mk_f_star_with frame ~dfs:[new_data]) in
     let nf = NO.simplify_f nf in
@@ -503,7 +503,7 @@ let process_getelemptr_array vstate instr pstate src index field dst =
   (* let _ = hdebugc "==> Result: " pr_ternary res in *)
   (* let _ = hdebugc "==> Frame: " pr_fs frames in *)
   match res, frames with
-  | True,[frame] ->
+  | Some true, [frame] ->
     let npstate = {pstate with pgs_formula = frame} in
     if check_buffer_overflow vstate instr npstate src src_size index then
       pstate
@@ -543,7 +543,7 @@ let process_getelemptr_struct vstate instr pstate src index field dst =
   (* let _ = nhdebugc "==> Result: " pr_ternary res in *)
   (* let _ = nhdebugc "==> Frame: " pr_fs frames in *)
   match res, frames with
-  | True, [frame] ->
+  | Some true, [frame] ->
     let npstate = {pstate with pgs_formula = frame} in
     if check_buffer_overflow vstate instr npstate src src_size index then
       pstate
@@ -702,10 +702,10 @@ let process_one_state_instr_call vstate instr pstate func args return =
   let ent = mk_entailment pstate.pgs_formula (mk_f_exists evs precond) in
   let _ = hdebugc "CALL: Prove Pre-Condition By Frame:\n\n" pr_ent ent in
   let res, frames = PV.infer_entailment_frame vstate.vrs_core_prog ent in
-  let _ = hdebugc "==> Result: " pr_ternary res in
+  let _ = hdebugc "==> Result: " pr_bresult res in
   let _ = hdebugc "==> Frame: " pr_fs frames in
   match res, frames with
-  | True, [frame] ->
+  | Some true, [frame] ->
     let nf = mk_f_exists evs (mk_f_star_with frame ~fs:[postcond]) in
     let nf = NO.simplify_f nf in
     let npstate = {pstate with pgs_formula = nf} in
@@ -718,7 +718,7 @@ let process_one_state_instr_call vstate instr pstate func args return =
       else npstate in
     (* TODO: update alloced and freed data *)
     npstate
-  | True, _ ->
+  | Some true, _ ->
     herror "process_instr_call: expect 1 frame but found: " pr_fs frames
   | _ ->
     let buggy = check_double_free vstate instr pstate func args in

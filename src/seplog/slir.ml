@@ -137,7 +137,7 @@ type entailments = entailment list
 
 (*** other types ***)
 
-type smt_result = ternary * ((var * exp) list)
+type smt_result = (bool option) * ((var * exp) list)
 
 (*******************************************************************
  ** definitions

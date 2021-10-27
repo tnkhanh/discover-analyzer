@@ -87,20 +87,20 @@ let rec process_conjunctive_subgoals pstate goal rule subgoals =
       let pt = prove_one_goal pstate g in
       let npts = pts @ [pt] in
       match pt.ptr_status  with
-      | True -> prove_subgoals (True, npts) gs
-      | False -> (False, npts)
-      | Unkn -> (Unkn, npts) in
-  let status, pts = prove_subgoals (True, []) subgoals in
+      | Some true -> prove_subgoals (Some true, npts) gs
+      | Some false -> (Some false, npts)
+      | None -> (None, npts) in
+  let status, pts = prove_subgoals (Some true, []) subgoals in
   match status with
-  | True -> mk_proof_tree_valid goal rule pts
-  | False -> mk_proof_tree_invalid goal rule pts
+  | Some true -> mk_proof_tree_valid goal rule pts
+  | Some false -> mk_proof_tree_invalid goal rule pts
   | _  -> mk_proof_tree_unknown goal
 
 and process_one_derivation pstate drv : proof_tree =
   let goal, rule = drv.drv_goal, drv.drv_rule in
   match drv.drv_kind with
-  | DrvStatus True -> mk_proof_tree_valid goal rule []
-  | DrvStatus False -> mk_proof_tree_invalid goal rule []
+  | DrvStatus (Some true) -> mk_proof_tree_valid goal rule []
+  | DrvStatus (Some false) -> mk_proof_tree_invalid goal rule []
   | DrvStatus _ -> mk_proof_tree_unknown goal
   | DrvSubgoals sgs -> process_conjunctive_subgoals pstate goal rule sgs
 
@@ -145,10 +145,10 @@ and process_all_rules pstate goal rules : proof_tree =
         let drv = process_one_rule pstate goal rule in
         let ptree = process_one_derivation pstate drv in
         match ptree.ptr_status, other_rules with
-        | True, _ -> Some ptree
-        | False, _ -> Some ptree
-        | Unkn, [] -> Some (mk_proof_tree_unknown goal)
-        | Unkn, _ -> process_rules ptrees other_rules in
+        | Some true, _ -> Some ptree
+        | Some false, _ -> Some ptree
+        | None, [] -> Some (mk_proof_tree_unknown goal)
+        | None, _ -> process_rules ptrees other_rules in
   match process_rules [] rules with
   | None -> (mk_proof_tree_unknown goal)
   | Some pt -> pt
@@ -172,7 +172,7 @@ let dump_proof_tree pstate ptree =
   let _ = if !export_proof_ascii then Ascii.export_ptree_core ptree in
   ()
 
-let prove_entailments prog ents : ternary =
+let prove_entailments prog ents : bool option =
   let _ = init_global_vars ents in
   let goal = mk_goal ents in
   let pstate = mk_prover_state prog in
@@ -180,7 +180,7 @@ let prove_entailments prog ents : ternary =
   let _ = dump_proof_tree pstate ptree in
   ptree.ptr_status
 
-let infer_entailment_frame prog ent : (ternary * formula list) =
+let infer_entailment_frame prog ent : (bool option * formula list) =
   (* let _ = hdebugc "Entail: " pr_ent ent in *)
   let _ = init_global_vars [ent] in
   let goal = mk_goal [ent] in
@@ -190,6 +190,6 @@ let infer_entailment_frame prog ent : (ternary * formula list) =
   (* let _ = hdebugc "  frames: " pr_fs ptree.ptr_frames in *)
   (ptree.ptr_status, ptree.ptr_frames)
 
-let check_sat (prog: program) (fs: formulas) : ternary =
+let check_sat (prog: program) (fs: formulas) : bool option =
   (* TODO: need to implement *)
-  Unkn
+  None
