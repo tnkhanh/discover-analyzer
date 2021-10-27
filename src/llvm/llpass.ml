@@ -157,15 +157,15 @@ let compute_func_used_globals prog : unit =
 
 let update_program_info (prog: program) : unit =
   let _ = print "Updating program information..." in
-  let _ = report_runtime ~task:"Time computing funcs in pointers"
+  let _ = Sys.report_runtime ~task:"Time computing funcs in pointers"
             (fun () -> compute_funcs_in_pointers prog) in
-  let _ = report_runtime ~task:"Time computing func call info"
+  let _ = Sys.report_runtime ~task:"Time computing func call info"
             (fun () -> compute_func_call_info prog) in
-  let _ = report_runtime ~task:"Time computing used globals"
+  let _ = Sys.report_runtime ~task:"Time computing used globals"
             (fun () -> compute_func_used_globals prog) in
-  let _ = report_runtime ~task:"Time constructing callgraph"
+  let _ = Sys.report_runtime ~task:"Time constructing callgraph"
             (fun () -> construct_func_call_graph prog) in
-  let _ = report_runtime ~task:"Time constructing reachability graph"
+  let _ = Sys.report_runtime ~task:"Time constructing reachability graph"
             (fun () -> LG.build_reachability_graph prog) in
   (* let _ = construct_map_llvalue_to_source_name prog in *)
   ()

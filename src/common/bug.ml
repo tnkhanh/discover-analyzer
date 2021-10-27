@@ -107,7 +107,7 @@ let pr_llvalue_name (v: LL.llvalue) : string =
   | Some str -> str
   | None -> pr_value v
 
-let pr_integer_overflow (iof: integer_overflow) : string =
+let pr_integer_overflow ?(detailed=true) (iof: integer_overflow) : string =
   "INTEGER OVERFLOW\n" ^
   (pr_instr_detailed_position iof.iof_instr)
   (* ^ *)
@@ -115,7 +115,7 @@ let pr_integer_overflow (iof: integer_overflow) : string =
   (* " has bit width: " ^ (pr_int iof.iof_bitwidth) ^ *)
   (* " but can take value of <...>" *)
 
-let pr_integer_underflow (iuf: integer_underflow) : string =
+let pr_integer_underflow ?(detailed=true) (iuf: integer_underflow) : string =
   "INTEGER UNDERFLOW\n" ^
   (pr_instr_detailed_position iuf.iuf_instr)
   (* ^ *)
@@ -123,42 +123,34 @@ let pr_integer_underflow (iuf: integer_underflow) : string =
   (* " has bit width: " ^ (pr_int iuf.iuf_bitwidth) ^ *)
   (* " but can take value of <...>" *)
 
-let pr_bug_type_detail (btype: bug_type) : string =
+let pr_bug_type ?(detailed=true) (btype: bug_type) : string =
   match btype with
   | MemoryLeak mlk -> pr_memory_leak mlk
   | NullPointerDeref -> "NULL POINTER DEREFERENCE"
   | BufferOverflow bof -> pr_buffer_overflow bof
   | IntegerOverflow iof -> pr_integer_overflow iof
-  | IntegerUnderflow iuf -> pr_integer_underflow iuf
+  | IntegerUnderflow iuf -> pr_integer_underflow ~detailed iuf
   | DivisionByZero -> "DIVISION BY ZERO"
 
-let pr_bug_type_summary (btype: bug_type) : string =
-  match btype with
-  | MemoryLeak _ -> "Memory Leak"
-  | NullPointerDeref -> "Null Pointer Dereference"
-  | BufferOverflow _ -> "Buffer Overflow"
-  | IntegerOverflow _ -> "Integer Overflow"
-  | IntegerUnderflow _ -> "Integer Underflow"
-  | DivisionByZero -> "Division By Zero"
-
 let pr_potential_bug (bug: bug) : string =
-  (pr_bug_type_summary bug.bug_type) ^ "\n" ^
+  (pr_bug_type ~detailed:false bug.bug_type) ^ "\n" ^
   "    Function: " ^ (func_name bug.bug_func) ^ "\n" ^
   "    " ^ (pr_instr bug.bug_instr)
 
 let pr_potential_bugs (bugs: bug list) : string =
   pr_items pr_potential_bug bugs
 
-let pr_bug (bug: bug) : string =
-  "Bug: " ^ (pr_instr bug.bug_instr) ^ "\n" ^
-  "    Type: " ^ (pr_bug_type_detail bug.bug_type) ^
-  "    Status: " ^ pr_ternary bug.bug_status
+let pr_bug ?(detailed=true) (bug: bug) : string =
+  let details =
+    if detailed then
+      "    Type: " ^ (pr_bug_type ~detailed bug.bug_type) ^
+      "    Status: " ^ pr_ternary bug.bug_status
+    else "" in
+  "Bug: " ^ (pr_instr bug.bug_instr) ^
+  (String.prefix_if_not_empty ~prefix:"\n" details )
 
 let pr_bugs (bugs: bug list) : string =
   pr_items pr_bug bugs
-
-let pr_bug_summary (bug: bug) : string =
-  pr_bug_type_summary bug.bug_type
 
 (*******************************************************************
  ** constructors
@@ -253,7 +245,7 @@ let report_bug (bug: bug) : unit =
     | None -> ""
     | Some s -> s ^ "\n" in
   let msg =
-    "BUG: " ^ (pr_bug_type_detail bug.bug_type) ^ "\n" ^
+    "BUG: " ^ (pr_bug_type bug.bug_type) ^ "\n" ^
     reason ^ location in
   print_endline ("\n" ^ msg)
 
@@ -263,7 +255,7 @@ let report_bug_stats (bugs: bug list) : unit =
   | _ ->
     let tbl_stats = Hashtbl.create (module String) in
     let _ = List.iter ~f:(fun bug ->
-      let bug_name = pr_bug_summary bug in
+      let bug_name = pr_bug ~detailed:false bug in
       let times = match Hashtbl.find tbl_stats bug_name with
         | Some n -> n + 1
         | None -> 1 in

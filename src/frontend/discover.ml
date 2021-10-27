@@ -172,7 +172,7 @@ let analyze_program (prog: CI.program) : unit =
 let analyze_input_file (filename: string) : unit =
   let _ = print ("Analyze input file: " ^ filename) in
   let prog = compile_input_file filename in
-  analysis_time := snd (track_runtime (fun () -> analyze_program prog))
+  analysis_time := snd (Sys.track_runtime (fun () -> analyze_program prog))
 
 let main () : unit =
   (* let _ = enable_release_mode_alias_analysis () in *)
@@ -182,7 +182,7 @@ let main () : unit =
     let _ = init_environment () in
     let _ = print_discover_settings () in
     analyze_input_file !input_file in
-  let _ = total_time := snd (track_runtime run_discover) in
+  let _ = total_time := snd (Sys.track_runtime run_discover) in
   let _ = print_analysis_summary () in
   clean_environment ()
 

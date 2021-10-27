@@ -1290,7 +1290,7 @@ module ForwardDataFlow = functor (T: ForwardDataTransfer) -> struct
     (* update input *)
     let func, input, callsites = wf.wf_func, wf.wf_input, wf.wf_callsites in
     let fname = func_name func in
-    let res, time = track_runtime (fun () ->
+    let res, time = Sys.track_runtime (fun () ->
       match callsites with
       | [] ->
         let wf = mk_working_func func input callsites in
@@ -1622,7 +1622,7 @@ module ForwardDataFlow = functor (T: ForwardDataTransfer) -> struct
           else if is_func_begin_catch_exception callee then
             analyze_instr_catch_exception penv fenv instr args input
           else if is_user_func callee then (
-            let res, time = track_runtime (fun () ->
+            let res, time = Sys.track_runtime (fun () ->
               analyze_instr_call_user_func penv fenv instr callee args input) in
             res)
           else if is_func_pointer callee then (
@@ -1640,7 +1640,7 @@ module ForwardDataFlow = functor (T: ForwardDataTransfer) -> struct
             else if List.exists ~f:is_library_function callees then
               (input, true)
             else
-              let res, time = track_runtime (fun () ->
+              let res, time = Sys.track_runtime (fun () ->
                 let outputs_continues = List.map ~f:(fun f ->
                   analyze_instr_call_user_func penv fenv instr f args input) callees in
                 let outputs, continues = List.unzip outputs_continues in
@@ -1771,28 +1771,28 @@ module ForwardDataFlow = functor (T: ForwardDataTransfer) -> struct
   (** analyze all basic blocks using the MFP approach *)
   let rec analyze_blocks ?(widen=true) ?(fixpoint=true) penv fenv wblks : unit =
     let prog = penv.penv_prog in
-    let working_block, time = track_runtime (fun () -> choose_working_block penv wblks) in
+    let working_block, time = Sys.track_runtime (fun () -> choose_working_block penv wblks) in
     (* let _ = hprint "  Time choosing working block: " (sprintf "%.3fs") time in *)
     match working_block with
     | None -> ()
     | Some (wblk, nwblks) ->
       let (changed, continue), time =
-        track_runtime (fun () -> analyze_block ~widen penv fenv wblk) in
+        Sys.track_runtime (fun () -> analyze_block ~widen penv fenv wblk) in
       (* let _ = hprint " - Time analyzing block: " (sprintf "%.3fs") time in *)
       let nwblks =
         if changed && continue && fixpoint then
           (* let sblks = get_succeeding_blocks prog wblk.wb_block |>
            *             List.map ~f:(fun sb -> sb.sblk_block) in *)
-          let sblks, time = track_runtime (fun () ->
+          let sblks, time = Sys.track_runtime (fun () ->
             get_sparse_succeeding_blocks penv wblk.wb_block) in
           (* let _ = hprint " - Time getting sparse succeeding blocks: "
            *           (sprintf "%.3fs") time in *)
-          let res, time = track_runtime (fun () ->
+          let res, time = Sys.track_runtime (fun () ->
               List.fold_left ~f:(fun acc sb ->
               match first_instr_of_block sb with
               | None -> acc
               | Some instr ->
-                let input, time = track_runtime (fun () ->
+                let input, time = Sys.track_runtime (fun () ->
                   compute_block_input penv fenv sb) in
                 (* let _ = hprint ("- Time computing input of block : " ^ (block_name sb))
                  *           (sprintf "%.3fs") time in *)
@@ -1891,7 +1891,7 @@ module ForwardDataFlow = functor (T: ForwardDataTransfer) -> struct
               fenv.fenv_working_blocks in
     let _ = LP.get_loops_of_func prog func in
     let _ = update_func_analyzed_stats penv func in
-    let _, time = track_runtime (fun () ->
+    let _, time = Sys.track_runtime (fun () ->
       if need_widening func then do_widening_narrowing penv fenv func
       else do_simple_fixpoint penv fenv func) in
     (* let _ = hprint "  Time running iterative DFA: " (sprintf "%.3fs") time in *)
@@ -1904,7 +1904,7 @@ module ForwardDataFlow = functor (T: ForwardDataTransfer) -> struct
     let _ = if env_completed && fenv.fenv_output == None then
         fenv.fenv_output <- Some (T.least_data) in
     let _ = if not (is_func_main func) && fenv.fenv_output != None then
-        let fsum, time = track_runtime (fun () -> mk_func_summary penv fenv input) in
+        let fsum, time = Sys.track_runtime (fun () -> mk_func_summary penv fenv input) in
         (* let _ = hprint "  Time creating func_summary: " (sprintf "%.3fs") time in *)
         let _ = hdebug ~ruler:`Short ("Analysis output: " ^ fname_params ^ ":\n\n")
                   pr_func_summary fsum in
@@ -2048,7 +2048,7 @@ module ForwardDataFlow = functor (T: ForwardDataTransfer) -> struct
       let func, input, callsites = wf.wf_func, wf.wf_input, wf.wf_callsites in
       let fname = func_name func in
       let (fenv, input_updated, output_updated, env_updated, need_reanalyze), time =
-        track_runtime (fun () -> analyze_function penv wf) in
+        Sys.track_runtime (fun () -> analyze_function penv wf) in
       let _ = hdebug (" - Time analyzing function: " ^ fname ^ ": ")
                 (sprintf "%.3fs") time in
       (* let _ = if Float.(>) time 15. then
@@ -2286,7 +2286,7 @@ module ForwardDataFlow = functor (T: ForwardDataTransfer) -> struct
     let prog = penv.penv_prog in
     let _ = if !export_core_prog then export_core_program_to_file ~sparse:false penv in
     let _ = penv.penv_goal_funcs <- prog.prog_init_funcs @ prog.prog_user_funcs in
-    let _ = record_runtime (fun () ->
+    let _ = Sys.record_runtime (fun () ->
       (* TODO: turn this into a fix-point function *)
       let _ = if !dfa_sparse_analysis then (
         let _ = init_sparse_globals_instrs penv in

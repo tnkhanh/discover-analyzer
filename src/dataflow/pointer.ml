@@ -2968,7 +2968,7 @@ struct
     let _ = hdebug ~indent:4  " - Input with params: " pr_data output in
     (* and then remove all local vars *)
     let output, time =
-      track_runtime
+      Sys.track_runtime
         (fun () -> clean_irrelevant_info_from_data penv callee output) in
     let _ = hdebug "  Final input : " pr_data output in
     output

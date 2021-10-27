@@ -97,7 +97,7 @@ let perform_undef_analysis (pdata: program_data) : program_data =
     let _ = if not (is_analysis_enabled DfaUndef) then raise ESkip in
     let _ = debug ~ruler:`Header "Performing Undef Analysis" in
     let prog = pdata.pdata_program in
-    let penv, time = track_runtime (fun () -> UA.analyze_program prog) in
+    let penv, time = Sys.track_runtime (fun () -> UA.analyze_program prog) in
     let _ = record_task_time "Undef analysis" time in
     let _ = if not !print_concise_output && !print_analyzed_prog then
         hprint ~ruler:`Header "UNDEF INFO" UA.pr_prog_env penv in
@@ -122,7 +122,7 @@ let perform_pointer_analysis (pdata: program_data) : program_data =
     let _ = if not (is_analysis_enabled DfaPointer) then raise ESkip in
     let _ = debug ~ruler:`Header "Performing Pointer Analysis" in
     let prog = pdata.pdata_program in
-    let penv, time = track_runtime (fun () -> PA.analyze_program prog) in
+    let penv, time = Sys.track_runtime (fun () -> PA.analyze_program prog) in
     let _ = record_task_time "Pointer analysis" time in
     let _ = if not !print_concise_output && !print_analyzed_prog then
         hprint ~ruler:`Header "POINTER INFO" PA.pr_prog_env penv in
