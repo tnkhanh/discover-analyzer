@@ -83,17 +83,17 @@ let func_map bug =
   "__assert_integer_overflow"
 
 let apply_annotation instr bugs modul=
-  match instr.ins with Instr inx ->
+  match instr.ins with 
+  | Instr inx ->
     let insert_pos = LL.instr_succ inx in
     let builder = LL.builder_at (LL.module_context modul) insert_pos in
     List.iter bugs ~f:(fun bug ->
       let assert_func_opt = LL.lookup_function (func_map bug) modul in
-(*      let _ = match assert_func_opt with
+      match assert_func_opt with
       | None -> ()
       | Some assert_func ->
-          let assert_ins = LL.build_call assert_func 
-              (Array.create ~len:1 inx) "" builder in *)
-          ()
+        let assert_ins = LL.build_call assert_func 
+           (Array.create ~len:1 inx) "" builder in ()
     )
 
 let rec update ins anns =
@@ -105,6 +105,24 @@ let rec update ins anns =
       match ins_op with
       | None -> (ann, Some ins)::(update ins tl)
       | Some old_ins -> (ann, Some (if old_ins.tag < ins.tag then ins else old_ins))::(update ins tl)
+
+let apply_hd_bug end_ann (matched_anns: (Ann.mark * instr_with_tag option) list) modul =
+  match matched_anns with
+  | [] ->
+    raise (AnnotFormat ("Error: Bug_end without start at " ^ (Ann.pr_pos_ann end_ann)))
+  | (ann, ins_op)::tl ->
+    (match ann with
+     | Bug_start ((line, col), bugs) ->
+       (match ins_op with
+        | None ->
+            raise (AnnotFormat ("Error: No ins for annot at " ^ (Ann.pr_pos_ann end_ann)))
+        | Some ins ->
+          let _ = apply_annotation ins bugs modul in
+          tl
+       )
+     | Bug_end _ | Safe_start _ | Safe_end _ | Skip ->
+       raise (AnnotFormat ("Error: no Bug_start matching Bug_end at " ^ (Ann.pr_pos_ann end_ann)))
+    )
 
 let rec resolve (ann_marks: Ann.mark list) (instrs: instr_with_tag list) matched_anns modul =
   match ann_marks with
@@ -125,6 +143,11 @@ let rec resolve (ann_marks: Ann.mark list) (instrs: instr_with_tag list) matched
      | Bug_end (line, col) ->
        (match instrs with
         | [] -> 
+          let updated_matched_anns = apply_hd_bug hd_ann matched_anns modul in
+          resolve tl_anns instrs updated_matched_anns modul
+
+          (*
+          
           (match matched_anns with
            | [] -> 
              raise (AnnotFormat ("Error: Bug_end without Bug_start at "
@@ -143,11 +166,13 @@ let rec resolve (ann_marks: Ann.mark list) (instrs: instr_with_tag list) matched
               | Bug_end _ | Safe_start _ | Safe_end _ | Skip ->
                   raise (AnnotFormat ("Error: no Bug_start matching Bug_end at " ^ (Ann.pr_pos_ann hd_ann)))
              )
-          )
+          ) *)
         | hd_ins::tl_ins -> 
           if less_than hd_ins hd_ann then
             resolve ann_marks tl_ins (update hd_ins matched_anns) modul
-          else ()
+          else 
+            let updated_matched_anns = apply_hd_bug hd_ann matched_anns modul in
+            resolve tl_anns instrs updated_matched_anns modul
        )
      | Safe_start ((line, col), bugs) -> ()
      | Safe_end (line, col) -> ()
@@ -227,26 +252,11 @@ let instrument_bug_annotation ann_marks source_name (modul: LL.llmodule) : unit 
                          (pr_int col)) *)
   ) (List.rev tagged_ins) (*sorted_ins*) in
 
-  resolve ann_marks sorted_ins [] modul
+  let _ = resolve ann_marks sorted_ins [] modul in
   
-  (*let rec resolve anns instr_wps =
-    match anns with
-    | [] -> ()
-    | (pa, stra)::ta ->
-        match instr_wps with
-        | [] -> ()
-        | (pi, instr)::ti -> 
-            if Poly.(pa > pi) then resolve anns ti
-            else
-              match instr with Instr inx ->
-                match instr_opcode instr with
-                | LO.Load | LO.SExt -> resolve anns ti
-                | _ -> let _ = apply_annotation stra instr modul in
-                  resolve ta ti in
-  let _ = resolve ann_marks sorted_instr_wps in
-  print_endline ("***********************\n" ^ 
+  print_endline ("INSTRUMENTED ***********************\n" ^ 
                 (LL.string_of_llmodule modul) ^
-                "***********************") *)
+                "***********************")
 
 let instrument_bitcode ann_marks source_name (modul: LL.llmodule) : unit =
   instrument_bug_annotation ann_marks source_name modul
