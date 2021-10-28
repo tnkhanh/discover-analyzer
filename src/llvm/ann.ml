@@ -16,6 +16,18 @@ type mark =
     | Safe_end of (int * int)
     | Skip
 
+let pos_of_ann (ann:mark) =
+  match ann with
+  | Bug_start (p, _) -> p
+  | Bug_end p -> p
+  | Safe_start (p, _) -> p
+  | Safe_end p -> p
+  | Skip -> (-1, -1)
+
+let pr_pos_ann ann =
+  let (line, col) = pos_of_ann ann in
+  (string_of_int line) ^ " " ^ (string_of_int col) 
+
 type program = mark list
 
 let str_of_bug_group b =
