@@ -214,12 +214,8 @@ struct
     | _ -> input
 
   (*******************************************************************
-   ** Bug and assertions
+   ** Checking assertions
    *******************************************************************)
-
-  let check_bug (fenv: func_env) (bug: BG.bug) : bool option =
-    (* TODO: implement later if necessary *)
-    None
 
   let count_assertions (prog: program) : int =
     (* TODO: implement later if necessary *)

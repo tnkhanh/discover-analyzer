@@ -28,6 +28,7 @@ module SI = Slir
 module TF = Transform
 module TI = Typeinfer
 
+
 let parse_program_seplog (filename: string) : SA.program =
   let pr_position fname lexbuf =
     let pos = lexbuf.Lexing.lex_curr_p in
@@ -52,6 +53,7 @@ let parse_program_seplog (filename: string) : SA.program =
   let _ = close_in inchan in
   prog
 
+
 let process_command (prog: SI.program) (cmd: SI.command) : unit =
   match cmd with
   | SI.CheckSat f ->
@@ -68,6 +70,7 @@ let process_command (prog: SI.program) (cmd: SI.command) : unit =
     print_endline ("\n ==> Result: " ^ (pr_bresult res));
     print_endline ("\n ==> Frame: " ^ (SI.pr_fs frame) ^ "\n")
 
+
 let compile_lib_seplog () =
   let ilib = parse_program_seplog !lib_core_file in
   let _ = if !print_input_prog then (
@@ -83,25 +86,28 @@ let compile_lib_seplog () =
             "CORE LIBS:\n\n" ^ (SI.pr_program clib) ^ "\n\n")) in
   clib
 
+
 let compile_sep_logic (filename: string) : (SI.program) =
   let iprog = parse_program_seplog filename in
   let _ = if !print_input_prog then (
-    debugc ("=====================================\n" ^
-            "INPUT PROGRAMS:\n\n" ^ (SA.pr_program iprog) ^ "\n\n")) in
+      debugc ("=====================================\n" ^
+              "INPUT PROGRAMS:\n\n" ^ (SA.pr_program iprog) ^ "\n\n")) in
   let iprog = TI.infer_typ_program iprog in
   let _ = if !print_input_prog && !print_type then (
-    debugc ("=====================================\n" ^
-            "TYPED PROGRAMS:\n\n" ^ (SA.pr_program iprog) ^ "\n\n")) in
+      debugc ("=====================================\n" ^
+              "TYPED PROGRAMS:\n\n" ^ (SA.pr_program iprog) ^ "\n\n")) in
   let cprog = TF.transform_program iprog in
   let _ = if !print_core_prog then (
-    debugc ("=====================================\n" ^
-            "CORE PROGRAMS:\n\n" ^ (SI.pr_program cprog) ^ "\n\n")) in
+      debugc ("=====================================\n" ^
+              "CORE PROGRAMS:\n\n" ^ (SI.pr_program cprog) ^ "\n\n")) in
   cprog
+
 
 let analyze_program_seplog (prog: SI.program) : unit =
   debugc ((SI.pr_program prog) ^
-             "\n\n===================================\n");
+          "\n\n===================================\n");
   List.iter ~f:(process_command prog) prog.prog_commands
+
 
 let analyze_program_llvm (prog: LI.program) : unit =
   let _ = print "Analyze program by Separation Logic" in

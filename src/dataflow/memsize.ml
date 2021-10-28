@@ -276,28 +276,6 @@ struct
 
 
   (*******************************************************************
-   ** Checking bugs
-   *******************************************************************)
-
-  let get_size_of_inst (fenv: func_env) (instr: instr) : SD.size =
-    match get_instr_output fenv instr with
-    | None -> SD.least_size
-    | Some data -> get_size (llvalue_of_instr instr) data
-
-
-  let check_memory_leak (fenv: func_env) (mlk: BG.memory_leak) : bool option =
-    match mlk.mlk_size with
-    | None -> None
-    | Some size -> Some (size > 0)
-
-
-  let check_bug (fenv: func_env) (bug: BG.bug) : bool option =
-    match bug.BG.bug_type with
-    | BG.MemoryLeak mlk -> check_memory_leak fenv mlk
-    | _ -> None
-
-
-  (*******************************************************************
    ** Checking assertions
    *******************************************************************)
 

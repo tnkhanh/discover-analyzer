@@ -24,43 +24,6 @@ module BG = Bug
 module SP = Set.Poly
 module MP = Map.Poly
 
-type big_int = Big_int.big_int
-
-(* TODO: refactoring: extract this library as an independent library *)
-module BInt = struct
-  include Big_int
-
-
-  let one = Big_int.unit_big_int
-
-
-  let zero = Big_int.zero_big_int
-
-
-  let subtract = Big_int.sub_big_int
-
-
-  let neg = Big_int.minus_big_int
-
-
-  let compute_lower_bound_two_complement (n : int) : big_int =
-    let x = Big_int.power_int_positive_int 2 (n - 1) in
-    neg x
-
-
-  let compute_upper_bound_two_complement (n : int) : big_int =
-    let x = Big_int.power_int_positive_int 2 (n - 1) in
-    subtract x one
-
-  (** return lower bound, upper bound of a n bits two's complement number *)
-  let compute_range_two_complement (n : int) : big_int * big_int =
-    let x = Big_int.power_int_positive_int 2 (n - 1) in
-    let lb = neg x in
-    let ub = subtract x one in
-    (lb, ub)
-
-end
-
 (*******************************************************************
  ** Abstract domain for the analysis
  *******************************************************************)
@@ -71,7 +34,7 @@ module IntervalDomain = struct
     | PInf                                     (* positive infinity *)
     | NInf                                     (* negative infiinity *)
     | Int64 of int64                           (* integer 64 bit *)
-    | BInt of big_int
+    | BInt of bint
 
   type range = {
     range_lb : bound;                          (* lower bound *)
@@ -280,7 +243,7 @@ module IntervalDomain = struct
     | BInt x -> BInt (BInt.mult_big_int (BInt.big_int_of_int64 i) x)
 
 
-  let mult_big_int_bound (i: big_int) (b: bound) =
+  let mult_big_int_bound (i: bint) (b: bound) =
     match b with
     | PInf ->
       if BInt.eq_big_int i BInt.zero then
@@ -822,53 +785,6 @@ struct
       input
     | _ -> input
 
-  (*******************************************************************
-   ** Checking bugs
-   *******************************************************************)
-
-  let check_buffer_overflow fenv (bof: BG.buffer_overflow) : bool option =
-    if !bug_memory_all || !bug_buffer_overflow then
-      let open Option.Let_syntax in
-      let%bind data = get_instr_output fenv bof.bof_instr in
-      let itv = get_interval (expr_of_llvalue bof.bof_elem_index) data in
-      match bof.bof_buff_size with
-      | BG.NumElem (n, _) -> Some (compare_interval_ub_int itv n >= 0)
-      | MemSizeOf _ -> None
-    else None
-
-
-  let check_integer_overflow fenv (iof: BG.integer_overflow) : bool option =
-    if !bug_integer_all || !bug_integer_overflow then
-      let open Option.Let_syntax in
-      let%bind data = get_instr_output fenv iof.iof_instr in
-      let itv = get_interval (expr_of_llvalue iof.iof_expr) data in
-      match itv with
-      | Bottom -> None
-      | Range r ->
-        let ub = BInt.compute_upper_bound_two_complement iof.iof_bitwidth in
-        Some (compare_bound r.range_ub (BInt ub) > 0)
-    else None
-
-
-  let check_integer_underflow fenv (iuf: BG.integer_underflow) : bool option =
-    if !bug_integer_all || !bug_integer_underflow then
-      let open Option.Let_syntax in
-      let%bind data = get_instr_output fenv iuf.iuf_instr in
-      let itv = get_interval (expr_of_llvalue iuf.iuf_expr) data in
-      match itv with
-      | Bottom -> None
-      | Range r ->
-        let lb = BInt.compute_lower_bound_two_complement iuf.iuf_bitwidth in
-        Some (compare_bound r.range_lb (BInt lb) < 0)
-    else None
-
-
-  let check_bug (fenv: func_env) (bug: BG.bug) : bool option =
-    match bug.BG.bug_type with
-    | BG.BufferOverflow bof -> check_buffer_overflow fenv bof
-    | BG.IntegerOverflow iof -> check_integer_overflow fenv iof
-    | BG.IntegerUnderflow iuf -> check_integer_underflow fenv iuf
-    | _ -> None
 
   (*******************************************************************
    ** Checking assertions
@@ -981,6 +897,7 @@ end
  *******************************************************************)
 
 module RangeAnalysis = struct
+
   include RangeTransfer
   include DF.ForwardDataFlow(RangeTransfer)
 

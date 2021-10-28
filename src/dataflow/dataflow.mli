@@ -195,7 +195,6 @@ module type ForwardDataTransfer = sig
   val analyze_instr : ?widen:bool -> prog_env -> func_env -> instr -> t -> t
   (* val pre_analyze_prog : prog_env -> unit
    * val post_analyze_prog : prog_env -> unit *)
-  val check_bug : func_env -> BG.bug -> bool option
   val count_assertions : program -> int
   val check_assertions : prog_env -> func -> int
 end
@@ -216,8 +215,6 @@ module ForwardDataFlow : functor (T: ForwardDataTransfer) -> sig
   val analyze_program_intraproc : ?func: func option -> T.prog_env -> T.prog_env
   val analyze_program_interproc : ?func: func option -> T.prog_env -> T.prog_env
   val analyze_program : ?interproc:bool -> program -> T.prog_env
-  val check_bug : T.prog_env -> BG.bug -> bool option
-  val check_bug_opt : T.prog_env option -> BG.bug -> bool option
   val check_assertions : T.prog_env -> unit
   val report_analysis_stats : T.prog_env -> unit
 end

@@ -391,11 +391,8 @@ module type ForwardDataTransfer = sig
   val analyze_instr : ?widen:bool -> prog_env -> func_env -> instr -> t -> t
 
   (*-----------------------------------------
-   * Handling bug and assertions
+   * Checking assertions
    *-----------------------------------------*)
-
-  (** Check and return if a potential bug is a real bug *)
-  val check_bug : func_env -> BG.bug -> bool option
 
   (** Count the number of assertions relevant to an analysis *)
   val count_assertions : program -> int
@@ -2363,30 +2360,9 @@ module ForwardDataFlow = functor (T: ForwardDataTransfer) -> struct
     let _ = post_analyze_prog penv in
     penv
 
-  (* bug checking *)
-
-  let check_bug (penv: T.prog_env) (bug: BG.bug) : bool option =
-    let func = bug.BG.bug_func in
-    let open Option.Let_syntax in
-    let%bind fenvs = Hashtbl.find penv.penv_func_envs func in
-    List.exists_monad ~f:(fun fenv -> T.check_bug fenv bug) fenvs
-
-  let check_bug_opt (penv: T.prog_env option) (bug: BG.bug) : bool option =
-    let open Option.Let_syntax in
-    let%bind penv = penv in
-    check_bug penv bug
-
-    (* match Hashtbl.find penv.penv_func_envs func with *)
-    (* | None -> Unkn *)
-    (* | Some fenvs -> *)
-    (*   List.fold_left ~f:(fun acc fenv -> *)
-    (*     match acc with *)
-    (*     | True -> True *)
-    (*     | Unkn -> *)
-    (*       let res = T.check_bug fenv bug in *)
-    (*       if res == False then acc *)
-    (*       else res *)
-    (*     | False -> T.check_bug fenv bug) ~init:False fenvs *)
+  (*----------------------
+   * Checking assertions
+   *---------------------*)
 
   let check_assertions (penv: T.prog_env) : unit =
     let prog = penv.penv_prog in

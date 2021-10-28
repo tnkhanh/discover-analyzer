@@ -3321,18 +3321,8 @@ struct
 
 
   (*******************************************************************
-   ** Bug and assertions
+   ** Checking assertions
    *******************************************************************)
-
-  let check_memory_leak (mlk: BG.memory_leak) : bool option =
-    match mlk.mlk_size with
-    | None -> None
-    | Some size -> Some (size > 0)
-
-  let check_bug (fenv: func_env) (bug: BG.bug) : bool option =
-    match bug.BG.bug_type with
-    | BG.MemoryLeak mlk -> check_memory_leak mlk
-    | _ -> None
 
   (** Count the number of assertions in a program *)
 

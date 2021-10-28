@@ -96,13 +96,6 @@ let export_core_prog = ref false
 let export_debug_info = ref false
 let export_cfg_prog = ref false
 
-(* llvm mode *)
-let llvm_orig_source_name = ref false
-let llvm_print_prog_info = ref false
-let llvm_simplify = ref true
-let llvm_optimize = ref true
-let llvm_normalize = ref true
-
 (* pointer analysis *)
 let dfa_pointer_conservative = ref false
 
@@ -116,6 +109,24 @@ let dfa_used_globals_selective = ref true
 (* let dfa_used_globals_in_func_ptrs = ref true *)
 let dfa_used_globals_in_func_ptrs = ref true
 
+(*-------------------------
+ * Settings for llvm mode
+ *------------------------*)
+
+let llvm_orig_source_name = ref false
+let llvm_print_prog_info = ref false
+let llvm_simplify = ref true
+let llvm_optimize = ref true
+let llvm_normalize = ref true
+
+
+(*-----------------------------
+ * Settings for bug detection
+ *----------------------------*)
+
+(* General settings *)
+let bug_all = ref true
+
 (* integer bugs *)
 let bug_integer_all = ref false
 let bug_integer_overflow = ref false
@@ -127,6 +138,7 @@ let bug_memory_all = ref false
 let bug_memory_leak = ref false
 let bug_null_pointer_deref = ref false
 let bug_buffer_overflow = ref false
+let bug_memory_leak = ref false
 
 
 (*******************************************************************

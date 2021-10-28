@@ -12,6 +12,9 @@ open Sprinter
 open Printer
 open Debugger
 
+open Dfcore
+open Dfbug
+
 module LL = Llvm
 module LO = Llvm.Opcode
 module LC = Llvm.Icmp
@@ -23,32 +26,6 @@ module MS = Memsize.MemsizeAnalysis
 module RG = Range.RangeAnalysis
 module UA = Undef.UndefAnalysis
 
-
-(*******************************************************************
- ** Data structures
- *******************************************************************)
-
-type program_data = {
-  pdata_program : LI.program;
-  pdata_potential_bugs : BG.bug list;
-  pdata_env_memsize : MS.prog_env option;
-  pdata_env_pointer : PA.prog_env option;
-  pdata_env_range : RG.prog_env option;
-  pdata_env_undef : UA.prog_env option;
-}
-
-
-(*******************************************************************
- ** Constructor
- *******************************************************************)
-
-let mk_program_data (prog: LI.program) : program_data =
-  { pdata_program = prog;
-    pdata_potential_bugs = [];
-    pdata_env_memsize = None;
-    pdata_env_pointer = None;
-    pdata_env_range = None;
-    pdata_env_undef = None; }
 
 
 (*******************************************************************
@@ -136,135 +113,6 @@ let perform_main_analysis_passes (pdata: program_data) : program_data =
   perform_pointer_analysis |>
   perform_memsize_analysis |>
   perform_range_analysis
-
-
-(*******************************************************************
- ** Find bugs
- *******************************************************************)
-
-(*-------------------------------------------
- * Integer bugs
- *------------------------------------------*)
-
-(* TODO: move RG.check_bug into this module *)
-
-let find_bug_integer_overflow (pdata: program_data) =
-  let open Option.Let_syntax in
-  let pbugs = List.filter ~f:BG.is_bug_integer_overflow
-                pdata.pdata_potential_bugs in
-  let bugs = List.filter_monad
-               ~f:(fun bug ->
-                    let%bind penv = pdata.pdata_env_range in
-                    RG.check_bug penv bug)
-               pbugs in
-  List.map ~f:(BG.mk_real_bug ~analysis:"RangeAnalysis" ~reason:"TO-IMPLEMENT") bugs
-
-
-let find_bug_integer_underflow (pdata: program_data) =
-  let open Option.Let_syntax in
-  let pbugs = List.filter ~f:BG.is_bug_integer_underflow
-                pdata.pdata_potential_bugs in
-  let bugs = List.filter_monad
-               ~f:(fun bug ->
-                    let%bind penv = pdata.pdata_env_range in
-                    RG.check_bug penv bug)
-               pbugs in
-  List.map ~f:(BG.mk_real_bug ~analysis:"RangeAnalysis" ~reason:"TO-IMPLEMENT") bugs
-
-
-(*-------------------------------------------
- * Memory bugs
- *------------------------------------------*)
-
-(* TODO: use 2 analyses for buffer overflow: range anlaysis and memsize *)
-
-let check_bug_buffer_overflow (bug: BG.bug) pdata : BG.bug option =
-  let open Option.Let_syntax in
-  match bug.BG.bug_type with
-  | BG.BufferOverflow bof ->
-    let func = LI.func_of_instr bof.bof_instr in
-    let%bind penv_rng = pdata.pdata_env_range in
-    let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
-    List.fold_left
-      ~f:(fun acc fenv_rng ->
-           if acc != None then acc
-           else
-             let%bind data_rng = RG.get_instr_output fenv_rng bof.bof_instr in
-             let itv = RG.get_interval (LI.expr_of_llvalue bof.bof_elem_index)
-                         data_rng in
-             match bof.bof_buff_size with
-             | BG.NumElem (n, t) ->
-               if RG.ID.compare_interval_ub_int itv n >= 0 then
-                 let reason =
-                   "Buffer at pointer " ^ (LI.pr_value bof.BG.bof_pointer) ^
-                   " has " ^ (pr_int64 n) ^
-                   " element of type " ^ (LI.pr_type t) ^
-                   ", while the accessing index is " ^ (RG.pr_interval itv) in
-                 return (BG.mk_real_bug ~analysis:"RangeAnalysis" ~reason bug)
-               else None
-             | BG.MemSizeOf v ->
-               let vinstr = LI.mk_instr v in
-               let%bind penv_msz = pdata.pdata_env_memsize in
-               let%bind fenvs_msz = Hashtbl.find penv_msz.penv_func_envs func in
-               List.fold_left
-                 ~f:(fun acc fenv_msz ->
-                      if acc != None then acc
-                      else
-                        let%bind data_msz = MS.get_instr_output fenv_msz vinstr in
-                        let sz = MS.get_size v data_msz in
-                        let elem_typ = LL.element_type (LL.type_of v) in
-                        let elem_size = LI.memsize_of_type  elem_typ in
-                        let max_num_elem = Int64.(/) sz.size_max elem_size in
-                        if (RG.ID.compare_interval_ub_int itv max_num_elem >= 0) then
-                          let reason =
-                            "Buffer at pointer " ^ (LI.pr_value bof.BG.bof_pointer) ^
-                            " has at most " ^ (pr_int64 max_num_elem) ^
-                            " element of type " ^ (LI.pr_type elem_typ) ^
-                            ", while the accessing index is " ^ (RG.pr_interval itv) in
-                          return (BG.mk_real_bug ~analysis:"RangeAnalysis" ~reason bug)
-                        else None)
-                 ~init:None fenvs_msz)
-      ~init:None fenvs_rng
-  | _ -> None
-
-
-let find_bug_buffer_overflow (pdata: program_data) : BG.bug list =
-  if (!bug_memory_all || !bug_buffer_overflow) then
-    let open Option.Let_syntax in
-    pdata.pdata_potential_bugs |>
-    List.map ~f:(fun bug -> check_bug_buffer_overflow bug pdata) |>
-    List.filter_opt
-  else []
-
-
-let find_bug_memory_leak (pdata: program_data) : BG.bug list =
-  let open Option.Let_syntax in
-  pdata.pdata_potential_bugs |>
-  List.map
-    ~f:(fun bug ->
-         if not (BG.is_bug_memory_leak bug) then None
-         else if%bind MS.check_bug_opt pdata.pdata_env_memsize bug then
-           return (BG.mk_real_bug ~analysis:"MemsizeAnalysis" ~reason:"TO-IMPLEMENT" bug)
-         else if%bind PA.check_bug_opt pdata.pdata_env_pointer bug then
-           return (BG.mk_real_bug ~analysis:"PointerAnalysis" ~reason:"TO-IMPLEMENT" bug)
-         else None) |>
-  List.filter_opt
-
-
-(** TODO: need a mechanism to schedule analyses based on bugs:
-    - Indetify the type of bugs will be checked
-    - Determine which analyeses need to be performed. *)
-
-let find_all_bugs (pdata: program_data) : unit =
-  let _ = println "Checking Bugs..." in
-  let prog = pdata.pdata_program in
-  let bugs = (find_bug_memory_leak pdata) @
-             (find_bug_buffer_overflow pdata) @
-             (find_bug_integer_overflow pdata) @
-             (find_bug_integer_underflow pdata) in
-  let _ = List.iter ~f:BG.report_bug bugs in
-  let _ = num_of_bugs := List.length bugs in
-  BG.report_bug_stats bugs
 
 
 (*******************************************************************

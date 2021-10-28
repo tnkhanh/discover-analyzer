@@ -12,6 +12,7 @@
 include List
 include String
 include Sys
+include Bigint
 
 (*-----------------
  * Boolean result
@@ -34,3 +35,9 @@ let pr_bresult (b: bresult) : string =
   | Some true -> "True"
   | Some false -> "False"
   | None -> "Unknown"
+
+(*-----------------
+ * Big interger
+ *----------------*)
+
+type bint = BInt.big_int
