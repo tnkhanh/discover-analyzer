@@ -57,6 +57,8 @@ else
     exit 1
 fi
 
+echo ""
+echo "Updating new LLVM path to \$PATH, \$LIBRARY_PATH, and \$LD_LIBRARY_PATH..."
 
 # Filter existing LLVM settings from some path variables
 
@@ -67,8 +69,15 @@ LD_LIBRARY_PATH=$( filter_path_var_by_pattern $LD_LIBRARY_PATH "llvm")
 
 # Update new LLVM PATH
 
-PATH="$LLVM_PATH$PATH"
+PATH="$LLVM_PATH/bin$PATH"
 LIBRARY_PATH="$LLVM_PATH/lib$LIBRARY_PATH"
 LD_LIBRARY_PATH="$LLVM_PATH/lib$LD_LIBRARY_PATH"
 
-echo "Updated new LLVM path to \$PATH, \$LIBRARY_PATH, and \$LD_LIBRARY_PATH!"
+echo ""
+echo "Finish updating paths!"
+echo ""
+echo "\$PATH = $PATH"
+echo ""
+echo "\$LIBRARY_PATH = $LIBRARY_PATH"
+echo ""
+echo "\$LD_LIBRARY_PATH = $LD_LIBRARY_PATH"
