@@ -6,11 +6,16 @@
  ********************************************************************)
 
 open Core
-open Dcore
+open Globals
+open Lib
+open Sprinter
+open Printer
+open Debugger
+
 open Llir
 
 module LL = Llvm
-module LG = Llcfg
+module LG = Llcallgraph
 module BG = BlockGraph
 module BGSCC = LG.BlockGraphSCC
 

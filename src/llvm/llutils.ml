@@ -6,16 +6,21 @@
  ********************************************************************)
 
 open Core
-open Dcore
+open Globals
+open Lib
+open Sprinter
+open Printer
+open Debugger
+
 open Llir
 
 module LL = Llvm
 module LO = Llvm.Opcode
-module LS = Llsrc
+module LS = Lldebug
 module LV = Llvm.ValueKind
 module SP = Set.Poly
 module LP = Llloop
-module LG = Llcfg
+module LG = Llcallgraph
 
 
 let print_pointer_stats (modul: LL.llmodule) : unit =

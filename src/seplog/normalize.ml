@@ -6,7 +6,12 @@
  ********************************************************************)
 
 open Core
-open Dcore
+open Globals
+open Lib
+open Sprinter
+open Printer
+open Debugger
+
 open Slir
 
 module LA = Linarith
@@ -63,7 +68,7 @@ let simplify_tauto_contra_f (f: formula) : formula * bool =
       let p, is_changed = simplify_tauto_contra_p p in
       let _ = changed := is_changed in
       if is_pf_false p then mk_f_pure p
-      else if ([p] |> SMT.check_sat |> fst |> is_false) then
+      else if (SMT.is_unsat [p]) then
         return_changed (mk_f_false ())
       else mk_f_pure p
     | Emp | Data _ | View _ | Iter _ | Array _ -> f

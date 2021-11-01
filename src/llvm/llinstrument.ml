@@ -6,19 +6,22 @@
  ********************************************************************)
 
 open Core
-open Dcore
+open Globals
+open Lib
+open Sprinter
+open Printer
+open Debugger
+
 open Llir
 
 module LL = Llvm
 module LO = Llvm.Opcode
 module LD = Llvm_debuginfo
-module LS = Llsrc
+module LS = Lldebug
 module LV = Llvm.ValueKind
 module SP = Set.Poly
 module LP = Llloop
-module LG = Llcfg
-module FM = Map.Make(String)
-module AP = Annparser
+module LG = Llcallgraph
 
 exception AnnotFormat of string
 
@@ -304,5 +307,6 @@ let instrument_bug_annotation ann_marks source_name (modul: LL.llmodule) : unit 
                 (LL.string_of_llmodule modul) ^
                 "***********************")
 
+(*we need source_name to ignore instructions with location outside the source file *)
 let instrument_bitcode ann_marks source_name (modul: LL.llmodule) : unit =
   instrument_bug_annotation ann_marks source_name modul

@@ -10,14 +10,21 @@
 ;; binary
 (executable
  (name Discover)
+
  (preprocess (pps ppx_compare ppx_sexp_conv
-                  ppx_deriving.show ppx_deriving.ord ppx_deriving.eq))
+                  ppx_deriving.show ppx_deriving.ord ppx_deriving.eq
+                  ppx_let))
+
  (libraries core unix str ocamlgraph fileutils yaml ezjsonm num
             llvm llvm.target llvm.bitreader llvm.bitwriter llvm.irreader
             llvm.debuginfo)
- (link_flags (-linkall))
- (modes native)
- ; (modes byte)
- (flags (:standard -w -3-26-27-28-32-33 -g -bin-annot))       ;; for development
- ; (flags (:standard -w -3-27-28-32-33))  ;; for cleaning code
-)
+
+ ;; For deployment
+ ; (modes native)
+ ; (flags (:standard -w -3-27-28-32-33))
+
+ ;; For develoment
+ (modes byte)
+ (flags (:standard -w -3-26-27-28-32-33 -g -annot))
+
+ (link_flags (-linkall)))

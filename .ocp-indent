@@ -61,8 +61,8 @@ ppx_stritem_ext = 2
 #          x)                      #        x)
 #        )                         #      )
 #      )                           #    )
-max_indent = 2
-
+max_indent = none
+# max_indent = 4
 
 #
 #    INDENTATION TOGGLES
@@ -121,7 +121,6 @@ align_ops = true
 #    | _ -> some_fun        #    | _ -> some_fun
 #      ^^parameter          #           ^^parameter
 align_params = always
-
 
 #
 #    SYNTAX EXTENSIONS

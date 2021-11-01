@@ -6,15 +6,22 @@
  ********************************************************************)
 
 open Core
-open Dcore
+open Globals
+open Lib
+open Sprinter
+open Printer
+open Debugger
+
 
 module AG = Arguments
 module AS = Assertion
 module BG = Bug
 module CI = Commonir
 module DA = Dfanalyzer
+(* module DAO = Dfanalyzeroo *)
+(* module DAP = Dfanalyzerpl *)
 module DF = Dataflow
-module LC = Llcomp
+module LC = Llcompile
 module LI = Llir
 module LL = Llvm
 module LU = Llutils
@@ -155,6 +162,8 @@ let analyze_program (prog: CI.program) : unit =
       let _ = print ("Found total assertions: " ^ (pr_int num_assertions)) in
       match !work_mode with
       | WkmDFA -> DA.analyze_program_llvm prog
+      (* | WkmDFA -> DAP.analyze_program_llvm prog *)
+      (* | WkmDFA -> DAO.analyze_program_llvm prog *)
       | WkmSymExec -> SE.analyze_program_llvm prog
       | WkmNoAnalysis -> print "No analysis mode is performed!"
       | _ -> ())
@@ -163,7 +172,7 @@ let analyze_program (prog: CI.program) : unit =
 let analyze_input_file (filename: string) : unit =
   let _ = print ("Analyze input file: " ^ filename) in
   let prog = compile_input_file filename in
-  analysis_time := snd (track_runtime (fun () -> analyze_program prog))
+  analysis_time := snd (Sys.track_runtime (fun () -> analyze_program prog))
 
 let main () : unit =
   (* let _ = enable_release_mode_alias_analysis () in *)
@@ -173,7 +182,7 @@ let main () : unit =
     let _ = init_environment () in
     let _ = print_discover_settings () in
     analyze_input_file !input_file in
-  let _ = total_time := snd (track_runtime run_discover) in
+  let _ = total_time := snd (Sys.track_runtime run_discover) in
   let _ = print_analysis_summary () in
   clean_environment ()
 

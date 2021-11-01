@@ -6,7 +6,12 @@
  ********************************************************************)
 
 open Core
-open Dcore
+open Globals
+open Lib
+open Sprinter
+open Printer
+open Debugger
+
 
 module LL = Llvm
 module LD = Llvm_debuginfo
@@ -26,7 +31,7 @@ let extract_name_from_metadata (md: LL.llvalue) : string =
   else ""
 
 let get_original_name_of_llvalue (v: LL.llvalue) : string option =
-  let _ = hprint "get_original_name_of_llvalue: " LI.pr_value v in
+  (* let _ = hprint "get_original_name_of_llvalue: " LI.pr_value v in *)
   match LL.classify_value v with
   | LV.Instruction _ ->
     let func = LI.func_of_instr (LI.mk_instr v) in
@@ -36,7 +41,8 @@ let get_original_name_of_llvalue (v: LL.llvalue) : string option =
           let callee = LI.callee_of_instr_func_call instr in
           if LI.is_func_llvm_debug_declare callee ||
              LI.is_func_llvm_debug_value callee then
-            hprint "Instr: " LI.pr_instr instr
+            ()
+            (* hprint "Instr: " LI.pr_instr instr *)
           else ()
       ) blk) func in
     None

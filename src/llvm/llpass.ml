@@ -6,17 +6,21 @@
  ********************************************************************)
 
 open Core
-open Dcore
+open Globals
+open Lib
+open Sprinter
+open Printer
+open Debugger
+
 open Llir
 
 module LL = Llvm
 module LO = Llvm.Opcode
-module LD = Llvm_debuginfo
-module LS = Llsrc
+module LD = Lldebug
 module LV = Llvm.ValueKind
 module SP = Set.Poly
 module LP = Llloop
-module LG = Llcfg
+module LG = Llcallgraph
 
 let construct_map_llvalue_to_source_name (prog: program) : unit =
   let _ = ddebugc "Construct mapping llvalue to source name" in
@@ -32,11 +36,8 @@ let construct_map_llvalue_to_source_name (prog: program) : unit =
         let _ = hprint "opr 1: " LL.value_name (operand instr 1) in
         let _ = hprint "opr 0: " LL.string_of_llvalue (operand instr 0) in
         let _ = hprint "opr 1: " LL.string_of_llvalue (operand instr 1) in
-        (* let _ = hprint "opr 1 md: " pr_int (LD.di_variable_get_line mdv1) in *)
-        (* let _ = hprint "opr 1 md: " pr_int (LD.di_variable_get_line mdv1) in *)
         let vname = pr_value (operand instr 0) in
-        (* let _ = hprint "value: " pr_id in *)
-        let sname = LS.extract_name_from_metadata (operand instr 1) in
+        let sname = LD.extract_name_from_metadata (operand instr 1) in
         Hashtbl.set prog.prog_llvalue_original_name ~key:vname ~data:sname
       else ()
     | _ -> ()) in
@@ -156,15 +157,15 @@ let compute_func_used_globals prog : unit =
 
 let update_program_info (prog: program) : unit =
   let _ = print "Updating program information..." in
-  let _ = report_runtime ~task:"Time computing funcs in pointers"
+  let _ = Sys.report_runtime ~task:"Time computing funcs in pointers"
             (fun () -> compute_funcs_in_pointers prog) in
-  let _ = report_runtime ~task:"Time computing func call info"
+  let _ = Sys.report_runtime ~task:"Time computing func call info"
             (fun () -> compute_func_call_info prog) in
-  let _ = report_runtime ~task:"Time computing used globals"
+  let _ = Sys.report_runtime ~task:"Time computing used globals"
             (fun () -> compute_func_used_globals prog) in
-  let _ = report_runtime ~task:"Time constructing callgraph"
+  let _ = Sys.report_runtime ~task:"Time constructing callgraph"
             (fun () -> construct_func_call_graph prog) in
-  let _ = report_runtime ~task:"Time constructing reachability graph"
+  let _ = Sys.report_runtime ~task:"Time constructing reachability graph"
             (fun () -> LG.build_reachability_graph prog) in
   (* let _ = construct_map_llvalue_to_source_name prog in *)
   ()

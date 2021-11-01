@@ -12,6 +12,7 @@ open Sprinter
 module LL = Llvm
 module LX = Lexing
 
+
 (*******************************************************************
  ** data structures
  *******************************************************************)
@@ -22,13 +23,16 @@ type work_mode =
   | WkmAbsInt
   | WkmNoAnalysis
 
+
 type dfa_mode =
   | DfaIntraProc
   | DfaInterProc
 
+
 type precision =
   | Must
   | May
+
 
 type dfa_analysis =
   | DfaRange
@@ -38,6 +42,7 @@ type dfa_analysis =
   | DfaAutoSchedule
   | DfaAllAnalyses
 
+
 type input_mode =
   | InpUnkn
   | InpSepLogic
@@ -46,11 +51,15 @@ type input_mode =
   | InpCCpp
   | InpGolang
 
+
 (*******************************************************************
  ** Global Flags
  *******************************************************************)
 
-(* printing *)
+(*-----------
+ * printing
+ *----------*)
+
 let print_input_prog = ref false
 let print_typed_prog = ref false
 let print_core_prog = ref false
@@ -58,7 +67,6 @@ let print_analyzed_prog = ref true
 let print_type = ref false
 let print_concise_output = ref false
 let print_concise_debug = ref false
-
 let print_stats_prog = ref false
 
 (* reporting *)
@@ -88,13 +96,6 @@ let export_core_prog = ref false
 let export_debug_info = ref false
 let export_cfg_prog = ref false
 
-(* llvm mode *)
-let llvm_orig_source_name = ref false
-let llvm_print_prog_info = ref false
-let llvm_simplify = ref true
-let llvm_optimize = ref true
-let llvm_normalize = ref true
-
 (* pointer analysis *)
 let dfa_pointer_conservative = ref false
 
@@ -108,6 +109,24 @@ let dfa_used_globals_selective = ref true
 (* let dfa_used_globals_in_func_ptrs = ref true *)
 let dfa_used_globals_in_func_ptrs = ref true
 
+(*-------------------------
+ * Settings for llvm mode
+ *------------------------*)
+
+let llvm_orig_source_name = ref false
+let llvm_print_prog_info = ref false
+let llvm_simplify = ref true
+let llvm_optimize = ref true
+let llvm_normalize = ref true
+
+
+(*-----------------------------
+ * Settings for bug detection
+ *----------------------------*)
+
+(* General settings *)
+let bug_all = ref true
+
 (* integer bugs *)
 let bug_integer_all = ref false
 let bug_integer_overflow = ref false
@@ -119,54 +138,69 @@ let bug_memory_all = ref false
 let bug_memory_leak = ref false
 let bug_null_pointer_deref = ref false
 let bug_buffer_overflow = ref false
+let bug_memory_leak = ref false
+
 
 (*******************************************************************
  ** global variables
  *******************************************************************)
 
-(* file extensions *)
+(*------------------
+ * File extensions
+ *-----------------*)
+
 let file_ext_bitcode = ["bc"]
 let file_ext_llir = ["ll"]
 let file_ext_seplogic = ["sl"]
 let file_ext_c_cpp = ["c"; "cpp"; "h"; "hpp"; "cc"]
 let file_ext_go = ["go"]
 
-(* input files *)
+
+(*--------------
+ * Input files
+ *-------------*)
+
 let input_mode = ref InpUnkn
 let input_file = ref ""
 let lib_path = "lib"
 let lib_core_file = ref (lib_path ^ "/libcore.sc")
 
-(* user_configuration *)
-let user_config_file = "discover.yaml"
 
-(* llvm and clang version *)
+(*----------------
+ * Configuration
+ *---------------*)
+
+let user_config_file = "discover.yaml"
 let llvm_version = "13"              (* using LLVM 13 *)
 let llvm_path = ref ""
 let clang_path = ref "clang"
 let opt_path = ref "opt"
-
-(* gollvm path *)
 let gollvm_path = ref ""
-
-(* normalizer *)
 let llvm_normalizer_path = ref "normalizer"
 
-(* compilation options *)
+
+(*----------------------
+ * Compilation options
+ *---------------------*)
+
 let clang_options = ref ""
 let clang_extra_options = ref ""
 let opt_options = ref ""
 
-(* keywords *)
+
+(*------------
+ * Keywords
+ *-----------*)
+
 let __result = "result"
 let __assert = "__assert_"
 let __refute = "__refute_"
 let __init = "__init_"
 
+
 let __assert_no_alias = __assert ^ "no_alias"
 let __assert_may_alias = __assert ^ "may_alias"
 let __assert_must_alias = __assert ^ "must_alias"
-
 let __refute_no_alias = __refute ^ "no_alias"
 let __refute_may_alias = __refute ^ "may_alias"
 let __refute_must_alias = __refute ^ "must_alias"
@@ -175,18 +209,28 @@ let __assert_range_lower_bound = __assert ^ "range_lower_bound"
 let __assert_range_upper_bound = __assert ^ "range_upper_bound"
 let __assert_range_full = __assert ^ "range_full"
 
+
 let __init_globals = __init ^ "globals"
 
-(* time statistics *)
+
+(*------------------
+ * Time statistics
+ *-----------------*)
+
 let detailed_task_time : (string * float) list ref = ref []  (* tasks and time *)
 let sparse_time : float ref = ref 0.0
 let analysis_time : float ref = ref 0.0
 let total_time : float ref = ref 0.0
 
-(* bugs and assertions *)
+
+(*----------------------
+ * Bugs and assertions
+ *---------------------*)
+
 let num_of_bugs = ref 0
 let num_valid_asserts = ref 0
 let num_invalid_asserts = ref 0
+
 
 (*******************************************************************
  ** location
@@ -198,12 +242,14 @@ type position = { pos_file_name : string;
                   pos_col_start : int;
                   pos_col_end : int; }
 
+
 let mk_position fname lstart lend cstart cend =
   { pos_file_name = fname;
     pos_line_start = lstart;
     pos_line_end = lend;
     pos_col_start = cstart;
     pos_col_end = cend; }
+
 
 let mk_position_lexing (pstart: LX.position) (pend: LX.position) : position =
   { pos_file_name = pstart.Lexing.pos_fname;
@@ -212,8 +258,9 @@ let mk_position_lexing (pstart: LX.position) (pend: LX.position) : position =
     pos_col_start = pstart.Lexing.pos_cnum - pstart.Lexing.pos_bol + 1;
     pos_col_end = pend.Lexing.pos_cnum - pend.Lexing.pos_bol + 1; }
 
+
 let pr_file_excerpt filename (lstart: int) (lend: int) (cstart: int) (cend: int) =
-  let _ = print_endline ("File: " ^ filename) in
+  (* let _ = print_endline ("File: " ^ filename) in *)
   let file_lines = In_channel.read_lines filename in
   let num_lines = List.length file_lines in
   let lstart = if lstart < 3 then 3 else lstart in
@@ -239,16 +286,22 @@ let pr_file_excerpt filename (lstart: int) (lend: int) (cstart: int) (cend: int)
         pr_excerpt nlines (lcur + 1) (marked_col::marked_line::acc) in
   let excerpt_lines = List.slice file_lines (lstart - 3) (lend + 2) in
   let format_str = pr_excerpt excerpt_lines (lstart - 3) [] in
-  String.concat ~sep:"" (format_str)
+  String.rstrip (String.concat ~sep:"" (format_str))
+
 
 let pr_file_position_and_excerpt (p: position) =
   let fname = p.pos_file_name in
   let lstart, lend = p.pos_line_start, p.pos_line_end in
   let cstart, cend = p.pos_col_start, p.pos_col_end in
-  "file: " ^ fname ^ ", " ^
-  (pr_int lstart) ^ ":" ^ (pr_int cstart) ^ " ~> " ^
-  (pr_int lend) ^ ":" ^ (pr_int cend) ^
-  "\n" ^ (pr_file_excerpt fname lstart lend cstart cend)
+  let line_column =
+    if lstart = lend && cstart = cend then
+      (pr_int lstart) ^ ":" ^ (pr_int cstart)
+    else
+      (pr_int lstart) ^ ":" ^ (pr_int cstart) ^ " ~> " ^
+      (pr_int lend) ^ ":" ^ (pr_int cend) in
+  "File: " ^ fname ^ ", line/column position : " ^ line_column ^ "\n" ^
+  (pr_file_excerpt fname lstart lend cstart cend)
+
 
 (*******************************************************************
  ** Data flow analysis
@@ -257,19 +310,23 @@ let pr_file_position_and_excerpt (p: position) =
 let equal_precision (p1: precision) (p2: precision) : bool =
   p1 == p2
 
+
 let merge_precision (p1: precision) (p2: precision) : precision =
   if equal_precision p1 p2 then p1
   else May
+
 
 let pr_dfa_mode (dfa: dfa_mode) : string =
   match dfa with
   | DfaIntraProc -> "Intra-procedural Data-flow Analysis"
   | DfaInterProc -> "Inter-procedural Data-flow Analysis"
 
+
 let is_pointer_analysis (typ: dfa_analysis) : bool =
   match typ with
   | DfaPointer -> true
   | _ -> false
+
 
 let name_of_dfa (dfa: dfa_analysis) : string =
   match dfa with
@@ -288,12 +345,14 @@ let name_of_dfa (dfa: dfa_analysis) : string =
 let record_task_time (task: string) (time: float) =
   detailed_task_time := !detailed_task_time @ [(task, time)]
 
+
 let pr_work_mode wm =
   match wm with
   | WkmSymExec -> "Symbolic Execution"
   | WkmDFA -> "Data Flow Analysis"
   | WkmAbsInt -> "Abstract Interpretation"
   | WkmNoAnalysis -> "No Analysis"
+
 
 (*******************************************************************
  ** Warning and error
@@ -304,16 +363,20 @@ let warning msg =
   if not !print_concise_output then
     prerr_endline msg
 
+
 let hwarning msg f x =
   let msg = msg ^ ": " ^ (f x) in
   warning msg
 
+
 let error ?(log="") msg =
   raise (EError (msg, log))
+
 
 let errors ?(log="") (msgs: string list) =
   let msg = String.concat ~sep:"" msgs in
   error ~log msg
+
 
 let herror msg f x =
   let msg = msg ^ (f x) in
