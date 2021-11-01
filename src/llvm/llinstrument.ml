@@ -22,9 +22,9 @@ module AP = Annparser
 
 exception AnnotFormat of string
 
-type annotation =
-  | Bug of position
-  | Safe of position
+type ann_type =
+  | Bug
+  | Safe
 
 type instr_with_tag = {
   pos: position;
@@ -79,16 +79,44 @@ let extract_ann_marks (filename: string) =
   let _ = List.iter (List.rev (List.map rev_mark_list ~f:Ann.str_of_mark)) ~f:print_endline in
   List.rev rev_mark_list
 
-let func_map bug =
-  "__assert_integer_overflow"
+let get_func_name anntyp (bug:Ann.bug_group) ins =
+  match anntyp with
+  | Bug ->
+     (match bug with
+      | MemoryLeak -> "__assert_memory_leak"
+      | NullPointerDeref -> "__assert_null_pointer_deref"
+      | BufferOverflow -> "__assert_buffer_overflow"
+      | IntegerOverflow -> 
+          if LL.integer_bitwidth(LL.type_of ins) = 64 then 
+            "__assert_bug_integer_overflow_i64"
+          else
+            "__assert_bug_integer_overflow_i32"
+      | IntegerUnderflow -> "__assert_integer_underflow"
+      | DivisionByZero -> "__assert_division_by_zero"
+      | NewType t -> "__assert_unnamed_bug"
+     )
+  | Safe -> 
+     (match bug with
+      | MemoryLeak -> "__refute_memory_leak"
+      | NullPointerDeref -> "__refute_null_pointer_deref"
+      | BufferOverflow -> "__refute_buffer_overflow"
+      | IntegerOverflow ->
+          if LL.integer_bitwidth(LL.type_of ins) = 64 then 
+            "__refute_bug_integer_overflow_i64"
+          else
+            "__refute_bug_integer_overflow_i32"
+      | IntegerUnderflow -> "__refute_integer_underflow"
+      | DivisionByZero -> "__refute_division_by_zero"
+      | NewType t -> "__refute_unnamed_bug"
+     )
 
-let apply_annotation instr bugs modul=
+let apply_annotation anntyp instr bugs modul=
   match instr.ins with 
   | Instr inx ->
     let insert_pos = LL.instr_succ inx in
     let builder = LL.builder_at (LL.module_context modul) insert_pos in
     List.iter bugs ~f:(fun bug ->
-      let assert_func_opt = LL.lookup_function (func_map bug) modul in
+      let assert_func_opt = LL.lookup_function (get_func_name anntyp bug inx) modul in
       match assert_func_opt with
       | None -> ()
       | Some assert_func ->
@@ -117,19 +145,37 @@ let apply_hd_bug end_ann (matched_anns: (Ann.mark * instr_with_tag option) list)
         | None ->
             raise (AnnotFormat ("Error: No ins for annot at " ^ (Ann.pr_pos_ann end_ann)))
         | Some ins ->
-          let _ = apply_annotation ins bugs modul in
+          let _ = apply_annotation Bug ins bugs modul in
           tl
        )
      | Bug_end _ | Safe_start _ | Safe_end _ | Skip ->
        raise (AnnotFormat ("Error: no Bug_start matching Bug_end at " ^ (Ann.pr_pos_ann end_ann)))
     )
 
+let apply_hd_safe end_ann (matched_anns: (Ann.mark * instr_with_tag option) list) modul =
+  match matched_anns with
+  | [] ->
+      raise (AnnotFormat ("Error: Safe_end without start at " ^ (Ann.pr_pos_ann end_ann)))
+  | (ann, ins_op)::tl ->
+      (match ann with
+      | Safe_start ((line, col), bugs) ->
+          (match ins_op with
+          | None ->
+              raise (AnnotFormat ("Error: No ins for annot at " ^ (Ann.pr_pos_ann end_ann)))
+          | Some ins ->
+              let _ = apply_annotation Safe ins bugs modul in
+              tl
+          )
+      | Bug_start _ | Bug_end _ | Safe_end _ | Skip ->
+          raise (AnnotFormat ("Error: no Safe_start matching Safe_end at" ^ (Ann.pr_pos_ann end_ann)))
+      )
+
 let rec resolve (ann_marks: Ann.mark list) (instrs: instr_with_tag list) matched_anns modul =
   match ann_marks with
   | [] -> ()
   | hd_ann::tl_anns ->
      match hd_ann with
-     | Bug_start ((line, col), bugs) ->
+     | Bug_start ((line, col), bugs) | Safe_start ((line, col), bugs) ->
        (match instrs with
         | [] -> 
           raise (AnnotFormat ("Error: no matching instruction for bug annotation at " 
@@ -146,27 +192,6 @@ let rec resolve (ann_marks: Ann.mark list) (instrs: instr_with_tag list) matched
           let updated_matched_anns = apply_hd_bug hd_ann matched_anns modul in
           resolve tl_anns instrs updated_matched_anns modul
 
-          (*
-          
-          (match matched_anns with
-           | [] -> 
-             raise (AnnotFormat ("Error: Bug_end without Bug_start at "
-                    ^ (Ann.pr_pos_ann hd_ann)))
-           | (ann, ins_op)::tl ->
-             (match ann with
-              | Bug_start ((line, col), bugs) ->
-                ( match ins_op with
-                  | None ->
-                      raise (AnnotFormat ("Error: No instruction for annotation at " 
-                        ^ (Ann.pr_pos_ann hd_ann)))
-                  | Some ins ->
-                      let _ = apply_annotation ins bugs modul in
-                      resolve tl_anns instrs tl modul
-                )
-              | Bug_end _ | Safe_start _ | Safe_end _ | Skip ->
-                  raise (AnnotFormat ("Error: no Bug_start matching Bug_end at " ^ (Ann.pr_pos_ann hd_ann)))
-             )
-          ) *)
         | hd_ins::tl_ins -> 
           if less_than hd_ins hd_ann then
             resolve ann_marks tl_ins (update hd_ins matched_anns) modul
@@ -174,8 +199,19 @@ let rec resolve (ann_marks: Ann.mark list) (instrs: instr_with_tag list) matched
             let updated_matched_anns = apply_hd_bug hd_ann matched_anns modul in
             resolve tl_anns instrs updated_matched_anns modul
        )
-     | Safe_start ((line, col), bugs) -> ()
-     | Safe_end (line, col) -> ()
+     | Safe_end (line, col) ->
+       (match instrs with
+        | [] -> 
+          let updated_matched_anns = apply_hd_safe hd_ann matched_anns modul in
+          resolve tl_anns instrs updated_matched_anns modul
+
+        | hd_ins::tl_ins -> 
+          if less_than hd_ins hd_ann then
+            resolve ann_marks tl_ins (update hd_ins matched_anns) modul
+          else 
+            let updated_matched_anns = apply_hd_safe hd_ann matched_anns modul in
+            resolve tl_anns instrs updated_matched_anns modul
+       )
      | Skip -> resolve tl_anns instrs matched_anns modul
 
 let instrument_bug_annotation ann_marks source_name (modul: LL.llmodule) : unit =
@@ -196,7 +232,7 @@ let instrument_bug_annotation ann_marks source_name (modul: LL.llmodule) : unit 
   let _ = hprint "======== Source file: " pr_str source_name in
 
   let _ = print_endline 
-          ("Module  =============================\n" ^
+          ("MODULE  =============================\n" ^
             (LL.string_of_llmodule modul) ^
             " =====================\n"
           )in
@@ -251,6 +287,16 @@ let instrument_bug_annotation ann_marks source_name (modul: LL.llmodule) : unit 
                          (pr_int line) ^ "__" ^
                          (pr_int col)) *)
   ) (List.rev tagged_ins) (*sorted_ins*) in
+
+  let _ = print_endline "SORTED_INS===" in
+
+  let _ = List.iter tagged_ins ~f:(fun ins ->
+    match ins.ins with
+    | Instr inx ->
+      print_endline  (LL.string_of_llvalue inx)
+  ) in
+
+  let _ = print_endline "===SORTED_INS" in
 
   let _ = resolve ann_marks sorted_ins [] modul in
   
