@@ -38,3 +38,6 @@ setup.log
 
 # Emacs temporary files
 .ccls-cache
+
+# vim files
+*.swp
