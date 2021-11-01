@@ -264,30 +264,27 @@ let report_bug (bug: bug) : unit =
 
 
 let report_bug_stats (bugs: bug list) : unit =
-  match bugs with
-  | [] -> print "No bug is detected!"
-  | _ ->
-    let tbl_stats = Hashtbl.create (module String) in
-    let _ =
-      List.iter
-        ~f:(fun bug ->
-             let bug_name = pr_bug_name bug in
-             let times = match Hashtbl.find tbl_stats bug_name with
-               | Some n -> n + 1
-               | None -> 1 in
-             Hashtbl.set tbl_stats ~key:bug_name ~data:times)
-        bugs in
-    let bug_stats = Hashtbl.to_alist tbl_stats in
-    let bug_summary =
-      let all_bugs =
-        List.fold_left
-          ~f:(fun acc (bug_name, times) ->
-               acc ^ "\n  " ^ bug_name ^ ": " ^ (string_of_int times))
-          ~init:"" bug_stats in
-      "==============================\n" ^
-      "Bug Summary:\n" ^
-      all_bugs in
-    print bug_summary
+  let summary = match bugs with
+    | [] -> "\n  No bug is detected!"
+    | _ ->
+      let tbl_stats = Hashtbl.create (module String) in
+      let _ =
+        List.iter
+          ~f:(fun bug ->
+               let bug_name = pr_bug_name bug in
+               let times = match Hashtbl.find tbl_stats bug_name with
+                 | Some n -> n + 1
+                 | None -> 1 in
+               Hashtbl.set tbl_stats ~key:bug_name ~data:times)
+          bugs in
+      let bug_stats = Hashtbl.to_alist tbl_stats in
+      List.fold_left
+        ~f:(fun acc (bug_name, times) ->
+             acc ^ "\n  " ^ bug_name ^ ": " ^ (string_of_int times))
+        ~init:"" bug_stats in
+  print ("==============================\n" ^
+         "Bug Summary:\n" ^
+         summary)
 
 
 (*******************************************************************

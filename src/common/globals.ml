@@ -299,7 +299,7 @@ let pr_file_position_and_excerpt (p: position) =
     else
       (pr_int lstart) ^ ":" ^ (pr_int cstart) ^ " ~> " ^
       (pr_int lend) ^ ":" ^ (pr_int cend) in
-  "File: " ^ fname ^ ", line/column position : " ^ line_column ^ "\n" ^
+  "File: " ^ fname ^ ", line/column position: " ^ line_column ^ "\n" ^
   (pr_file_excerpt fname lstart lend cstart cend)
 
 

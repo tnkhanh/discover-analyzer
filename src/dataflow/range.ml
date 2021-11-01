@@ -425,6 +425,8 @@ module IntervalData = struct
   (* FIXME: use Map to represent it *)
   type t = (expr, interval) MP.t
 
+  (** aa *)
+
   (* type t = einterval list         (\* sorted by expr *\) *)
 end
 
