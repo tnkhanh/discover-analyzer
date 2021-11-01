@@ -23,6 +23,8 @@ logs
 
 # solidity files
 *.contract
+*.abi
+*.wasm
 
 # macOS temp files
 .DS_Store

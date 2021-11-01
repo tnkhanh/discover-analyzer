@@ -160,12 +160,20 @@ let check_bug_buffer_overflow (pdata: program_data) bug : bug option =
                         let elem_typ = LL.element_type (LL.type_of v) in
                         let elem_size = LI.memsize_of_type  elem_typ in
                         let max_num_elem = Int64.(/) sz.size_max elem_size in
+                        let min_num_elem = Int64.(/) sz.size_min elem_size in
                         if (RG.ID.compare_interval_ub_int itv max_num_elem >= 0) then
                           let reason =
                             "Buffer at pointer " ^ (LI.pr_value bof.bof_pointer) ^
                             " has at most " ^ (pr_int64 max_num_elem) ^
-                            " element of type " ^ (LI.pr_type elem_typ) ^
-                            ", while the accessing index is " ^ (RG.pr_interval itv) in
+                            " elements of type " ^ (LI.pr_type elem_typ) ^ ",\n" ^
+                            "while the accessing index is " ^ (RG.pr_interval_concise itv) in
+                          return (mk_real_bug ~analysis:"RangeAnalysis" ~reason bug)
+                        else if (RG.ID.compare_interval_ub_int itv min_num_elem >= 0) then
+                          let reason =
+                            "Buffer at pointer " ^ (LI.pr_value bof.bof_pointer) ^
+                            " may have only " ^ (pr_int64 min_num_elem) ^
+                            " elements of type " ^ (LI.pr_type elem_typ) ^ ",\n" ^
+                            "while the accessing index is " ^ (RG.pr_interval_concise itv) in
                           return (mk_real_bug ~analysis:"RangeAnalysis" ~reason bug)
                         else None)
                  ~init:None fenvs_msz)

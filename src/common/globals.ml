@@ -286,17 +286,21 @@ let pr_file_excerpt filename (lstart: int) (lend: int) (cstart: int) (cend: int)
         pr_excerpt nlines (lcur + 1) (marked_col::marked_line::acc) in
   let excerpt_lines = List.slice file_lines (lstart - 3) (lend + 2) in
   let format_str = pr_excerpt excerpt_lines (lstart - 3) [] in
-  String.concat ~sep:"" (format_str)
+  String.rstrip (String.concat ~sep:"" (format_str))
 
 
 let pr_file_position_and_excerpt (p: position) =
   let fname = p.pos_file_name in
   let lstart, lend = p.pos_line_start, p.pos_line_end in
   let cstart, cend = p.pos_col_start, p.pos_col_end in
-  "file: " ^ fname ^ ", " ^
-  (pr_int lstart) ^ ":" ^ (pr_int cstart) ^ " ~> " ^
-  (pr_int lend) ^ ":" ^ (pr_int cend) ^
-  "\n" ^ (pr_file_excerpt fname lstart lend cstart cend)
+  let line_column =
+    if lstart = lend && cstart = cend then
+      (pr_int lstart) ^ ":" ^ (pr_int cstart)
+    else
+      (pr_int lstart) ^ ":" ^ (pr_int cstart) ^ " ~> " ^
+      (pr_int lend) ^ ":" ^ (pr_int cend) in
+  "File: " ^ fname ^ ", line/column position : " ^ line_column ^ "\n" ^
+  (pr_file_excerpt fname lstart lend cstart cend)
 
 
 (*******************************************************************

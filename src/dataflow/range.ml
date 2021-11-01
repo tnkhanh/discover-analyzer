@@ -912,4 +912,13 @@ module RangeAnalysis = struct
 
   let pr_interval = ID.pr_interval
 
+  let pr_interval_concise (i: ID.interval) : string =
+    match i with
+    | Bottom -> "[Empty]"
+    | Range r ->
+      if r.ID.range_lb_inclusive && r.ID.range_ub_inclusive &&
+         (r.range_lb == r.range_ub) then
+        ID.pr_bound r.range_ub
+      else ID.pr_range r
+
 end

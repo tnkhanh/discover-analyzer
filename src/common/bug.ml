@@ -21,10 +21,12 @@ module LC = Llvm.Icmp
 module LA = List.Assoc
 
 (*******************************************************************
- ** data structure
+ ** Data structure
  *******************************************************************)
 
-(* bug type *)
+(*-----------
+ * Bug type
+ *----------*)
 
 type bug_type =
   | MemoryLeak of memory_leak
@@ -63,7 +65,9 @@ and memory_leak = {
   mlk_size : int option;
 }
 
-(* bug *)
+(*------
+ * Bug
+ *-----*)
 
 type bug = {
   bug_instr : instr;
@@ -75,24 +79,32 @@ type bug = {
 }
 
 (*******************************************************************
- ** printing
+ ** Printing
  *******************************************************************)
 
-(* memory bugs *)
+(*--------------
+ * Memory bugs
+ *-------------*)
 
-let pr_buffer_overflow (bof: buffer_overflow) : string =
-  "BUFFER OVERFLOW\n" ^
-  "  Root pointer: " ^ (pr_value bof.bof_pointer) ^
-  ", accessing index: " ^ (pr_value bof.bof_elem_index)
+let pr_buffer_overflow ?(detailed=true) (bof: buffer_overflow) : string =
+  "Buffer Overflow" ^
+  (if detailed then
+     "\n  Root pointer: " ^ (pr_value bof.bof_pointer) ^
+     ", accessing index: " ^ (pr_value bof.bof_elem_index)
+   else "")
 
-let pr_memory_leak (mlk: memory_leak) : string =
+let pr_memory_leak ?(detailed=true) (mlk: memory_leak) : string =
   let size = match mlk.mlk_size with
     | None -> "unknown"
     | Some size -> pr_int size in
-  "MEMORY LEAK\n" ^
-  "  Reason: buffer size: " ^ size
+  "Memory Leak" ^
+  (if detailed then
+     "\n  Reason: buffer size: " ^ size
+   else "")
 
-(* integer bugs *)
+(*---------------
+ * Integer bugs
+ *--------------*)
 
 let pr_instr_detailed_position instr =
   let code_excerpt = match LD.position_of_instr instr with
@@ -101,36 +113,33 @@ let pr_instr_detailed_position instr =
   if !location_source_code_only then code_excerpt
   else "  Instruction: " ^ (pr_instr instr) ^ "\n" ^ code_excerpt
 
-
 let pr_llvalue_name (v: LL.llvalue) : string =
   match LD.get_original_name_of_llvalue v with
   | Some str -> str
   | None -> pr_value v
 
 let pr_integer_overflow ?(detailed=true) (iof: integer_overflow) : string =
-  "INTEGER OVERFLOW\n" ^
-  (pr_instr_detailed_position iof.iof_instr)
-  (* ^ *)
-  (* "  Reason: the variable " ^ (pr_llvalue_name iof.iof_expr) ^ *)
-  (* " has bit width: " ^ (pr_int iof.iof_bitwidth) ^ *)
-  (* " but can take value of <...>" *)
+  "Integer Overflow" ^
+  (if detailed then "\n" ^ (pr_instr_detailed_position iof.iof_instr)
+   else "")
 
 let pr_integer_underflow ?(detailed=true) (iuf: integer_underflow) : string =
-  "INTEGER UNDERFLOW\n" ^
-  (pr_instr_detailed_position iuf.iuf_instr)
-  (* ^ *)
-  (* "  Reason: the variable " ^ (pr_llvalue_name iuf.iuf_expr) ^ *)
-  (* " has bit width: " ^ (pr_int iuf.iuf_bitwidth) ^ *)
-  (* " but can take value of <...>" *)
+  "Integer Underflow" ^
+  (if detailed then "\n" ^ (pr_instr_detailed_position iuf.iuf_instr)
+   else "")
+
+(*------------------------
+ * Print bug information
+ *-----------------------*)
 
 let pr_bug_type ?(detailed=true) (btype: bug_type) : string =
   match btype with
   | MemoryLeak mlk -> pr_memory_leak mlk
-  | NullPointerDeref -> "NULL POINTER DEREFERENCE"
-  | BufferOverflow bof -> pr_buffer_overflow bof
+  | NullPointerDeref -> "Null Pointer Dereference"
+  | BufferOverflow bof -> pr_buffer_overflow ~detailed bof
   | IntegerOverflow iof -> pr_integer_overflow iof
   | IntegerUnderflow iuf -> pr_integer_underflow ~detailed iuf
-  | DivisionByZero -> "DIVISION BY ZERO"
+  | DivisionByZero -> "Division By Zero"
 
 let pr_potential_bug (bug: bug) : string =
   (pr_bug_type ~detailed:false bug.bug_type) ^ "\n" ^
@@ -149,6 +158,9 @@ let pr_bug ?(detailed=true) (bug: bug) : string =
     else "" in
   "Bug: " ^ (pr_instr bug.bug_instr) ^
   (String.prefix_if_not_empty ~prefix:"\n" details )
+
+let pr_bug_name (bug: bug) : string =
+  pr_bug_type ~detailed:false bug.bug_type
 
 let pr_bugs (bugs: bug list) : string =
   pr_items pr_bug bugs
@@ -241,31 +253,37 @@ let report_bug (bug: bug) : unit =
     | false -> ""
     | true -> match LD.position_of_instr bug.bug_instr with
       | None -> ""
-      | Some p -> " Location: at " ^ (pr_file_position_and_excerpt p) ^ "\n" in
+      | Some p -> "  " ^ (pr_file_position_and_excerpt p) ^ "\n" in
   let reason = match bug.bug_reason with
     | None -> ""
-    | Some s -> s ^ "\n" in
+    | Some s -> (pr_indent 2 ("Reason: " ^ s)) ^ "\n" in
   let msg =
-    "BUG: " ^ (pr_bug_type bug.bug_type) ^ "\n" ^
-    reason ^ location in
+    "BUG: " ^ (pr_bug_type ~detailed:false bug.bug_type) ^ "\n" ^
+    location ^ reason in
   print_endline ("\n" ^ msg)
+
 
 let report_bug_stats (bugs: bug list) : unit =
   match bugs with
   | [] -> print "No bug is detected!"
   | _ ->
     let tbl_stats = Hashtbl.create (module String) in
-    let _ = List.iter ~f:(fun bug ->
-      let bug_name = pr_bug ~detailed:false bug in
-      let times = match Hashtbl.find tbl_stats bug_name with
-        | Some n -> n + 1
-        | None -> 1 in
-      Hashtbl.set tbl_stats ~key:bug_name ~data:times) bugs in
+    let _ =
+      List.iter
+        ~f:(fun bug ->
+             let bug_name = pr_bug_name bug in
+             let times = match Hashtbl.find tbl_stats bug_name with
+               | Some n -> n + 1
+               | None -> 1 in
+             Hashtbl.set tbl_stats ~key:bug_name ~data:times)
+        bugs in
     let bug_stats = Hashtbl.to_alist tbl_stats in
     let bug_summary =
-      let all_bugs = List.fold_left ~f:(fun acc (bug_name, times) ->
-        acc ^ "\n  " ^ bug_name ^ ": " ^ (string_of_int times)
-      ) ~init:"" bug_stats in
+      let all_bugs =
+        List.fold_left
+          ~f:(fun acc (bug_name, times) ->
+               acc ^ "\n  " ^ bug_name ^ ": " ^ (string_of_int times))
+          ~init:"" bug_stats in
       "==============================\n" ^
       "Bug Summary:\n" ^
       all_bugs in
