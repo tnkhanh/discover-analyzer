@@ -1,0 +1,37 @@
+# Configuration file used by ocamlformat
+#  - See `ocamlformat --help` for more options
+#  - Run `ocamlformat --print-config` to show the current configuration
+
+profile = ocamlformat
+version = 0.19.0
+
+# Generals
+margin = 80
+line-endings = lf
+
+break-before-in = fit-or-vertical
+break-sequences = true
+
+# Documentation and comments
+parse-docstrings = true
+wrap-comments = true
+doc-comments-padding = 2
+
+# Pattern matching
+cases-exp-indent = 0
+cases-matching-exp-indent = normal
+nested-match = align
+break-cases = fit
+
+# Function
+# function-indent-nested = always
+# break-fun-decl = smart
+# break-fun-sig = smart
+# wrap-fun-args = true
+
+# Let binding
+let-binding-indent = 2
+let-binding-spacing = sparse
+
+# break-infix = wrap
+# infix-precedence = parens

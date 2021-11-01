@@ -23,6 +23,8 @@ logs
 
 # solidity files
 *.contract
+*.abi
+*.wasm
 
 # macOS temp files
 .DS_Store
@@ -38,3 +40,6 @@ setup.log
 
 # Emacs temporary files
 .ccls-cache
+
+# vim files
+*.swp

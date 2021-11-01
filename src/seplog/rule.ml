@@ -6,7 +6,12 @@
  ********************************************************************)
 
 open Core
-open Dcore
+open Globals
+open Lib
+open Sprinter
+open Printer
+open Debugger
+
 open Slir
 open Proof
 open Normalize
@@ -42,7 +47,8 @@ let choose_rule_invalid_entail prog goal : rule list =
     let enc =List.find_exn ~f:(fun enc ->
       let lhs, rhs = enc.enc_lhs, enc.enc_rhs in
       match lhs, rhs with
-      | Pure plhs, Pure prhs -> is_false (SMT.check_imply plhs prhs)
+      | Pure plhs, Pure prhs ->
+        is_false (SMT.check_imply plhs prhs)
       | _ -> false) goal.gl_entail_cores in
     [mk_rule_invalid_entail enc]
   with _ -> []

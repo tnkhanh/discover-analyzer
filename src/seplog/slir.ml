@@ -6,7 +6,12 @@
  ********************************************************************)
 
 open Core
-open Dcore
+open Globals
+open Lib
+open Sprinter
+open Printer
+open Debugger
+
 
 module SA = Slast
 module LL = Llvm
@@ -132,7 +137,7 @@ type entailments = entailment list
 
 (*** other types ***)
 
-type smt_result = ternary * ((var * exp) list)
+type smt_result = (bool option) * ((var * exp) list)
 
 (*******************************************************************
  ** definitions

@@ -6,7 +6,11 @@
  ********************************************************************)
 
 open Core
-open Dcore
+open Globals
+open Lib
+open Sprinter
+open Printer
+open Debugger
 open Llir
 
 module DF = Dataflow
@@ -25,62 +29,97 @@ module SP = Set.Poly
 module SizeDomain = struct
 
   type size = {
-    size_min : int;             (* minimum size in bytes, inclusive *)
-    size_max : int;             (* maximum size in bytes, inclusive *)
+    size_min : int64;             (* minimum size in bytes, inclusive *)
+    size_max : int64;             (* maximum size in bytes, inclusive *)
   }
 
+
   let pr_size s =
-    if s.size_min = s.size_max then pr_int s.size_min
-    else "[" ^ (pr_int s.size_min) ^ "," ^ (pr_int s.size_max) ^ "]"
+    if Int64.equal s.size_min s.size_max then pr_int64 s.size_min
+    else "[" ^ (pr_int64 s.size_min) ^ "," ^ (pr_int64 s.size_max) ^ "]"
+
 
   let mk_size_range min max =
     { size_min = min;
       size_max = max; }
 
+
   let mk_size_const c =
     mk_size_range c c
 
-  let least_size = mk_size_const 0
+
+  let least_size = mk_size_const Int64.zero
+
 
   let equal_size (a: size) (b: size) =
-    (a.size_min = b.size_min) && (a.size_max = b.size_max)
+    (Int64.equal a.size_min b.size_min) &&
+    (Int64.equal a.size_max b.size_max)
+
 
   let lequal_size (a: size) (b: size) =
-    (a.size_min <= b.size_min) && (a.size_max <= b.size_max)
+    (Int64.(>=) a.size_min b.size_min) &&
+    (Int64.(<=) a.size_max b.size_max)
+
 
   let union_size (a: size) (b: size) =
-    mk_size_range (min a.size_min b.size_min) (max a.size_max b.size_max)
+    mk_size_range
+      (Int64.min a.size_min b.size_min)
+      (Int64.max a.size_max b.size_max)
+
 
   let intersect_size (a: size) (b: size) =
-    mk_size_range (max a.size_min b.size_min) (min a.size_max b.size_max)
+    mk_size_range
+      (Int64.max a.size_min b.size_min)
+      (Int64.min a.size_max b.size_max)
+
 
   let widen_size (a: size) (b: size) =
     union_size a b
 
 end;;
 
+
 module SD = SizeDomain
+
 
 (*******************************************************************
  ** Core data transfer modules
  *******************************************************************)
 
-module MemsizeData = struct
+
+module SizeData = struct
 
   type t = (llvalue * SD.size) list      (* maintained as a sorted list *)
 
 end
 
-module SizeTransfer : DF.ForwardDataTransfer = struct
 
-  include MemsizeData
-  include DF.DataUtilGenerator(MemsizeData)
+module SizeUtil = struct
+
+  include SizeData
+
+  let get_size (v: llvalue) (d: t) : SD.size =
+    try LA.find_exn d ~equal:(==) v
+    with _ -> SD.least_size
+
+end
+
+
+module SizeTransfer : (DF.ForwardDataTransfer with type t = SizeData.t) =
+struct
+
+  include SizeData
+  include SizeUtil
+  include DF.MakeDefaultEnv(SizeData)
+
 
   let analysis = DfaMemsize
+
 
   (*******************************************************************
    ** Handling abstract data
    *******************************************************************)
+
 
   let least_data = []
 
@@ -89,7 +128,9 @@ module SizeTransfer : DF.ForwardDataTransfer = struct
     "MemSize: " ^
     (pr_list_square (fun (v, s) -> (pr_value v) ^ ": " ^ (SD.pr_size s)) d)
 
+
   let pr_data_checksum = pr_data
+
 
   let rec equal_data (d1: t) (d2: t) =
     match d1, d2 with
@@ -98,6 +139,7 @@ module SizeTransfer : DF.ForwardDataTransfer = struct
       (equal_value v1 v2) && (SD.equal_size s1 s2) &&
       (equal_data nd1 nd2)
     | _ -> false
+
 
   let lequal_data (a: t)  (b: t) : bool =
     let rec leq xs ys = match xs, ys with
@@ -108,12 +150,15 @@ module SizeTransfer : DF.ForwardDataTransfer = struct
         else false in
     leq a b
 
+
   let copy_data d =
     d
+
 
   let subst_data ?(sstv: substv = []) ?(sstve: substve = [])
         ?(sste: subste = []) (d: t) : t =
     List.map ~f:(fun (v, s) -> (subst_value sstv v, s)) d
+
 
   let merge_data ?(widen=false) (a: t) (b: t) : t =
     let rec combine xs ys acc = match xs, ys with
@@ -129,26 +174,29 @@ module SizeTransfer : DF.ForwardDataTransfer = struct
           combine xs nys (acc @ [yv, yr]) in
     combine a b []
 
+
   let clean_irrelevant_info_from_data prog func (d: t) : t =
     List.exclude ~f:(fun (v, s) -> is_local_llvalue v) d
+
 
   let clean_info_of_vars (input: t) (vs: llvalues) : t =
     (* TODO: implement later *)
     input
 
+
   let is_data_satisfied_predicate (d: t) (p: predicate) : bool =
     true
+
 
   let refine_data_by_predicate ?(widen=false) (d: t) (p: predicate) : t =
     d
 
+
   (* FIXME: fix this later *)
+
   let join_data (a: t) (b: t) : t =
     merge_data a b
 
-  let get_size (v: llvalue) (d: t) : SD.size =
-    try LA.find_exn d ~equal:(==) v
-    with _ -> SD.least_size
 
   let update_size (v: llvalue) (s: SD.size) (d: t) : t =
     let rec replace xs acc = match xs with
@@ -160,31 +208,40 @@ module SizeTransfer : DF.ForwardDataTransfer = struct
         else replace nxs (acc @ [(xv, xr)]) in
     replace d []
 
+
   let combine_size (a: SD.size) (b: SD.size) =
     SD.union_size a b
+
 
   (*******************************************************************
    ** Core analysis functions
    *******************************************************************)
 
+
   let prepare_callee_input penv instr callee args (input: t) : t =
     input
+
 
   let compute_callee_output_exns penv instr callee args input fsum : t * exns =
     (input, [])
 
+
   let prepare_thrown_exception_data penv exn_ptr tinfo input : t =
     input
+
 
   let compute_catch_exception_data penv instr ptr input exn : t =
     input
 
+
   let need_widening func : bool =
     false
+
 
   let analyze_global (g: global) (input: t) : t =
     (* TODO: default behavior, implement later if necessary *)
     input
+
 
   let analyze_instr ?(widen=false) penv fenv (instr: instr) (input: t) : t =
     let vinstr = llvalue_of_instr instr in
@@ -193,12 +250,12 @@ module SizeTransfer : DF.ForwardDataTransfer = struct
     | LO.Call ->
       let func = callee_of_instr_call instr in
       if is_func_malloc func then
-        let size = match int_of_const (operand instr 0) with
-          | None -> 0
+        let size = match int64_of_const (operand instr 0) with
+          | None -> Int64.zero
           | Some i -> i in
         update_size vinstr (SD.mk_size_const size) input
       else if is_func_free func then
-        update_size vinstr (SD.mk_size_const 0) input
+        update_size vinstr (SD.mk_size_const Int64.zero) input
       else input
     | LO.BitCast ->
       let size = get_size (operand instr 0) input in
@@ -217,39 +274,6 @@ module SizeTransfer : DF.ForwardDataTransfer = struct
       update_size vinstr !ns input
     | _ -> input
 
-  (*******************************************************************
-   ** Checking bugs
-   *******************************************************************)
-
-  let get_size_of_inst (fenv: func_env) (instr: instr) : SD.size =
-    match get_instr_output fenv instr with
-    | None -> SD.least_size
-    | Some data -> get_size (llvalue_of_instr instr) data
-
-  let check_memory_leak (fenv: func_env) (mlk: BG.memory_leak) : ternary =
-    match mlk.mlk_size with
-    | None -> False
-    | Some size -> True
-
-  (* let check_buffer_overflow fenv (bof: BG.buffer_overflow) : ternary = *)
-  (*   if !bug_memory_all || !bug_buffer_overflow then *)
-  (*     match get_instr_output fenv bof.bof_instr with *)
-  (*     | None -> False *)
-  (*     | Some data -> *)
-  (*       let itv = get_interval (expr_of_llvalue bof.bof_index) data in *)
-  (*       match bof.bof_size with *)
-  (*       | None -> False *)
-  (*       | Some n -> *)
-  (*         if compare_interval_upper_bound_with_int itv n >= 0 then True *)
-  (*         else False *)
-  (*   else False *)
-
-
-  let check_bug (fenv: func_env) (bug: BG.bug) : ternary =
-    match bug.BG.bug_type with
-    | BG.MemoryLeak mlk -> check_memory_leak fenv mlk
-    (* | BG.BufferOverflow bof -> check_buffer_overflow fenv bof *)
-    | _ -> Unkn
 
   (*******************************************************************
    ** Checking assertions
@@ -259,17 +283,33 @@ module SizeTransfer : DF.ForwardDataTransfer = struct
     (* TODO: implement later if necessary *)
     0
 
+
   let check_assertions (penv: prog_env) func : int =
     (* TODO: implement later if necessary *)
     0
 
 end
 
+
 (*******************************************************************
  ** Main analysis module
  *******************************************************************)
 
 module MemsizeAnalysis = struct
+
   include SizeTransfer
   include DF.ForwardDataFlow(SizeTransfer)
+
+
+  module SD = SizeDomain
+  module SU = SizeUtil
+  module ST = SizeTransfer
+
+
+  let get_size (v: llvalue) (d: t) : SD.size =
+    SU.get_size v d
+
+
+  let pr_size = SD.pr_size
+
 end

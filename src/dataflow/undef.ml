@@ -6,7 +6,12 @@
  ********************************************************************)
 
 open Core
-open Dcore
+open Globals
+open Lib
+open Sprinter
+open Printer
+open Debugger
+
 open Llir
 
 module DF = Dataflow
@@ -87,10 +92,11 @@ module UndefData = struct
 
 end
 
-module UndefTransfer : DF.ForwardDataTransfer= struct
+module UndefTransfer : (DF.ForwardDataTransfer with type t = UndefData.t) =
+struct
 
   include UndefData
-  include DF.DataUtilGenerator(UndefData)
+  include DF.MakeDefaultEnv(UndefData)
 
   let analysis = DfaUndef
 
@@ -208,12 +214,8 @@ module UndefTransfer : DF.ForwardDataTransfer= struct
     | _ -> input
 
   (*******************************************************************
-   ** Bug and assertions
+   ** Checking assertions
    *******************************************************************)
-
-  let check_bug (fenv: func_env) (bug: BG.bug) : ternary =
-    (* TODO: implement later if necessary *)
-    Unkn
 
   let count_assertions (prog: program) : int =
     (* TODO: implement later if necessary *)

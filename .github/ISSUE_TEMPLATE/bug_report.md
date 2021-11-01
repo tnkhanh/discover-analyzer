@@ -7,23 +7,14 @@ assignees: ''
 
 ---
 
-Hi,
+1. What is the problem?
 
-**Describe the bug**
+2. How to reproduce it?
 
-- A clear and concise description.
+3. What is the expected output?
 
-**To Reproduce**
+4. Additional information
 
-- Minimal steps to reproduce the behavior.
-- Provide screenshots or log files if possible.
-
-**Expected behavior**
-
-- A clear and concise description.
-
-**Additional context**
-
-- System environment, etc.
-
-Thank you!
+   - OS type:
+   - Clang, LLVM version:
+   - OCaml/Core version:

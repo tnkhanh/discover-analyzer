@@ -10,7 +10,12 @@
  *******************************************************************)
 
 %{
-  open Dcore
+  open Globals
+open Lib
+open Sprinter
+open Printer
+open Debugger
+
   open Z3ir
 %}
 

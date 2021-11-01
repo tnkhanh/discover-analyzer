@@ -6,7 +6,12 @@
  ********************************************************************)
 
 open Core
-open Dcore
+open Globals
+open Lib
+open Sprinter
+open Printer
+open Debugger
+
 open Slir
 
 module Entail = struct
@@ -30,8 +35,8 @@ module Entail = struct
       "==>\n\n" ^
       premises in
     match ptree.ptr_status with
-    | True | False -> pr_ptcore "1" ptree
-    | Unkn -> "Proof tree status: Unknown"
+    | Some _ -> pr_ptcore "1" ptree
+    | None -> "Proof tree status: Unknown"
 end;;
 
 let export_ptree_core ptree =

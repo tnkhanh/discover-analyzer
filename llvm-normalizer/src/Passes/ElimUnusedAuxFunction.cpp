@@ -27,7 +27,8 @@ bool ElimUnusedAuxFunction::runOnModule(Module &M) {
     StringRef funcName = func->getName();
 
     // not auxiliary function of Discover
-    if (!funcName.contains("__assert") && !funcName.contains("__refute"))
+    if (funcName.startswith("__assert") || funcName.startswith("__refute")
+        || funcName.contains("main"))
       continue;
 
     if (func->getNumUses() == 0)

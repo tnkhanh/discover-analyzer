@@ -7,24 +7,8 @@ assignees: ''
 
 ---
 
-Hi,
+1. What is the feature requested?
 
-**Describe the problems related to this feature request**
+2. Why it is important?
 
-- A clear and concise description.
-
-**Describe the solution you'd like**
-
-- A clear and concise description.
-
-**Describe alternatives you've considered**
-
-- Working around to handle the problem.
-- A clear and concise description.
-
-**Additional context**
-
-- System environment, etc.
-- Any other systems having similar features?
-
-Thank you!
+3. How to implement it?
