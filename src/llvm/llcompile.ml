@@ -111,6 +111,7 @@ let process_module ann_marks source_name (filename: string) (modul: LL.llmodule)
                 (fun () -> LS.simplify_module filename modul) in
       let _ = Sys.report_runtime ~task:"Time instrumenting bitcode"
                 (fun () -> LT.instrument_bitcode ann_marks source_name modul) in
+                (* (fun () -> LT.instrument_bitcode filename modul) in *)
       if !export_bitcode then (
         let basename = Filename.chop_extension (Filename.basename filename) in
         let dirname = Filename.dirname filename in

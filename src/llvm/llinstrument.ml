@@ -23,6 +23,7 @@ module SP = Set.Poly
 module LP = Llloop
 module LG = Llcallgraph
 
+
 exception AnnotFormat of string
 
 type ann_type =
@@ -35,25 +36,25 @@ type instr_with_tag = {
   ins: instr;
 }
 
-let make_tagged_ins pos_ tag_ ins_= 
+let make_tagged_ins pos_ tag_ ins_=
   { pos = pos_;
     tag = tag_;
     ins = ins_;
   }
 
 let less_than ins ann =
-  if Poly.((ins.pos.pos_line_end, ins.pos.pos_col_end) < 
+  if Poly.((ins.pos.pos_line_end, ins.pos.pos_col_end) <
            (Ann.pos_of_ann ann)) then true
   else
     false
 
-let extract_ann_marks (filename: string) = 
+let extract_ann_marks (filename: string) =
 (*  let _ = print_endline ("File:.........."^filename) in
-  let inchan = 
-    try open_in filename 
+  let inchan =
+    try open_in filename
     with e -> error ("Unable to open file: " ^ filename) in
   let rec read_line line_number annot_list =
-    try 
+    try
       let line = input_line inchan in
       let rec find_annot col_number old_list =
         let match_pos =
@@ -70,12 +71,12 @@ let extract_ann_marks (filename: string) =
       read_line (line_number+1) new_list
     with End_of_file -> let _ = close_in inchan in annot_list in
   read_line 1 [] *)
-  let inx = In_channel.create filename in 
+  let inx = In_channel.create filename in
   let lexbuf = Lexing.from_channel inx in
   let rev_mark_list =
-    try Annparser.prog Annlexer.read lexbuf with 
-      Annparser.Error -> 
-        let _ = hdebug "Parsing failed. Annotations ignored in file: " pr_str filename in 
+    try Annparser.prog Annlexer.read lexbuf with
+      Annparser.Error ->
+        let _ = hdebug "Parsing failed. Annotations ignored in file: " pr_str filename in
         [] in
 
   (*print all marks*)
@@ -89,8 +90,8 @@ let get_func_name anntyp (bug:Ann.bug_group) ins =
       | MemoryLeak -> "__assert_memory_leak"
       | NullPointerDeref -> "__assert_null_pointer_deref"
       | BufferOverflow -> "__assert_buffer_overflow"
-      | IntegerOverflow -> 
-          if LL.integer_bitwidth(LL.type_of ins) = 64 then 
+      | IntegerOverflow ->
+          if LL.integer_bitwidth(LL.type_of ins) = 64 then
             "__assert_bug_integer_overflow_i64"
           else
             "__assert_bug_integer_overflow_i32"
@@ -98,13 +99,13 @@ let get_func_name anntyp (bug:Ann.bug_group) ins =
       | DivisionByZero -> "__assert_division_by_zero"
       | NewType t -> "__assert_unnamed_bug"
      )
-  | Safe -> 
+  | Safe ->
      (match bug with
       | MemoryLeak -> "__refute_memory_leak"
       | NullPointerDeref -> "__refute_null_pointer_deref"
       | BufferOverflow -> "__refute_buffer_overflow"
       | IntegerOverflow ->
-          if LL.integer_bitwidth(LL.type_of ins) = 64 then 
+          if LL.integer_bitwidth(LL.type_of ins) = 64 then
             "__refute_bug_integer_overflow_i64"
           else
             "__refute_bug_integer_overflow_i32"
@@ -114,7 +115,7 @@ let get_func_name anntyp (bug:Ann.bug_group) ins =
      )
 
 let apply_annotation anntyp instr bugs modul=
-  match instr.ins with 
+  match instr.ins with
   | Instr inx ->
     let insert_pos = LL.instr_succ inx in
     let builder = LL.builder_at (LL.module_context modul) insert_pos in
@@ -123,7 +124,7 @@ let apply_annotation anntyp instr bugs modul=
       match assert_func_opt with
       | None -> ()
       | Some assert_func ->
-        let assert_ins = LL.build_call assert_func 
+        let assert_ins = LL.build_call assert_func
            (Array.create ~len:1 inx) "" builder in ()
     )
 
@@ -180,38 +181,38 @@ let rec resolve (ann_marks: Ann.mark list) (instrs: instr_with_tag list) matched
      match hd_ann with
      | Bug_start ((line, col), bugs) | Safe_start ((line, col), bugs) ->
        (match instrs with
-        | [] -> 
-          raise (AnnotFormat ("Error: no matching instruction for bug annotation at " 
+        | [] ->
+          raise (AnnotFormat ("Error: no matching instruction for bug annotation at "
                  ^ (pr_int line) ^ " " ^ (pr_int col)))
-        | ins :: tl_ins ->  
-          if less_than ins hd_ann then  
+        | ins :: tl_ins ->
+          if less_than ins hd_ann then
             resolve ann_marks tl_ins (update ins matched_anns) modul
           else
             resolve tl_anns instrs ((hd_ann, None)::matched_anns) modul
        )
      | Bug_end (line, col) ->
        (match instrs with
-        | [] -> 
+        | [] ->
           let updated_matched_anns = apply_hd_bug hd_ann matched_anns modul in
           resolve tl_anns instrs updated_matched_anns modul
 
-        | hd_ins::tl_ins -> 
+        | hd_ins::tl_ins ->
           if less_than hd_ins hd_ann then
             resolve ann_marks tl_ins (update hd_ins matched_anns) modul
-          else 
+          else
             let updated_matched_anns = apply_hd_bug hd_ann matched_anns modul in
             resolve tl_anns instrs updated_matched_anns modul
        )
      | Safe_end (line, col) ->
        (match instrs with
-        | [] -> 
+        | [] ->
           let updated_matched_anns = apply_hd_safe hd_ann matched_anns modul in
           resolve tl_anns instrs updated_matched_anns modul
 
-        | hd_ins::tl_ins -> 
+        | hd_ins::tl_ins ->
           if less_than hd_ins hd_ann then
             resolve ann_marks tl_ins (update hd_ins matched_anns) modul
-          else 
+          else
             let updated_matched_anns = apply_hd_safe hd_ann matched_anns modul in
             resolve tl_anns instrs updated_matched_anns modul
        )
@@ -234,12 +235,12 @@ let instrument_bug_annotation ann_marks source_name (modul: LL.llmodule) : unit 
 
   let _ = hprint "======== Source file: " pr_str source_name in
 
-  let _ = print_endline 
+  let _ = print_endline
           ("MODULE  =============================\n" ^
             (LL.string_of_llmodule modul) ^
             " =====================\n"
           )in
-  
+
   let finstr = Some (fun acc instr ->
     let pos_op = LS.position_of_instr instr in
     match pos_op with
@@ -247,13 +248,13 @@ let instrument_bug_annotation ann_marks source_name (modul: LL.llmodule) : unit 
        (* let pop = mk_position "Hi!" (-1) (-1) (-1) (-1) in
         let ins = make_tagged_ins pop (-1) instr in
         ins::acc ) *)
-    | Some pos -> 
+    | Some pos ->
         if not (String.equal pos.pos_file_name source_name) then
           acc
         else
           match acc with
           | [] -> (make_tagged_ins pos 1 instr)::acc
-          | hd::tl -> 
+          | hd::tl ->
               (make_tagged_ins pos (hd.tag + 1) instr)::acc) in
   let tagged_ins = deep_fold_module ~finstr [] modul in
   let compare ins1 ins2 =
@@ -269,7 +270,7 @@ let instrument_bug_annotation ann_marks source_name (modul: LL.llmodule) : unit 
   let llctx = LL.global_context () in
   let _ = List.iter ~f:(fun tin ->
     match tin.ins with
-    | Instr inx ->  
+    | Instr inx ->
       let dbg = LL.metadata inx (LL.mdkind_id llctx "dbg") in
       let dbg_str =
         match dbg with
@@ -281,7 +282,7 @@ let instrument_bug_annotation ann_marks source_name (modul: LL.llmodule) : unit 
         "Instr: " ^ (LL.string_of_llvalue inx) ^ " +++ " ^ (pr_int tin.pos.pos_line_end) ^ " .. "
         ^ (pr_int tin.pos.pos_col_end)
         ^ " .. file: " ^ tin.pos.pos_file_name  *)
-        (LL.string_of_llvalue inx) 
+        (LL.string_of_llvalue inx)
       )
 (*      let pos = LS.position_of_instr instr in
         match pos with
@@ -302,8 +303,8 @@ let instrument_bug_annotation ann_marks source_name (modul: LL.llmodule) : unit 
   let _ = print_endline "===SORTED_INS" in
 
   let _ = resolve ann_marks sorted_ins [] modul in
-  
-  print_endline ("INSTRUMENTED ***********************\n" ^ 
+
+  print_endline ("INSTRUMENTED ***********************\n" ^
                 (LL.string_of_llmodule modul) ^
                 "***********************")
 
