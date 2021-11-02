@@ -219,20 +219,15 @@ let _ =
     let msg = "ERROR: " ^ msg in
     let msg =
       msg
+      ^ (if !release_mode || String.is_empty log
+        then ""
+        else "\n\nDetailed message:\n\n" ^ pr_prefix ~prefix:"  > " log)
       ^
       if !release_mode || String.is_empty log
       then ""
-      else (
-        let log = pr_prefix ~prefix:"  > " log in
-        "\n\nDetailed message:\n\n" ^ log) in
-    let msg =
-      msg
-      ^
-      if !release_mode || String.is_empty log
-      then ""
-      else (
-        let backtrace = hpr_indent 2 Printexc.get_backtrace () in
-        "\n\nException occurred:\n\n" ^ backtrace) in
+      else
+        "\n\nException occurred:\n\n" ^ hpr_indent 2 Printexc.get_backtrace ()
+    in
     let _ = prerr_endline ("\n" ^ msg) in
     exit 1
   | e ->
@@ -242,19 +237,14 @@ let _ =
       else (
         match is_debug_mode () with
         | true ->
-          Printf.sprintf
-            "\nERROR: an exception occurred!\n\nException: %s\n%s"
-            (Exn.to_string e)
-            (Printexc.get_backtrace ())
+          "\nERROR: an exception occurred!\n\n"
+          ^ ("Exception: " ^ Exn.to_string e ^ "\n")
+          ^ Printexc.get_backtrace ()
         | false ->
-          Printf.sprintf
-            "\n\
-             ERROR: an exception occurred!\n\
-             Exception: %s\n\
-             %s\n\n\
-             To debug, run Discover again with additional '-d'."
-            (Exn.to_string e)
-            (Printexc.get_backtrace ())) in
+          "\nERROR: an exception occurred!\n"
+          ^ ("Exception: " ^ Exn.to_string e ^ "\n")
+          ^ (Printexc.get_backtrace () ^ "\n\n")
+          ^ "To debug, run Discover again with additional '-d'.") in
     let _ = prerr_endline msg in
     exit 1
 ;;

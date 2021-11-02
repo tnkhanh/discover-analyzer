@@ -106,7 +106,7 @@ module Z3SL = struct
 
   let transform_var (v : SI.var) : string = SI.pr_var v
 
-  let transform_vars_with_typ (vs : SI.var list) =
+  let transform_typed_vars (vs : SI.var list) =
     vs
     |> List.map ~f:(fun x ->
            "(" ^ transform_var x ^ " " ^ transform_typ (SI.typ_of_var x) ^ ")")
@@ -140,35 +140,28 @@ module Z3SL = struct
     match f with
     | Bool b -> transform_bool b
     | BExp e -> transform_exp e
-    | BEq (e, f) ->
-      Printf.sprintf "(= %s %s)" (transform_exp e) (transform_pure_form f)
+    | BEq (e, f) -> "(= " ^ transform_exp e ^ " " ^ transform_pure_form f ^ ")"
     | Reln (Eq, [ e1; e2 ]) ->
-      Printf.sprintf "(= %s %s)" (transform_exp e1) (transform_exp e2)
+      "(= " ^ transform_exp e1 ^ " " ^ transform_exp e2 ^ ")"
     | Reln (Ne, [ e1; e2 ]) ->
-      Printf.sprintf "(not (= %s %s))" (transform_exp e1) (transform_exp e2)
+      "(not (= " ^ transform_exp e1 ^ " " ^ transform_exp e2 ^ "))"
     | Reln (Lt, [ e1; e2 ]) ->
-      Printf.sprintf "(< %s %s)" (transform_exp e1) (transform_exp e2)
+      "(< " ^ transform_exp e1 ^ " " ^ transform_exp e2 ^ ")"
     | Reln (Gt, [ e1; e2 ]) ->
-      Printf.sprintf "(> %s %s)" (transform_exp e1) (transform_exp e2)
+      "(> " ^ transform_exp e1 ^ " " ^ transform_exp e2 ^ ")"
     | Reln (Le, [ e1; e2 ]) ->
-      Printf.sprintf "(<= %s %s)" (transform_exp e1) (transform_exp e2)
+      "(<= " ^ transform_exp e1 ^ " " ^ transform_exp e2 ^ ")"
     | Reln (Ge, [ e1; e2 ]) ->
-      Printf.sprintf "(>= %s %s)" (transform_exp e1) (transform_exp e2)
+      "(>= " ^ transform_exp e1 ^ " " ^ transform_exp e2 ^ ")"
     | Reln (RName n, es) -> Printf.sprintf "(%s %s)" n (transform_exps es)
     | Reln _ -> error "z3: transform_atom: unexpected relation: (need details)"
     | PNeg f -> Printf.sprintf "(not %s)" (transform_pure_form f)
     | PConj fs -> Printf.sprintf "(and %s)" (transform_forms fs)
     | PDisj fs -> Printf.sprintf "(or %s)" (transform_forms fs)
     | PForall (vs, g) ->
-      Printf.sprintf
-        "(forall (%s) %s)"
-        (transform_vars_with_typ vs)
-        (transform_pure_form g)
+      "(forall (" ^ transform_typed_vars vs ^ ") " ^ transform_pure_form g ^ ")"
     | PExists (vs, g) ->
-      Printf.sprintf
-        "(exists (%s) %s)"
-        (transform_vars_with_typ vs)
-        (transform_pure_form g)
+      "(exists (" ^ transform_typed_vars vs ^ ") " ^ transform_pure_form g ^ ")"
 
   and transform_forms fs =
     fs |> List.map ~f:transform_pure_form |> String.concat ~sep:" "
@@ -187,28 +180,27 @@ module Z3SL = struct
         |> List.map ~f:(fun a -> a |> SI.typ_of_var |> transform_typ)
         |> String.concat ~sep:" " in
       let return_typ = fd.funcd_ret_typ |> transform_typ in
-      Printf.sprintf
-        "(declare-fun %s (%s) %s)"
-        fd.funcd_name
-        param_typs
-        return_typ
+      "(declare-fun "
+      ^ fd.funcd_name
+      ^ (" (" ^ param_typs ^ ") ")
+      ^ return_typ
+      ^ ")"
     | Some e ->
       let param_typs =
         fd.funcd_params
         |> List.map ~f:(fun x ->
-               Printf.sprintf
-                 "(%s %s)"
-                 (transform_var x)
-                 (transform_typ (SI.typ_of_var x)))
+               let sx, tx = transform_var x, transform_typ (SI.typ_of_var x) in
+               "(" ^ sx ^ " " ^ tx ^ ")")
         |> String.concat ~sep:" " in
       let return_typ = transform_typ (SI.typ_of_exp e) in
       let body = transform_exp e in
-      Printf.sprintf
-        "(define-fun %s (%s) %s %s)"
-        fd.funcd_name
-        param_typs
-        return_typ
-        body
+      "(define-fun "
+      ^ fd.funcd_name
+      ^ (" (" ^ param_typs ^ ") ")
+      ^ return_typ
+      ^ " "
+      ^ body
+      ^ ")"
   ;;
 
   let mk_reln_defn (pd : SI.reln_defn) : string =
@@ -438,7 +430,7 @@ module Z3LL = struct
   let check_sat (p : LI.predicate) : bool option =
     let z3_input =
       "(set-option :produce-models false)\n"
-      ^ Printf.sprintf "%s\n" (mk_z3_input p)
+      ^ (mk_z3_input p ^ "\n")
       ^ "(check-sat)\n" in
     let _ = start_solver () in
     let _ = send_input !proc z3_input in
@@ -448,12 +440,11 @@ module Z3LL = struct
     match output with
     | Error msg ->
       let msg =
-        Printf.sprintf
-          "Z3LL: error while checking sat:\n%s\n%s\n%s\n%s"
-          (hpr_align "  - predicate: " LI.pr_pred p)
-          (pr_align "  - z3 input:\n" z3_input)
-          (pr_align "  - z3 output:\n" z3_output)
-          ("  - error: " ^ msg) in
+        "Z3LL: error while checking sat:\n"
+        ^ (hpr_align "  - predicate: " LI.pr_pred p ^ "\n")
+        ^ (pr_align "  - z3 input:\n" z3_input ^ "\n")
+        ^ (pr_align "  - z3 output:\n" z3_output ^ "\n")
+        ^ pr_align "  - error: " msg in
       let _ = debug msg in
       None
     | _ -> get_result output
