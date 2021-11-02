@@ -20,21 +20,24 @@ include Bigint
 
 type bresult = bool option
 
-let is_true (b: bresult) : bool =
+let is_true (b : bresult) : bool =
   match b with
   | Some true -> true
   | _ -> false
+;;
 
-let is_false (b: bresult) : bool =
+let is_false (b : bresult) : bool =
   match b with
   | Some false -> true
   | _ -> false
+;;
 
-let pr_bresult (b: bresult) : string =
+let pr_bresult (b : bresult) : string =
   match b with
   | Some true -> "True"
   | Some false -> "False"
   | None -> "Unknown"
+;;
 
 (*-----------------
  * Big interger
