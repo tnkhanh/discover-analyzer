@@ -2,36 +2,41 @@
 #  - See `ocamlformat --help` for more options
 #  - Run `ocamlformat --print-config` to show the current configuration
 
-profile = ocamlformat
+# profile = ocamlformat
+# profile = conventional
+# profile = default
+# profile = compact
+profile = janestreet
 version = 0.19.0
 
-# Generals
+# # Generals
 margin = 80
-line-endings = lf
+ocp-indent-compat=true
+break-before-in = auto
 
-break-before-in = fit-or-vertical
-break-sequences = true
+# break-sequences = true
 
-# Documentation and comments
-parse-docstrings = true
-wrap-comments = true
-doc-comments-padding = 2
+# # Documentation and comments
+# parse-docstrings = true
+wrap-comments = false
+# doc-comments-padding = 2
+comment-check = false
 
-# Pattern matching
-cases-exp-indent = 0
-cases-matching-exp-indent = normal
-nested-match = align
-break-cases = fit
+# # Pattern matching
+# cases-exp-indent = 0
+# cases-matching-exp-indent = normal
+# nested-match = align
+# break-cases = fit
 
-# Function
-# function-indent-nested = always
-# break-fun-decl = smart
-# break-fun-sig = smart
-# wrap-fun-args = true
+# # Function
+# # function-indent-nested = always
+# # break-fun-decl = smart
+# # break-fun-sig = smart
+# # wrap-fun-args = true
 
-# Let binding
-let-binding-indent = 2
-let-binding-spacing = sparse
+# # Let binding
+# let-binding-indent = 2
+# let-binding-spacing = sparse
 
-# break-infix = wrap
-# infix-precedence = parens
+# # break-infix = wrap
+# # infix-precedence = parens
