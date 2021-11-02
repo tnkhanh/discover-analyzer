@@ -307,8 +307,8 @@ let parse_arguments () : unit =
     let collect_input_file arg =
       all_input_files := arg :: !all_input_files in
     let arguments = List.fold_left ~f:(fun acc (flags, doc, spec) ->
-      let args = List.map ~f:(fun flag -> (flag, spec, doc)) flags in
-      acc @ args) ~init:[] arguments_raw in
+          let args = List.map ~f:(fun flag -> (flag, spec, doc)) flags in
+          acc @ args) ~init:[] arguments_raw in
     let _ = Arg.parse_argv Sys.argv arguments collect_input_file "" in
     match !all_input_files with
     | [] -> print_error "Input file is undefined!"
