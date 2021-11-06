@@ -14,7 +14,11 @@ margin = 80
 ocp-indent-compat=true
 break-before-in = auto
 
-# break-sequences = true
+break-sequences = false
+break-string-literals=never
+single-case=compact
+break-separators=after
+break-infix=wrap
 
 # # Documentation and comments
 # parse-docstrings = true

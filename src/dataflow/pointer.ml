@@ -7,7 +7,7 @@
 
 open Core
 open Globals
-open Lib
+open Libdiscover
 open Sprinter
 open Printer
 open Debugger
@@ -652,7 +652,7 @@ module PointerGraph = struct
       List.for_all
         ~f:(fun (dexp, trs) ->
           (* let _ = hdebug "check read_write of dexp: " pr_expr dexp in *)
-          let trace_pairs = Comb.gen_combinations 2 trs in
+          let trace_pairs = Math.gen_combinations 2 trs in
           List.for_all
             ~f:(fun trs ->
               match trs with
@@ -1416,7 +1416,7 @@ module PointerDomain = struct
           if PG.succ g v != [] && PG.pred g v != [] then acc @ [ v ] else acc)
         g
         [] in
-    let vpairs = Lib.Comb.gen_combinations 2 vertices in
+    let vpairs = Math.gen_combinations 2 vertices in
     let ng = PG.copy g in
     let _ =
       List.iter

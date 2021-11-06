@@ -10,14 +10,15 @@
  *******************************************************************)
 
 %{
-  open Globals
-open Lib
+open Globals
+open Libdiscover
 open Sprinter
 open Printer
 open Debugger
-
-  open Z3ir
+open Z3ir
+[@ocamlformat "disable"]
 %}
+
 
 (*******************************************************************
  ** Token

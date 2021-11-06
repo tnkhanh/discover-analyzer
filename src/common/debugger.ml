@@ -9,7 +9,6 @@
 
 open Core
 open Sprinter
-open Lib
 open Libdiscover
 
 (*------------------

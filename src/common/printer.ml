@@ -10,7 +10,7 @@
 open Core
 open Sprinter
 open Debugger
-open Lib
+open Libdiscover
 
 (*******************************************************************
  ** Printing functions

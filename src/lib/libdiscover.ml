@@ -9,10 +9,12 @@
  * Extended libraries
  *--------------------*)
 
+include Bigint
+include Hashtbl
 include List
+include Math
 include String
 include Sys
-include Bigint
 
 (*-----------------
  * Boolean result
@@ -44,3 +46,18 @@ let pr_bresult (b : bresult) : string =
  *----------------*)
 
 type bint = BInt.big_int
+
+
+(*-----------------
+ * Exceptions
+ *----------------*)
+
+exception EInt of int
+exception EBool of bool
+exception EError of (string * string)
+exception EString of string
+exception ESkip
+exception EDone
+
+let raise_bool b = raise (EBool b)
+let raise_int i = raise (EInt i)

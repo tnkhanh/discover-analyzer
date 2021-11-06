@@ -7,7 +7,7 @@
 
 open Core
 open Globals
-open Lib
+open Libdiscover
 open Sprinter
 open Printer
 open Debugger

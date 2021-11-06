@@ -7,7 +7,7 @@
 
 open Core
 open Globals
-open Lib
+open Libdiscover
 open Sprinter
 open Printer
 open Debugger
@@ -16,11 +16,8 @@ module AS = Assertion
 module BG = Bug
 module CI = Commonir
 module DA = Dfanalyzer
-
-(* module DAO = Dfanalyzeroo *)
-(* module DAP = Dfanalyzerpl *)
 module DF = Dataflow
-module LC = Llcompile
+module CP = Compile
 module LI = Llir
 module LL = Llvm
 module LU = Llutils
@@ -38,21 +35,12 @@ let print_discover_settings () =
   let _ = print ~always:true ("Checking file: " ^ !input_file) in
   let info =
     "Discover's settings:"
-    ^ "\n  Git revision: "
-    ^ VS.get_current_revision ()
-    ^ "\n  LLVM version: "
-    ^ llvm_version
-    ^ "\n  llvm-clang: "
-    ^ !clang_path
-    ^ "\n  llvm-opt: "
-    ^ !opt_path
-    ^ "\n  llvm-discover-normalizer: "
-    ^ !llvm_normalizer_path
-    ^ "\n  Z3 solver: "
-    ^ !Z3.z3cmd
-    ^ " ("
-    ^ !Z3.z3version
-    ^ ")" in
+    ^ ("\n  Git revision: " ^ VS.get_current_revision ())
+    ^ ("\n  LLVM version: " ^ llvm_version)
+    ^ ("\n  llvm-clang: " ^ !clang_path)
+    ^ ("\n  llvm-opt: " ^ !opt_path)
+    ^ ("\n  llvm-discover-normalizer: " ^ !llvm_normalizer_path)
+    ^ "\n  Z3 solver: " ^ !Z3.z3cmd ^ " (" ^ !Z3.z3version ^ ")" in
   debug info
 ;;
 
@@ -82,15 +70,14 @@ let read_user_configuration () : unit =
          let gopath = Ezjsonm.find config [ "GOLLVM_BINARY_PATH" ] in
          let _ = gollvm_path := Ezjsonm.get_string gopath in
          print (" - GOLLVM: " ^ !gollvm_path)
-       with
-      | exn -> ()))
+       with exn -> ()))
 ;;
 
 let init_environment () =
   let root_dir = Filename.dirname Sys.executable_name in
   let _ = lib_core_file := root_dir ^ "/" ^ !lib_core_file in
   let _ = read_user_configuration () in
-  let _ = LC.config_toolchain () in
+  let _ = CP.config_toolchain () in
   let _ = init_solvers () in
   if !skip_analysis then work_mode := WkmNoAnalysis
 ;;
@@ -132,10 +119,10 @@ let compile_input_file (filename : string) : CI.program =
   let input_type = get_input_type filename in
   match input_type with
   | InpSepLogic -> filename |> SE.compile_sep_logic |> CI.mk_seplogic_prog
-  | InpBitcode -> filename |> LC.compile_bitcode [] "" |> CI.mk_llvm_prog
-  | InpLlir -> filename |> LC.compile_llir |> CI.mk_llvm_prog
-  | InpCCpp -> filename |> LC.compile_c_cpp |> CI.mk_llvm_prog
-  | InpGolang -> filename |> LC.compile_golang |> CI.mk_llvm_prog
+  | InpBitcode -> filename |> CP.compile_bitcode [] "" |> CI.mk_llvm_prog
+  | InpLlir -> filename |> CP.compile_llir |> CI.mk_llvm_prog
+  | InpCCpp -> filename |> CP.compile_c_cpp |> CI.mk_llvm_prog
+  | InpGolang -> filename |> Golang.compile_golang |> CI.mk_llvm_prog
   | InpUnkn -> herror "Unknown input type: " pr_str filename
 ;;
 

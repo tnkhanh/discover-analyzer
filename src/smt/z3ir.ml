@@ -7,7 +7,7 @@
 
 open Core
 open Globals
-open Lib
+open Libdiscover
 open Sprinter
 open Printer
 open Debugger
@@ -77,7 +77,7 @@ let z3_val_to_int (vl : z3_val list) : int list =
           | Frac (_, d) -> a @ [ int_of_float d ])
         ~init:[]
         vl in
-    let den_lcm = lcm_ints den_l in
+    let den_lcm = Math.lcm_ints den_l in
     List.map
       ~f:(fun v ->
         match v with

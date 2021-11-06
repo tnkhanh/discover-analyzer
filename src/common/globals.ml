@@ -6,7 +6,7 @@
  ********************************************************************)
 
 open Core
-open Lib
+open Libdiscover
 open Sprinter
 module LL = Llvm
 module LX = Lexing
@@ -168,6 +168,9 @@ let clang_path = ref "clang"
 let opt_path = ref "opt"
 let gollvm_path = ref ""
 let llvm_normalizer_path = ref "normalizer"
+
+let discover_path = Filename.realpath Sys.argv.(0)
+let project_path = Filename.dirname discover_path
 
 (*----------------------
  * Compilation options

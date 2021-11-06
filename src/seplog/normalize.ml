@@ -7,7 +7,7 @@
 
 open Core
 open Globals
-open Lib
+open Libdiscover
 open Sprinter
 open Printer
 open Debugger
@@ -229,7 +229,7 @@ let simplify_arith_p (f : pure_form) =
     match LA.term_of_exp (mk_sub e1 e2) with
     | (cvs, i), None ->
       let cs, vs = cvs |> List.unzip in
-      let k = i :: cs |> gcd_ints |> abs in
+      let k = i :: cs |> Math.gcd_ints |> abs in
       if k > 1
       then (
         let ncs = cs |> List.map ~f:(fun x -> x / k) in

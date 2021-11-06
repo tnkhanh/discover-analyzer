@@ -7,7 +7,7 @@
 
 open Core
 open Globals
-open Lib
+open Libdiscover
 open Sprinter
 open Printer
 open Debugger
@@ -171,7 +171,7 @@ and prove_one_goal pstate goal : proof_tree =
 ;;
 
 let init_global_vars ents =
-  let max_index = ents |> List.map ~f:(fun e -> e.ent_id) |> max_ints in
+  let max_index = ents |> List.map ~f:(fun e -> e.ent_id) |> Math.max_ints in
   index_entail := if max_index <= 0 then 0 else max_index
 ;;
 

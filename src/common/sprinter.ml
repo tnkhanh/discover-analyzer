@@ -8,7 +8,7 @@
 (** String printer module *)
 
 open Core
-open Lib
+open Libdiscover
 
 (*******************************************************************
  ** Utilites

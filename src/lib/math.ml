@@ -7,50 +7,6 @@
 
 open Core
 
-(*******************************************************************
- ** exceptions
- *******************************************************************)
-
-exception EError of (string * string)
-exception EBool of bool
-exception EInt of int
-exception EString of string
-exception ESkip
-exception EDone
-
-let raise_bool b = raise (EBool b)
-let raise_int i = raise (EInt i)
-
-(*******************************************************************
- ** Extended Hashtbl
- *******************************************************************)
-
-module Hashtbl = struct
-  let find_or_compute (tbl : ('a, 'b) Hashtbl.t) ~(key : 'a) ~(f : unit -> 'b)
-      : 'b
-    =
-    match Hashtbl.find tbl key with
-    | Some data -> data
-    | None ->
-      let data = f () in
-      let _ = Hashtbl.set tbl ~key ~data in
-      data
-  ;;
-
-  let find_default (tbl : ('a, 'b) Hashtbl.t) (key : 'a) ~(default : 'b) : 'b =
-    match Hashtbl.find tbl key with
-    | None -> default
-    | Some v -> v
-  ;;
-
-  (* include the original Hashtbl *)
-  include Hashtbl
-end
-
-(*******************************************************************
- ** Math
- *******************************************************************)
-
 module Math = struct
   let max_ints xs =
     match xs with
@@ -79,15 +35,8 @@ module Math = struct
     | [] -> raise (Failure "lcm_ints: empty list")
     | x :: xs -> List.fold_left ~f:(fun acc x' -> lcm acc x') ~init:x xs
   ;;
-end
 
-(*******************************************************************
- ** Combination
- *******************************************************************)
-
-(** generic module for combination *)
-module Comb = struct
-  (** extract all possible combination of k elements from a list
+    (** extract all possible combination of k elements from a list
       reference: https://ocaml.org/learn/tutorials/99problems.html *)
   let gen_combinations (k : int) list =
     let rec aux k acc emit = function
@@ -173,10 +122,3 @@ module Comb = struct
       ~init:[ [] ]
   ;;
 end
-
-(*******************************************************************
- ** System
- *******************************************************************)
-
-include Math
-include Libdiscover
