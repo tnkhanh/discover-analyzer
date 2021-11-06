@@ -14,10 +14,10 @@ open Debugger
 module AG = Arguments
 module AS = Assertion
 module BG = Bug
+module BC = Bitcode
 module CI = Commonir
 module DA = Dfanalyzer
 module DF = Dataflow
-module CP = Compile
 module LI = Llir
 module LL = Llvm
 module LU = Llutils
@@ -30,6 +30,18 @@ module SI = Slir
 module TF = Transform
 module TI = Typeinfer
 module VS = Version
+
+let config_golang_compiler () =
+  if String.equal !gollvm_path ""
+  then (
+    try
+      let go_path = FileUtil.which "go" in
+      gollvm_path := String.sub go_path ~pos:0 ~len:(String.length go_path - 2)
+    with _ -> ());
+  if (not (String.equal !gollvm_path ""))
+  && not (String.is_suffix !gollvm_path ~suffix:"/")
+  then gollvm_path := !gollvm_path ^ "/"
+;;
 
 let compile_golang (filename : string) : LI.program =
   let _ = hdebug "Compiling Go file: " pr_str filename in
@@ -86,5 +98,5 @@ let compile_golang (filename : string) : LI.program =
       ; !gollvm_path ^ "go"
       ; go_build_output
       ] in
-  CP.compile_bitcode [] "" bitcode_filename
+  BC.compile_bitcode [] "" bitcode_filename
 ;;

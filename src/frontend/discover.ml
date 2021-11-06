@@ -25,10 +25,10 @@ module NO = Normalize
 module PS = Process
 module PV = Prover
 module SA = Slast
-module SE = Symexec
 module SI = Slir
 module TF = Transform
 module TI = Typeinfer
+module SE = Symexec
 module VS = Version
 
 let print_discover_settings () =
@@ -95,37 +95,6 @@ let enable_release_mode_alias_analysis () =
   print_stats_prog := true
 ;;
 
-let get_input_type (filename : string) =
-  match !input_mode with
-  | InpUnkn ->
-    (match snd (Filename.split_extension filename) with
-    | None -> InpUnkn
-    | Some ext ->
-      if List.exists ~f:(String.equal ext) file_ext_seplogic
-      then InpSepLogic
-      else if List.exists ~f:(String.equal ext) file_ext_bitcode
-      then InpBitcode
-      else if List.exists ~f:(String.equal ext) file_ext_llir
-      then InpLlir
-      else if List.exists ~f:(String.equal ext) file_ext_go
-      then InpGolang
-      else if List.exists ~f:(String.equal ext) file_ext_c_cpp
-      then InpCCpp
-      else InpUnkn)
-  | _ -> !input_mode
-;;
-
-let compile_input_file (filename : string) : CI.program =
-  let input_type = get_input_type filename in
-  match input_type with
-  | InpSepLogic -> filename |> SE.compile_sep_logic |> CI.mk_seplogic_prog
-  | InpBitcode -> filename |> CP.compile_bitcode [] "" |> CI.mk_llvm_prog
-  | InpLlir -> filename |> CP.compile_llir |> CI.mk_llvm_prog
-  | InpCCpp -> filename |> CP.compile_c_cpp |> CI.mk_llvm_prog
-  | InpGolang -> filename |> Golang.compile_golang |> CI.mk_llvm_prog
-  | InpUnkn -> herror "Unknown input type: " pr_str filename
-;;
-
 let print_analysis_summary () =
   match !work_mode with
   | WkmNoAnalysis -> ()
@@ -182,7 +151,7 @@ let analyze_program (prog : CI.program) : unit =
 
 let analyze_input_file (filename : string) : unit =
   let _ = print ("Analyze input file: " ^ filename) in
-  let prog = compile_input_file filename in
+  let prog = CP.compile_input_file filename in
   analysis_time := snd (Sys.track_runtime (fun () -> analyze_program prog))
 ;;
 
