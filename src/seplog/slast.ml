@@ -212,7 +212,7 @@ let rec pr_exp (e : exp) : string =
   | BinExp (Div, e1, e2, _) -> pr_exp e1 ^ "/" ^ pr_exp e2
   | Func (fn, es, _, _) -> fn ^ "(" ^ pr_exps es ^ ")"
 
-and pr_exps (es : exp list) : string = pr_list ~sep:"," pr_exp es
+and pr_exps (es : exp list) : string = sprint_list ~sep:"," ~f:pr_exp es
 
 let pr_addr_exp (a : addr_exp) : string =
   "("
@@ -262,7 +262,7 @@ let pr_ent (ent : entailment) : string =
 ;;
 
 let pr_ents (ents : entailment list) : string =
-  pr_items ~bullet:"  # " pr_ent ents
+  sprint_items ~bullet:"  # " ~f:pr_ent ents
 ;;
 
 (*** print declarations ***)
@@ -286,7 +286,7 @@ let pr_predicate_defn (p : pred_defn) : string =
   let body =
     match p.predd_body with
     | [] -> "?"
-    | fs -> pr_list ~sep:"\n    \\/ " pr_formula fs in
+    | fs -> sprint_list ~sep:"\n    \\/ " ~f:pr_formula fs in
   header ^ body ^ ";"
 ;;
 

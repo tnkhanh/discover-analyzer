@@ -99,7 +99,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
 
   let pr_data d =
     "MemSize: "
-    ^ pr_list_square (fun (v, s) -> pr_value v ^ ": " ^ SD.pr_size s) d
+    ^ sprint_list_square ~f:(fun (v, s) -> pr_value v ^ ": " ^ SD.pr_size s) d
   ;;
 
   let pr_data_checksum = pr_data

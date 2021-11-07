@@ -158,7 +158,7 @@ let get_original_freed_pointers pstate ptrs : exp list =
  *******************************************************************)
 
 let pr_buggy_exps prog exps : string =
-  let cur_exps = pr_list ~sep:", " pr_exp exps in
+  let cur_exps = sprint_list ~sep:", " ~f:pr_exp exps in
   match !llvm_orig_source_name with
   | false -> cur_exps
   | true ->
@@ -201,7 +201,7 @@ let report_bug prog bug exps (instr : LI.instr) : bool =
 ;;
 
 let report_bug_of_exps prog msg exps =
-  let sexps = pr_list ~sep:", " pr_exp exps in
+  let sexps = sprint_list ~sep:", " ~f:pr_exp exps in
   report_bug prog (msg ^ sexps)
 ;;
 

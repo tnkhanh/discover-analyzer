@@ -112,12 +112,12 @@ let debug_core
            || (String.length prefix > 1 && String.is_suffix ~suffix:"\n" prefix)
         then (
           let indent = get_indent prefix + 2 + indent in
-          prefix ^ pr_indent indent msg)
+          prefix ^ indent_line indent msg)
         else if String.length prefix > 12 && String.is_infix ~infix:"\n" msg
         then (
           let indent = get_indent prefix + 2 + indent in
-          prefix ^ "\n" ^ pr_indent indent msg)
-        else pr_indent indent (pr_align prefix msg) in
+          prefix ^ "\n" ^ indent_line indent msg)
+        else indent_line indent (align_line prefix msg) in
     print_endline msg)
   else ()
 ;;

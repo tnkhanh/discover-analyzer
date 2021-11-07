@@ -35,8 +35,8 @@ module UndefDomain = struct
   ;;
 
   let pr_undef (ud : undef) =
-    let pointers = ud.undef_pointers |> pr_list_curly pr_value in
-    let values = ud.undef_values |> pr_list_square pr_value in
+    let pointers = ud.undef_pointers |> sprint_list_curly ~f:pr_value in
+    let values = ud.undef_values |> sprint_list_square ~f:pr_value in
     let output = pointers ^ ", " ^ values in
     beautiful_concat ~sep:" " (String.split ~on:' ' output)
   ;;

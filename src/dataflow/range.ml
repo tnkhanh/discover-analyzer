@@ -492,8 +492,8 @@ struct
 
   let pr_data (d : t) =
     let exstring_of_interval_lst = MP.to_alist ~key_order:`Decreasing d in
-    pr_list_square
-      (fun (e, i) -> pr_expr e ^ ": " ^ string_of_interval i)
+    sprint_list_square
+      ~f:(fun (e, i) -> pr_expr e ^ ": " ^ string_of_interval i)
       exstring_of_interval_lst
   ;;
 

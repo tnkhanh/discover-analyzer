@@ -83,26 +83,26 @@ type predicate =
 
 type prec_block =
   { (* preceding block *)
-    pblk_block : block
-  ; pblk_pathcond : predicate
+    pblk_block : block;
+    pblk_pathcond : predicate
   }
 
 type succ_block =
   { (* succeeding block *)
-    sblk_block : block
-  ; sblk_pathcond : predicate
+    sblk_block : block;
+    sblk_pathcond : predicate
   }
 
 type prec_blocks = prec_block list
 type succ_blocks = succ_block list
 
 type loop =
-  { loop_head : block
-  ; loop_body : block list
-  ; loop_exit : block list
-  ; loop_exit_reachables : block list
-  ; loop_inners : loop list
-  ; loop_outers : loop option
+  { loop_head : block;
+    loop_body : block list;
+    loop_exit : block list;
+    loop_exit_reachables : block list;
+    loop_inners : loop list;
+    loop_outers : loop option
   }
 
 type loops = loop list
@@ -285,73 +285,73 @@ type program =
   { (*-----------------------------------------
      * core components of program
      *-----------------------------------------*)
-    prog_globals : global list
-  ; prog_struct_types : lltype list
-  ; prog_lib_funcs : func list
-  ; (* lib function, won't be analyzed *)
-    prog_testing_funcs : func list
-  ; (* testing functions of analysis passes *)
-    prog_init_funcs : func list
-  ; (* initialization functions *)
-    prog_user_funcs : func list
-  ; (* user functions, will be analyzed *)
-    prog_main_func : func option
-  ; (*-----------------------------------------
+    prog_globals : global list;
+    prog_struct_types : lltype list;
+    prog_lib_funcs : func list;
+    (* lib function, won't be analyzed *)
+    prog_testing_funcs : func list;
+    (* testing functions of analysis passes *)
+    prog_init_funcs : func list;
+    (* initialization functions *)
+    prog_user_funcs : func list;
+    (* user functions, will be analyzed *)
+    prog_main_func : func option;
+    (*-----------------------------------------
      * information of functions
      *-----------------------------------------*)
     (* main function *)
 
     (* mapping each user function to its used global variables *)
-    prog_func_return_instr : (func, instr) Hashtbl.t
-  ; (* mapping a function to its callers, callees, reachable functions, loops *)
-    prog_func_callers : (func, funcs) Hashtbl.t
-  ; prog_func_callees : (func, funcs) Hashtbl.t
-  ; prog_func_ptr_callees : (func, llvalues) Hashtbl.t
-  ; prog_func_reachables : (func, funcs) Hashtbl.t
-  ; prog_func_loops : (func, loops) Hashtbl.t
-  ; prog_func_used_globals : (func, globals) Hashtbl.t
-  ; mutable prog_funcs_in_pointers : (lltype, funcs) Hashtbl.t
-  ; (* reachability graphs *)
-    prog_func_call_graph : CallGraph.t
-  ; prog_func_block_graph : (func, BlockGraph.t) Hashtbl.t
-  ; prog_instr_graph : InstrGraph.t
-  ; (*-----------------------------------------
+    prog_func_return_instr : (func, instr) Hashtbl.t;
+    (* mapping a function to its callers, callees, reachable functions, loops *)
+    prog_func_callers : (func, funcs) Hashtbl.t;
+    prog_func_callees : (func, funcs) Hashtbl.t;
+    prog_func_ptr_callees : (func, llvalues) Hashtbl.t;
+    prog_func_reachables : (func, funcs) Hashtbl.t;
+    prog_func_loops : (func, loops) Hashtbl.t;
+    prog_func_used_globals : (func, globals) Hashtbl.t;
+    mutable prog_funcs_in_pointers : (lltype, funcs) Hashtbl.t;
+    (* reachability graphs *)
+    prog_func_call_graph : CallGraph.t;
+    prog_func_block_graph : (func, BlockGraph.t) Hashtbl.t;
+    prog_instr_graph : InstrGraph.t;
+    (*-----------------------------------------
      * information of blocks
      *-----------------------------------------*)
     (* mapping a block to its preceding and succeeding blocks *)
-    prog_block_precedings : (block, prec_blocks) Hashtbl.t
-  ; prog_block_succeedings : (block, succ_blocks) Hashtbl.t
-  ; (* mapping a block to its path conditions *)
-    prog_block_incoming_pathcond : (block, predicate list) Hashtbl.t
-  ; (* mapping a block to its reachable blocks *)
-    prog_block_reachables : (block, block list) Hashtbl.t
-  ; (*-----------------------------------------
+    prog_block_precedings : (block, prec_blocks) Hashtbl.t;
+    prog_block_succeedings : (block, succ_blocks) Hashtbl.t;
+    (* mapping a block to its path conditions *)
+    prog_block_incoming_pathcond : (block, predicate list) Hashtbl.t;
+    (* mapping a block to its reachable blocks *)
+    prog_block_reachables : (block, block list) Hashtbl.t;
+    (*-----------------------------------------
      * information of instruction
      *-----------------------------------------*)
-    prog_loop_updated_instr : (instr, bool) Hashtbl.t
-  ; prog_loop_head_instr : (instr, bool) Hashtbl.t
-  ; (*-----------------------------------------
+    prog_loop_updated_instr : (instr, bool) Hashtbl.t;
+    prog_loop_head_instr : (instr, bool) Hashtbl.t;
+    (*-----------------------------------------
      * information of llvalue
      *-----------------------------------------*)
-    prog_llvalue_innermost_loop : (llvalue, loop option) Hashtbl.t
-  ; prog_block_innermost_loop : (block, loop option) Hashtbl.t
-  ; (*-----------------------------------------
+    prog_llvalue_innermost_loop : (llvalue, loop option) Hashtbl.t;
+    prog_block_innermost_loop : (block, loop option) Hashtbl.t;
+    (*-----------------------------------------
      * result of analysis passes
      *-----------------------------------------*)
     (* mapping each instruction to the undefined llvalues at its program point *)
-    prog_undef_values : (instr, llvalues) Hashtbl.t
-  ; (* hash-table mapping each pointer to its associcated functions *)
-    prog_pointer_funcs : (llvalue, funcs) Hashtbl.t
-  ; (*-----------------------------------------
+    prog_undef_values : (instr, llvalues) Hashtbl.t;
+    (* hash-table mapping each pointer to its associcated functions *)
+    prog_pointer_funcs : (llvalue, funcs) Hashtbl.t;
+    (*-----------------------------------------
      * source code and compilation data
      *-----------------------------------------*)
-    prog_bitcode_filename : string
-  ; prog_source_filename : string
-  ; prog_llvalue_original_name : (string, string) Hashtbl.t
-  ; prog_module_id : string
-  ; prog_data_layout : string
-  ; prog_target_platform : string
-  ; prog_llmodule : llmodule
+    prog_bitcode_filename : string;
+    prog_source_filename : string;
+    prog_llvalue_original_name : (string, string) Hashtbl.t;
+    prog_module_id : string;
+    prog_data_layout : string;
+    prog_target_platform : string;
+    prog_llmodule : llmodule
   }
 
 exception Llvm_invalid_instr of string
@@ -540,18 +540,18 @@ let pr_value (v : llvalue) : string =
   else vname
 ;;
 
-let pr_values = pr_list pr_value
-let value_names (vs : llvalue list) : string = pr_list pr_value vs
+let pr_values = sprint_list ~f:pr_value
+let value_names (vs : llvalue list) : string = sprint_list ~f:pr_value vs
 
 let pr_value_detail (v : llvalue) : string =
-  v
-  |> LL.string_of_llvalue
-  |> String.split_lines
-  |> List.map ~f:String.strip
+  v |> LL.string_of_llvalue |> String.split_lines |> List.map ~f:String.strip
   |> String.concat ~sep:" "
 ;;
 
-let pr_values_detail (vs : llvalues) : string = pr_list pr_value_detail vs
+let pr_values_detail (vs : llvalues) : string =
+  sprint_list ~f:pr_value_detail vs
+;;
+
 let pr_type (t : lltype) : string = String.strip (Llvm.string_of_lltype t)
 
 (*******************************************************************
@@ -674,12 +674,12 @@ let elemptr_of_global (g : global) (idxs : expr list) =
 (* loop *)
 
 let mk_loop ~(head : block) ~(body : block list) ~(exit : block list) =
-  { loop_head = head
-  ; loop_body = body
-  ; loop_exit = exit
-  ; loop_exit_reachables = []
-  ; loop_inners = []
-  ; loop_outers = None
+  { loop_head = head;
+    loop_body = body;
+    loop_exit = exit;
+    loop_exit_reachables = [];
+    loop_inners = [];
+    loop_outers = None
   }
 ;;
 
@@ -792,9 +792,9 @@ let rec pr_expr (e : expr) : string =
   | Exn e -> "exn_" ^ pr_expr e
 ;;
 
-let pr_params (ps : params) : string = pr_args pr_param ps
-let pr_globals (gs : globals) : string = pr_list pr_global gs
-let pr_exprs (es : expr list) : string = pr_list pr_expr es
+let pr_params (ps : params) : string = sprint_args ~f:pr_param ps
+let pr_globals (gs : globals) : string = sprint_list ~f:pr_global gs
+let pr_exprs (es : expr list) : string = sprint_list ~f:pr_expr es
 
 let rec pr_pred (p : predicate) : string =
   match p with
@@ -802,12 +802,12 @@ let rec pr_pred (p : predicate) : string =
   | PIcmp (cmp, lhs, rhs) -> pr_value lhs ^ pr_icmp cmp ^ pr_value rhs
   | PFcmp (cmp, lhs, rhs) -> pr_value lhs ^ pr_fcmp cmp ^ pr_value rhs
   | PNeg p -> "!" ^ pr_pred p
-  | PConj ps -> pr_list_plain ~sep:" & " pr_pred ps
-  | PDisj ps -> pr_list_plain ~sep:" | " pr_pred ps
+  | PConj ps -> sprint_list_plain ~sep:" & " ~f:pr_pred ps
+  | PDisj ps -> sprint_list_plain ~sep:" | " ~f:pr_pred ps
 ;;
 
 let block_name (blk : block) : string = LL.value_name (LL.value_of_block blk)
-let block_names (blks : block list) : string = pr_list block_name blks
+let block_names (blks : block list) : string = sprint_list ~f:block_name blks
 
 let pr_prec_block (pblk : prec_block) : string =
   let blk, p = pblk.pblk_block, pblk.pblk_pathcond in
@@ -815,7 +815,7 @@ let pr_prec_block (pblk : prec_block) : string =
 ;;
 
 let pr_prec_blocks (pblks : prec_block list) : string =
-  pr_items pr_prec_block pblks
+  sprint_items ~f:pr_prec_block pblks
 ;;
 
 let pr_succ_block (sblk : succ_block) : string =
@@ -1571,7 +1571,7 @@ let equal_pred_simple (p1 : predicate) (p2 : predicate) =
  *-----------------------------------------*)
 
 let global_name (g : global) : string = pr_value (llvalue_of_global g)
-let global_names (gs : globals) : string = pr_args global_name gs
+let global_names (gs : globals) : string = sprint_args ~f:global_name gs
 
 (*-----------------------------------------
  * instruction
@@ -1677,18 +1677,18 @@ let func_name (f : func) : string =
 (* herror "func_name: not a function or pointer: " pr_value_detail v *)
 
 let param_name (p : param) : string = pr_value (llvalue_of_param p)
-let param_names (ps : params) : string = pr_args param_name ps
+let param_names (ps : params) : string = sprint_args ~f:param_name ps
 
 let func_name_and_params (f : func) : string =
   let v = llvalue_of_func f in
   match LL.classify_value v with
   | LV.Function ->
     let params = Array.to_list (LL.params v) in
-    LL.value_name v ^ "(" ^ pr_args pr_value_detail params ^ ")"
+    LL.value_name v ^ "(" ^ sprint_args ~f:pr_value_detail params ^ ")"
   | _ -> herror "func_name_and_params: not a function: " pr_value_detail v
 ;;
 
-let func_names (fs : func list) : string = pr_list func_name fs
+let func_names (fs : func list) : string = sprint_list ~f:func_name fs
 
 let func_params (f : func) : param list =
   let v = llvalue_of_func f in
@@ -1768,10 +1768,7 @@ let is_func_llvm_debug_value (f : func) : bool =
 
 let is_library_function (f : func) : bool =
   List.is_empty (blocks_of_func f)
-  || is_func_free f
-  || is_func_malloc f
-  || is_func_realloc f
-  || is_func_nondet f
+  || is_func_free f || is_func_malloc f || is_func_realloc f || is_func_nondet f
 ;;
 
 let is_assert_func (f : func) : bool =
@@ -1917,8 +1914,14 @@ type substve = (llvalue * expr) list (* old / new values*)
 
 type subste = (expr * expr) list (* old / new exprs*)
 
-let pr_substv (sst : substv) : string = pr_list (pr_pair pr_value pr_value) sst
-let pr_subste (sst : subste) : string = pr_list (pr_pair pr_expr pr_expr) sst
+let pr_substv (sst : substv) : string =
+  sprint_list ~f:(sprint_pair ~f1:pr_value ~f2:pr_value) sst
+;;
+
+let pr_subste (sst : subste) : string =
+  sprint_list ~f:(sprint_pair ~f1:pr_expr ~f2:pr_expr) sst
+;;
+
 let init_substv () : substv = []
 let init_subste () : subste = []
 
@@ -1947,8 +1950,7 @@ let mk_substv ~(oldvs : llvalue list) ~(newvs : llvalue list) : substv =
       ~init:[]
       oldvs
       newvs
-  with
-  | _ -> []
+  with _ -> []
 ;;
 
 let mk_subste ~(oldes : expr list) ~(newes : expr list) : subste =
@@ -1958,8 +1960,7 @@ let mk_subste ~(oldes : expr list) ~(newes : expr list) : subste =
       ~init:[]
       oldes
       newes
-  with
-  | _ -> []
+  with _ -> []
 ;;
 
 let mk_substve ~(oldvs : llvalue list) ~(newes : expr list) : substve =
@@ -1969,8 +1970,7 @@ let mk_substve ~(oldvs : llvalue list) ~(newes : expr list) : substve =
       ~init:[]
       oldvs
       newes
-  with
-  | _ -> []
+  with _ -> []
 ;;
 
 let subst_value (sst : substv) (v : llvalue) : llvalue =
@@ -2254,8 +2254,7 @@ let index_of_global_name (g : global) : int =
   if String.is_prefix gname ~prefix:"g"
   then (
     let sindex = String.sub gname ~pos:1 ~len:(String.length gname - 1) in
-    try Int.of_string sindex with
-    | _ -> -1)
+    try Int.of_string sindex with _ -> -1)
   else -1
 ;;
 
@@ -2675,8 +2674,7 @@ let index_of_block_name (blk : block) : int =
   if String.is_prefix bname ~prefix:"bb"
   then (
     let sindex = String.sub bname ~pos:2 ~len:(String.length bname - 2) in
-    try Int.of_string sindex with
-    | _ -> -1)
+    try Int.of_string sindex with _ -> -1)
   else -1
 ;;
 
@@ -2919,8 +2917,7 @@ let get_reachable_blocks (prog : program) (blk : block) : blocks =
     | [] -> visited
     | blk :: nqueue ->
       let nblks =
-        blk
-        |> get_succeeding_blocks prog
+        blk |> get_succeeding_blocks prog
         |> List.map ~f:(fun sblk -> sblk.sblk_block)
         |> List.exclude ~f:(List.mem ~equal:( == ) visited)
         |> List.exclude ~f:(List.mem ~equal:( == ) nqueue) in
@@ -3019,50 +3016,50 @@ let mk_program (filename : string) (m : llmodule) : program =
    *   if Str.string_match re str 0 then
    *     (Str.matched_group 1 str, Str.matched_group 2 str)
    *   else ("unknown", "unknown") in *)
-  { prog_globals = globals
-  ; prog_struct_types = []
-  ; (* get_struct_types m; *)
-    prog_lib_funcs = get_library_functions m
-  ; prog_user_funcs = get_user_functions m
-  ; prog_testing_funcs = get_auxiliary_funcs m
-  ; prog_init_funcs = get_initilization_funcs m
-  ; prog_main_func = get_main_function m
-  ; (* functions info *)
-    prog_func_return_instr = Hashtbl.create (module Func)
-  ; prog_func_callees = Hashtbl.create (module Func)
-  ; prog_func_ptr_callees = Hashtbl.create (module Func)
-  ; prog_func_callers = Hashtbl.create (module Func)
-  ; prog_func_reachables = Hashtbl.create (module Func)
-  ; prog_func_loops = Hashtbl.create (module Func)
-  ; prog_func_used_globals = Hashtbl.create (module Func)
-  ; prog_funcs_in_pointers = Hashtbl.create (module Lltype)
-  ; prog_func_call_graph = CG.create ()
-  ; prog_func_block_graph = Hashtbl.create (module Func)
-  ; prog_instr_graph = IG.create ()
-  ; (* blocks info *)
-    prog_block_precedings = Hashtbl.create (module Block)
-  ; prog_block_succeedings = Hashtbl.create (module Block)
-  ; prog_block_incoming_pathcond = Hashtbl.create (module Block)
-  ; prog_block_reachables = Hashtbl.create (module Block)
-  ; (* instruction info *)
-    prog_loop_updated_instr = Hashtbl.create (module Instr)
-  ; prog_loop_head_instr = Hashtbl.create (module Instr)
-  ; (* llvalue info *)
-    prog_llvalue_innermost_loop = Hashtbl.create (module Llvalue)
-  ; prog_block_innermost_loop = Hashtbl.create (module Block)
-  ; (* analysis results *)
-    prog_undef_values = Hashtbl.create (module Instr)
-  ; prog_pointer_funcs = Hashtbl.create (module Llvalue)
-  ; (* compilation info *)
-    prog_bitcode_filename = filename
-  ; prog_source_filename = "<unknown>"
-  ; (* source_filename; *)
-    prog_llvalue_original_name = Hashtbl.create (module String)
-  ; prog_module_id = "<unknown>"
-  ; (* module_id; *)
-    prog_data_layout = data_layout
-  ; prog_target_platform = compiled_target
-  ; prog_llmodule = m
+  { prog_globals = globals;
+    prog_struct_types = [];
+    (* get_struct_types m; *)
+    prog_lib_funcs = get_library_functions m;
+    prog_user_funcs = get_user_functions m;
+    prog_testing_funcs = get_auxiliary_funcs m;
+    prog_init_funcs = get_initilization_funcs m;
+    prog_main_func = get_main_function m;
+    (* functions info *)
+    prog_func_return_instr = Hashtbl.create (module Func);
+    prog_func_callees = Hashtbl.create (module Func);
+    prog_func_ptr_callees = Hashtbl.create (module Func);
+    prog_func_callers = Hashtbl.create (module Func);
+    prog_func_reachables = Hashtbl.create (module Func);
+    prog_func_loops = Hashtbl.create (module Func);
+    prog_func_used_globals = Hashtbl.create (module Func);
+    prog_funcs_in_pointers = Hashtbl.create (module Lltype);
+    prog_func_call_graph = CG.create ();
+    prog_func_block_graph = Hashtbl.create (module Func);
+    prog_instr_graph = IG.create ();
+    (* blocks info *)
+    prog_block_precedings = Hashtbl.create (module Block);
+    prog_block_succeedings = Hashtbl.create (module Block);
+    prog_block_incoming_pathcond = Hashtbl.create (module Block);
+    prog_block_reachables = Hashtbl.create (module Block);
+    (* instruction info *)
+    prog_loop_updated_instr = Hashtbl.create (module Instr);
+    prog_loop_head_instr = Hashtbl.create (module Instr);
+    (* llvalue info *)
+    prog_llvalue_innermost_loop = Hashtbl.create (module Llvalue);
+    prog_block_innermost_loop = Hashtbl.create (module Block);
+    (* analysis results *)
+    prog_undef_values = Hashtbl.create (module Instr);
+    prog_pointer_funcs = Hashtbl.create (module Llvalue);
+    (* compilation info *)
+    prog_bitcode_filename = filename;
+    prog_source_filename = "<unknown>";
+    (* source_filename; *)
+    prog_llvalue_original_name = Hashtbl.create (module String);
+    prog_module_id = "<unknown>";
+    (* module_id; *)
+    prog_data_layout = data_layout;
+    prog_target_platform = compiled_target;
+    prog_llmodule = m
   }
 ;;
 
@@ -3071,41 +3068,34 @@ let mk_program (filename : string) (m : llmodule) : program =
  *******************************************************************)
 
 let pr_loop (l : loop) : string =
-  "Loop: {head: "
-  ^ block_name l.loop_head
-  ^ "; body: "
-  ^ pr_list block_name l.loop_body
-  ^ "; exit: "
-  ^ pr_list block_name l.loop_exit
-  ^ "}"
+  let loop_info =
+    [ "Loop: {head: " ^ block_name l.loop_head;
+      "body: " ^ sprint_list ~f:block_name l.loop_body;
+      "exit: " ^ sprint_list ~f:block_name l.loop_exit ^ "}"
+    ] in
+  String.concat ~sep:"; " loop_info
 ;;
 
-let pr_loops (ls : loop list) : string = pr_items pr_loop ls
+let pr_loops (ls : loop list) : string = sprint_items ~f:pr_loop ls
 
 let pr_block (blk : block) : string =
   let blkname = block_name blk in
   let sinstrs =
-    blk |> map_instrs ~f:(hpr_indent 2 pr_instr) |> String.concat ~sep:"\n"
+    blk |> map_instrs ~f:(hindent_line 2 pr_instr) |> String.concat ~sep:"\n"
   in
-  " "
-  ^ blkname
-  ^ ":\n"
+  " " ^ blkname ^ ":\n"
   ^ String.replace_if_empty sinstrs ~replacer:"{Empty block}"
 ;;
 
 let pr_func (f : func) : string =
   let fname =
-    "Function: "
-    ^ pr_type (func_return_type f)
-    ^ " "
-    ^ func_name f
-    ^ "("
-    ^ pr_args pr_typed_param (func_params f)
-    ^ ")" in
+    sprintf
+      "Function: %s %s(%s)"
+      (pr_type (func_return_type f))
+      (func_name f)
+      (sprint_args ~f:pr_typed_param (func_params f)) in
   let sblks =
-    f
-    |> map_blocks ~f:pr_block
-    |> String.concat ~sep:"\n\n"
+    f |> map_blocks ~f:pr_block |> String.concat ~sep:"\n\n"
     |> String.replace_if_empty ~replacer:"{Empty function}" in
   fname ^ "\n" ^ sblks
 ;;
@@ -3115,7 +3105,7 @@ let pr_module (m : llmodule) : string = LL.string_of_llmodule m
 let pr_program (prog : program) : string =
   let sglobals =
     prog.prog_globals
-    |> List.map ~f:(hpr_indent 2 (pr_global ~detailed:true))
+    |> List.map ~f:(hindent_line 2 (pr_global ~detailed:true))
     |> String.concat ~sep:"\n"
     |> String.prefix_if_not_empty ~prefix:"Globals:\n" in
   let sstructs =
@@ -3161,11 +3151,8 @@ let print_program_analysis_info prog =
           if List.is_empty callees
           then acc
           else
-            acc
-            ^ "\n - "
-            ^ func_name f
-            ^ ":"
-            ^ pr_items ~bullet:"    ->" func_name callees)
+            acc ^ "\n - " ^ func_name f ^ ":"
+            ^ sprint_items ~bullet:"    ->" ~f:func_name callees)
         ~init:""
         prog.prog_func_callees in
   let _ = debug callees_info in
@@ -3177,11 +3164,8 @@ let print_program_analysis_info prog =
           if List.is_empty callers
           then acc
           else
-            acc
-            ^ "\n - "
-            ^ func_name f
-            ^ ":"
-            ^ pr_items ~bullet:"    <-" func_name callers)
+            acc ^ "\n - " ^ func_name f ^ ":"
+            ^ sprint_items ~bullet:"    <-" ~f:func_name callers)
         ~init:""
         prog.prog_func_callers in
   debug callers_info

@@ -34,101 +34,100 @@ module type Env = sig
   include Data
 
   type callsite =
-    { cs_instr_call : instr
-    ; cs_caller : func
-    ; cs_caller_input : t
-    ; cs_caller_callsites : callsite list
-    ; cs_callee : func
-    ; cs_callee_input : t
+    { cs_instr_call : instr;
+      cs_caller : func;
+      cs_caller_input : t;
+      cs_caller_callsites : callsite list;
+      cs_callee : func;
+      cs_callee_input : t
     }
 
   type exn =
-    { exn_orig_expr : expr
-    ; exn_root_expr : expr
-    ; exn_data : t
-    ; exn_type_info : llvalue
+    { exn_orig_expr : expr;
+      exn_root_expr : expr;
+      exn_data : t;
+      exn_type_info : llvalue
     }
 
   type exns = exn list
 
   type working_block =
-    { wb_block : block
-    ; wb_instr : instr
-    ; wb_instr_input : t
+    { wb_block : block;
+      wb_instr : instr;
+      wb_instr_input : t
     }
 
   type working_func =
-    { wf_callsites : callsite list
-    ; wf_func : func
-    ; wf_input : t
+    { wf_callsites : callsite list;
+      wf_func : func;
+      wf_input : t
     }
 
   type global_env =
-    { genv_global_output : (global, t) Hashtbl.t
-    ; mutable genv_globals_data : t
+    { genv_global_output : (global, t) Hashtbl.t;
+      mutable genv_globals_data : t
     }
 
   type func_env =
-    { fenv_id : string
-    ; fenv_func : func
-    ; fenv_callsites : callsite list
-    ; fenv_prog : program
-    ; fenv_instr_output : (instr, t) Hashtbl.t
-    ; fenv_block_input : (block, t) Hashtbl.t
-    ; mutable fenv_input : t
-    ; (* arguments and globals *)
+    { fenv_id : string;
+      fenv_func : func;
+      fenv_callsites : callsite list;
+      fenv_prog : program;
+      fenv_instr_output : (instr, t) Hashtbl.t;
+      fenv_block_input : (block, t) Hashtbl.t;
+      mutable fenv_input : t;
+      (* arguments and globals *)
       (* TODO: maybe adding location of this input (func call) for debugging? *)
-      mutable fenv_output : t option
-    ; fenv_thrown_exn : (llvalue, exn) Hashtbl.t
-    ; fenv_landing_exns : (llvalue, exn list) Hashtbl.t
-    ; mutable fenv_deref_params : params
-    ; mutable fenv_deref_globals : globals
-    ; mutable fenv_working_blocks : working_block list
-    ; (* block an instruction to be analyzed *)
+      mutable fenv_output : t option;
+      fenv_thrown_exn : (llvalue, exn) Hashtbl.t;
+      fenv_landing_exns : (llvalue, exn list) Hashtbl.t;
+      mutable fenv_deref_params : params;
+      mutable fenv_deref_globals : globals;
+      mutable fenv_working_blocks : working_block list;
+      (* block an instruction to be analyzed *)
       mutable fenv_state_changed : bool
     }
 
   type func_summary =
-    { fsum_func : func
-    ; fsum_input : t
-    ; (* data of globals and params *)
-      fsum_output : t
-    ; (* data of globals and returned *)
-      fsum_thrown_exn : exn list
-    ; fsum_deref_params : params
-    ; fsum_deref_globals : globals
+    { fsum_func : func;
+      fsum_input : t;
+      (* data of globals and params *)
+      fsum_output : t;
+      (* data of globals and returned *)
+      fsum_thrown_exn : exn list;
+      fsum_deref_params : params;
+      fsum_deref_globals : globals
     }
 
   type prog_env =
-    { penv_prog : program
-    ; penv_global_env : global_env
-    ; (* TODO: also need to capture different summaries *)
-      penv_func_envs : (func, func_env list) Hashtbl.t
-    ; penv_func_summaries : (func, func_summary list) Hashtbl.t
-    ; (* possible inputs of a function, consider both globals and params *)
-      penv_func_analyzed_inputs : (func, t list) Hashtbl.t
-    ; (* candidate functions to be analyzed *)
-      mutable penv_goal_funcs : funcs
-    ; (* all candidate functions *)
-      mutable penv_working_funcs : working_func list
-    ; (* functions to be analyzed*)
-
+    { penv_prog : program;
+      penv_global_env : global_env;
+      (* TODO: also need to capture different summaries *)
+      penv_func_envs : (func, func_env list) Hashtbl.t;
+      penv_func_summaries : (func, func_summary list) Hashtbl.t;
+      (* possible inputs of a function, consider both globals and params *)
+      penv_func_analyzed_inputs : (func, t list) Hashtbl.t;
+      (* candidate functions to be analyzed *)
+      mutable penv_goal_funcs : funcs;
+      (* all candidate functions *)
+      mutable penv_working_funcs : working_func list;
+      (* functions to be analyzed*)
       (* sparse analysis *)
-      penv_sparse_llvalue : (llvalue, bool) Hashtbl.t
-    ; penv_sparse_block : (block, bool) Hashtbl.t
-    ; penv_sparse_func : (func, bool) Hashtbl.t
-    ; penv_sparse_used_globals : (func, globals) Hashtbl.t
-    ; penv_block_sparse_instrs : (block, instr list) Hashtbl.t
-    ; (* mapping a block to its preceding and succeeding blocks *)
-      penv_sparse_precedings_block : (block, block list) Hashtbl.t
-    ; penv_sparse_succeedings_block : (block, block list) Hashtbl.t
-    ; penv_sparse_reachable_blocks : (block, block list) Hashtbl.t
-    ; (* analysis statistics *)
-      penv_func_analyzed_times : (func, int) Hashtbl.t
-    ; penv_block_local_analyzed_times : (block, int) Hashtbl.t
-    ; penv_block_total_analyzed_times : (block, int) Hashtbl.t
-    ; penv_func_analysis_stack : func Stack.t
-    ; penv_block_analyzed_squence : (func, blocks) Hashtbl.t
+      penv_sparse_llvalue : (llvalue, bool) Hashtbl.t;
+      penv_sparse_block : (block, bool) Hashtbl.t;
+      penv_sparse_func : (func, bool) Hashtbl.t;
+      penv_sparse_used_globals : (func, globals) Hashtbl.t;
+      penv_block_sparse_instrs : (block, instr list) Hashtbl.t;
+      (* mapping a block to its preceding and succeeding blocks *)
+      penv_sparse_precedings_block : (block, block list) Hashtbl.t;
+      penv_sparse_succeedings_block : (block, block list) Hashtbl.t;
+      penv_sparse_reachable_blocks : (block, block list) Hashtbl.t;
+      (* analysis statistics *)
+      penv_func_analyzed_times : (func, int) Hashtbl.t;
+      penv_block_local_analyzed_times : (block, int) Hashtbl.t;
+      penv_block_total_analyzed_times : (block, int) Hashtbl.t;
+      penv_func_analysis_stack : func Stack.t;
+      penv_block_analyzed_squence : (func, blocks) Hashtbl.t
     }
 
   (*--------------------------------------------------------
@@ -163,87 +162,87 @@ module MakeDefaultEnv (M : Data) = struct
   type t = M.t
 
   type callsite =
-    { cs_instr_call : instr
-    ; cs_caller : func
-    ; cs_caller_input : t
-    ; cs_caller_callsites : callsite list
-    ; cs_callee : func
-    ; cs_callee_input : t
+    { cs_instr_call : instr;
+      cs_caller : func;
+      cs_caller_input : t;
+      cs_caller_callsites : callsite list;
+      cs_callee : func;
+      cs_callee_input : t
     }
 
   type exn =
-    { exn_orig_expr : expr
-    ; exn_root_expr : expr
-    ; exn_data : t
-    ; exn_type_info : llvalue
+    { exn_orig_expr : expr;
+      exn_root_expr : expr;
+      exn_data : t;
+      exn_type_info : llvalue
     }
 
   type exns = exn list
 
   type working_block =
-    { wb_block : block
-    ; wb_instr : instr
-    ; wb_instr_input : t
+    { wb_block : block;
+      wb_instr : instr;
+      wb_instr_input : t
     }
 
   type working_func =
-    { wf_callsites : callsite list
-    ; wf_func : func
-    ; wf_input : t
+    { wf_callsites : callsite list;
+      wf_func : func;
+      wf_input : t
     }
 
   type global_env =
-    { genv_global_output : (global, t) Hashtbl.t
-    ; mutable genv_globals_data : t
+    { genv_global_output : (global, t) Hashtbl.t;
+      mutable genv_globals_data : t
     }
 
   type func_env =
-    { fenv_id : string
-    ; fenv_func : func
-    ; fenv_callsites : callsite list
-    ; fenv_prog : program
-    ; fenv_instr_output : (instr, t) Hashtbl.t
-    ; fenv_block_input : (block, t) Hashtbl.t
-    ; mutable fenv_input : t
-    ; mutable fenv_output : t option
-    ; fenv_thrown_exn : (llvalue, exn) Hashtbl.t
-    ; fenv_landing_exns : (llvalue, exn list) Hashtbl.t
-    ; mutable fenv_deref_params : params
-    ; mutable fenv_deref_globals : globals
-    ; mutable fenv_working_blocks : working_block list
-    ; mutable fenv_state_changed : bool
+    { fenv_id : string;
+      fenv_func : func;
+      fenv_callsites : callsite list;
+      fenv_prog : program;
+      fenv_instr_output : (instr, t) Hashtbl.t;
+      fenv_block_input : (block, t) Hashtbl.t;
+      mutable fenv_input : t;
+      mutable fenv_output : t option;
+      fenv_thrown_exn : (llvalue, exn) Hashtbl.t;
+      fenv_landing_exns : (llvalue, exn list) Hashtbl.t;
+      mutable fenv_deref_params : params;
+      mutable fenv_deref_globals : globals;
+      mutable fenv_working_blocks : working_block list;
+      mutable fenv_state_changed : bool
     }
 
   type func_summary =
-    { fsum_func : func
-    ; fsum_input : t
-    ; fsum_output : t
-    ; fsum_thrown_exn : exn list
-    ; fsum_deref_params : params
-    ; fsum_deref_globals : globals
+    { fsum_func : func;
+      fsum_input : t;
+      fsum_output : t;
+      fsum_thrown_exn : exn list;
+      fsum_deref_params : params;
+      fsum_deref_globals : globals
     }
 
   type prog_env =
-    { penv_prog : program
-    ; penv_global_env : global_env
-    ; penv_func_envs : (func, func_env list) Hashtbl.t
-    ; penv_func_summaries : (func, func_summary list) Hashtbl.t
-    ; penv_func_analyzed_inputs : (func, t list) Hashtbl.t
-    ; mutable penv_goal_funcs : funcs
-    ; mutable penv_working_funcs : working_func list
-    ; penv_sparse_llvalue : (llvalue, bool) Hashtbl.t
-    ; penv_sparse_block : (block, bool) Hashtbl.t
-    ; penv_sparse_func : (func, bool) Hashtbl.t
-    ; penv_sparse_used_globals : (func, globals) Hashtbl.t
-    ; penv_block_sparse_instrs : (block, instr list) Hashtbl.t
-    ; penv_sparse_precedings_block : (block, block list) Hashtbl.t
-    ; penv_sparse_succeedings_block : (block, block list) Hashtbl.t
-    ; penv_sparse_reachable_blocks : (block, block list) Hashtbl.t
-    ; penv_func_analyzed_times : (func, int) Hashtbl.t
-    ; penv_block_local_analyzed_times : (block, int) Hashtbl.t
-    ; penv_block_total_analyzed_times : (block, int) Hashtbl.t
-    ; penv_func_analysis_stack : func Stack.t
-    ; penv_block_analyzed_squence : (func, blocks) Hashtbl.t
+    { penv_prog : program;
+      penv_global_env : global_env;
+      penv_func_envs : (func, func_env list) Hashtbl.t;
+      penv_func_summaries : (func, func_summary list) Hashtbl.t;
+      penv_func_analyzed_inputs : (func, t list) Hashtbl.t;
+      mutable penv_goal_funcs : funcs;
+      mutable penv_working_funcs : working_func list;
+      penv_sparse_llvalue : (llvalue, bool) Hashtbl.t;
+      penv_sparse_block : (block, bool) Hashtbl.t;
+      penv_sparse_func : (func, bool) Hashtbl.t;
+      penv_sparse_used_globals : (func, globals) Hashtbl.t;
+      penv_block_sparse_instrs : (block, instr list) Hashtbl.t;
+      penv_sparse_precedings_block : (block, block list) Hashtbl.t;
+      penv_sparse_succeedings_block : (block, block list) Hashtbl.t;
+      penv_sparse_reachable_blocks : (block, block list) Hashtbl.t;
+      penv_func_analyzed_times : (func, int) Hashtbl.t;
+      penv_block_local_analyzed_times : (block, int) Hashtbl.t;
+      penv_block_total_analyzed_times : (block, int) Hashtbl.t;
+      penv_func_analysis_stack : func Stack.t;
+      penv_block_analyzed_squence : (func, blocks) Hashtbl.t
     }
 
   (* get and set globals' output *)
@@ -387,23 +386,23 @@ module type ForwardDataTransfer = sig
   val prepare_callee_input : prog_env -> instr -> func -> llvalue list -> t -> t
 
   val compute_callee_output_exns
-    :  prog_env
-    -> instr
-    -> func
-    -> llvalue list
-    -> t
-    -> func_summary
-    -> t * exns
+    :  prog_env ->
+    instr ->
+    func ->
+    llvalue list ->
+    t ->
+    func_summary ->
+    t * exns
 
   val prepare_thrown_exception_data : prog_env -> llvalue -> llvalue -> t -> t
 
   val compute_catch_exception_data
-    :  prog_env
-    -> instr
-    -> llvalue
-    -> t
-    -> exn
-    -> t
+    :  prog_env ->
+    instr ->
+    llvalue ->
+    t ->
+    exn ->
+    t
 
   val analyze_global : global -> t -> t
   val analyze_instr : ?widen:bool -> prog_env -> func_env -> instr -> t -> t
@@ -592,7 +591,7 @@ functor
      * (pr_data d) *)
 
     let pr_datas ?(bullet = "-") (ds : t list) : string =
-      pr_items ~bullet pr_data ds
+      sprint_items ~bullet ~f:pr_data ds
     ;;
 
     let pr_data_opt (d : t option) : string =
@@ -607,7 +606,7 @@ functor
       if List.is_empty prog.prog_globals
       then ""
       else (
-        let ginput = hpr_indent 4 T.pr_data T.least_data in
+        let ginput = hindent_line 4 T.pr_data T.least_data in
         let globals =
           List.fold_left
             ~f:(fun acc global ->
@@ -615,7 +614,7 @@ functor
               ^ "\n  "
               ^ pr_global global
               ^ "\n"
-              ^ hpr_indent 4 pr_data_opt (T.get_global_output genv global))
+              ^ hindent_line 4 pr_data_opt (T.get_global_output genv global))
             prog.prog_globals
             ~init:ginput in
         "\n\nGlobals:\n\n" ^ globals)
@@ -635,13 +634,12 @@ functor
               ~init:1
               blk in
           -1
-        with
-        | EInt res -> res in
+        with EInt res -> res in
       func_name caller ^ ":" ^ block_name blk ^ ":" ^ string_of_int index
     ;;
 
     let pr_callsites (css : callsite list) : string =
-      pr_list ~sep:",\n" pr_callsite css
+      sprint_list ~sep:",\n" ~f:pr_callsite css
     ;;
 
     let pr_exn (exn : exn) : string =
@@ -656,7 +654,7 @@ functor
       ^ pr_value exn.exn_type_info
     ;;
 
-    let pr_exns (exns : exn list) : string = pr_items pr_exn exns
+    let pr_exns (exns : exn list) : string = sprint_items ~f:pr_exn exns
 
     let pr_working_block (wb : working_block) : string =
       block_name wb.wb_block
@@ -668,7 +666,7 @@ functor
     ;;
 
     let pr_working_blocks (wbs : working_block list) : string =
-      pr_items ~bullet:" +" pr_working_block wbs
+      sprint_items ~bullet:" +" ~f:pr_working_block wbs
     ;;
 
     let pr_working_func (wf : working_func) : string =
@@ -692,7 +690,7 @@ functor
       let res =
         func_name wf.wf_func
         ^ " @ "
-        ^ pr_list pr_callsite wf.wf_callsites
+        ^ sprint_list ~f:pr_callsite wf.wf_callsites
         ^ " @ {"
         ^ input
         ^ "}" in
@@ -701,7 +699,7 @@ functor
     ;;
 
     let pr_working_funcs (wfs : working_func list) : string =
-      pr_items pr_working_func wfs
+      sprint_items ~f:pr_working_func wfs
     ;;
 
     let pr_analyzed_func_input penv : string =
@@ -715,7 +713,7 @@ functor
             acc @ sfuncs)
           ~init:[]
           penv.penv_func_analyzed_inputs in
-      pr_items ~bullet:"+" pr_id func_inputs
+      sprint_items ~bullet:"+" ~f:pr_id func_inputs
     ;;
 
     let pr_func_summary (fsum : T.func_summary) : string =
@@ -724,15 +722,14 @@ functor
         let vs =
           (fsum.fsum_deref_params |> llvalues_of_params)
           @ (fsum.fsum_deref_globals |> llvalues_of_globals) in
-        pr_list pr_value vs in
-      "Function summary: "
-      ^ fname_params
-      ^ "\n"
-      ^ hpr_align "- Input:  " pr_data fsum.fsum_input
-      ^ "\n"
-      ^ hpr_align "- Output: " pr_data fsum.fsum_output
-      ^ "\n"
-      ^ pr_align "- Deref params and globals: " deref_params_globals
+        sprint_list ~f:pr_value vs in
+      let summary =
+        [ "Function summary: " ^ fname_params;
+          halign_line "- Input:  " pr_data fsum.fsum_input;
+          halign_line "- Output: " pr_data fsum.fsum_output;
+          align_line "- Deref params and globals: " deref_params_globals
+        ] in
+      String.concat ~sep:"\n" summary
     ;;
 
     let pr_analysis_stats (penv : T.prog_env) : string =
@@ -768,12 +765,12 @@ functor
                       block_name blk ^ ": " ^ string_of_int btimes)
                     func in
                 beautiful_concat ~column:75 ~sep:", " stats in
-              func_stat ^ "\n" ^ pr_indent 4 blk_stats))
+              func_stat ^ "\n" ^ indent_line 4 blk_stats))
           penv.penv_goal_funcs in
       let func_sequence =
         let funcs = List.rev (Stack.to_list penv.penv_func_analysis_stack) in
         let fnames = List.map ~f:func_name funcs in
-        pr_align "  " (beautiful_concat ~sep:", " fnames) in
+        align_line "  " (beautiful_concat ~sep:", " fnames) in
       let total_func_analyzed_times =
         Stack.length penv.penv_func_analysis_stack in
       let func_stats = String.concat ~sep:"\n" func_stats in
@@ -814,7 +811,7 @@ functor
             then (
               let bname = block_name blk in
               let binput =
-                hpr_indent 4 pr_data_opt (T.get_block_input fenv blk) in
+                hindent_line 4 pr_data_opt (T.get_block_input fenv blk) in
               let instrs_output =
                 fold_left_instrs
                   ~f:(fun acc2 instr ->
@@ -826,8 +823,8 @@ functor
                       ^ "\n\n"
                       ^
                       match T.get_instr_output fenv instr with
-                      | None -> pr_indent 4 "{No data}"
-                      | Some output -> hpr_indent 4 pr_data output
+                      | None -> indent_line 4 "{No data}"
+                      | Some output -> hindent_line 4 pr_data output
                     else acc2)
                   ~init:""
                   blk in
@@ -849,7 +846,7 @@ functor
       ^ " Callsite: "
       ^ pr_callsites fenv.fenv_callsites
       ^ "\n\n"
-      ^ hpr_align " Input: " pr_data fenv.fenv_input
+      ^ halign_line " Input: " pr_data fenv.fenv_input
       ^ sblocks
     ;;
 
@@ -886,12 +883,12 @@ functor
           |> fold_left_instrs
                ~f:(fun acc i ->
                  if is_sparse_instr penv i
-                 then acc @ [ hpr_indent 2 (pr_sparse_instr penv) i ]
+                 then acc @ [ hindent_line 2 (pr_sparse_instr penv) i ]
                  else if is_instr_invoke i
                  then (
                    let sblks = get_sparse_succeeding_blocks penv blk in
                    let jump_sparse = "jump<sparse> " ^ block_names sblks in
-                   acc @ [ pr_indent 2 jump_sparse ])
+                   acc @ [ indent_line 2 jump_sparse ])
                  else acc)
                ~init:[]
           |> String.concat ~sep:"\n" in
@@ -906,7 +903,7 @@ functor
           ^ " "
           ^ func_name f
           ^ "("
-          ^ pr_args pr_param (func_params f)
+          ^ sprint_args ~f:pr_param (func_params f)
           ^ ")" in
         let sblks =
           f
@@ -920,7 +917,7 @@ functor
         |> List.fold_left
              ~f:(fun acc g ->
                if is_sparse_global penv g
-               then acc @ [ hpr_indent 2 (pr_global ~detailed:true) g ]
+               then acc @ [ hindent_line 2 (pr_global ~detailed:true) g ]
                else acc)
              ~init:[]
         |> String.concat ~sep:"\n"
@@ -1050,7 +1047,7 @@ functor
           items
           |> List.map ~f:printer
           |> beautiful_concat ~sep:", "
-          |> pr_indent ~skipfirst:true 4 in
+          |> indent_line ~skipfirst:true 4 in
         if String.is_empty res then " []" else "\n   [" ^ res ^ "]" in
       let _ =
         let filename = basefilename ^ ".globals.dbg" in
@@ -1168,7 +1165,8 @@ functor
         List.iter
           ~f:(fun g ->
             if (not sparse) || is_sparse_global penv g
-            then fprintf file "%s\n" (hpr_indent 2 (pr_global ~detailed:true) g))
+            then
+              fprintf file "%s\n" (hindent_line 2 (pr_global ~detailed:true) g))
           prog.prog_globals in
       let _ =
         let funcs = penv.penv_goal_funcs in
@@ -1176,13 +1174,11 @@ functor
           ~f:(fun f ->
             let params = func_params f in
             let fname =
-              "Function: "
-              ^ pr_type (func_return_type f)
-              ^ " "
-              ^ func_name f
-              ^ "("
-              ^ pr_args pr_typed_param params
-              ^ ")" in
+              sprintf
+                "Function: %s %s(%s)"
+                (pr_type (func_return_type f))
+                (func_name f)
+                (sprint_args ~f:pr_typed_param params) in
             let _ = fprintf file "\n\n%s\n" fname in
             iter_blocks
               ~f:(fun blk ->
@@ -1192,7 +1188,7 @@ functor
                   iter_instrs
                     ~f:(fun instr ->
                       if not sparse
-                      then fprintf file "%s\n" (hpr_indent 2 pr_instr instr)
+                      then fprintf file "%s\n" (hindent_line 2 pr_instr instr)
                       else if is_sparse_instr penv instr
                       then fprintf file "  %s\n" (pr_sparse_instr penv instr))
                     blk))
@@ -1212,21 +1208,21 @@ functor
         (instr_call : instr)
         : callsite
       =
-      { cs_instr_call = instr_call
-      ; cs_caller = caller
-      ; cs_caller_input = caller_input
-      ; cs_caller_callsites = caller_callsites
-      ; cs_callee = callee
-      ; cs_callee_input = callee_input
+      { cs_instr_call = instr_call;
+        cs_caller = caller;
+        cs_caller_input = caller_input;
+        cs_caller_callsites = caller_callsites;
+        cs_callee = callee;
+        cs_callee_input = callee_input
       }
     ;;
 
     let mk_exception expr data tinfo =
       let tinfo = get_root_src_of_bitcast tinfo in
-      { exn_orig_expr = expr
-      ; exn_root_expr = mk_expr_exn tinfo
-      ; exn_data = data
-      ; exn_type_info = tinfo
+      { exn_orig_expr = expr;
+        exn_root_expr = mk_expr_exn tinfo;
+        exn_data = data;
+        exn_type_info = tinfo
       }
     ;;
 
@@ -1235,8 +1231,8 @@ functor
     ;;
 
     let mk_global_env () =
-      { genv_global_output = Hashtbl.create (module Global)
-      ; genv_globals_data = T.least_data
+      { genv_global_output = Hashtbl.create (module Global);
+        genv_globals_data = T.least_data
       }
     ;;
 
@@ -1247,62 +1243,62 @@ functor
         ~(callsites : callsite list)
         : T.func_env
       =
-      { fenv_id = ""
-      ; fenv_func = func
-      ; fenv_callsites = callsites
-      ; fenv_prog = prog
-      ; fenv_instr_output = Hashtbl.create (module Instr)
-      ; fenv_block_input = Hashtbl.create (module Block)
-      ; fenv_input = input
-      ; fenv_output = None
-      ; fenv_thrown_exn = Hashtbl.create (module Llvalue)
-      ; fenv_landing_exns = Hashtbl.create (module Llvalue)
-      ; fenv_deref_params = []
-      ; fenv_deref_globals = []
-      ; fenv_working_blocks = []
-      ; fenv_state_changed = false
+      { fenv_id = "";
+        fenv_func = func;
+        fenv_callsites = callsites;
+        fenv_prog = prog;
+        fenv_instr_output = Hashtbl.create (module Instr);
+        fenv_block_input = Hashtbl.create (module Block);
+        fenv_input = input;
+        fenv_output = None;
+        fenv_thrown_exn = Hashtbl.create (module Llvalue);
+        fenv_landing_exns = Hashtbl.create (module Llvalue);
+        fenv_deref_params = [];
+        fenv_deref_globals = [];
+        fenv_working_blocks = [];
+        fenv_state_changed = false
       }
     ;;
 
     let mk_prog_env (prog : program) : T.prog_env =
-      { penv_prog = prog
-      ; penv_global_env = mk_global_env ()
-      ; penv_func_envs = Hashtbl.create (module Func)
-      ; penv_func_summaries = Hashtbl.create (module Func)
-      ; penv_sparse_llvalue = Hashtbl.create (module Llvalue)
-      ; penv_sparse_block = Hashtbl.create (module Block)
-      ; penv_sparse_func = Hashtbl.create (module Func)
-      ; penv_sparse_used_globals = Hashtbl.create (module Func)
-      ; penv_block_sparse_instrs = Hashtbl.create (module Block)
-      ; penv_sparse_precedings_block = Hashtbl.create (module Block)
-      ; penv_sparse_succeedings_block = Hashtbl.create (module Block)
-      ; penv_sparse_reachable_blocks = Hashtbl.create (module Block)
-      ; penv_func_analyzed_times = Hashtbl.create (module Func)
-      ; penv_block_local_analyzed_times = Hashtbl.create (module Block)
-      ; penv_block_total_analyzed_times = Hashtbl.create (module Block)
-      ; penv_working_funcs = []
-      ; penv_goal_funcs = []
-      ; penv_func_analyzed_inputs = Hashtbl.create (module Func)
-      ; penv_func_analysis_stack = Stack.create ()
-      ; penv_block_analyzed_squence = Hashtbl.create (module Func)
+      { penv_prog = prog;
+        penv_global_env = mk_global_env ();
+        penv_func_envs = Hashtbl.create (module Func);
+        penv_func_summaries = Hashtbl.create (module Func);
+        penv_sparse_llvalue = Hashtbl.create (module Llvalue);
+        penv_sparse_block = Hashtbl.create (module Block);
+        penv_sparse_func = Hashtbl.create (module Func);
+        penv_sparse_used_globals = Hashtbl.create (module Func);
+        penv_block_sparse_instrs = Hashtbl.create (module Block);
+        penv_sparse_precedings_block = Hashtbl.create (module Block);
+        penv_sparse_succeedings_block = Hashtbl.create (module Block);
+        penv_sparse_reachable_blocks = Hashtbl.create (module Block);
+        penv_func_analyzed_times = Hashtbl.create (module Func);
+        penv_block_local_analyzed_times = Hashtbl.create (module Block);
+        penv_block_total_analyzed_times = Hashtbl.create (module Block);
+        penv_working_funcs = [];
+        penv_goal_funcs = [];
+        penv_func_analyzed_inputs = Hashtbl.create (module Func);
+        penv_func_analysis_stack = Stack.create ();
+        penv_block_analyzed_squence = Hashtbl.create (module Func)
       }
     ;;
 
     let copy_func_env fenv : func_env =
-      { fenv_id = fenv.fenv_id
-      ; fenv_func = fenv.fenv_func
-      ; fenv_callsites = fenv.fenv_callsites
-      ; fenv_prog = fenv.fenv_prog
-      ; fenv_instr_output = Hashtbl.copy fenv.fenv_instr_output
-      ; fenv_block_input = Hashtbl.copy fenv.fenv_block_input
-      ; fenv_input = fenv.fenv_input
-      ; fenv_output = fenv.fenv_output
-      ; fenv_thrown_exn = Hashtbl.copy fenv.fenv_thrown_exn
-      ; fenv_landing_exns = Hashtbl.copy fenv.fenv_landing_exns
-      ; fenv_deref_params = fenv.fenv_deref_params
-      ; fenv_deref_globals = fenv.fenv_deref_globals
-      ; fenv_working_blocks = fenv.fenv_working_blocks
-      ; fenv_state_changed = fenv.fenv_state_changed
+      { fenv_id = fenv.fenv_id;
+        fenv_func = fenv.fenv_func;
+        fenv_callsites = fenv.fenv_callsites;
+        fenv_prog = fenv.fenv_prog;
+        fenv_instr_output = Hashtbl.copy fenv.fenv_instr_output;
+        fenv_block_input = Hashtbl.copy fenv.fenv_block_input;
+        fenv_input = fenv.fenv_input;
+        fenv_output = fenv.fenv_output;
+        fenv_thrown_exn = Hashtbl.copy fenv.fenv_thrown_exn;
+        fenv_landing_exns = Hashtbl.copy fenv.fenv_landing_exns;
+        fenv_deref_params = fenv.fenv_deref_params;
+        fenv_deref_globals = fenv.fenv_deref_globals;
+        fenv_working_blocks = fenv.fenv_working_blocks;
+        fenv_state_changed = fenv.fenv_state_changed
       }
     ;;
 
@@ -1461,9 +1457,10 @@ functor
                   | Some _ -> ())) in
           let _ = deep_iter_func ~fblock ~finstr func in
           true
-        with
-        | EBool res -> res in
-      let _ = hdebug ~always:true " - Env completed: " string_of_bool env_completed in
+        with EBool res -> res in
+      let _ =
+        hdebug ~always:true " - Env completed: " string_of_bool env_completed
+      in
       match Hashtbl.find penv.penv_func_envs func with
       | None ->
         let fenv = { fenv with fenv_id = "1" } in
@@ -1491,14 +1488,24 @@ functor
         let nfenvs =
           if input_updated
           then (
-            let fenv = { fenv with fenv_id = string_of_int (List.length fenvs + 1) } in
+            let fenv =
+              { fenv with fenv_id = string_of_int (List.length fenvs + 1) }
+            in
             fenvs @ [ fenv ])
           else fenvs in
         let _ = Hashtbl.set penv.penv_func_envs ~key:func ~data:nfenvs in
-        let _ = hdebug ~always:true " - Input updated: " string_of_bool input_updated in
         let _ =
-          hdebug ~always:true " - Output updated: " string_of_bool output_updated in
-        let _ = hdebug ~always:true " - Env updated: " string_of_bool env_updated in
+          hdebug ~always:true " - Input updated: " string_of_bool input_updated
+        in
+        let _ =
+          hdebug
+            ~always:true
+            " - Output updated: "
+            string_of_bool
+            output_updated in
+        let _ =
+          hdebug ~always:true " - Env updated: " string_of_bool env_updated
+        in
         input_updated, output_updated, env_updated, env_completed
     ;;
 
@@ -1583,12 +1590,12 @@ functor
         match fenv.fenv_output with
         | None -> herror "mk_func_summary: output not found: " func_name func
         | Some data -> T.clean_irrelevant_info_from_data penv func data in
-      { fsum_func = func
-      ; fsum_input = input
-      ; fsum_output = output
-      ; fsum_thrown_exn = Hashtbl.data fenv.fenv_thrown_exn
-      ; fsum_deref_params = fenv.fenv_deref_params
-      ; fsum_deref_globals = fenv.fenv_deref_globals
+      { fsum_func = func;
+        fsum_input = input;
+        fsum_output = output;
+        fsum_thrown_exn = Hashtbl.data fenv.fenv_thrown_exn;
+        fsum_deref_params = fenv.fenv_deref_params;
+        fsum_deref_globals = fenv.fenv_deref_globals
       }
     ;;
 
@@ -2195,8 +2202,8 @@ functor
                               input)
                           callees in
                       let outputs, continues = List.unzip outputs_continues in
-                      ( merge_datas outputs
-                      , List.fold_left ~f:( || ) ~init:false continues )) in
+                      ( merge_datas outputs,
+                        List.fold_left ~f:( || ) ~init:false continues )) in
                 (* let _ = hprint ("  Time analyzing instr_func_call:\n   " ^
                  *                 (pr_instr instr) ^ ":\n     ")
                  *           (sprintf "%.3fs") time in *)
@@ -2343,8 +2350,7 @@ functor
           (* let _ = compare_block_by_name penv wblk1 wblk2 |>
            *         (fun res -> if res != 0 then raise_int res) in *)
           0
-        with
-        | EInt res -> res in
+        with EInt res -> res in
       let blks = List.sort ~compare wblks in
       match blks with
       | [] -> None
@@ -2496,8 +2502,8 @@ functor
             then (
               let _ = save_mode_debug () in
               enable_mode_debug ()))) in
-      (* let _ = hdebug ~always:true " - Callsites: " (pr_list pr_callsite) callsites in *)
-      let _ = hprint " - Callsites: " (pr_list pr_callsite) callsites in
+      (* let _ = hdebug ~always:true " - Callsites: " (sprint_list pr_callsite) callsites in *)
+      let _ = hprint " - Callsites: " (sprint_list ~f:pr_callsite) callsites in
       (* let _ = hdebug ~always:true " - Input: " pr_data input in *)
       let _ = hprint " - Input: " pr_data input in
       (* let _ = hprint " - Input: " pr_data_with_checksum input in *)
@@ -2708,8 +2714,7 @@ functor
           (* let _ = compare_func_input penv wf1 wf2 |>
            *         (fun res -> if res != 0 then raise_int res) in *)
           0
-        with
-        | EInt res -> res in
+        with EInt res -> res in
       let wfuncs = List.sorti ~compare penv.penv_working_funcs in
       (* let _ = hdebug ~always:false "Analyzed functions: " pr_analyzed_func_input penv in *)
       match is_interactive_mode () with
@@ -2742,8 +2747,8 @@ functor
         let _ = penv.penv_working_funcs <- other_wfs in
         let func, input, callsites = wf.wf_func, wf.wf_input, wf.wf_callsites in
         let fname = func_name func in
-        let ( (fenv, input_updated, output_updated, env_updated, need_reanalyze)
-            , time )
+        let ( (fenv, input_updated, output_updated, env_updated, need_reanalyze),
+              time )
           =
           Sys.track_runtime (fun () -> analyze_function penv wf) in
         let _ =
@@ -3115,7 +3120,7 @@ functor
       (* let _ = hprint "Non-sparse functions: "  *)
       let _ = if !print_stats_prog then print_stats_sparse_prog penv in
       let _ =
-        hprint "Goal functions: " (pr_items func_name) penv.penv_goal_funcs
+        hprint "Goal functions: " (sprint_items ~f:func_name) penv.penv_goal_funcs
       in
       (* let prog = update_program_info prog in *)
       let _ =

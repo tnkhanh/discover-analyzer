@@ -228,7 +228,7 @@ let rec pr_exp (e : exp) : string =
   | Func (FName n, es, _) -> n ^ "(" ^ pr_exps es ^ ")"
   | Func _ -> error "pr_exp: unexpected exp: (need details)"
 
-and pr_exps (es : exp list) : string = pr_list ~sep:"," pr_exp es
+and pr_exps (es : exp list) : string = sprint_list ~sep:"," ~f:pr_exp es
 
 let pr_reln_form (rf : reln_form) : string =
   match rf with
@@ -253,13 +253,13 @@ let rec pr_pure_form (f : pure_form) : string =
   | Reln rf -> pr_reln_form rf
   | PNeg f -> "!" ^ "(" ^ pr_pure_form f ^ ")"
   | BEq (e, p) -> pr_exp e ^ "=" ^ "(" ^ pr_pure_form p ^ ")"
-  | PConj fs -> pr_list ~sep:" & " pr_aux fs
-  | PDisj fs -> pr_list ~sep:" | " pr_aux fs
+  | PConj fs -> sprint_list ~sep:" & " ~f:pr_aux fs
+  | PDisj fs -> sprint_list ~sep:" | " ~f:pr_aux fs
   | PForall (vs, f) -> "(forall " ^ pr_vars vs ^ ". " ^ pr_pure_form f ^ ")"
   | PExists (vs, f) -> "(exists " ^ pr_vars vs ^ ". " ^ pr_pure_form f ^ ")"
 
 and pr_pf (f : pure_form) = pr_pure_form f
-and pr_pfs (fs : pure_forms) : string = pr_list ~sep:"\n" pr_pf fs
+and pr_pfs (fs : pure_forms) : string = sprint_list ~sep:"\n" ~f:pr_pf fs
 
 let pr_addr_form a = "(" ^ pr_exp a.addr_base ^ "," ^ pr_exp a.addr_elem ^ ")"
 
@@ -278,14 +278,14 @@ let pprint_form (d : data_form) : string =
 ;;
 
 let pr_df (s : data_form) = pprint_form s
-let pr_dfs sfs : string = pr_list ~obrace:"[" ~cbrace:"]" ~sep:", " pr_df sfs
+let pr_dfs sfs : string = sprint_list ~obrace:"[" ~cbrace:"]" ~sep:", " ~f:pr_df sfs
 
 let pr_view_form (v : view_form) : string =
   v.view_name ^ "(" ^ pr_exps v.view_args ^ ")"
 ;;
 
 let pr_vf (v : view_form) = pr_view_form v
-let pr_vfs vfs : string = pr_list ~obrace:"[" ~cbrace:"]" ~sep:", " pr_vf vfs
+let pr_vfs vfs : string = sprint_list ~obrace:"[" ~cbrace:"]" ~sep:", " ~f:pr_vf vfs
 
 let pr_iter_form (i : iter_form) =
   "aiter("
@@ -352,7 +352,7 @@ let pr_formula (r : formula) : string =
 let pr_f (f : formula) = pr_formula f
 
 let pr_fs ?(sep = ", ") (fs : formulas) : string =
-  pr_list ~obrace:"[" ~cbrace:"]" ~sep pr_f fs
+  sprint_list ~obrace:"[" ~cbrace:"]" ~sep ~f:pr_f fs
 ;;
 
 let pr_ent ?(id = false) ent =
@@ -363,7 +363,7 @@ let pr_ent ?(id = false) ent =
 ;;
 
 let pr_ents (ents : entailments) : string =
-  pr_items ~bullet:"  " (pr_ent ~id:true) ents
+  sprint_items ~bullet:"  " ~f:(pr_ent ~id:true) ents
 ;;
 
 let pr_ent_id (ent : entailment) : string = "#" ^ string_of_int ent.ent_id
@@ -407,7 +407,7 @@ let pr_view_defn (v : view_defn) : string =
   let body =
     match v.viewd_body with
     | [] -> "?"
-    | fs -> pr_list ~sep:"\n    \\/ " pr_view_defn_case fs in
+    | fs -> sprint_list ~sep:"\n    \\/ " ~f:pr_view_defn_case fs in
   header ^ body ^ ";"
 ;;
 

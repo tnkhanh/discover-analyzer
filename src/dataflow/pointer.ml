@@ -57,8 +57,8 @@ module PointerGraph = struct
   (* | TNotAlias of (expr * expr) *)
 
   type trace =
-    { trace_path : trace_item list
-    ; (* all into account *)
+    { trace_path : trace_item list;
+      (* all into account *)
       trace_skip : trace_item list (* some are skipped *)
     }
 
@@ -135,7 +135,7 @@ module PointerGraph = struct
     match ti with
     | TPhi (skip, incoming, i) ->
       let skip_blks =
-        let str = pr_list_plain ~sep:"-" block_name_full skip in
+        let str = sprint_list_plain ~sep:"-" ~f:block_name_full skip in
         String.surround_if_not_empty str ~prefix:"-" ~suffix:" " in
       let incoming_blk =
         let str = block_name_full incoming in
@@ -150,11 +150,11 @@ module PointerGraph = struct
   (* | TNotAlias (e1, e2) -> "-(" ^ (pr_expr e1) ^ ", " ^ (pr_expr e2) ^ ")" *)
 
   let pr_trace (t : trace) : string =
-    let stpath = pr_list_plain pr_trace_item t.trace_path in
+    let stpath = sprint_list_plain ~f:pr_trace_item t.trace_path in
     let stskip =
       match t.trace_skip with
       | [] -> ""
-      | _ -> "-" ^ pr_list_curly pr_trace_item t.trace_skip in
+      | _ -> "-" ^ sprint_list_curly ~f:pr_trace_item t.trace_skip in
     "[" ^ stpath ^ String.prefix_if_not_empty stskip ~prefix:", " ^ "]"
   ;;
 
@@ -164,15 +164,15 @@ module PointerGraph = struct
       pr_prec p ^ "Alias" ^ if !mode_deep_debug && trace then pr_trace t else ""
     | Pto d -> "Pto" ^ pr_direc d
     | GEP (t, idxs, d) ->
-      let sidxs = pr_list ~sep:"," ~obrace:"" ~cbrace:"" pr_expr idxs in
+      let sidxs = sprint_list ~sep:"," ~obrace:"" ~cbrace:"" ~f:pr_expr idxs in
       "GEP" ^ pr_direc d ^ "{" ^ pr_type t ^ "," ^ sidxs ^ "}"
     | Seq (lbls, p, t) ->
       pr_prec p
-      ^ pr_list (pr_label ~trace:false) lbls
+      ^ sprint_list ~f:(pr_label ~trace:false) lbls
       ^ if !mode_deep_debug then pr_trace t else ""
   ;;
 
-  let pr_labels lbls = pr_list pr_label lbls
+  let pr_labels lbls = sprint_list ~f:pr_label lbls
 
   let rec subst_label
       ?(sstv : substv = [])
@@ -221,14 +221,14 @@ module PointerGraph = struct
   type edges = edge list
 
   type path =
-    { path_edges : edge list
-    ; path_vertices : vertex list
-    ; path_labels : label list
-    ; path_flattened_labels : label list
-    ; path_folded_label : label option
-    ; path_trace_all : trace_item list
-    ; path_trace_may : trace_item list
-    ; path_trace_skip : trace_item list
+    { path_edges : edge list;
+      path_vertices : vertex list;
+      path_labels : label list;
+      path_flattened_labels : label list;
+      path_folded_label : label option;
+      path_trace_all : trace_item list;
+      path_trace_may : trace_item list;
+      path_trace_skip : trace_item list
     }
 
   let equal_edge (e1 : edge) (e2 : edge) : bool =
@@ -282,14 +282,14 @@ module PointerGraph = struct
     label ^ "(" ^ src ^ ", " ^ dst ^ ")"
   ;;
 
-  let pr_edges = pr_list pr_edge
+  let pr_edges = sprint_list ~f:pr_edge
 
   let pr_path (path : path) : string =
     let strs = List.map ~f:pr_edge path.path_edges in
     beautiful_concat ~sep:", " strs
   ;;
 
-  let pr_paths (paths : path list) : string = pr_items pr_path paths
+  let pr_paths (paths : path list) : string = sprint_items ~f:pr_path paths
 
   let is_alias_edge (e : edge) : bool =
     match E.label e with
@@ -469,8 +469,7 @@ module PointerGraph = struct
             lbls in
         false
       | _ -> false
-    with
-    | EBool res -> res
+    with EBool res -> res
   ;;
 
   let has_consecutive_edges_of_direction_to_from (lbl : label) : bool =
@@ -543,8 +542,7 @@ module PointerGraph = struct
         g
         v;
       true
-    with
-    | EBool res -> res
+    with EBool res -> res
   ;;
 
   let has_only_gep_edge (g : t) (v : vertex) : bool =
@@ -552,8 +550,7 @@ module PointerGraph = struct
       iter_succ_e (fun e -> if not (is_gep_edge e) then raise (EBool false)) g v;
       iter_pred_e (fun e -> if not (is_gep_edge e) then raise (EBool false)) g v;
       true
-    with
-    | EBool res -> res
+    with EBool res -> res
   ;;
 
   let get_traces_of_deref (path : path) : (vertex * trace list) list =
@@ -760,9 +757,7 @@ module PointerGraph = struct
                   lp.loop_exit_reachables
                   ~equal:equal_block))
         loops in
-    check_read_write_flow ()
-    && check_branch_flow ()
-    && check_skip_blocks ()
+    check_read_write_flow () && check_branch_flow () && check_skip_blocks ()
     && check_loop_blocks ()
   ;;
 
@@ -859,8 +854,7 @@ module PointerGraph = struct
            | [] -> Alias (p, t)
            | _ -> Seq (nlbls, p, t) in
          Some lbl
-       with
-      | EUnfoldableLabel -> None)
+       with EUnfoldableLabel -> None)
   ;;
 
   let fold_labels (lbls : label list) : label option =
@@ -877,8 +871,7 @@ module PointerGraph = struct
              ~init:lbl
              nlbls in
          Some nlbl
-       with
-      | EUnfoldableLabel -> None)
+       with EUnfoldableLabel -> None)
   ;;
 
   let check_equiv_label (lbl1 : label) (lbl2 : label) : bool =
@@ -1004,14 +997,14 @@ module PointerGraph = struct
           List.concat_dedup acc t.trace_skip ~equal:equal_trace_item)
         ~init:[]
         lbls in
-    { path_edges = edges
-    ; path_vertices = vertices
-    ; path_labels = lbls
-    ; path_flattened_labels = flatten_labels lbls []
-    ; path_folded_label = folded_lbl
-    ; path_trace_all = trace_all
-    ; path_trace_may = trace_may
-    ; path_trace_skip = trace_skip
+    { path_edges = edges;
+      path_vertices = vertices;
+      path_labels = lbls;
+      path_flattened_labels = flatten_labels lbls [];
+      path_folded_label = folded_lbl;
+      path_trace_all = trace_all;
+      path_trace_may = trace_may;
+      path_trace_skip = trace_skip
     }
   ;;
 
@@ -1038,14 +1031,14 @@ module PointerGraph = struct
         path.path_trace_skip
         t.trace_skip
         ~equal:equal_trace_item in
-    { path_edges = path.path_edges @ [ edge ]
-    ; path_vertices = path.path_vertices @ [ E.dst edge ]
-    ; path_labels = path.path_labels @ [ lbl ]
-    ; path_flattened_labels = flatten_labels (path.path_labels @ [ lbl ]) []
-    ; path_folded_label = folded_label
-    ; path_trace_all = trace_all
-    ; path_trace_may = trace_may
-    ; path_trace_skip = trace_skip
+    { path_edges = path.path_edges @ [ edge ];
+      path_vertices = path.path_vertices @ [ E.dst edge ];
+      path_labels = path.path_labels @ [ lbl ];
+      path_flattened_labels = flatten_labels (path.path_labels @ [ lbl ]) [];
+      path_folded_label = folded_label;
+      path_trace_all = trace_all;
+      path_trace_may = trace_may;
+      path_trace_skip = trace_skip
     }
   ;;
 end
@@ -1100,14 +1093,8 @@ module PointerDomain = struct
             if !mode_deep_debug
             then (
               let edge =
-                PG.pr_prec p
-                ^ "Alias"
-                ^ PG.pr_trace t
-                ^ "("
-                ^ src
-                ^ ", "
-                ^ dst
-                ^ ")" in
+                (PG.pr_prec p ^ "Alias" ^ PG.pr_trace t)
+                ^ "(" ^ src ^ ", " ^ dst ^ ")" in
               aliases := !aliases @ [ edge ])
             else if Poly.compare src dst <= 0
             then (
@@ -1123,47 +1110,25 @@ module PointerDomain = struct
               let edge = "Pto" ^ "(" ^ src ^ ", " ^ dst ^ ")" in
               derefs := !derefs @ [ edge ])
           | GEP (t, idxs, d) ->
-            let sidxs = pr_list ~sep:"," ~obrace:"" ~cbrace:"" pr_expr idxs in
+            let sidxs =
+              sprint_list ~sep:"," ~obrace:"" ~cbrace:"" ~f:pr_expr idxs in
             if !mode_deep_debug
             then (
               let edge =
-                "GEP"
-                ^ pr_direc d
-                ^ "{"
-                ^ pr_type t
-                ^ ","
-                ^ sidxs
-                ^ "}"
-                ^ "("
-                ^ src
-                ^ ", "
-                ^ dst
-                ^ ")" in
+                ("GEP" ^ pr_direc d ^ "{" ^ pr_type t ^ "," ^ sidxs ^ "}")
+                ^ "(" ^ src ^ ", " ^ dst ^ ")" in
               geps := !geps @ [ edge ])
             else if d == PG.From
             then (
               let edge =
-                "GEP"
-                ^ "{"
-                ^ pr_type t
-                ^ ","
-                ^ sidxs
-                ^ "}"
-                ^ "("
-                ^ src
-                ^ ", "
-                ^ dst
-                ^ ")" in
+                ("GEP" ^ "{" ^ pr_type t ^ "," ^ sidxs ^ "}")
+                ^ "(" ^ src ^ ", " ^ dst ^ ")" in
               geps := !geps @ [ edge ])
           | Seq (lbls, p, t) ->
             let edge =
               PG.pr_prec p
-              ^ pr_list PG.pr_label lbls
-              ^ "("
-              ^ src
-              ^ ", "
-              ^ dst
-              ^ ")" in
+              ^ sprint_list ~f:PG.pr_label lbls
+              ^ "(" ^ src ^ ", " ^ dst ^ ")" in
             sequences := !sequences @ [ edge ])
         g in
     let all_edges =
@@ -1179,8 +1144,7 @@ module PointerDomain = struct
   let pr_graph_size (g : pgraph) : string =
     "{ #vertices: "
     ^ string_of_int (PG.nb_vertex g)
-    ^ ", "
-    ^ "#edges: "
+    ^ ", " ^ "#edges: "
     ^ string_of_int (PG.nb_edges g)
     ^ "}"
   ;;
@@ -1223,8 +1187,7 @@ module PointerDomain = struct
             then raise (EBool false))
           g1 in
       true
-    with
-    | EBool res -> res
+    with EBool res -> res
   ;;
 
   let equal_pgraph (g1 : pgraph) (g2 : pgraph) : bool =
@@ -1265,13 +1228,11 @@ module PointerDomain = struct
   (** managing alias graph *)
 
   let remove_vertex (g : pgraph) (v : expr) : unit =
-    try PG.remove_vertex g v with
-    | _ -> ()
+    try PG.remove_vertex g v with _ -> ()
   ;;
 
   let remove_edge (g : pgraph) (src : expr) (dst : expr) : unit =
-    try PG.remove_edge g src dst with
-    | _ -> ()
+    try PG.remove_edge g src dst with _ -> ()
   ;;
 
   let insert_alias
@@ -1445,13 +1406,9 @@ module PointerDomain = struct
                     let edge2 = PE.create sub lbl2 e in
                     let _ =
                       debug
-                        ("Adding edges connecting vertices:\n"
-                        ^ "  - "
-                        ^ pr_edge edge1
-                        ^ "\n"
-                        ^ "  - "
-                        ^ pr_edge edge2
-                        ^ "\n") in
+                        ("Adding edges connecting vertices:\n" ^ "  - "
+                       ^ pr_edge edge1 ^ "\n" ^ "  - " ^ pr_edge edge2 ^ "\n")
+                    in
                     let _ = PG.add_edge_e ng edge1 in
                     PG.add_edge_e ng edge2)
                 else ())
@@ -1663,12 +1620,8 @@ module PointerDomain = struct
     let src, dst = PG.src_of_path path, PG.dst_of_path path in
     let _ =
       debug
-        ("  Check alias path: "
-        ^ pr_expr src
-        ^ " --> "
-        ^ pr_expr dst
-        ^ "\n"
-        ^ hpr_indent 4 PG.pr_path path) in
+        ("  Check alias path: " ^ pr_expr src ^ " --> " ^ pr_expr dst ^ "\n"
+        ^ hindent_line 4 PG.pr_path path) in
     match check_path_balance_direction path p with
     | ApNone ->
       let _ = debug ~indent:4 "  -> Path contains unbalanced subpath!" in
@@ -1740,12 +1693,8 @@ module PointerDomain = struct
       else if equal_expr v2 dst && not (equal_expr v1 dst)
       then 1
       else (
-        let d1 =
-          try BF.H.find tbldistance v1 with
-          | _ -> 0 in
-        let d2 =
-          try BF.H.find tbldistance v2 with
-          | _ -> 0 in
+        let d1 = try BF.H.find tbldistance v1 with _ -> 0 in
+        let d2 = try BF.H.find tbldistance v2 with _ -> 0 in
         if d1 < d2 then -1 else if d1 > d2 then 1 else 0)
   ;;
 
@@ -1789,9 +1738,7 @@ module PointerDomain = struct
           else search_bfs dst nqueue
         else if apath == ApNone
         then search_bfs dst nqueue
-        else if is_expr_undef u
-                || is_expr_malloc u
-                || is_expr_malloc u
+        else if is_expr_undef u || is_expr_malloc u || is_expr_malloc u
                 || is_expr_function u
         then
           search_bfs dst nqueue
@@ -1839,8 +1786,7 @@ module PointerDomain = struct
             g
             src
             []
-        with
-        | _ -> [] in
+        with _ -> [] in
       search_bfs dst init_paths)
   ;;
 
@@ -1896,9 +1842,7 @@ module PointerDomain = struct
         else if apath == ApNone
         then search_bfs nqueue res
         else if (* apath == ApPrefix*)
-                is_expr_undef u
-                || is_expr_malloc u
-                || is_expr_malloc u
+                is_expr_undef u || is_expr_malloc u || is_expr_malloc u
                 || is_expr_function u
         then search_bfs nqueue res
         else (
@@ -1938,8 +1882,7 @@ module PointerDomain = struct
           g
           src
           []
-      with
-      | _ -> [] in
+      with _ -> [] in
     let res = search_bfs init_paths [] in
     (* let _ = print "   ...done" in *)
     res
@@ -2004,8 +1947,7 @@ module PointerDomain = struct
               g
               u
               nqueue
-          with
-          | e -> nqueue in
+          with e -> nqueue in
         let nvisited = List.insert_dedup visited u ~equal in
         get_connected_vertex nqueue nvisited in
     let cvs = get_connected_vertex [ v ] [] in
@@ -2025,8 +1967,7 @@ module PointerDomain = struct
       match p with
       | May -> Hashtbl.find_exn may_alias_cache v
       | Must -> Hashtbl.find_exn must_alias_cache v
-    with
-    | Not_found_s _ ->
+    with Not_found_s _ ->
       let res = find_all_aliases prog g v p in
       let _ =
         match p with
@@ -2078,8 +2019,8 @@ module PointerDomain = struct
                 [] in
             search_bfs (nqueue @ npaths) acc)) in
     let paths =
-      try PG.fold_succ_e (fun e acc -> acc @ [ PG.mk_path [ e ] ]) g src [] with
-      | _ -> [] in
+      try PG.fold_succ_e (fun e acc -> acc @ [ PG.mk_path [ e ] ]) g src []
+      with _ -> [] in
     let res = search_bfs paths [] in
     (* let _ = print "   ...done" in *)
     res
@@ -2346,8 +2287,7 @@ struct
             | _ -> acc)
           input
           []
-      with
-      | _ -> [] in
+      with _ -> [] in
     List.iter
       ~f:(fun e ->
         if (not !dfa_path_sensitive) || List.is_empty trace_skip
@@ -2665,11 +2605,9 @@ struct
                   let src, dst = PE.src e1, PE.dst e2 in
                   let lbl1, lbl2 = PE.label e1, PE.label e2 in
                   if (not
-                        (equal_expr src dst
-                        || is_expr_undef src
-                        || is_expr_undef dst
-                        || is_expr_null src
-                        || is_expr_null dst
+                        (equal_expr src dst || is_expr_undef src
+                       || is_expr_undef dst || is_expr_null src
+                       || is_expr_null dst
                         || (is_expr_function src && is_expr_function dst)
                         || (is_expr_function src && is_expr_malloc dst)
                         || (is_expr_malloc src && is_expr_function dst)))
@@ -2696,7 +2634,7 @@ struct
                           current_edges in
                       if has_edge_of_similar_label
                          || ((is_sub_expr src ~sub:dst
-                             || is_sub_expr dst ~sub:src)
+                            || is_sub_expr dst ~sub:src)
                             && not (is_structural_access_edge edge))
                       then ()
                       else PG.add_edge_e g edge)
@@ -2737,8 +2675,7 @@ struct
               if List.exists
                    ~f:(fun e2 ->
                      let src2, lbl2, dst2 = PE.src e2, PE.label e2, PE.dst e2 in
-                     equal_expr src2 src
-                     && equal_expr dst2 dst
+                     equal_expr src2 src && equal_expr dst2 dst
                      && (PG.check_equiv_label lbl2 lbl
                         || PG.check_suffix_seq_label lbl2 lbl
                         || PG.check_prefix_seq_label lbl2 lbl))
@@ -2769,10 +2706,8 @@ struct
                       acc2 in
                 if equal_expr src dst || equal_expr v dst
                 then acc2
-                else if is_expr_undef src
-                        || is_expr_undef dst
-                        || is_expr_null src
-                        || is_expr_null dst
+                else if is_expr_undef src || is_expr_undef dst
+                        || is_expr_null src || is_expr_null dst
                 then acc2
                 else if (is_expr_function src && is_expr_function dst)
                         || (is_expr_function src && is_expr_malloc dst)
@@ -2792,7 +2727,7 @@ struct
                     if PG.has_consecutive_edges_of_direction_to_from nlbl
                     then acc2
                     else if (is_sub_expr src ~sub:dst
-                            || is_sub_expr dst ~sub:src)
+                           || is_sub_expr dst ~sub:src)
                             && not (is_structural_access_edge edge)
                     then acc2
                     else if List.exists
@@ -2886,14 +2821,12 @@ struct
             try
               let _ = PG.iter_succ (fun _ -> raise (EBool true)) g v in
               false
-            with
-            | EBool res -> res in
+            with EBool res -> res in
           let has_pred_edges =
             try
               let _ = PG.iter_pred (fun _ -> raise (EBool true)) g v in
               false
-            with
-            | EBool res -> res in
+            with EBool res -> res in
           if (not has_succ_edges) && not has_pred_edges
           then acc @ [ v ]
           else acc)
@@ -3111,15 +3044,15 @@ struct
       let callee = callee_of_instr_func_call instr in
       let is_pointer_library_func func =
         let candidate_funcs =
-          [ is_alias_check_func
-          ; is_func_malloc
-          ; is_func_free
-          ; is_func_cpp_new
-          ; is_func_cpp_delete
-          ; is_func_memcpy
-          ; is_func_memmove
-          ; is_func_clang_call_terminate
-          ; is_func_dynamic_cast
+          [ is_alias_check_func;
+            is_func_malloc;
+            is_func_free;
+            is_func_cpp_new;
+            is_func_cpp_delete;
+            is_func_memcpy;
+            is_func_memmove;
+            is_func_clang_call_terminate;
+            is_func_dynamic_cast
             (* is_func_handling_exception *)
           ] in
         List.exists ~f:(fun f -> f func) candidate_funcs in
@@ -3177,8 +3110,7 @@ struct
               | _ -> ())
             vg in
         false
-      with
-      | EBool res -> res in
+      with EBool res -> res in
     let is_global_used_only_as_dst_of_instr_store g =
       try
         let vg = llvalue_of_global g in
@@ -3198,8 +3130,7 @@ struct
                 | _ -> raise (EBool false)))
             vg in
         true
-      with
-      | EBool res -> res in
+      with EBool res -> res in
     let _ =
       List.iter
         ~f:(fun g ->
@@ -3270,8 +3201,7 @@ struct
                         | _ -> raise (EBool false))
                       v in
                   true
-                with
-                | EBool res -> res in
+                with EBool res -> res in
               let has_operand_of_non_sparse_global (oprs : llvalue list) =
                 List.exists
                   ~f:(fun opr ->
@@ -3294,11 +3224,9 @@ struct
                   let src = src_of_instr_store i in
                   let dst = dst_of_instr_store i in
                   has_operand_of_non_sparse_instr oprs
-                  || (is_llvalue_global src
-                     && is_llvalue_instr src
+                  || (is_llvalue_global src && is_llvalue_instr src
                      && not (is_sparse_llvalue penv src))
-                  || (is_llvalue_global dst
-                     && is_llvalue_instr dst
+                  || (is_llvalue_global dst && is_llvalue_instr dst
                      && not (is_sparse_llvalue penv dst))
                 (* || has_operand_of_non_sparse_global oprs *)
                 (* not (used_by_other_sparse_instrs (dst_of_instr_store i)) *)
@@ -3312,11 +3240,7 @@ struct
             else ()) in
       let _ = deep_iter_func ~finstr f in
       if !continue then refine_func f else () in
-    let ffunc =
-      Some
-        (fun f ->
-          refine_func f;
-          Some ()) in
+    let ffunc = Some (fun f -> refine_func f; Some ()) in
     let _ = deep_iter_program ~ffunc penv.penv_prog in
     !updated
   ;;
@@ -3386,12 +3310,8 @@ struct
       else
         warning
           ("prepare_callee_input: args and params of different length\n"
-          ^ "  - function "
-          ^ func_name callee
-          ^ "\n"
-          ^ "  - instr call: "
-          ^ pr_instr instr
-          ^ "\n") in
+         ^ "  - function " ^ func_name callee ^ "\n" ^ "  - instr call: "
+         ^ pr_instr instr ^ "\n") in
     (* let output =
      *   let sste = mk_subste ~oldes:args ~newes:params in
      *   subst_data ~sste input in *)
@@ -3454,12 +3374,10 @@ struct
     let output =
       let dargs =
         let dparams =
-          fsum.fsum_deref_params
-          |> llvalues_of_params
+          fsum.fsum_deref_params |> llvalues_of_params
           |> List.map ~f:(fun v -> subst_expr ~sste (expr_of_llvalue v)) in
         let dglobals =
-          fsum.fsum_deref_globals
-          |> llvalues_of_globals
+          fsum.fsum_deref_globals |> llvalues_of_globals
           |> List.map ~f:(fun v -> subst_expr ~sste (expr_of_llvalue v)) in
         dparams @ dglobals in
       let caller_data = refine_caller_data_by_deref_args prog input dargs in
@@ -3735,7 +3653,7 @@ struct
          * let edges = create_memcpy_edges output instr sexp dexp in
          * let _ = List.iter ~f:(PG.add_edge_e output) edges in *)
         (* let _ = hdebug "   handle Memcpy: " pr_expr sexp in
-         * let _ = hdebug "   New Edges: " (pr_items PG.pr_edge) edges in *)
+         * let _ = hdebug "   New Edges: " (sprint_items PG.pr_edge) edges in *)
         output)
       else if is_func_dynamic_cast callee
       then (
@@ -3833,11 +3751,8 @@ struct
   let check_must_alias (fenv : func_env) (instr : instr) v1 v2 : bool =
     let _ =
       debug
-        ("Checking MustAlias in env("
-        ^ fenv.fenv_id
-        ^ ")"
-        ^ " of function: "
-        ^ func_name fenv.fenv_func) in
+        ("Checking MustAlias in env(" ^ fenv.fenv_id ^ ")" ^ " of function: "
+       ^ func_name fenv.fenv_func) in
     match get_instr_output fenv instr with
     | None -> false
     | Some data ->

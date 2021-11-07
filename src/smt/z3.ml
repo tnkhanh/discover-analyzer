@@ -333,9 +333,9 @@ module Z3SL = struct
       let msg =
         Printf.sprintf
           "Z3SL: error while checking sat:\n%s\n%s\n%s\n%s"
-          (hpr_align "  - formula: " SI.pr_pfs fs)
-          (pr_align "  - z3 input:\n" z3_input)
-          (pr_align "  - z3 output:\n" z3_output)
+          (halign_line "  - formula: " SI.pr_pfs fs)
+          (align_line "  - z3 input:\n" z3_input)
+          (align_line "  - z3 output:\n" z3_output)
           ("  - error: " ^ msg) in
       let _ = debugc msg in
       None, []
@@ -441,10 +441,10 @@ module Z3LL = struct
     | Error msg ->
       let msg =
         "Z3LL: error while checking sat:\n"
-        ^ (hpr_align "  - predicate: " LI.pr_pred p ^ "\n")
-        ^ (pr_align "  - z3 input:\n" z3_input ^ "\n")
-        ^ (pr_align "  - z3 output:\n" z3_output ^ "\n")
-        ^ pr_align "  - error: " msg in
+        ^ (halign_line "  - predicate: " LI.pr_pred p ^ "\n")
+        ^ (align_line "  - z3 input:\n" z3_input ^ "\n")
+        ^ (align_line "  - z3 output:\n" z3_output ^ "\n")
+        ^ align_line "  - error: " msg in
       let _ = debug msg in
       None
     | _ -> get_result output

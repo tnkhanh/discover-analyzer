@@ -53,9 +53,9 @@ type assertion =
 
 let pr_predicate (pred : predicate) : string =
   match pred with
-  | NoAlias vs -> "NoAlias(" ^ pr_args LI.pr_value vs ^ ")"
-  | MayAlias vs -> "MayAlias(" ^ pr_args LI.pr_value vs ^ ")"
-  | MustAlias vs -> "MustAlias(" ^ pr_args LI.pr_value vs ^ ")"
+  | NoAlias vs -> "NoAlias(" ^ sprint_args ~f:LI.pr_value vs ^ ")"
+  | MayAlias vs -> "MayAlias(" ^ sprint_args ~f:LI.pr_value vs ^ ")"
+  | MustAlias vs -> "MustAlias(" ^ sprint_args ~f:LI.pr_value vs ^ ")"
   | _ -> "pr_predicate: to implement"
 ;;
 
@@ -70,7 +70,7 @@ let pr_assertion_status (func : LI.func) (ast : assertion) (status : bool) =
     | true ->
       let asname = LI.func_name (LI.callee_of_instr_func_call instr) in
       let args = LI.args_of_instr_func_app instr in
-      asname ^ "(" ^ pr_args LI.pr_value args ^ ")" in
+      asname ^ "(" ^ sprint_args ~f:LI.pr_value args ^ ")" in
   let location =
     match LD.position_of_instr instr with
     | None -> "Function: " ^ func_name
@@ -152,6 +152,6 @@ let count_all_assertions (prog : LI.program) : int =
       ~f:(fun acc func -> acc @ find_all_assertions func)
       ~init:[]
       prog.prog_user_funcs in
-  let _ = hprint "All assertions: " (pr_items pr_assertion) assertions in
+  let _ = hprint "All assertions: " (sprint_items ~f:pr_assertion) assertions in
   List.length assertions
 ;;

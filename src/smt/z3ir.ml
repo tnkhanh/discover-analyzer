@@ -39,7 +39,7 @@ let pr_z3_val = function
 
 let pr_z3_res = function
   | Unsat -> "unsat"
-  | Sat m -> "sat: " ^ pr_list (pr_pair (fun s -> s) pr_z3_val) m
+  | Sat m -> "sat: " ^ sprint_list ~f:(sprint_pair ~f1:(fun s -> s) ~f2:pr_z3_val) m
   | Unk -> "unknown"
   | Error s -> "error: " ^ s
 ;;

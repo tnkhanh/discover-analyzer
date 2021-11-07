@@ -161,7 +161,7 @@ let pr_potential_bug (bug : bug) : string =
 ;;
 
 let pr_potential_bugs (bugs : bug list) : string =
-  pr_items pr_potential_bug bugs
+  sprint_items ~f:pr_potential_bug bugs
 ;;
 
 let pr_bug ?(detailed = true) (bug : bug) : string =
@@ -182,7 +182,7 @@ let pr_bug ?(detailed = true) (bug : bug) : string =
 ;;
 
 let pr_bug_name (bug : bug) : string = pr_bug_type ~detailed:false bug.bug_type
-let pr_bugs (bugs : bug list) : string = pr_items pr_bug bugs
+let pr_bugs (bugs : bug list) : string = sprint_items ~f:pr_bug bugs
 
 (*******************************************************************
  ** constructors
@@ -294,7 +294,7 @@ let report_bug (bug : bug) : unit =
   let reason =
     match bug.bug_reason with
     | None -> ""
-    | Some s -> pr_indent 2 ("Reason: " ^ s) ^ "\n" in
+    | Some s -> indent_line 2 ("Reason: " ^ s) ^ "\n" in
   let msg =
     "BUG: "
     ^ pr_bug_type ~detailed:false bug.bug_type
