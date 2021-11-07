@@ -31,7 +31,7 @@ let parse_program_seplog (filename : string) : SA.program =
     let pos = lexbuf.Lexing.lex_curr_p in
     let line = pos.Lexing.pos_lnum in
     let col = pos.Lexing.pos_cnum - pos.Lexing.pos_bol + 1 in
-    "filename: " ^ fname ^ ", line: " ^ pr_int line ^ ", col: " ^ pr_int col
+    "filename: " ^ fname ^ ", line: " ^ string_of_int line ^ ", col: " ^ string_of_int col
   in
   let inchan =
     try open_in filename with

@@ -1,7 +1,7 @@
 Development
 ==============
 
-IDE and Editors
+IDE and editors
 -----------------
 
 - Suggested editor: Emacs, Vim, Visual Studio Code.
@@ -48,7 +48,7 @@ Coding format and convention
 - More coding standards
   [Coding convention]() from Jane Street.
 
-OCaml Tutorials
+OCaml tutorials
 -----------------
 
 - OCaml programming:

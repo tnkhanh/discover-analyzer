@@ -168,7 +168,6 @@ let clang_path = ref "clang"
 let opt_path = ref "opt"
 let gollvm_path = ref ""
 let llvm_normalizer_path = ref "normalizer"
-
 let discover_path = Filename.realpath Sys.argv.(0)
 let project_path = Filename.dirname discover_path
 
@@ -222,28 +221,28 @@ let num_invalid_asserts = ref 0
  *******************************************************************)
 
 type position =
-  { pos_file_name : string
-  ; pos_line_start : int
-  ; pos_line_end : int
-  ; pos_col_start : int
-  ; pos_col_end : int
+  { pos_file_name : string;
+    pos_line_start : int;
+    pos_line_end : int;
+    pos_col_start : int;
+    pos_col_end : int
   }
 
 let mk_position fname lstart lend cstart cend =
-  { pos_file_name = fname
-  ; pos_line_start = lstart
-  ; pos_line_end = lend
-  ; pos_col_start = cstart
-  ; pos_col_end = cend
+  { pos_file_name = fname;
+    pos_line_start = lstart;
+    pos_line_end = lend;
+    pos_col_start = cstart;
+    pos_col_end = cend
   }
 ;;
 
 let mk_position_lexing (pstart : LX.position) (pend : LX.position) : position =
-  { pos_file_name = pstart.Lexing.pos_fname
-  ; pos_line_start = pstart.Lexing.pos_lnum
-  ; pos_line_end = pend.Lexing.pos_lnum
-  ; pos_col_start = pstart.Lexing.pos_cnum - pstart.Lexing.pos_bol + 1
-  ; pos_col_end = pend.Lexing.pos_cnum - pend.Lexing.pos_bol + 1
+  { pos_file_name = pstart.Lexing.pos_fname;
+    pos_line_start = pstart.Lexing.pos_lnum;
+    pos_line_end = pend.Lexing.pos_lnum;
+    pos_col_start = pstart.Lexing.pos_cnum - pstart.Lexing.pos_bol + 1;
+    pos_col_end = pend.Lexing.pos_cnum - pend.Lexing.pos_bol + 1
   }
 ;;
 
@@ -292,20 +291,11 @@ let pr_file_position_and_excerpt (p : position) =
   let cstart, cend = p.pos_col_start, p.pos_col_end in
   let line_column =
     if lstart = lend && cstart = cend
-    then pr_int lstart ^ ":" ^ pr_int cstart
+    then string_of_int lstart ^ ":" ^ string_of_int cstart
     else
-      pr_int lstart
-      ^ ":"
-      ^ pr_int cstart
-      ^ " ~> "
-      ^ pr_int lend
-      ^ ":"
-      ^ pr_int cend in
-  "File: "
-  ^ fname
-  ^ ", line/column position: "
-  ^ line_column
-  ^ "\n"
+      string_of_int lstart ^ ":" ^ string_of_int cstart ^ " ~> "
+      ^ string_of_int lend ^ ":" ^ string_of_int cend in
+  "File: " ^ fname ^ ", line/column position: " ^ line_column ^ "\n"
   ^ pr_file_excerpt fname lstart lend cstart cend
 ;;
 
@@ -371,7 +361,18 @@ let hwarning msg f x =
   warning msg
 ;;
 
-let error ?(log = "") msg = raise (EError (msg, log))
+(** report an error message *)
+
+let error ?(log = "") (msg : string) = raise (EError (msg, log))
+
+(** report 2 error messages *)
+
+let error2 ?(log = "") (msg1 : string) (msg2 : string) =
+  let msg = msg1 ^ msg2 in
+  error ~log msg
+;;
+
+(** report a list of error messages *)
 
 let errors ?(log = "") (msgs : string list) =
   let msg = String.concat ~sep:"" msgs in

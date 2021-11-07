@@ -637,7 +637,7 @@ functor
           -1
         with
         | EInt res -> res in
-      func_name caller ^ ":" ^ block_name blk ^ ":" ^ pr_int index
+      func_name caller ^ ":" ^ block_name blk ^ ":" ^ string_of_int index
     ;;
 
     let pr_callsites (css : callsite list) : string =
@@ -751,9 +751,9 @@ functor
               "  "
               ^ func_name func
               ^ ": "
-              ^ pr_int ftimes
+              ^ string_of_int ftimes
               ^ " times on "
-              ^ pr_int num_inputs
+              ^ string_of_int num_inputs
               ^ " inputs" in
             if ftimes = 0
             then func_stat
@@ -765,7 +765,7 @@ functor
                       let btimes =
                         Hashtbl.find_default tbl_block_stats blk ~default:0
                       in
-                      block_name blk ^ ": " ^ pr_int btimes)
+                      block_name blk ^ ": " ^ string_of_int btimes)
                     func in
                 beautiful_concat ~column:75 ~sep:", " stats in
               func_stat ^ "\n" ^ pr_indent 4 blk_stats))
@@ -784,7 +784,7 @@ functor
       ^ func_sequence
       ^ "\n"
       ^ "- Total functions analyzed times: "
-      ^ pr_int total_func_analyzed_times
+      ^ string_of_int total_func_analyzed_times
     ;;
 
     let pr_sparse_instr penv instr =
@@ -861,7 +861,7 @@ functor
           ~f:(fun acc func ->
             match Hashtbl.find penv.penv_func_envs func with
             | Some fenvs ->
-              let num_fenvs = pr_int (List.length fenvs) in
+              let num_fenvs = string_of_int (List.length fenvs) in
               let sfenvs =
                 fenvs
                 |> List.map ~f:(fun fenv ->
@@ -1019,25 +1019,25 @@ functor
       let stats =
         "\nSparse Pointer Statistics:\n"
         ^ "  #Sparse User funcs: "
-        ^ pr_int !num_user_funcs
+        ^ string_of_int !num_user_funcs
         ^ "\n"
         ^ "  #Sparse Blocks: "
-        ^ pr_int !num_blks
+        ^ string_of_int !num_blks
         ^ "\n"
         ^ "  #Sparse Instrs: "
-        ^ pr_int !num_instrs
+        ^ string_of_int !num_instrs
         ^ "\n"
         ^ "  #Sparse Func calls: "
-        ^ pr_int !num_func_calls
+        ^ string_of_int !num_func_calls
         ^ "\n"
         ^ "  #Sparse Pointer Vars: "
-        ^ pr_int !num_pointer_vars
+        ^ string_of_int !num_pointer_vars
         ^ "\n"
         ^ "  #Sparse Struct Vars: "
-        ^ pr_int !num_struct_vars
+        ^ string_of_int !num_struct_vars
         ^ "\n"
         ^ "  #Sparse Array Vars: "
-        ^ pr_int !num_array_vars
+        ^ string_of_int !num_array_vars
         ^ "\n" in
       print ~format:false ~always:true stats
     ;;
@@ -1355,13 +1355,13 @@ functor
           ~f:(fun fs ->
             let _ = hdebug ~indent:4 "  Fsum input: " pr_data fs.fsum_input in
             let res = T.equal_data fs.fsum_input input in
-            let _ = hdebug ~indent:4 "    equal? " pr_bool res in
+            let _ = hdebug ~indent:4 "    equal? " string_of_bool res in
             res)
           fsums in
       (* let res = List.find ~f:(fun fs ->
        *   let _ = hdebug ~indent:4 "  Fsum input: " pr_data fs.fsum_input in
        *   let res = T.lequal_data input fs.fsum_input in
-       *   let _ = hdebug ~indent:4 "    lequal? " pr_bool res in
+       *   let _ = hdebug ~indent:4 "    lequal? " string_of_bool res in
        *   res) fsums in *)
       let _ =
         match res with
@@ -1463,7 +1463,7 @@ functor
           true
         with
         | EBool res -> res in
-      let _ = hdebug ~always:true " - Env completed: " pr_bool env_completed in
+      let _ = hdebug ~always:true " - Env completed: " string_of_bool env_completed in
       match Hashtbl.find penv.penv_func_envs func with
       | None ->
         let fenv = { fenv with fenv_id = "1" } in
@@ -1491,14 +1491,14 @@ functor
         let nfenvs =
           if input_updated
           then (
-            let fenv = { fenv with fenv_id = pr_int (List.length fenvs + 1) } in
+            let fenv = { fenv with fenv_id = string_of_int (List.length fenvs + 1) } in
             fenvs @ [ fenv ])
           else fenvs in
         let _ = Hashtbl.set penv.penv_func_envs ~key:func ~data:nfenvs in
-        let _ = hdebug ~always:true " - Input updated: " pr_bool input_updated in
+        let _ = hdebug ~always:true " - Input updated: " string_of_bool input_updated in
         let _ =
-          hdebug ~always:true " - Output updated: " pr_bool output_updated in
-        let _ = hdebug ~always:true " - Env updated: " pr_bool env_updated in
+          hdebug ~always:true " - Output updated: " string_of_bool output_updated in
+        let _ = hdebug ~always:true " - Env updated: " string_of_bool env_updated in
         input_updated, output_updated, env_updated, env_completed
     ;;
 
@@ -1620,7 +1620,7 @@ functor
       let _ =
         hdebug " - analyzed inputs: " (pr_datas ~bullet:"  +") analyzed_inputs
       in
-      let _ = hdebug " - res (<=): " pr_bool res in
+      let _ = hdebug " - res (<=): " string_of_bool res in
       res
     ;;
 
@@ -2221,10 +2221,10 @@ functor
         let _ =
           ndebug
             ("    Changed: "
-            ^ pr_bool changed
+            ^ string_of_bool changed
             ^ "\n"
             ^ "    Continue: "
-            ^ pr_bool continue) in
+            ^ string_of_bool continue) in
         if not continue
         then changed, false
         else if not changed
@@ -2479,7 +2479,7 @@ functor
           "Analyzing function: "
           ^ fname_params
           ^ " ~ ("
-          ^ pr_int (get_func_analyzed_times penv func)
+          ^ string_of_int (get_func_analyzed_times penv func)
           ^ ")" in
         print ~ruler:`Medium msg in
       let _ =
@@ -2727,7 +2727,7 @@ functor
         let _ =
           hdebug "\nWorking functions (after sorting): " pr_working_funcs wfuncs
         in
-        (* let _ = hprint "\n#Working functions: " pr_int (List.length wfuncs) in *)
+        (* let _ = hprint "\n#Working functions: " string_of_int (List.length wfuncs) in *)
         (* let _ = hdebug ~always:true "Working functions (after sorting): " pr_working_funcs wfuncs  in *)
         (* choose_best_working_func penv wfuncs *)
         List.extract_nth 0 wfuncs
@@ -2753,7 +2753,7 @@ functor
             time in
         (* let _ = if Float.(>) time 15. then
          *     hprint "TOO SLOW... Func env: " (pr_func_env penv) fenv in *)
-        let _ = hdebug "Analysis output updated: " pr_bool env_updated in
+        let _ = hdebug "Analysis output updated: " string_of_bool env_updated in
         let _ =
           if need_reanalyze
           then (
@@ -3204,13 +3204,13 @@ functor
       else (
         let msg =
           let info =
-            pr_int num_checked
+            string_of_int num_checked
             ^ "/"
-            ^ pr_int num_total
+            ^ string_of_int num_total
             ^ " assertion(s) are checked" in
           if num_skipped == 0
           then info ^ "!"
-          else info ^ ", " ^ pr_int num_skipped ^ " are skipped!" in
+          else info ^ ", " ^ string_of_int num_skipped ^ " are skipped!" in
         println msg)
     ;;
 

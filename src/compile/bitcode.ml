@@ -39,7 +39,7 @@ let process_module
     (modul : LL.llmodule)
     : LI.program
   =
-  let _ = hprint "Simplifying bitcode: " pr_id filename in
+  let _ = print2 "Simplifying bitcode: " filename in
   let _ = LN.rename_vars_and_params modul in
   let _ =
     if !llvm_simplify
@@ -57,7 +57,7 @@ let process_module
         let dirname = Filename.dirname filename in
         let fname_ir = dirname ^ Filename.dir_sep ^ basename ^ ".ll" in
         let _ = LL.print_module fname_ir modul in
-        hdebug "Export LLVM IR to: " pr_str fname_ir)) in
+        debug ("Export LLVM IR to: " ^ fname_ir))) in
   let prog =
     Sys.report_runtime ~task:"Time preparing core program" (fun () ->
         let _ = LN.check_normalization modul in
@@ -73,7 +73,7 @@ let process_module
 
 let optimize_bitcode (filename : string) : string =
   (* run mem2reg optimization to promote memory to registers *)
-  let _ = hprint "Optimize bitcode: " pr_id filename in
+  let _ = print2 "Optimize bitcode: " filename in
   let basename = Filename.chop_extension (Filename.basename filename) in
   let dirname = Filename.dirname filename in
   let _ = Sys.mkdir_if_not_exists dirname in

@@ -186,7 +186,7 @@ let elim_instr_sext_integer (modul : LL.llmodule) : unit =
  *******************************************************************)
 
 let simplify_module (filename : string) (modul : LL.llmodule) : unit =
-  let _ = hdebug "Simplifying module: " pr_str filename in
+  let _ = debug ("Simplifying module: " ^ filename) in
   let _ =
     (* let _ = debug " - Eliminate intrinsic lifetime instructions..." in *)
     elim_instr_intrinsic_lifetime modul in

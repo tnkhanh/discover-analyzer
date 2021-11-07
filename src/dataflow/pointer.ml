@@ -1178,10 +1178,10 @@ module PointerDomain = struct
 
   let pr_graph_size (g : pgraph) : string =
     "{ #vertices: "
-    ^ pr_int (PG.nb_vertex g)
+    ^ string_of_int (PG.nb_vertex g)
     ^ ", "
     ^ "#edges: "
-    ^ pr_int (PG.nb_edges g)
+    ^ string_of_int (PG.nb_edges g)
     ^ "}"
   ;;
 
@@ -3856,7 +3856,7 @@ struct
   let check_assertion (fenvs : func_env list) (ast : AS.assertion) : bool option
     =
     let instr = ast.AS.ast_instr in
-    let num_fenvs = pr_int (List.length fenvs) in
+    let num_fenvs = string_of_int (List.length fenvs) in
     if ast.AS.ast_type == AS.Assert
     then (
       match ast.AS.ast_predicate with

@@ -215,8 +215,8 @@ let rec pr_exp (e : exp) : string =
   match e with
   | Void -> "void"
   | Null -> "null"
-  | Int i -> pr_int i
-  | Float f -> pr_float f
+  | Int i -> string_of_int i
+  | Float f -> string_of_float f
   | String s -> "\"" ^ s ^ "\""
   | Var v -> pr_var v
   | Cast (e, t1, t2) ->
@@ -248,7 +248,7 @@ let rec pr_pure_form (f : pure_form) : string =
     | PConj _ | PDisj _ -> "(" ^ pr_pure_form f ^ ")"
     | _ -> pr_pure_form f in
   match f with
-  | Bool b -> pr_bool b
+  | Bool b -> string_of_bool b
   | BExp e -> pr_exp e
   | Reln rf -> pr_reln_form rf
   | PNeg f -> "!" ^ "(" ^ pr_pure_form f ^ ")"
@@ -359,14 +359,14 @@ let pr_ent ?(id = false) ent =
   let res = pr_f ent.ent_lhs ^ " |- " ^ pr_f ent.ent_rhs in
   if (not id) || ent.ent_id < 1
   then "# " ^ res
-  else "#" ^ pr_int ent.ent_id ^ ". " ^ res
+  else "#" ^ string_of_int ent.ent_id ^ ". " ^ res
 ;;
 
 let pr_ents (ents : entailments) : string =
   pr_items ~bullet:"  " (pr_ent ~id:true) ents
 ;;
 
-let pr_ent_id (ent : entailment) : string = "#" ^ pr_int ent.ent_id
+let pr_ent_id (ent : entailment) : string = "#" ^ string_of_int ent.ent_id
 
 let pr_ents_ids (ents : entailments) : string =
   ents |> List.map ~f:pr_ent_id |> String.concat ~sep:", "

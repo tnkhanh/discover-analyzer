@@ -102,7 +102,7 @@ let pr_memory_leak ?(detailed = true) (mlk : memory_leak) : string =
   let size =
     match mlk.mlk_size with
     | None -> "unknown"
-    | Some size -> pr_int size in
+    | Some size -> string_of_int size in
   "Memory Leak" ^ if detailed then "\n  Reason: buffer size: " ^ size else ""
 ;;
 
@@ -126,12 +126,12 @@ let pr_llvalue_name (v : LL.llvalue) : string =
   | None -> pr_value v
 ;;
 
-let pr_integer_overflow ?(detailed = true) (iof : integer_overflow) : string =
+let string_of_integer_overflow ?(detailed = true) (iof : integer_overflow) : string =
   "Integer Overflow"
   ^ if detailed then "\n" ^ pr_instr_detailed_position iof.iof_instr else ""
 ;;
 
-let pr_integer_underflow ?(detailed = true) (iuf : integer_underflow) : string =
+let string_of_integer_underflow ?(detailed = true) (iuf : integer_underflow) : string =
   "Integer Underflow"
   ^ if detailed then "\n" ^ pr_instr_detailed_position iuf.iuf_instr else ""
 ;;
@@ -145,8 +145,8 @@ let pr_bug_type ?(detailed = true) (btype : bug_type) : string =
   | MemoryLeak mlk -> pr_memory_leak mlk
   | NullPointerDeref -> "Null Pointer Dereference"
   | BufferOverflow bof -> pr_buffer_overflow ~detailed bof
-  | IntegerOverflow iof -> pr_integer_overflow iof
-  | IntegerUnderflow iuf -> pr_integer_underflow ~detailed iuf
+  | IntegerOverflow iof -> string_of_integer_overflow iof
+  | IntegerUnderflow iuf -> string_of_integer_underflow ~detailed iuf
   | DivisionByZero -> "Division By Zero"
 ;;
 
@@ -174,7 +174,7 @@ let pr_bug ?(detailed = true) (bug : bug) : string =
       ^
       match bug.bug_status with
       | None -> "Unknown"
-      | Some b -> pr_bool b
+      | Some b -> string_of_bool b
     else "" in
   "Bug: "
   ^ pr_instr bug.bug_instr

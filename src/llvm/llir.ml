@@ -633,7 +633,7 @@ let llvalues_of_params (ps : params) : llvalues =
 
 let mk_expr_undef (typ : lltype) : expr = Undef typ
 let mk_expr_int64 (i : int64) : expr = Int64 i
-let mk_expr_int64_of_int (i : int) : expr = Int64 (Int64.of_int i)
+let mk_expr_int (i : int) : expr = Int64 (Int64.of_int i)
 let mk_expr_float (f : float) : expr = Float f
 let mk_expr_string (s : string) : expr = String s
 let mk_expr_var (v : llvalue) : expr = Var v
@@ -798,7 +798,7 @@ let pr_exprs (es : expr list) : string = pr_list pr_expr es
 
 let rec pr_pred (p : predicate) : string =
   match p with
-  | PBool b -> pr_bool b
+  | PBool b -> string_of_bool b
   | PIcmp (cmp, lhs, rhs) -> pr_value lhs ^ pr_icmp cmp ^ pr_value rhs
   | PFcmp (cmp, lhs, rhs) -> pr_value lhs ^ pr_fcmp cmp ^ pr_value rhs
   | PNeg p -> "!" ^ pr_pred p
@@ -2455,7 +2455,7 @@ let arg_of_instr_call (i : instr) (idx : int) : llvalue =
   | LO.Call ->
     if idx < num_args_of_instr_call i
     then operand i idx
-    else herror "arg_of_instr_call: idx out of bound" pr_int idx
+    else herror "arg_of_instr_call: idx out of bound" string_of_int idx
   | _ -> herror "arg_of: not an instr Call: " pr_instr i
 ;;
 
@@ -2484,7 +2484,7 @@ let arg_of_instr_callbr (i : instr) (idx : int) : llvalue =
   | LO.CallBr ->
     if idx < num_args_of_instr_call i
     then operand i idx
-    else herror "arg_of_instr_call: idx out of bound" pr_int idx
+    else herror "arg_of_instr_call: idx out of bound" string_of_int idx
   | _ -> herror "arg_of: not an instr Call: " pr_instr i
 ;;
 
@@ -2541,7 +2541,7 @@ let arg_of_instr_invoke (i : instr) (idx : int) : llvalue =
   | LO.Invoke ->
     if idx < num_args_of_instr_call i
     then operand i idx
-    else herror "arg_of_instr_invoke: idx out of bound" pr_int idx
+    else herror "arg_of_instr_invoke: idx out of bound" string_of_int idx
   | _ -> herror "arg_of: not an instr Invoke: " pr_instr i
 ;;
 

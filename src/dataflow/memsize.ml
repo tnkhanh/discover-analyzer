@@ -34,8 +34,8 @@ module SizeDomain = struct
 
   let pr_size s =
     if Int64.equal s.size_min s.size_max
-    then pr_int64 s.size_min
-    else "[" ^ pr_int64 s.size_min ^ "," ^ pr_int64 s.size_max ^ "]"
+    then string_of_int64 s.size_min
+    else "[" ^ string_of_int64 s.size_min ^ "," ^ string_of_int64 s.size_max ^ "]"
   ;;
 
   let mk_size_range min max = { size_min = min; size_max = max }

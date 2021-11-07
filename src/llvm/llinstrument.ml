@@ -70,7 +70,7 @@ let extract_ann_marks (filename : string) =
     try Annparser.prog Annlexer.read lexbuf with
     | Annparser.Error ->
       let _ =
-        hdebug "Parsing failed. Annotations ignored in file: " pr_str filename
+        debug ("Parsing failed. Annotations ignored in file: " ^ filename)
       in
       [] in
   (*print all marks*)
@@ -204,9 +204,9 @@ let rec resolve
         raise
           (AnnotFormat
              ("Error: no matching instruction for bug annotation at "
-             ^ pr_int line
+             ^ string_of_int line
              ^ " "
-             ^ pr_int col))
+             ^ string_of_int col))
       | ins :: tl_ins ->
         if less_than ins hd_ann
         then resolve ann_marks tl_ins (update ins matched_anns) modul
@@ -247,11 +247,11 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule) : unit
   let sorted_anns = List.rev annotations in
   let _ =
     List.iter ~f:(fun ((line, col), ann) ->
-      print_endline (ann^"----------"^(pr_int line)^"------------"^(pr_int col))
+      print_endline (ann^"----------"^(string_of_int line)^"------------"^(string_of_int col))
     ) sorted_anns in *)
 
   (* map each instr to (line, col) * tag * instr *)
-  let _ = hprint "======== Source file: " pr_str source_name in
+  let _ = print ("======== Source file: " ^ source_name) in
   let _ =
     print_endline
       ("MODULE  =============================\n"
@@ -293,10 +293,10 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule) : unit
             | None -> "None.."
             | Some d -> LL.string_of_llvalue d in
           print_endline
-            ((*        "Tag: " ^ (pr_int tin.tag) ^ "\n" ^
+            ((*        "Tag: " ^ (string_of_int tin.tag) ^ "\n" ^
                      "Debug: " ^ dbg_str ^ "\n" ^
-        "Instr: " ^ (LL.string_of_llvalue inx) ^ " +++ " ^ (pr_int tin.pos.pos_line_end) ^ " .. "
-        ^ (pr_int tin.pos.pos_col_end)
+        "Instr: " ^ (LL.string_of_llvalue inx) ^ " +++ " ^ (string_of_int tin.pos.pos_line_end) ^ " .. "
+        ^ (string_of_int tin.pos.pos_col_end)
         ^ " .. file: " ^ tin.pos.pos_file_name  *)
              LL.string_of_llvalue
                inx)
@@ -304,8 +304,8 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule) : unit
         match pos with
         | None -> ()
         | Some p -> print_endline ((LL.string_of_llvalue inx)^"++++ "^
-                         (pr_int line) ^ "__" ^
-                         (pr_int col)) *))
+                         (string_of_int line) ^ "__" ^
+                         (string_of_int col)) *))
       (List.rev tagged_ins)
     (*sorted_ins*) in
   let _ = print_endline "SORTED_INS===" in

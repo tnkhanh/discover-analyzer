@@ -28,7 +28,7 @@ let rename_vars_and_params (modul : LL.llmodule) : unit =
    * let index_instr = ref (-1) in *)
   let compute_index index =
     index := !index + 1;
-    pr_int !index in
+    string_of_int !index in
   let finstr =
     Some
       (fun instr ->

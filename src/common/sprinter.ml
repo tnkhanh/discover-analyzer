@@ -37,12 +37,17 @@ let whitespace_of (length : int) : string =
  ** Basic printer
  *******************************************************************)
 
-let pr_id s = s
-let pr_str s = s
-let pr_int = string_of_int
-let pr_int64 = Int64.to_string
-let pr_float = string_of_float
-let pr_bool = string_of_bool
+let pr_id = fun x -> x
+let string_of_bool : bool -> string = string_of_bool
+let string_of_float : float -> string = string_of_float
+let string_of_int (x : int) : string = string_of_int x
+let string_of_int64 = Int64.to_string
+let string_of_string (s : string) : string = s
+
+let sprintf = Printf.sprintf
+
+(* error printing *)
+let pr_error : string -> unit = prerr_endline
 
 let pr_opt f x : string =
   match x with
@@ -151,7 +156,7 @@ let pr_pairs pr1 pr2 items =
   pr_list ~sep:";" pr items
 ;;
 
-let pr_ints is = pr_list_square pr_int is
+let string_of_ints is = pr_list_square string_of_int is
 
 let beautiful_concat ?(column = 80) ~(sep : string) (strs : string list) =
   let rec concat strs current_line res =

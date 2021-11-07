@@ -25,7 +25,7 @@ module LU = Llutils
 module PS = Process
 
 let compile_c_cpp (filename : string) : LI.program =
-  let _ = hdebug "Compiling file: " pr_str filename in
+  let _ = debug ("Compiling file: " ^ filename) in
   let basename = Filename.chop_extension (Filename.basename filename) in
   let dirname = Filename.dirname filename ^ Filename.dir_sep ^ "logs" in
   let _ = Sys.mkdir_if_not_exists dirname in

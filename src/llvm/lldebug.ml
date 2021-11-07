@@ -61,8 +61,8 @@ let position_of_instr (instr : LI.instr) : position option =
     let line = LD.di_location_get_line ~location:instr_md in
     let column = LD.di_location_get_column ~location:instr_md in
     let scope_md = LD.di_location_get_scope ~location:instr_md in
-    (* let _ = hprint "Line: " pr_int line in *)
-    (* let _ = hprint "Column: " pr_int column in *)
+    (* let _ = hprint "Line: " string_of_int line in *)
+    (* let _ = hprint "Column: " string_of_int column in *)
     let filename =
       match LD.di_scope_get_file ~scope:scope_md with
       | None -> ""

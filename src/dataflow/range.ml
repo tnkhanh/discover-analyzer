@@ -68,14 +68,14 @@ module IntervalDomain = struct
     plb ^ lb ^ ", " ^ ub ^ pub
   ;;
 
-  let pr_interval (i : interval) : string =
+  let string_of_interval (i : interval) : string =
     match i with
     | Bottom -> "Bottom"
     | Range r -> pr_range r
   ;;
 
   let pr_einterval (e : einterval) : string =
-    pr_expr e.ei_expr ^ ": " ^ pr_interval e.ei_interval
+    pr_expr e.ei_expr ^ ": " ^ string_of_interval e.ei_interval
   ;;
 
   (* constructors *)
@@ -491,10 +491,10 @@ struct
   (* printers *)
 
   let pr_data (d : t) =
-    let expr_interval_lst = MP.to_alist ~key_order:`Decreasing d in
+    let exstring_of_interval_lst = MP.to_alist ~key_order:`Decreasing d in
     pr_list_square
-      (fun (e, i) -> pr_expr e ^ ": " ^ pr_interval i)
-      expr_interval_lst
+      (fun (e, i) -> pr_expr e ^ ": " ^ string_of_interval i)
+      exstring_of_interval_lst
   ;;
 
   let pr_data_checksum = pr_data
@@ -792,9 +792,9 @@ struct
     | LO.PHI ->
       let opr0 = expr_operand instr 0 in
       let itv = ref (get_interval opr0 input) in
-      let _ = hdebug "Before refine widening: " pr_bool widen in
+      let _ = hdebug "Before refine widening: " string_of_bool widen in
       let widen = refine_widening func instr widen in
-      let _ = hdebug "After refine widening: " pr_bool widen in
+      let _ = hdebug "After refine widening: " string_of_bool widen in
       for i = 1 to num_operands instr - 1 do
         let opri = expr_operand instr i in
         let itvi = get_interval opri input in
@@ -959,9 +959,9 @@ module RangeAnalysis = struct
   module RT = RangeTransfer
 
   let get_interval (e : expr) (d : t) : ID.interval = RU.get_interval e d
-  let pr_interval = ID.pr_interval
+  let string_of_interval = ID.string_of_interval
 
-  let pr_interval_concise (i : ID.interval) : string =
+  let string_of_interval_concise (i : ID.interval) : string =
     match i with
     | Bottom -> "[Empty]"
     | Range r ->

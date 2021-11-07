@@ -62,10 +62,29 @@ let print_core
 
 (** print a message *)
 
-let print ?(ruler = `None) ?(indent = 0) ?(always = false) ?(format = true) msg
+let print
+    ?(ruler = `None)
+    ?(indent = 0)
+    ?(always = false)
+    ?(format = true)
+    (msg : string)
     : unit
   =
   print_core ~ruler ~indent ~always ~format msg
+;;
+
+(** print 2 messages *)
+
+let print2
+    ?(ruler = `None)
+    ?(indent = 0)
+    ?(always = false)
+    ?(format = true)
+    (msg1 : string)
+    (msg2 : string)
+    : unit
+  =
+  print_core ~ruler ~indent ~always ~format (msg1 ^ msg2)
 ;;
 
 let println

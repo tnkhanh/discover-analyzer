@@ -34,14 +34,15 @@ module VS = Version
 let print_discover_settings () =
   let _ = print ~always:true ("Checking file: " ^ !input_file) in
   let info =
-    "Discover's settings:"
-    ^ ("\n  Git revision: " ^ VS.get_current_revision ())
-    ^ ("\n  LLVM version: " ^ llvm_version)
-    ^ ("\n  llvm-clang: " ^ !clang_path)
-    ^ ("\n  llvm-opt: " ^ !opt_path)
-    ^ ("\n  llvm-discover-normalizer: " ^ !llvm_normalizer_path)
-    ^ "\n  Z3 solver: " ^ !Z3.z3cmd ^ " (" ^ !Z3.z3version ^ ")" in
-  debug info
+    [ "Discover's settings:";
+      "  Git revision: " ^ VS.get_current_revision ();
+      "  LLVM version: " ^ llvm_version;
+      "  llvm-clang: " ^ !clang_path;
+      "  llvm-opt: " ^ !opt_path;
+      "  llvm-discover-normalizer: " ^ !llvm_normalizer_path;
+      "  Z3 solver: " ^ !Z3.z3cmd ^ " (" ^ !Z3.z3version ^ ")"
+    ] in
+  debug (String.concat ~sep:"\n" info)
 ;;
 
 let init_solvers () =
@@ -49,7 +50,7 @@ let init_solvers () =
     match PS.run_command_get_output [ !Z3.z3cmd; "--version" ] with
     | PS.POutput res -> Z3.z3version := res
     | PS.PError _ ->
-      let _ = hdebug "Checking Z3 command: " pr_str !Z3.z3cmd in
+      let _ = debug2 "Checking Z3 command: " !Z3.z3cmd in
       error "Z3 solver not found!" in
   ()
 ;;
@@ -109,14 +110,16 @@ let print_analysis_summary () =
           ~init:"\n\nDetailed runtime:"
           !detailed_task_time in
     let summary =
-      "\nSummary:"
-      ^ Printf.sprintf "\n- Input file: %s" !input_file
-      ^ Printf.sprintf "\n- Valid assertions: %d" !num_valid_asserts
-      ^ Printf.sprintf "\n- Invalid assertions: %d" !num_invalid_asserts
-      ^ Printf.sprintf "\n- Analysis time: %.2fs" !analysis_time
-      ^ Printf.sprintf "\n- Total runtime: %.2fs" !total_time
-      ^ detailed_runtime in
-    print ~always:true ~format:false ~ruler:`Long (summary ^ "\n")
+      [ "Summary:";
+        "- Input file: " ^ !input_file;
+        "- Valid assertions: " ^ string_of_int !num_valid_asserts;
+        "- Invalid assertions: " ^ string_of_int !num_invalid_asserts;
+        "- Analysis time: " ^ sprintf "%.2fs" !analysis_time;
+        "- Total runtime: " ^ sprintf "%.2fs" !total_time;
+        detailed_runtime
+      ] in
+    let msg = String.concat ~sep:"\n" summary in
+    println ~always:true ~format:false ~ruler:`Long msg
 ;;
 
 let handle_system_signals () =
@@ -138,7 +141,7 @@ let analyze_program (prog : CI.program) : unit =
   | CI.Llprog prog ->
     let _ = hprint "Work mode: " pr_work_mode !work_mode in
     let num_assertions = AS.count_all_assertions prog in
-    let _ = print ("Found total assertions: " ^ pr_int num_assertions) in
+    let _ = print ("Found total assertions: " ^ string_of_int num_assertions) in
     (match !work_mode with
     | WkmDFA -> DA.analyze_program_llvm prog
     (* | WkmDFA -> DAP.analyze_program_llvm prog *)
@@ -172,35 +175,19 @@ let main () : unit =
 let _ =
   try main () with
   | EError (msg, log) ->
-    let msg = "ERROR: " ^ msg in
-    let msg =
-      msg
-      ^ (if !release_mode || String.is_empty log
-        then ""
-        else "\n\nDetailed message:\n\n" ^ pr_prefix ~prefix:"  > " log)
-      ^
-      if !release_mode || String.is_empty log
-      then ""
-      else
-        "\n\nException occurred:\n\n" ^ hpr_indent 2 Printexc.get_backtrace ()
-    in
-    let _ = prerr_endline ("\n" ^ msg) in
+    let _ = prerr_endline ("ERROR: " ^ msg) in
+    if not (!release_mode || String.is_empty log)
+    then (
+      prerr_endline ("Detailed message:\n\n" ^ pr_prefix ~prefix:"  > " log);
+      prerr_endline ("Exception:\n\n" ^ hpr_indent 2 Printexc.get_backtrace ()));
     exit 1
   | e ->
-    let msg =
-      if !release_mode
-      then ""
-      else (
-        match is_debug_mode () with
-        | true ->
-          "\nERROR: an exception occurred!\n\n"
-          ^ ("Exception: " ^ Exn.to_string e ^ "\n")
-          ^ Printexc.get_backtrace ()
-        | false ->
-          "\nERROR: an exception occurred!\n"
-          ^ ("Exception: " ^ Exn.to_string e ^ "\n")
-          ^ (Printexc.get_backtrace () ^ "\n\n")
-          ^ "To debug, run Discover again with additional '-d'.") in
-    let _ = prerr_endline msg in
+    if not !release_mode
+    then (
+      prerr_endline "ERROR: an exception occurred!";
+      prerr_endline ("Exception: " ^ Exn.to_string e);
+      prerr_endline (Printexc.get_backtrace ()));
+    if not (is_debug_mode ())
+    then prerr_endline "To debug, run Discover again with additional '-d'.";
     exit 1
 ;;

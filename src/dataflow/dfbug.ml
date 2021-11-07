@@ -163,8 +163,8 @@ let check_bug_buffer_overflow (pdata : program_data) bug : bug option =
                   "Buffer at pointer %s contains %s elements,\n\
                    while the accessing index is %s "
                   (LI.pr_value bof.bof_pointer)
-                  (pr_int64 n)
-                  (RG.pr_interval_concise itv) in
+                  (string_of_int64 n)
+                  (RG.string_of_interval_concise itv) in
               return (mk_real_bug ~analysis:"RangeAnalysis" ~reason bug))
             else None
           | MemSizeOf v ->
@@ -189,8 +189,8 @@ let check_bug_buffer_overflow (pdata : program_data) bug : bug option =
                         "Buffer at pointer %s contains most %s elements,\n\
                          while the accessing index is %s "
                         (LI.pr_value bof.bof_pointer)
-                        (pr_int64 max_num_elem)
-                        (RG.pr_interval_concise itv) in
+                        (string_of_int64 max_num_elem)
+                        (RG.string_of_interval_concise itv) in
                     return (mk_real_bug ~analysis:"RangeAnalysis" ~reason bug))
                   else if RG.ID.compare_interval_ub_int itv min_num_elem >= 0
                   then (
@@ -199,8 +199,8 @@ let check_bug_buffer_overflow (pdata : program_data) bug : bug option =
                         "Buffer at pointer %s may contain only %s elements,\n\
                          while the accessing index is %s "
                         (LI.pr_value bof.bof_pointer)
-                        (pr_int64 min_num_elem)
-                        (RG.pr_interval_concise itv) in
+                        (string_of_int64 min_num_elem)
+                        (RG.string_of_interval_concise itv) in
                     return (mk_real_bug ~analysis:"RangeAnalysis" ~reason bug))
                   else None))
               ~init:None

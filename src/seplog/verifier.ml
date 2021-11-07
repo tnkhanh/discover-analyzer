@@ -312,7 +312,7 @@ let find_lib_proc pname : proc_defn option =
   match procs with
   | [] -> None
   | [ p ] -> Some p
-  | _ -> herror "lib_core has duplicated procedures named: " pr_str pname
+  | _ -> error ("lib_core has duplicated procedures named: " ^ pname)
 ;;
 
 let encode_block_pre_state blk : view_form =
@@ -373,11 +373,11 @@ let get_prepost_llproc (func : LI.func) (args : exp list) (res : exp) =
       let sst = mk_subst_vars_exps pd.procd_params args in
       extend_subst sst proc_res res in
     (match proc_specs with
-    | [] -> herror "get_precond_llproc: no specs of func: " pr_str pname
+    | [] -> error ("get_precond_llproc: no specs of func: " ^ pname)
     | [ sp ] ->
       ( substitute_formula sst sp.psp_precond
       , substitute_formula sst sp.psp_postcond )
-    | _ -> herror "get_precond_llproc: many specs of func: " pr_str pname)
+    | _ -> error ("get_precond_llproc: many specs of func: " ^ pname))
 ;;
 
 (*******************************************************************
@@ -744,7 +744,7 @@ let process_one_state_instr_bitcast vstate pstate instr src dst =
    *       let src_memtyp_size = mk_exp_int (Int64.to_int_exn src_memtyp_size) in
    *       let dst_etyp_size = Int64.to_int_exn dst_lletyp_size in
    *       let _ = hdebugc "src_memtyp_size: " pr_exp src_memtyp_size in
-   *       let _ = hdebugc "dst_lletyp_size: " pr_int dst_etyp_size in
+   *       let _ = hdebugc "dst_lletyp_size: " string_of_int dst_etyp_size in
    *       let dst_size = mk_mul_exp_int dst_asize dst_etyp_size in
    *       let _ = hdebugc "dst_size: " pr_exp dst_size in
    *       mk_eq src_memtyp_size dst_size in

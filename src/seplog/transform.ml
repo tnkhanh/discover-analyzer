@@ -161,7 +161,7 @@ let transform_pred_defn prog (pd : SA.pred_defn) =
       | SI.Pure p -> Some p
       | _ -> herror "transform_pred_reln: not a pure body" SI.pr_formula f in
     PReln (SI.mk_reln_defn name params body)
-  | SA.PtReln, _ -> herror "transform_pred_reln: expect 1 body form" pr_str name
+  | SA.PtReln, _ -> error ("transform_pred_reln: expect 1 body form: " ^ name)
   | SA.PtView, fs ->
     let vdcs = List.map ~f:SI.mk_view_defn_case fs in
     PView (SI.mk_view_defn name params vdcs)

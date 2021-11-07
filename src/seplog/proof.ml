@@ -296,10 +296,10 @@ let pr_enc ?(id = false) enc =
   let res = pr_f enc.enc_lhs ^ " |- " ^ pr_f enc.enc_rhs in
   if (not id) || enc.enc_id < 1
   then "# " ^ res
-  else "#" ^ pr_int enc.enc_id ^ ". " ^ res
+  else "#" ^ string_of_int enc.enc_id ^ ". " ^ res
 ;;
 
-let pr_enc_id (enc : entail_core) : string = "#" ^ pr_int enc.enc_id
+let pr_enc_id (enc : entail_core) : string = "#" ^ string_of_int enc.enc_id
 
 let pr_enc_ids (encs : entail_cores) : string =
   encs |> List.map ~f:pr_enc_id |> String.concat ~sep:", "
@@ -418,7 +418,7 @@ let pr_rmd r =
   ^ " vs. "
   ^ pr_df r.rmd_rhs_data
   ^ ", early: "
-  ^ pr_bool r.rmd_apply_early
+  ^ string_of_bool r.rmd_apply_early
   ^ "}"
 ;;
 
@@ -430,7 +430,7 @@ let pr_rmv r =
   ^ " vs. "
   ^ pr_vf r.rmv_rhs_view
   ^ ", early: "
-  ^ pr_bool r.rmv_apply_early
+  ^ string_of_bool r.rmv_apply_early
   ^ "}"
 ;;
 
@@ -442,7 +442,7 @@ let pr_rma r =
   ^ " vs. "
   ^ pr_af r.rma_rhs_array
   ^ ", early: "
-  ^ pr_bool r.rma_apply_early
+  ^ string_of_bool r.rma_apply_early
   ^ "}"
 ;;
 
@@ -494,7 +494,7 @@ let pr_rules rules =
   "[" ^ res ^ "]"
 ;;
 
-let pr_enc_id (enc : entail_core) : string = "#" ^ pr_int enc.enc_id
+let pr_enc_id (enc : entail_core) : string = "#" ^ string_of_int enc.enc_id
 
 let pr_goal goal =
   let encs =
@@ -502,7 +502,7 @@ let pr_goal goal =
       ~f:(fun acc enc ->
         acc
         ^ "   #"
-        ^ pr_int enc.enc_id
+        ^ string_of_int enc.enc_id
         ^ ". "
         ^ pr_f enc.enc_lhs
         ^ " |- "

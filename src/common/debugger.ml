@@ -122,12 +122,38 @@ let debug_core
   else ()
 ;;
 
-(** print a mode_debug messages *)
+(** print a message *)
 
-let debug ?(ruler = `None) ?(indent = 0) ?(always = false) msg : unit =
+let debug ?(ruler = `None) ?(indent = 0) ?(always = false) (msg : string) : unit
+  =
   let enable = (not !no_debug) && (!mode_debug || !mode_deep_debug || always) in
   let prefix = if ruler == `None then "\n" else "" in
   debug_core ~ruler ~indent ~enable ~prefix (fun () -> msg)
+;;
+
+(** print 2 messages *)
+
+let debug2
+    ?(ruler = `None)
+    ?(indent = 0)
+    ?(always = false)
+    (msg1 : string)
+    (msg2 : string)
+    : unit
+  =
+  let enable = (not !no_debug) && (!mode_debug || !mode_deep_debug || always) in
+  let prefix = if ruler == `None then "\n" else "" in
+  debug_core ~ruler ~indent ~enable ~prefix (fun () -> msg1 ^ msg2)
+;;
+
+(** print a list of messages *)
+
+let debugs ?(ruler = `None) ?(indent = 0) ?(always = false) (msgs : string list)
+    : unit
+  =
+  let enable = (not !no_debug) && (!mode_debug || !mode_deep_debug || always) in
+  let prefix = if ruler == `None then "\n" else "" in
+  debug_core ~ruler ~indent ~enable ~prefix (fun () -> String.concat msgs)
 ;;
 
 (** print a concise mode_debug message *)
@@ -267,12 +293,14 @@ let hddebugln
 let display_choices msg (pr_choice : 'a -> string) (choices : 'a list) : string =
   let all_choices =
     choices
-    |> List.mapi ~f:(fun idx c -> " [" ^ pr_int (idx + 1) ^ "]. " ^ pr_choice c)
+    |> List.mapi ~f:(fun idx c ->
+           " [" ^ string_of_int (idx + 1) ^ "]. " ^ pr_choice c)
     |> String.concat ~sep:"\n" in
   let _ = print_endline (msg ^ "\n" ^ all_choices) in
   let range =
     let num_choices = List.length choices in
-    if num_choices = 1 then "1" else "1" ^ ".." ^ pr_int num_choices in
+    if num_choices = 1 then "1" else "1" ^ ".." ^ string_of_int num_choices
+  in
   range
 ;;
 
@@ -300,8 +328,7 @@ let rec ask_decision question (answer_choices : string list) : string =
               let index_end = int_of_string (Str.matched_group 2 str) in
               index_begin <= index_answer && index_answer <= index_end)
             else false
-          with
-          | _ -> false))
+          with _ -> false))
       answer_choices in
   if not is_valid_choice
   then (

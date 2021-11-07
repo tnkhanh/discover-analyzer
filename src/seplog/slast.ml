@@ -202,8 +202,8 @@ let mk_program_empty () =
 
 let rec pr_exp (e : exp) : string =
   match e with
-  | Int (i, _) -> pr_int i
-  | Float (f, _) -> pr_float f
+  | Int (i, _) -> string_of_int i
+  | Float (f, _) -> string_of_float f
   | String (s, _) -> "\"" ^ s ^ "\""
   | Var (v, _) -> pr_var v
   | BinExp (Add, e1, e2, _) -> pr_exp e1 ^ "+" ^ pr_exp e2
@@ -226,7 +226,7 @@ let pr_addr_exp (a : addr_exp) : string =
 
 let rec pr_formula (f : formula) : string =
   match f with
-  | Bool (b, _) -> pr_bool b
+  | Bool (b, _) -> string_of_bool b
   | BVar (v, _) -> pr_var v
   | BEq (e, f) -> pr_exp e ^ "=" ^ "(" ^ pr_formula f ^ ")"
   | Emp _ -> "emp"
@@ -258,7 +258,7 @@ let rec pr_formula (f : formula) : string =
 
 let pr_ent (ent : entailment) : string =
   let res = pr_formula ent.ent_lhs ^ " |- " ^ pr_formula ent.ent_rhs in
-  if ent.ent_id < 1 then res else "#" ^ pr_int ent.ent_id ^ ". " ^ res
+  if ent.ent_id < 1 then res else "#" ^ string_of_int ent.ent_id ^ ". " ^ res
 ;;
 
 let pr_ents (ents : entailment list) : string =

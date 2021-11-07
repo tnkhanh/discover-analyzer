@@ -75,7 +75,7 @@ let read_all_output proc : string =
   let rec read acc =
     try
       let line = String.strip (input_line proc.PS.proc_in_channel) in
-      let () = hdebugc "line: " pr_str line in
+      let () = debugc ("line: " ^ line) in
       let nacc = acc @ [ line ] in
       read nacc
     with

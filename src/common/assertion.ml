@@ -42,9 +42,9 @@ type assertion_type =
   | Refute
 
 type assertion =
-  { ast_instr : LI.instr
-  ; ast_predicate : predicate
-  ; ast_type : assertion_type
+  { ast_instr : LI.instr;
+    ast_predicate : predicate;
+    ast_type : assertion_type
   }
 
 (*******************************************************************
@@ -76,12 +76,12 @@ let pr_assertion_status (func : LI.func) (ast : assertion) (status : bool) =
     | None -> "Function: " ^ func_name
     | Some l ->
       let file_name, line = l.pos_file_name, l.pos_line_start in
-      "File: "
-      ^ file_name
-      ^ ", function: "
-      ^ func_name
-      ^ ", line: "
-      ^ pr_int line in
+      let location =
+        [ "File: " ^ file_name;
+          "function: " ^ func_name;
+          "line: " ^ string_of_int line
+        ] in
+      String.concat ~sep:", " location in
   location ^ "\n  " ^ assertion ^ if status then ": OK!" else ": FAILED!"
 ;;
 
