@@ -34,7 +34,7 @@ let is_false (b : bresult) : bool =
   | _ -> false
 ;;
 
-let pr_bresult (b : bresult) : string =
+let sprint_bresult (b : bresult) : string =
   match b with
   | Some true -> "True"
   | Some false -> "False"

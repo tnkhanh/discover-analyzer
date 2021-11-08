@@ -200,136 +200,136 @@ let mk_program_empty () =
  ** printing
  *******************************************************************)
 
-let rec pr_exp (e : exp) : string =
+let rec sprint_exp (e : exp) : string =
   match e with
-  | Int (i, _) -> string_of_int i
-  | Float (f, _) -> string_of_float f
+  | Int (i, _) -> sprint_int i
+  | Float (f, _) -> sprint_float f
   | String (s, _) -> "\"" ^ s ^ "\""
-  | Var (v, _) -> pr_var v
-  | BinExp (Add, e1, e2, _) -> pr_exp e1 ^ "+" ^ pr_exp e2
-  | BinExp (Sub, e1, e2, _) -> pr_exp e1 ^ "-" ^ pr_exp e2
-  | BinExp (Mul, e1, e2, _) -> pr_exp e1 ^ "\\*" ^ pr_exp e2
-  | BinExp (Div, e1, e2, _) -> pr_exp e1 ^ "/" ^ pr_exp e2
-  | Func (fn, es, _, _) -> fn ^ "(" ^ pr_exps es ^ ")"
+  | Var (v, _) -> sprint_var v
+  | BinExp (Add, e1, e2, _) -> sprint_exp e1 ^ "+" ^ sprint_exp e2
+  | BinExp (Sub, e1, e2, _) -> sprint_exp e1 ^ "-" ^ sprint_exp e2
+  | BinExp (Mul, e1, e2, _) -> sprint_exp e1 ^ "\\*" ^ sprint_exp e2
+  | BinExp (Div, e1, e2, _) -> sprint_exp e1 ^ "/" ^ sprint_exp e2
+  | Func (fn, es, _, _) -> fn ^ "(" ^ sprint_exps es ^ ")"
 
-and pr_exps (es : exp list) : string = sprint_list ~sep:"," ~f:pr_exp es
+and sprint_exps (es : exp list) : string = sprint_list ~sep:"," ~f:sprint_exp es
 
 let pr_addr_exp (a : addr_exp) : string =
   "("
-  ^ pr_exp a.addr_base
+  ^ sprint_exp a.addr_base
   ^ ","
-  ^ pr_exp a.addr_elem
+  ^ sprint_exp a.addr_elem
   ^ ","
-  ^ pr_exp a.addr_field
+  ^ sprint_exp a.addr_field
   ^ ")"
 ;;
 
-let rec pr_formula (f : formula) : string =
+let rec sprint_formula (f : formula) : string =
   match f with
-  | Bool (b, _) -> string_of_bool b
-  | BVar (v, _) -> pr_var v
-  | BEq (e, f) -> pr_exp e ^ "=" ^ "(" ^ pr_formula f ^ ")"
+  | Bool (b, _) -> sprint_bool b
+  | BVar (v, _) -> sprint_var v
+  | BEq (e, f) -> sprint_exp e ^ "=" ^ "(" ^ sprint_formula f ^ ")"
   | Emp _ -> "emp"
-  | BinRel (Eq, e1, e2, _) -> pr_exp e1 ^ "=" ^ pr_exp e2
-  | BinRel (Ne, e1, e2, _) -> pr_exp e1 ^ "!=" ^ pr_exp e2
-  | BinRel (Lt, e1, e2, _) -> pr_exp e1 ^ "<" ^ pr_exp e2
-  | BinRel (Le, e1, e2, _) -> pr_exp e1 ^ "<=" ^ pr_exp e2
-  | BinRel (Gt, e1, e2, _) -> pr_exp e1 ^ ">" ^ pr_exp e2
-  | BinRel (Ge, e1, e2, _) -> pr_exp e1 ^ ">=" ^ pr_exp e2
+  | BinRel (Eq, e1, e2, _) -> sprint_exp e1 ^ "=" ^ sprint_exp e2
+  | BinRel (Ne, e1, e2, _) -> sprint_exp e1 ^ "!=" ^ sprint_exp e2
+  | BinRel (Lt, e1, e2, _) -> sprint_exp e1 ^ "<" ^ sprint_exp e2
+  | BinRel (Le, e1, e2, _) -> sprint_exp e1 ^ "<=" ^ sprint_exp e2
+  | BinRel (Gt, e1, e2, _) -> sprint_exp e1 ^ ">" ^ sprint_exp e2
+  | BinRel (Ge, e1, e2, _) -> sprint_exp e1 ^ ">=" ^ sprint_exp e2
   | Data (e, typ, es, addr, _) ->
     let addr =
       match addr with
       | None -> ""
       | Some a -> "@" ^ pr_addr_exp a in
-    pr_exp e ^ "->" ^ pr_type typ ^ "{" ^ pr_exps es ^ "}" ^ addr
-  | Pred (pn, es, _) -> pn ^ "(" ^ pr_exps es ^ ")"
+    sprint_exp e ^ "->" ^ sprint_type typ ^ "{" ^ sprint_exps es ^ "}" ^ addr
+  | Pred (pn, es, _) -> pn ^ "(" ^ sprint_exps es ^ ")"
   | Array (e1, e2, t, _) ->
-    "array(" ^ pr_exp e1 ^ "," ^ pr_exp e2 ^ "," ^ pr_type t ^ ")"
-  | Neg g -> "!" ^ "(" ^ pr_formula g ^ ")"
-  | Conj (f1, f2) -> pr_formula f1 ^ " & " ^ pr_formula f2
-  | Disj (f1, f2) -> pr_formula f1 ^ " | " ^ pr_formula f2
-  | Star (f1, f2) -> pr_formula f1 ^ " * " ^ pr_formula f2
-  | Wand (f1, f2) -> pr_formula f1 ^ " --* " ^ pr_formula f2
-  | Septract (f1, f2) -> pr_formula f1 ^ " *- " ^ pr_formula f2
-  | Update (f1, f2) -> pr_formula f1 ^ " *+ " ^ pr_formula f2
-  | Forall (vs, f) -> "(exists " ^ pr_vars vs ^ ". " ^ pr_formula f ^ ")"
-  | Exists (vs, f) -> "(forall " ^ pr_vars vs ^ ". " ^ pr_formula f ^ ")"
+    "array(" ^ sprint_exp e1 ^ "," ^ sprint_exp e2 ^ "," ^ sprint_type t ^ ")"
+  | Neg g -> "!" ^ "(" ^ sprint_formula g ^ ")"
+  | Conj (f1, f2) -> sprint_formula f1 ^ " & " ^ sprint_formula f2
+  | Disj (f1, f2) -> sprint_formula f1 ^ " | " ^ sprint_formula f2
+  | Star (f1, f2) -> sprint_formula f1 ^ " * " ^ sprint_formula f2
+  | Wand (f1, f2) -> sprint_formula f1 ^ " --* " ^ sprint_formula f2
+  | Septract (f1, f2) -> sprint_formula f1 ^ " *- " ^ sprint_formula f2
+  | Update (f1, f2) -> sprint_formula f1 ^ " *+ " ^ sprint_formula f2
+  | Forall (vs, f) -> "(exists " ^ sprint_vars vs ^ ". " ^ sprint_formula f ^ ")"
+  | Exists (vs, f) -> "(forall " ^ sprint_vars vs ^ ". " ^ sprint_formula f ^ ")"
 ;;
 
-let pr_ent (ent : entailment) : string =
-  let res = pr_formula ent.ent_lhs ^ " |- " ^ pr_formula ent.ent_rhs in
-  if ent.ent_id < 1 then res else "#" ^ string_of_int ent.ent_id ^ ". " ^ res
+let sprint_ent (ent : entailment) : string =
+  let res = sprint_formula ent.ent_lhs ^ " |- " ^ sprint_formula ent.ent_rhs in
+  if ent.ent_id < 1 then res else "#" ^ sprint_int ent.ent_id ^ ". " ^ res
 ;;
 
-let pr_ents (ents : entailment list) : string =
-  sprint_items ~bullet:"  # " ~f:pr_ent ents
+let sprint_ents (ents : entailment list) : string =
+  hsprint_list_itemized ~bullet:"  # " ~f:sprint_ent ents
 ;;
 
 (*** print declarations ***)
 
-let pr_data_defn (d : data_defn) : string =
+let sprint_data_defn (d : data_defn) : string =
   let fields =
     d.datad_fields
-    |> List.map ~f:(fun (t, n) -> "  " ^ pr_type t ^ " " ^ n ^ ";")
+    |> List.map ~f:(fun (t, n) -> "  " ^ sprint_type t ^ " " ^ n ^ ";")
     |> String.concat ~sep:"\n" in
-  "data " ^ pr_type d.datad_typ ^ "{\n" ^ fields ^ "\n};"
+  "data " ^ sprint_type d.datad_typ ^ "{\n" ^ fields ^ "\n};"
 ;;
 
-let pr_predicate_defn (p : pred_defn) : string =
+let sprint_predicate_defn (p : pred_defn) : string =
   let pred_type =
     match p.predd_typ with
     | PtView -> "view"
     | PtReln -> "rel" in
   let header =
-    pred_type ^ " " ^ p.predd_name ^ "(" ^ pr_vars p.predd_params ^ ") := "
+    pred_type ^ " " ^ p.predd_name ^ "(" ^ sprint_vars p.predd_params ^ ") := "
   in
   let body =
     match p.predd_body with
     | [] -> "?"
-    | fs -> sprint_list ~sep:"\n    \\/ " ~f:pr_formula fs in
+    | fs -> sprint_list ~sep:"\n    \\/ " ~f:sprint_formula fs in
   header ^ body ^ ";"
 ;;
 
-let pr_func_defn (f : func_defn) : string =
-  let header = "func " ^ f.funcd_name ^ "(" ^ pr_vars f.funcd_params ^ ") := " in
+let sprint_func_defn (f : func_defn) : string =
+  let header = "func " ^ f.funcd_name ^ "(" ^ sprint_vars f.funcd_params ^ ") := " in
   let body =
     match f.funcd_body with
     | None -> "?"
-    | Some e -> pr_exp e in
+    | Some e -> sprint_exp e in
   header ^ body ^ ";"
 ;;
 
-let pr_proc_defn (p : proc_defn) : string =
+let sprint_proc_defn (p : proc_defn) : string =
   let params =
     p.procd_params
-    |> List.map ~f:(fun v -> pr_type (typ_of_var v) ^ " " ^ pr_var v)
+    |> List.map ~f:(fun v -> sprint_type (typ_of_var v) ^ " " ^ sprint_var v)
     |> String.concat ~sep:"," in
   let specs =
     p.procd_specs
     |> List.map ~f:(fun s ->
            "  requires "
-           ^ pr_formula s.psp_precond
+           ^ sprint_formula s.psp_precond
            ^ "\n"
            ^ "  ensures "
-           ^ pr_formula s.psp_postcond
+           ^ sprint_formula s.psp_postcond
            ^ ";")
     |> String.concat ~sep:"\n" in
-  pr_type p.procd_return_typ ^ " " ^ p.procd_name ^ "(" ^ params ^ ")\n" ^ specs
+  sprint_type p.procd_return_typ ^ " " ^ p.procd_name ^ "(" ^ params ^ ")\n" ^ specs
 ;;
 
-let pr_command (c : command) =
+let sprint_command (c : command) =
   match c with
-  | CheckSat (f, _) -> "CheckSat: " ^ pr_formula f ^ ";"
-  | ProveEntails (ents, _) -> "ProveEntails: \n" ^ pr_ents ents ^ ";"
-  | InferFrame (ent, _) -> "FindFrame: " ^ pr_ent ent ^ ";"
+  | CheckSat (f, _) -> "CheckSat: " ^ sprint_formula f ^ ";"
+  | ProveEntails (ents, _) -> "ProveEntails: \n" ^ sprint_ents ents ^ ";"
+  | InferFrame (ent, _) -> "FindFrame: " ^ sprint_ent ent ^ ";"
 ;;
 
-let pr_program (p : program) : string =
-  let funcs = p.prog_func_defns |> List.map ~f:pr_func_defn in
-  let datas = p.prog_data_defns |> List.map ~f:pr_data_defn in
-  let preds = p.prog_pred_defns |> List.map ~f:pr_predicate_defn in
-  let procs = p.prog_proc_defns |> List.map ~f:pr_proc_defn in
-  let cmds = p.prog_commands |> List.map ~f:pr_command in
+let sprint_program (p : program) : string =
+  let funcs = p.prog_func_defns |> List.map ~f:sprint_func_defn in
+  let datas = p.prog_data_defns |> List.map ~f:sprint_data_defn in
+  let preds = p.prog_pred_defns |> List.map ~f:sprint_predicate_defn in
+  let procs = p.prog_proc_defns |> List.map ~f:sprint_proc_defn in
+  let cmds = p.prog_commands |> List.map ~f:sprint_command in
   String.concat ~sep:"\n\n" (funcs @ datas @ preds @ procs @ cmds)
 ;;
 
@@ -343,7 +343,7 @@ let find_func_defn (prog : program) (fname : string) : func_defn option =
 
 let find_data_defn (prog : program) (dname : string) : data_defn option =
   List.find
-    ~f:(fun d -> String.equal (pr_type d.datad_typ) dname)
+    ~f:(fun d -> String.equal (sprint_type d.datad_typ) dname)
     prog.prog_data_defns
 ;;
 

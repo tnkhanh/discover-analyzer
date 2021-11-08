@@ -91,8 +91,8 @@ let read_all_output proc : string =
 
 module Z3SL = struct
   let transform_bool b = if b then "true" else "false"
-  let transform_int i = string_of_int i
-  let transform_float f = string_of_float f
+  let transform_int i = sprint_int i
+  let transform_float f = sprint_float f
   let transform_string s = "\"" ^ s ^ "\""
 
   let transform_typ (t : SI.typ) : string =
@@ -104,7 +104,7 @@ module Z3SL = struct
 
   (* FIXME: temporarily put as Int type *)
 
-  let transform_var (v : SI.var) : string = SI.pr_var v
+  let transform_var (v : SI.var) : string = SI.sprint_var v
 
   let transform_typed_vars (vs : SI.var list) =
     vs
@@ -291,7 +291,7 @@ module Z3SL = struct
           ~f:(fun acc (s, i) ->
             try
               let var =
-                List.find_exn ~f:(fun v -> String.equal (SI.pr_var v) s) mvars
+                List.find_exn ~f:(fun v -> String.equal (SI.sprint_var v) s) mvars
               in
               acc @ [ var, SI.mk_exp_int i ]
             with
@@ -333,7 +333,7 @@ module Z3SL = struct
       let msg =
         Printf.sprintf
           "Z3SL: error while checking sat:\n%s\n%s\n%s\n%s"
-          (halign_line "  - formula: " SI.pr_pfs fs)
+          (halign_line "  - formula: " SI.sprint_pfs fs)
           (align_line "  - z3 input:\n" z3_input)
           (align_line "  - z3 output:\n" z3_output)
           ("  - error: " ^ msg) in
@@ -366,12 +366,12 @@ module Z3LL = struct
     match LL.classify_type t with
     | LL.TypeKind.Integer -> "Int"
     | LL.TypeKind.Pointer -> "Int" (* handle pointer as Int type *)
-    | _ -> herror "Z3LL.transform_lltype: need to handle type: " LI.pr_type t
+    | _ -> herror "Z3LL.transform_lltype: need to handle type: " LI.sprint_type t
   ;;
 
   let transform_llvalue (v : LI.llvalue) : string =
     (* NOTE: should include function name to avoid name duplication? *)
-    if LL.is_null v then "0" else LI.pr_value v
+    if LL.is_null v then "0" else LI.sprint_value v
   ;;
 
   let transform_predicate (p : LI.predicate) : string =
@@ -441,7 +441,7 @@ module Z3LL = struct
     | Error msg ->
       let msg =
         "Z3LL: error while checking sat:\n"
-        ^ (halign_line "  - predicate: " LI.pr_pred p ^ "\n")
+        ^ (halign_line "  - predicate: " LI.sprint_predicate p ^ "\n")
         ^ (align_line "  - z3 input:\n" z3_input ^ "\n")
         ^ (align_line "  - z3 output:\n" z3_output ^ "\n")
         ^ align_line "  - error: " msg in

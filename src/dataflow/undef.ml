@@ -34,9 +34,9 @@ module UndefDomain = struct
     { undef_pointers = pointers; undef_values = values }
   ;;
 
-  let pr_undef (ud : undef) =
-    let pointers = ud.undef_pointers |> sprint_list_curly ~f:pr_value in
-    let values = ud.undef_values |> sprint_list_square ~f:pr_value in
+  let sprint_undef (ud : undef) =
+    let pointers = ud.undef_pointers |> sprint_list_curly ~f:sprint_value in
+    let values = ud.undef_values |> sprint_list_square ~f:sprint_value in
     let output = pointers ^ ", " ^ values in
     beautiful_concat ~sep:" " (String.split ~on:' ' output)
   ;;
@@ -108,8 +108,8 @@ module UndefTransfer : DF.ForwardDataTransfer with type t = UndefData.t = struct
    *******************************************************************)
 
   let least_data = UD.mk_undef [] []
-  let pr_data d = UD.pr_undef d
-  let pr_data_checksum = pr_data
+  let sprint_data d = UD.sprint_undef d
+  let sprint_data_checksum = sprint_data
   let copy_data d = d
 
   let subst_data

@@ -32,10 +32,10 @@ module SizeDomain = struct
       size_max : int64 (* maximum size in bytes, inclusive *)
     }
 
-  let pr_size s =
+  let sprint_size s =
     if Int64.equal s.size_min s.size_max
-    then string_of_int64 s.size_min
-    else "[" ^ string_of_int64 s.size_min ^ "," ^ string_of_int64 s.size_max ^ "]"
+    then sprint_int64 s.size_min
+    else "[" ^ sprint_int64 s.size_min ^ "," ^ sprint_int64 s.size_max ^ "]"
   ;;
 
   let mk_size_range min max = { size_min = min; size_max = max }
@@ -97,12 +97,12 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
 
   let least_data = []
 
-  let pr_data d =
+  let sprint_data d =
     "MemSize: "
-    ^ sprint_list_square ~f:(fun (v, s) -> pr_value v ^ ": " ^ SD.pr_size s) d
+    ^ sprint_list_square ~f:(fun (v, s) -> sprint_value v ^ ": " ^ SD.sprint_size s) d
   ;;
 
-  let pr_data_checksum = pr_data
+  let sprint_data_checksum = sprint_data
 
   let rec equal_data (d1 : t) (d2 : t) =
     match d1, d2 with
@@ -142,7 +142,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
       | [], _ -> acc @ ys
       | _, [] -> acc @ xs
       | (xv, xr) :: nxs, (yv, yr) :: nys ->
-        let cmp = String.compare (pr_value xv) (pr_value yv) in
+        let cmp = String.compare (sprint_value xv) (sprint_value yv) in
         if cmp = 0
         then combine nxs nys (acc @ [ xv, SD.union_size xr yr ])
         else if cmp < 0
@@ -172,7 +172,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
       match xs with
       | [] -> acc @ [ v, s ]
       | (xv, xr) :: nxs ->
-        let cmp = String.compare (pr_value v) (pr_value xv) in
+        let cmp = String.compare (sprint_value v) (sprint_value xv) in
         if cmp < 0
         then acc @ [ v, s ] @ xs
         else if cmp = 0
@@ -225,13 +225,13 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
       (* TODO: need alias analysis to clear off some variables
          overshadowing by PHI node *)
       let ns = ref (get_size (operand instr 0) input) in
-      let _ = hdebugc " PHI original: " SD.pr_size !ns in
+      let _ = hdebugc " PHI original: " SD.sprint_size !ns in
       for i = 1 to num_operands instr - 1 do
         let cs = get_size (operand instr i) input in
-        let _ = hdebugc " PHI current range: " SD.pr_size cs in
+        let _ = hdebugc " PHI current range: " SD.sprint_size cs in
         ns := combine_size !ns cs
       done;
-      let _ = hdebugc " PHI final: " SD.pr_size !ns in
+      let _ = hdebugc " PHI final: " SD.sprint_size !ns in
       update_size vinstr !ns input
     | _ -> input
   ;;
@@ -263,5 +263,5 @@ module MemsizeAnalysis = struct
   module ST = SizeTransfer
 
   let get_size (v : llvalue) (d : t) : SD.size = SU.get_size v d
-  let pr_size = SD.pr_size
+  let sprint_size = SD.sprint_size
 end

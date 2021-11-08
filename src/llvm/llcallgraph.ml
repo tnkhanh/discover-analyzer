@@ -32,7 +32,7 @@ type scfuncs = strongly_connected_funcs
 type scblockss = scblocks list
 type scfuncss = scfuncs list
 
-let pr_scblocks (scb : scblocks) : string = sprint_list ~f:block_name scb
+let sprint_scblocks (scb : scblocks) : string = sprint_list ~f:block_name scb
 
 let build_block_graph (prog : program) (blks : blocks) : BG.t =
   let bgraph = BG.create () in

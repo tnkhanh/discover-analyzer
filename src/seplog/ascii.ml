@@ -24,7 +24,7 @@ module Entail = struct
         | _ ->
           ptree.ptr_sub_trees
           |> List.mapi ~f:(fun index pt ->
-                 let goal_id = goal_id ^ "." ^ string_of_int (index + 1) in
+                 let goal_id = goal_id ^ "." ^ sprint_int (index + 1) in
                  pr_ptcore goal_id pt)
           |> String.concat ~sep:"\n" in
       let goal = pr_goal ptree.ptr_goal in

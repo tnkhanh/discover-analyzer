@@ -146,21 +146,21 @@ let apply_hd_bug
   match matched_anns with
   | [] ->
     raise
-      (AnnotFormat ("Error: Bug_end without start at " ^ Ann.pr_pos_ann end_ann))
+      (AnnotFormat ("Error: Bug_end without start at " ^ Ann.sprint_pos_ann end_ann))
   | (ann, ins_op) :: tl ->
     (match ann with
     | Bug_start ((line, col), bugs) ->
       (match ins_op with
       | None ->
         raise
-          (AnnotFormat ("Error: No ins for annot at " ^ Ann.pr_pos_ann end_ann))
+          (AnnotFormat ("Error: No ins for annot at " ^ Ann.sprint_pos_ann end_ann))
       | Some ins ->
         let _ = apply_annotation Bug ins bugs modul in
         tl)
     | Bug_end _ | Safe_start _ | Safe_end _ | Skip ->
       raise
         (AnnotFormat
-           ("Error: no Bug_start matching Bug_end at " ^ Ann.pr_pos_ann end_ann)))
+           ("Error: no Bug_start matching Bug_end at " ^ Ann.sprint_pos_ann end_ann)))
 ;;
 
 let apply_hd_safe
@@ -171,21 +171,21 @@ let apply_hd_safe
   match matched_anns with
   | [] ->
     raise
-      (AnnotFormat ("Error: Safe_end without start at " ^ Ann.pr_pos_ann end_ann))
+      (AnnotFormat ("Error: Safe_end without start at " ^ Ann.sprint_pos_ann end_ann))
   | (ann, ins_op) :: tl ->
     (match ann with
     | Safe_start ((line, col), bugs) ->
       (match ins_op with
       | None ->
         raise
-          (AnnotFormat ("Error: No ins for annot at " ^ Ann.pr_pos_ann end_ann))
+          (AnnotFormat ("Error: No ins for annot at " ^ Ann.sprint_pos_ann end_ann))
       | Some ins ->
         let _ = apply_annotation Safe ins bugs modul in
         tl)
     | Bug_start _ | Bug_end _ | Safe_end _ | Skip ->
       raise
         (AnnotFormat
-           ("Error: no Safe_start matching Safe_end at" ^ Ann.pr_pos_ann end_ann)))
+           ("Error: no Safe_start matching Safe_end at" ^ Ann.sprint_pos_ann end_ann)))
 ;;
 
 let rec resolve
@@ -204,9 +204,9 @@ let rec resolve
         raise
           (AnnotFormat
              ("Error: no matching instruction for bug annotation at "
-             ^ string_of_int line
+             ^ sprint_int line
              ^ " "
-             ^ string_of_int col))
+             ^ sprint_int col))
       | ins :: tl_ins ->
         if less_than ins hd_ann
         then resolve ann_marks tl_ins (update ins matched_anns) modul
@@ -247,7 +247,7 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule) : unit
   let sorted_anns = List.rev annotations in
   let _ =
     List.iter ~f:(fun ((line, col), ann) ->
-      print_endline (ann^"----------"^(string_of_int line)^"------------"^(string_of_int col))
+      print_endline (ann^"----------"^(sprint_int line)^"------------"^(sprint_int col))
     ) sorted_anns in *)
 
   (* map each instr to (line, col) * tag * instr *)
@@ -293,10 +293,10 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule) : unit
             | None -> "None.."
             | Some d -> LL.string_of_llvalue d in
           print_endline
-            ((*        "Tag: " ^ (string_of_int tin.tag) ^ "\n" ^
+            ((*        "Tag: " ^ (sprint_int tin.tag) ^ "\n" ^
                      "Debug: " ^ dbg_str ^ "\n" ^
-        "Instr: " ^ (LL.string_of_llvalue inx) ^ " +++ " ^ (string_of_int tin.pos.pos_line_end) ^ " .. "
-        ^ (string_of_int tin.pos.pos_col_end)
+        "Instr: " ^ (LL.string_of_llvalue inx) ^ " +++ " ^ (sprint_int tin.pos.pos_line_end) ^ " .. "
+        ^ (sprint_int tin.pos.pos_col_end)
         ^ " .. file: " ^ tin.pos.pos_file_name  *)
              LL.string_of_llvalue
                inx)
@@ -304,8 +304,8 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule) : unit
         match pos with
         | None -> ()
         | Some p -> print_endline ((LL.string_of_llvalue inx)^"++++ "^
-                         (string_of_int line) ^ "__" ^
-                         (string_of_int col)) *))
+                         (sprint_int line) ^ "__" ^
+                         (sprint_int col)) *))
       (List.rev tagged_ins)
     (*sorted_ins*) in
   let _ = print_endline "SORTED_INS===" in

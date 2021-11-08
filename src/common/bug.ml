@@ -35,15 +35,15 @@ type bug_type =
   | DivisionByZero
 
 and integer_overflow =
-  { iof_expr : llvalue
-  ; iof_bitwidth : int
-  ; iof_instr : instr
+  { iof_expr : llvalue;
+    iof_bitwidth : int;
+    iof_instr : instr
   }
 
 and integer_underflow =
-  { iuf_expr : llvalue
-  ; iuf_bitwidth : int
-  ; iuf_instr : instr
+  { iuf_expr : llvalue;
+    iuf_bitwidth : int;
+    iuf_instr : instr
   }
 
 and buffer_size =
@@ -53,15 +53,15 @@ and buffer_size =
 (* size of allocated memory of pointer *)
 
 and buffer_overflow =
-  { bof_pointer : llvalue
-  ; bof_elem_index : llvalue
-  ; bof_buff_size : buffer_size
-  ; bof_instr : instr
+  { bof_pointer : llvalue;
+    bof_elem_index : llvalue;
+    bof_buff_size : buffer_size;
+    bof_instr : instr
   }
 
 and memory_leak =
-  { mlk_pointer : llvalue
-  ; mlk_size : int option
+  { mlk_pointer : llvalue;
+    mlk_size : int option
   }
 
 (*------
@@ -69,13 +69,13 @@ and memory_leak =
  *-----*)
 
 type bug =
-  { bug_instr : instr
-  ; bug_func : func
-  ; bug_type : bug_type
-  ; bug_status : bool option
-  ; (* None means Unknown *)
-    bug_analysis : string option
-  ; bug_reason : string option
+  { bug_instr : instr;
+    bug_func : func;
+    bug_type : bug_type;
+    bug_status : bool option;
+    (* None means Unknown *)
+    bug_analysis : string option;
+    bug_reason : string option
   }
 
 (*******************************************************************
@@ -91,10 +91,8 @@ let pr_buffer_overflow ?(detailed = true) (bof : buffer_overflow) : string =
   ^
   if detailed
   then
-    "\n  Root pointer: "
-    ^ pr_value bof.bof_pointer
-    ^ ", accessing index: "
-    ^ pr_value bof.bof_elem_index
+    "\n  Root pointer: " ^ sprint_value bof.bof_pointer ^ ", accessing index: "
+    ^ sprint_value bof.bof_elem_index
   else ""
 ;;
 
@@ -102,7 +100,7 @@ let pr_memory_leak ?(detailed = true) (mlk : memory_leak) : string =
   let size =
     match mlk.mlk_size with
     | None -> "unknown"
-    | Some size -> string_of_int size in
+    | Some size -> sprint_int size in
   "Memory Leak" ^ if detailed then "\n  Reason: buffer size: " ^ size else ""
 ;;
 
@@ -110,30 +108,34 @@ let pr_memory_leak ?(detailed = true) (mlk : memory_leak) : string =
  * Integer bugs
  *--------------*)
 
-let pr_instr_detailed_position instr =
+let sprint_instr_detailed_position instr =
   let code_excerpt =
     match LD.position_of_instr instr with
     | None -> ""
-    | Some p -> "  Location: " ^ pr_file_position_and_excerpt p ^ "\n" in
+    | Some p -> "  Location: " ^ sprint_file_position_and_excerpt p ^ "\n" in
   if !location_source_code_only
   then code_excerpt
-  else "  Instruction: " ^ pr_instr instr ^ "\n" ^ code_excerpt
+  else "  Instruction: " ^ sprint_instr instr ^ "\n" ^ code_excerpt
 ;;
 
 let pr_llvalue_name (v : LL.llvalue) : string =
   match LD.get_original_name_of_llvalue v with
   | Some str -> str
-  | None -> pr_value v
+  | None -> sprint_value v
 ;;
 
-let string_of_integer_overflow ?(detailed = true) (iof : integer_overflow) : string =
+let sprint_integer_overflow ?(detailed = true) (iof : integer_overflow)
+    : string
+  =
   "Integer Overflow"
-  ^ if detailed then "\n" ^ pr_instr_detailed_position iof.iof_instr else ""
+  ^ if detailed then "\n" ^ sprint_instr_detailed_position iof.iof_instr else ""
 ;;
 
-let string_of_integer_underflow ?(detailed = true) (iuf : integer_underflow) : string =
+let sprint_integer_underflow ?(detailed = true) (iuf : integer_underflow)
+    : string
+  =
   "Integer Underflow"
-  ^ if detailed then "\n" ^ pr_instr_detailed_position iuf.iuf_instr else ""
+  ^ if detailed then "\n" ^ sprint_instr_detailed_position iuf.iuf_instr else ""
 ;;
 
 (*------------------------
@@ -145,44 +147,37 @@ let pr_bug_type ?(detailed = true) (btype : bug_type) : string =
   | MemoryLeak mlk -> pr_memory_leak mlk
   | NullPointerDeref -> "Null Pointer Dereference"
   | BufferOverflow bof -> pr_buffer_overflow ~detailed bof
-  | IntegerOverflow iof -> string_of_integer_overflow iof
-  | IntegerUnderflow iuf -> string_of_integer_underflow ~detailed iuf
+  | IntegerOverflow iof -> sprint_integer_overflow iof
+  | IntegerUnderflow iuf -> sprint_integer_underflow ~detailed iuf
   | DivisionByZero -> "Division By Zero"
 ;;
 
 let pr_potential_bug (bug : bug) : string =
-  pr_bug_type ~detailed:false bug.bug_type
-  ^ "\n"
-  ^ "    Function: "
-  ^ func_name bug.bug_func
-  ^ "\n"
-  ^ "    "
-  ^ pr_instr bug.bug_instr
+  (pr_bug_type ~detailed:false bug.bug_type ^ "\n")
+  ^ ("    Function: " ^ func_name bug.bug_func ^ "\n")
+  ^ "    " ^ sprint_instr bug.bug_instr
 ;;
 
 let pr_potential_bugs (bugs : bug list) : string =
-  sprint_items ~f:pr_potential_bug bugs
+  hsprint_list_itemized ~f:pr_potential_bug bugs
 ;;
 
 let pr_bug ?(detailed = true) (bug : bug) : string =
   let details =
     if detailed
-    then
-      "    Type: "
-      ^ pr_bug_type ~detailed bug.bug_type
-      ^ "    Status: "
-      ^
-      match bug.bug_status with
-      | None -> "Unknown"
-      | Some b -> string_of_bool b
+    then (
+      let status = match bug.bug_status with
+        | None -> "Unknown"
+        | Some b -> sprint_bool b in
+      ("    Type: " ^ pr_bug_type ~detailed bug.bug_type)
+      ^ "    Status: " ^ status)
     else "" in
-  "Bug: "
-  ^ pr_instr bug.bug_instr
+  "Bug: " ^ sprint_instr bug.bug_instr
   ^ String.prefix_if_not_empty ~prefix:"\n" details
 ;;
 
 let pr_bug_name (bug : bug) : string = pr_bug_type ~detailed:false bug.bug_type
-let pr_bugs (bugs : bug list) : string = sprint_items ~f:pr_bug bugs
+let pr_bugs (bugs : bug list) : string = hsprint_list_itemized ~f:pr_bug bugs
 
 (*******************************************************************
  ** constructors
@@ -193,12 +188,12 @@ let pr_bugs (bugs : bug list) : string = sprint_items ~f:pr_bug bugs
  *------------------------------------------*)
 
 let mk_potential_bug (instr : instr) (btype : bug_type) : bug =
-  { bug_instr = instr
-  ; bug_func = func_of_instr instr
-  ; bug_type = btype
-  ; bug_status = None
-  ; bug_analysis = None
-  ; bug_reason = None
+  { bug_instr = instr;
+    bug_func = func_of_instr instr;
+    bug_type = btype;
+    bug_status = None;
+    bug_analysis = None;
+    bug_reason = None
   }
 ;;
 
@@ -209,9 +204,9 @@ let mk_potential_bug (instr : instr) (btype : bug_type) : bug =
 let mk_potential_integer_overflow (instr : instr) : bug =
   let expr = llvalue_of_instr instr in
   let iof =
-    { iof_expr = expr
-    ; iof_bitwidth = LL.integer_bitwidth (LL.type_of expr)
-    ; iof_instr = instr
+    { iof_expr = expr;
+      iof_bitwidth = LL.integer_bitwidth (LL.type_of expr);
+      iof_instr = instr
     } in
   mk_potential_bug instr (IntegerOverflow iof)
 ;;
@@ -219,9 +214,9 @@ let mk_potential_integer_overflow (instr : instr) : bug =
 let mk_potential_integer_underflow (instr : instr) : bug =
   let expr = llvalue_of_instr instr in
   let iuf =
-    { iuf_expr = expr
-    ; iuf_bitwidth = LL.integer_bitwidth (LL.type_of expr)
-    ; iuf_instr = instr
+    { iuf_expr = expr;
+      iuf_bitwidth = LL.integer_bitwidth (LL.type_of expr);
+      iuf_instr = instr
     } in
   mk_potential_bug instr (IntegerUnderflow iuf)
 ;;
@@ -248,15 +243,15 @@ let mk_potential_buffer_overflow (instr : instr) : bug =
             | None ->
               herror
                 "mk_potential_buffer_overflow: array index not available:"
-                pr_instr
+                sprint_instr
                 instr in
           NumElem (size, elem_typ), array_idx
         (* pointer to a dynamically allocated memory *)
         | _ -> MemSizeOf ptr, List.hd_exn idxs in
-      { bof_instr = instr
-      ; bof_pointer = ptr
-      ; bof_buff_size = size
-      ; bof_elem_index = index
+      { bof_instr = instr;
+        bof_pointer = ptr;
+        bof_buff_size = size;
+        bof_elem_index = index
       }
     | _ -> error "mk_buffer_overflow: expect GetElementPtr" in
   mk_potential_bug instr (BufferOverflow bof)
@@ -273,9 +268,9 @@ let mk_potential_memory_leak (instr : instr) : bug =
 
 let mk_real_bug ~(reason : string) ~(analysis : string) (bug : bug) : bug =
   { bug with
-    bug_status = Some true
-  ; bug_analysis = Some analysis
-  ; bug_reason = Some reason
+    bug_status = Some true;
+    bug_analysis = Some analysis;
+    bug_reason = Some reason
   }
 ;;
 
@@ -290,7 +285,7 @@ let report_bug (bug : bug) : unit =
     | true ->
       (match LD.position_of_instr bug.bug_instr with
       | None -> ""
-      | Some p -> "  " ^ pr_file_position_and_excerpt p ^ "\n") in
+      | Some p -> "  " ^ sprint_file_position_and_excerpt p ^ "\n") in
   let reason =
     match bug.bug_reason with
     | None -> ""
@@ -298,9 +293,7 @@ let report_bug (bug : bug) : unit =
   let msg =
     "BUG: "
     ^ pr_bug_type ~detailed:false bug.bug_type
-    ^ "\n"
-    ^ location
-    ^ reason in
+    ^ "\n" ^ location ^ reason in
   print_endline ("\n" ^ msg)
 ;;
 
@@ -323,7 +316,7 @@ let report_bug_stats (bugs : bug list) : unit =
       let bug_stats = Hashtbl.to_alist tbl_stats in
       List.fold_left
         ~f:(fun acc (bug_name, times) ->
-          acc ^ "\n  " ^ bug_name ^ ": " ^ string_of_int times)
+          acc ^ "\n  " ^ bug_name ^ ": " ^ sprint_int times)
         ~init:""
         bug_stats in
   print ("==============================\n" ^ "Bug Summary:\n" ^ summary)
@@ -369,8 +362,8 @@ let annotate_potential_bugs (prog : program) : bug list =
         match instr_opcode instr with
         | LO.Add | LO.Sub | LO.Mul | LO.SDiv | LO.UDiv ->
           acc
-          @ [ mk_potential_integer_overflow instr
-            ; mk_potential_integer_underflow instr
+          @ [ mk_potential_integer_overflow instr;
+              mk_potential_integer_underflow instr
             ]
         | LO.GetElementPtr -> acc @ [ mk_potential_buffer_overflow instr ]
         | LO.Ret -> acc @ [ mk_potential_memory_leak instr ]

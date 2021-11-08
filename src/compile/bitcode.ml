@@ -65,8 +65,8 @@ let process_module
   let _ = LP.update_program_info prog in
   let _ =
     if (not !print_concise_output) && !print_core_prog
-    then hprint ~ruler:`Header "CORE BITCODE PROGRAM" LI.pr_program prog in
-  (* let _ = hdebug "Call Graph: " LI.pr_callee_info prog in *)
+    then hprint ~ruler:`Header "CORE BITCODE PROGRAM" LI.sprint_program prog in
+  (* let _ = hdebug "Call Graph: " LI.sprint_callee_info prog in *)
   let _ = if !llvm_print_prog_info then LI.print_program_analysis_info prog in
   prog
 ;;
@@ -126,7 +126,7 @@ let compile_bitcode ann_marks source_name (filename : string) : LI.program =
   let _ = LL.MemoryBuffer.dispose llmem in
   let _ =
     if !print_input_prog
-    then hprint ~ruler:`Long "ORIGINAL BITCODE MODULE" LI.pr_module modul in
+    then hprint ~ruler:`Long "ORIGINAL BITCODE MODULE" LI.sprint_module modul in
   process_module ann_marks source_name output_filename modul
 ;;
 

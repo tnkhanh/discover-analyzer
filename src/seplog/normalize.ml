@@ -329,8 +329,8 @@ let simplify_arith_f (f : formula) : formula =
  *     | Exists (vs, f) -> f |> eliminate |> mk_f_exists vs in
  *   let nf = eliminate f in
  *   debug_n ("eliminate_wand_outer_data:\n" ^
- *              " before: " ^ (pr_f f) ^ "\n" ^
- *              " after : " ^ (pr_f nf));
+ *              " before: " ^ (sprint_f f) ^ "\n" ^
+ *              " after : " ^ (sprint_f nf));
  *   nf *)
 
 (*******************************************************************
@@ -360,8 +360,8 @@ let simplify_arith_f (f : formula) : formula =
  *     | Exists (vs, f) -> f |> eliminate |> mk_f_exists vs in
  *   let nf = eliminate f in
  *   debug_n ("eliminate_wand_array:\n" ^
- *              " before: " ^ (pr_f f) ^ "\n" ^
- *              " after : " ^ (pr_f nf));
+ *              " before: " ^ (sprint_f f) ^ "\n" ^
+ *              " after : " ^ (sprint_f nf));
  *   nf *)
 
 (* (array(x,y,t) *- u->v) * u->t  <==> (array(x,z,t) *+ u->t) *)
@@ -408,8 +408,8 @@ let simplify_arith_f (f : formula) : formula =
  *     | Exists (vs, f) -> f |> eliminate |> mk_f_exists vs in
  *   let nf = eliminate f in
  *   debug_n ("eliminate_septraction_array:\n" ^
- *              " before: " ^ (pr_f f) ^ "\n" ^
- *              " after : " ^ (pr_f nf));
+ *              " before: " ^ (sprint_f f) ^ "\n" ^
+ *              " after : " ^ (sprint_f nf));
  *   nf *)
 
 (* (\* array(x,1,t) * F  <==> F * x->t{_} *\)
@@ -427,8 +427,8 @@ let simplify_arith_f (f : formula) : formula =
  *     | Exists (vs, f) -> f |> simplify |> mk_f_exists vs in
  *   let nf = simplify f in
  *   debug_n ("simplify_array_one_data:\n" ^
- *              " before: " ^ (pr_f f) ^ "\n" ^
- *              " after : " ^ (pr_f nf));
+ *              " before: " ^ (sprint_f f) ^ "\n" ^
+ *              " after : " ^ (sprint_f nf));
  *   nf *)
 
 (*******************************************************************

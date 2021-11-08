@@ -60,7 +60,7 @@ let perform_range_analysis (pdata : program_data) : program_data =
     let penv = RG.analyze_program prog in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then hprint ~ruler:`Header "RANGE INFO" RG.pr_prog_env penv in
+      then hprint ~ruler:`Header "RANGE INFO" RG.sprint_prog_env penv in
     { pdata with pdata_env_range = Some penv }
   with
   | ESkip -> pdata
@@ -75,7 +75,7 @@ let perform_undef_analysis (pdata : program_data) : program_data =
     let _ = record_task_time "Undef analysis" time in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then hprint ~ruler:`Header "UNDEF INFO" UA.pr_prog_env penv in
+      then hprint ~ruler:`Header "UNDEF INFO" UA.sprint_prog_env penv in
     { pdata with pdata_env_undef = Some penv }
   with
   | ESkip -> pdata
@@ -89,7 +89,7 @@ let perform_memsize_analysis (pdata : program_data) : program_data =
     let penv = MS.analyze_program prog in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then hprint ~ruler:`Header "MEMSIZE INFO" MS.pr_prog_env penv in
+      then hprint ~ruler:`Header "MEMSIZE INFO" MS.sprint_prog_env penv in
     { pdata with pdata_env_memsize = Some penv }
   with
   | ESkip -> pdata
@@ -104,7 +104,7 @@ let perform_pointer_analysis (pdata : program_data) : program_data =
     let _ = record_task_time "Pointer analysis" time in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then hprint ~ruler:`Header "POINTER INFO" PA.pr_prog_env penv in
+      then hprint ~ruler:`Header "POINTER INFO" PA.sprint_prog_env penv in
     { pdata with pdata_env_pointer = Some penv }
   with
   | ESkip -> pdata
@@ -137,7 +137,7 @@ let report_analysis_stats (pdata : program_data) : unit =
  *******************************************************************)
 
 let analyze_program_llvm (prog : LI.program) : unit =
-  let _ = hprint ~ruler:`Long "Analyze program by " pr_dfa_mode !dfa_mode in
+  let _ = hprint ~ruler:`Long "Analyze program by " sprint_dfa_mode !dfa_mode in
   let pdata =
     prog
     |> mk_program_data

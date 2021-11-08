@@ -294,12 +294,12 @@ let display_choices msg (pr_choice : 'a -> string) (choices : 'a list) : string 
   let all_choices =
     choices
     |> List.mapi ~f:(fun idx c ->
-           " [" ^ string_of_int (idx + 1) ^ "]. " ^ pr_choice c)
+           " [" ^ sprint_int (idx + 1) ^ "]. " ^ pr_choice c)
     |> String.concat ~sep:"\n" in
   let _ = print_endline (msg ^ "\n" ^ all_choices) in
   let range =
     let num_choices = List.length choices in
-    if num_choices = 1 then "1" else "1" ^ ".." ^ string_of_int num_choices
+    if num_choices = 1 then "1" else "1" ^ ".." ^ sprint_int num_choices
   in
   range
 ;;

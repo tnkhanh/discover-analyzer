@@ -52,7 +52,7 @@ module IntervalDomain = struct
 
   (* printers *)
 
-  let pr_bound (b : bound) : string =
+  let sprint_bound (b : bound) : string =
     match b with
     | PInf -> "+inf"
     | NInf -> "-inf"
@@ -60,22 +60,22 @@ module IntervalDomain = struct
     | BInt x -> BInt.string_of_big_int x
   ;;
 
-  let pr_range (r : range) : string =
+  let sprint_range (r : range) : string =
     let plb = if r.range_lb_inclusive then "[" else "(" in
     let pub = if r.range_ub_inclusive then "]" else ")" in
-    let lb = pr_bound r.range_lb in
-    let ub = pr_bound r.range_ub in
+    let lb = sprint_bound r.range_lb in
+    let ub = sprint_bound r.range_ub in
     plb ^ lb ^ ", " ^ ub ^ pub
   ;;
 
-  let string_of_interval (i : interval) : string =
+  let sprint_interval (i : interval) : string =
     match i with
     | Bottom -> "Bottom"
-    | Range r -> pr_range r
+    | Range r -> sprint_range r
   ;;
 
-  let pr_einterval (e : einterval) : string =
-    pr_expr e.ei_expr ^ ": " ^ string_of_interval e.ei_interval
+  let sprint_einterval (e : einterval) : string =
+    sprint_expr e.ei_expr ^ ": " ^ sprint_interval e.ei_interval
   ;;
 
   (* constructors *)
@@ -490,14 +490,14 @@ struct
 
   (* printers *)
 
-  let pr_data (d : t) =
-    let exstring_of_interval_lst = MP.to_alist ~key_order:`Decreasing d in
+  let sprint_data (d : t) =
+    let exsprint_interval_lst = MP.to_alist ~key_order:`Decreasing d in
     sprint_list_square
-      ~f:(fun (e, i) -> pr_expr e ^ ": " ^ string_of_interval i)
-      exstring_of_interval_lst
+      ~f:(fun (e, i) -> sprint_expr e ^ ": " ^ sprint_interval i)
+      exsprint_interval_lst
   ;;
 
-  let pr_data_checksum = pr_data
+  let sprint_data_checksum = sprint_data
 
   (* comparison*)
 
@@ -532,7 +532,7 @@ struct
           let _ =
             warning
               ("Range.subst_data: duplicate expr after substitution"
-              ^ pr_expr ne) in
+              ^ sprint_expr ne) in
           acc)
       ~init:MP.empty
       d
@@ -575,7 +575,7 @@ struct
         let b =
           match extract_constant_bound lhs with
           | Some b -> b
-          | None -> herror "extract_const_bound_lhs: not found:" pr_expr lhs
+          | None -> herror "extract_const_bound_lhs: not found:" sprint_expr lhs
         in
         match cmp with
         | LC.Eq -> MP.of_alist_exn [ rhs, interval_of_bound b ]
@@ -593,7 +593,7 @@ struct
         let b =
           match extract_constant_bound rhs with
           | Some b -> b
-          | None -> herror "extract_const_bound_rhs: not found:" pr_expr rhs
+          | None -> herror "extract_const_bound_rhs: not found:" sprint_expr rhs
         in
         match cmp with
         | LC.Eq -> MP.of_alist_exn [ lhs, interval_of_bound b ]
@@ -677,7 +677,7 @@ struct
           MP.of_alist_exn [ lhs, nilhs; rhs, nirhs ])
     | PFcmp _ -> MP.empty
     | PNeg _ | PConj _ | PDisj _ ->
-      herror "extract_data_from_predicate: need to handle: " pr_pred p
+      herror "extract_data_from_predicate: need to handle: " sprint_predicate p
   ;;
 
   let is_data_satisfied_predicate (d : t) (p : predicate) : bool =
@@ -792,9 +792,9 @@ struct
     | LO.PHI ->
       let opr0 = expr_operand instr 0 in
       let itv = ref (get_interval opr0 input) in
-      let _ = hdebug "Before refine widening: " string_of_bool widen in
+      let _ = hdebug "Before refine widening: " sprint_bool widen in
       let widen = refine_widening func instr widen in
-      let _ = hdebug "After refine widening: " string_of_bool widen in
+      let _ = hdebug "After refine widening: " sprint_bool widen in
       for i = 1 to num_operands instr - 1 do
         let opri = expr_operand instr i in
         let itvi = get_interval opri input in
@@ -959,16 +959,16 @@ module RangeAnalysis = struct
   module RT = RangeTransfer
 
   let get_interval (e : expr) (d : t) : ID.interval = RU.get_interval e d
-  let string_of_interval = ID.string_of_interval
+  let sprint_interval = ID.sprint_interval
 
-  let string_of_interval_concise (i : ID.interval) : string =
+  let sprint_interval_concise (i : ID.interval) : string =
     match i with
     | Bottom -> "[Empty]"
     | Range r ->
       if r.ID.range_lb_inclusive
          && r.ID.range_ub_inclusive
          && r.range_lb == r.range_ub
-      then ID.pr_bound r.range_ub
-      else ID.pr_range r
+      then ID.sprint_bound r.range_ub
+      else ID.sprint_range r
   ;;
 end

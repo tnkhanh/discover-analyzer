@@ -246,7 +246,7 @@ let mk_position_lexing (pstart : LX.position) (pend : LX.position) : position =
   }
 ;;
 
-let pr_file_excerpt
+let sprint_file_excerpt
     filename
     (lstart : int)
     (lend : int)
@@ -285,18 +285,18 @@ let pr_file_excerpt
   String.rstrip (String.concat ~sep:"" format_str)
 ;;
 
-let pr_file_position_and_excerpt (p : position) =
+let sprint_file_position_and_excerpt (p : position) =
   let fname = p.pos_file_name in
   let lstart, lend = p.pos_line_start, p.pos_line_end in
   let cstart, cend = p.pos_col_start, p.pos_col_end in
   let line_column =
     if lstart = lend && cstart = cend
-    then string_of_int lstart ^ ":" ^ string_of_int cstart
+    then sprint_int lstart ^ ":" ^ sprint_int cstart
     else
-      string_of_int lstart ^ ":" ^ string_of_int cstart ^ " ~> "
-      ^ string_of_int lend ^ ":" ^ string_of_int cend in
+      sprint_int lstart ^ ":" ^ sprint_int cstart ^ " ~> "
+      ^ sprint_int lend ^ ":" ^ sprint_int cend in
   "File: " ^ fname ^ ", line/column position: " ^ line_column ^ "\n"
-  ^ pr_file_excerpt fname lstart lend cstart cend
+  ^ sprint_file_excerpt fname lstart lend cstart cend
 ;;
 
 (*******************************************************************
@@ -309,7 +309,7 @@ let merge_precision (p1 : precision) (p2 : precision) : precision =
   if equal_precision p1 p2 then p1 else May
 ;;
 
-let pr_dfa_mode (dfa : dfa_mode) : string =
+let sprint_dfa_mode (dfa : dfa_mode) : string =
   match dfa with
   | DfaIntraProc -> "Intra-procedural Data-flow Analysis"
   | DfaInterProc -> "Inter-procedural Data-flow Analysis"

@@ -117,7 +117,7 @@ module PointerGraph = struct
 
   (* printing *)
 
-  let pr_v = pr_expr
+  let pr_v = sprint_expr
 
   let pr_prec (p : precision) : string =
     match p with
@@ -144,10 +144,10 @@ module PointerGraph = struct
       "(" ^ skip_blks ^ incoming_blk ^ "-> " ^ block_name_full blk ^ ")"
     | TSimple i ->
       let b = block_of_instr i in
-      block_name_full b ^ " # " ^ pr_instr i
+      block_name_full b ^ " # " ^ sprint_instr i
   ;;
 
-  (* | TNotAlias (e1, e2) -> "-(" ^ (pr_expr e1) ^ ", " ^ (pr_expr e2) ^ ")" *)
+  (* | TNotAlias (e1, e2) -> "-(" ^ (sprint_expr e1) ^ ", " ^ (sprint_expr e2) ^ ")" *)
 
   let pr_trace (t : trace) : string =
     let stpath = sprint_list_plain ~f:pr_trace_item t.trace_path in
@@ -164,8 +164,8 @@ module PointerGraph = struct
       pr_prec p ^ "Alias" ^ if !mode_deep_debug && trace then pr_trace t else ""
     | Pto d -> "Pto" ^ pr_direc d
     | GEP (t, idxs, d) ->
-      let sidxs = sprint_list ~sep:"," ~obrace:"" ~cbrace:"" ~f:pr_expr idxs in
-      "GEP" ^ pr_direc d ^ "{" ^ pr_type t ^ "," ^ sidxs ^ "}"
+      let sidxs = sprint_list ~sep:"," ~obrace:"" ~cbrace:"" ~f:sprint_expr idxs in
+      "GEP" ^ pr_direc d ^ "{" ^ sprint_type t ^ "," ^ sidxs ^ "}"
     | Seq (lbls, p, t) ->
       pr_prec p
       ^ sprint_list ~f:(pr_label ~trace:false) lbls
@@ -289,7 +289,8 @@ module PointerGraph = struct
     beautiful_concat ~sep:", " strs
   ;;
 
-  let pr_paths (paths : path list) : string = sprint_items ~f:pr_path paths
+  let pr_paths (paths : path list) : string =
+    hsprint_list_itemized ~f:pr_path paths
 
   let is_alias_edge (e : edge) : bool =
     match E.label e with
@@ -648,7 +649,7 @@ module PointerGraph = struct
       let deref_traces = get_traces_of_deref path in
       List.for_all
         ~f:(fun (dexp, trs) ->
-          (* let _ = hdebug "check read_write of dexp: " pr_expr dexp in *)
+          (* let _ = hdebug "check read_write of dexp: " sprint_expr dexp in *)
           let trace_pairs = Math.gen_combinations 2 trs in
           List.for_all
             ~f:(fun trs ->
@@ -1111,17 +1112,17 @@ module PointerDomain = struct
               derefs := !derefs @ [ edge ])
           | GEP (t, idxs, d) ->
             let sidxs =
-              sprint_list ~sep:"," ~obrace:"" ~cbrace:"" ~f:pr_expr idxs in
+              sprint_list ~sep:"," ~obrace:"" ~cbrace:"" ~f:sprint_expr idxs in
             if !mode_deep_debug
             then (
               let edge =
-                ("GEP" ^ pr_direc d ^ "{" ^ pr_type t ^ "," ^ sidxs ^ "}")
+                ("GEP" ^ pr_direc d ^ "{" ^ sprint_type t ^ "," ^ sidxs ^ "}")
                 ^ "(" ^ src ^ ", " ^ dst ^ ")" in
               geps := !geps @ [ edge ])
             else if d == PG.From
             then (
               let edge =
-                ("GEP" ^ "{" ^ pr_type t ^ "," ^ sidxs ^ "}")
+                ("GEP" ^ "{" ^ sprint_type t ^ "," ^ sidxs ^ "}")
                 ^ "(" ^ src ^ ", " ^ dst ^ ")" in
               geps := !geps @ [ edge ])
           | Seq (lbls, p, t) ->
@@ -1143,9 +1144,9 @@ module PointerDomain = struct
 
   let pr_graph_size (g : pgraph) : string =
     "{ #vertices: "
-    ^ string_of_int (PG.nb_vertex g)
+    ^ sprint_int (PG.nb_vertex g)
     ^ ", " ^ "#edges: "
-    ^ string_of_int (PG.nb_edges g)
+    ^ sprint_int (PG.nb_edges g)
     ^ "}"
   ;;
 
@@ -1318,7 +1319,7 @@ module PointerDomain = struct
       | ElemPtr (e, rtyp, es) ->
         ElemPtr (get_bitcast_alias e, rtyp, List.map ~f:get_bitcast_alias es)
     in
-    (* let _ = debug ("- Get top alias: " ^ (pr_expr e) ^ "  -->  " ^ (pr_expr res)) in *)
+    (* let _ = debug ("- Get top alias: " ^ (sprint_expr e) ^ "  -->  " ^ (sprint_expr res)) in *)
     res
   ;;
 
@@ -1620,7 +1621,7 @@ module PointerDomain = struct
     let src, dst = PG.src_of_path path, PG.dst_of_path path in
     let _ =
       debug
-        ("  Check alias path: " ^ pr_expr src ^ " --> " ^ pr_expr dst ^ "\n"
+        ("  Check alias path: " ^ sprint_expr src ^ " --> " ^ sprint_expr dst ^ "\n"
         ^ hindent_line 4 PG.pr_path path) in
     match check_path_balance_direction path p with
     | ApNone ->
@@ -1709,7 +1710,7 @@ module PointerDomain = struct
     (* update internal edges for vertices of sub-expressions *)
     (* let g = connect_sub_vertices g in *)
     (* check if there is an alias path, using BFS *)
-    let sv1, sv2 = pr_expr v1, pr_expr v2 in
+    let sv1, sv2 = sprint_expr v1, sprint_expr v2 in
     let _ = debug ~indent:4 ("Checking alias between: " ^ sv1 ^ " vs. " ^ sv2) in
     let shortest_distances = BF.all_shortest_paths g v2 in
     let rec search_bfs dst (queue : path list) : bool * path option =
@@ -1767,11 +1768,11 @@ module PointerDomain = struct
     let dst = get_bitcast_alias v2 in
     let _ =
       if not (equal_expr v1 src)
-      then debug ~indent:6 ("BitCast alias: " ^ sv1 ^ " --> " ^ pr_expr src)
+      then debug ~indent:6 ("BitCast alias: " ^ sv1 ^ " --> " ^ sprint_expr src)
     in
     let _ =
       if not (equal_expr v2 dst)
-      then debug ~indent:6 ("BitCast alias: " ^ sv2 ^ " --> " ^ pr_expr dst)
+      then debug ~indent:6 ("BitCast alias: " ^ sv2 ^ " --> " ^ sprint_expr dst)
     in
     if equal_expr src dst
     then true, None
@@ -1823,7 +1824,7 @@ module PointerDomain = struct
     (* populate pointer graph with extra edges of internal vertices *)
     (* let g = connect_sub_vertices g in *)
     (* check if there is an alias path, using BFS *)
-    (* let _ = print ("Find all aliases of: " ^ (pr_expr v)) in *)
+    (* let _ = print ("Find all aliases of: " ^ (sprint_expr v)) in *)
     let rec search_bfs (queue : path list) res : (expr * path) list =
       match queue with
       | [] -> res
@@ -1870,7 +1871,7 @@ module PointerDomain = struct
     let _ =
       if not (equal_expr v src)
       then
-        debug ~indent:6 ("BitCast alias: " ^ pr_expr v ^ " --> " ^ pr_expr src)
+        debug ~indent:6 ("BitCast alias: " ^ sprint_expr v ^ " --> " ^ sprint_expr src)
     in
     let init_paths =
       try
@@ -1977,7 +1978,7 @@ module PointerDomain = struct
   ;;
 
   let find_deref_paths (g : pgraph) (src : expr) : path list =
-    (* let _ = hprint "Find deref paths of " pr_expr src in *)
+    (* let _ = hprint "Find deref paths of " sprint_expr src in *)
     let rec is_deref_label lbl =
       match lbl with
       (* TODO: check GEP edges if needed *)
@@ -2040,11 +2041,11 @@ module PointerDomain = struct
       : funcs
     =
     let curr_funcs = get_current_funcs_of_pointer prog ptr in
-    let _ = hdebug "Finding functions pointed by: " pr_value ptr in
+    let _ = hdebug "Finding functions pointed by: " sprint_value ptr in
     (* let _ = hdebug "  - Input: " pr_pgraph g in *)
     let vptr = expr_of_llvalue ptr in
     let vfuncs = get_func_vertices_in_pgraph g in
-    let _ = hdebug "Functions in pgraph: " pr_exprs vfuncs in
+    let _ = hdebug "Functions in pgraph: " sprint_exprs vfuncs in
     let funcs =
       List.fold_left
         ~f:(fun acc v ->
@@ -2194,8 +2195,8 @@ struct
 
   (* printers *)
 
-  let pr_data (g : t) = pr_pgraph g
-  let pr_data_checksum (g : t) = pr_graph_size g
+  let sprint_data (g : t) = pr_pgraph g
+  let sprint_data_checksum (g : t) = pr_graph_size g
 
   (* comparison *)
 
@@ -2237,7 +2238,7 @@ struct
   ;;
 
   let remove_deref_of_vertex ?(trace_skip = []) (input : t) (v : expr) : unit =
-    (* let _ = hdebug ~indent:4 "Remove deref vertex: " pr_expr v in *)
+    (* let _ = hdebug ~indent:4 "Remove deref vertex: " sprint_expr v in *)
     let vderef = deref_of_expr v in
     let removeable_edges =
       try
@@ -2492,8 +2493,8 @@ struct
       match find_removable_vertex g with
       | None -> ()
       | Some (vreplacee, replacer) ->
-        (* let _ = debug ("Replace must_alias: " ^ (pr_value vreplacee) ^ " by " ^
-         *                (pr_expr replacer)) in *)
+        (* let _ = debug ("Replace must_alias: " ^ (sprint_value vreplacee) ^ " by " ^
+         *                (sprint_expr replacer)) in *)
         let replacee = mk_expr_var vreplacee in
         let sstve = mk_substve ~oldvs:[ vreplacee ] ~newes:[ replacer ] in
         let removed_edges, new_edges =
@@ -2655,7 +2656,7 @@ struct
       match kept_vs with
       | None -> []
       | Some kept_vs ->
-        (* let _ = hdebug "kept_vs: " pr_exprs kept_vs in *)
+        (* let _ = hdebug "kept_vs: " sprint_exprs kept_vs in *)
         let connected_vs = find_connected_vertices g v in
         List.filter
           ~f:(fun u -> List.mem kept_vs u ~equal:equal_expr)
@@ -2751,12 +2752,12 @@ struct
 
   let join_edges_of_irrelevant_vars penv func (g : pgraph) : unit =
     (* first, remove aliases by substitution *)
-    (* let _ = hdebug "Before joining edges: " pr_data g in *)
+    (* let _ = hdebug "Before joining edges: " sprint_data g in *)
     let _ = remove_must_alias_vertices penv func g in
-    (* let _ = hdebug "After remove must-alias: " pr_data g in *)
+    (* let _ = hdebug "After remove must-alias: " sprint_data g in *)
     (* second, remove alias by joining edges *)
     let _ = eliminate_alias_edges_by_join_edges penv func g in
-    (* let _ = hdebug "After join alias edges: " pr_data g in *)
+    (* let _ = hdebug "After join alias edges: " sprint_data g in *)
     (* finally, fold other edges *)
     let removable_vs, kept_vs =
       PG.fold_vertex
@@ -2766,7 +2767,7 @@ struct
           else accr, acck @ [ v ])
         g
         ([], []) in
-    (* let _ = hdebug "removable_vs: " pr_exprs removable_vs in *)
+    (* let _ = hdebug "removable_vs: " sprint_exprs removable_vs in *)
     if List.is_empty kept_vs
     then List.iter ~f:(PG.remove_vertex g) removable_vs
     else (
@@ -3013,7 +3014,7 @@ struct
       List.iter
         ~f:(fun v ->
           let ev = get_bitcast_alias_of_llvalue v in
-          let _ = hdebug "Remove vertex: " pr_expr ev in
+          let _ = hdebug "Remove vertex: " sprint_expr ev in
           PG.remove_vertex input ev)
         vs in
     input
@@ -3064,7 +3065,7 @@ struct
 
   let is_global_used_only_in_init_sparse_functions penv (g : global) : bool =
     let vg = llvalue_of_global g in
-    (* let _ = hprint "check global: " pr_global g in *)
+    (* let _ = hprint "check global: " sprint_global g in *)
     let users = get_users vg in
     List.for_all
       ~f:(fun u ->
@@ -3114,14 +3115,14 @@ struct
     let is_global_used_only_as_dst_of_instr_store g =
       try
         let vg = llvalue_of_global g in
-        (* let _ = hprint "global: " pr_global g in *)
+        (* let _ = hprint "global: " sprint_global g in *)
         let _ =
           LL.iter_uses
             (fun u ->
               let vu = LL.user u in
               if is_sparse_llvalue penv vu
               then (
-                (* let _ = hprint "  user: " pr_value_detail vu in *)
+                (* let _ = hprint "  user: " sprint_value_detail vu in *)
                 match LL.classify_value vu with
                 | LV.Instruction LO.Store ->
                   if equal_value (dst_of_instr_store (mk_instr vu)) vg
@@ -3282,14 +3283,14 @@ struct
   let prepare_callee_input penv instr callee args (input : t) : t =
     let args = List.map ~f:get_bitcast_alias_of_llvalue args in
     let _ = hdebug ~indent:4 "Prepare callee's input: " func_name callee in
-    let _ = hdebug ~indent:4 " - Initial input: " pr_data input in
+    let _ = hdebug ~indent:4 " - Initial input: " sprint_data input in
     let params =
       let params = formal_params_of_func callee in
       List.map
         ~f:(fun p -> get_bitcast_alias_of_llvalue (llvalue_of_param p))
         params in
-    let _ = hdebug ~indent:4 " - args: " pr_exprs args in
-    let _ = hdebug ~indent:4 " - params: " pr_exprs params in
+    let _ = hdebug ~indent:4 " - args: " sprint_exprs args in
+    let _ = hdebug ~indent:4 " - params: " sprint_exprs params in
     (* parameter binding by MustAlias edges between formal and actual args *)
     let output = PG.copy input in
     (* let output =
@@ -3311,16 +3312,16 @@ struct
         warning
           ("prepare_callee_input: args and params of different length\n"
          ^ "  - function " ^ func_name callee ^ "\n" ^ "  - instr call: "
-         ^ pr_instr instr ^ "\n") in
+         ^ sprint_instr instr ^ "\n") in
     (* let output =
      *   let sste = mk_subste ~oldes:args ~newes:params in
      *   subst_data ~sste input in *)
-    let _ = hdebug ~indent:4 " - Input with params: " pr_data output in
+    let _ = hdebug ~indent:4 " - Input with params: " sprint_data output in
     (* and then remove all local vars *)
     let output, time =
       Sys.track_runtime (fun () ->
           clean_irrelevant_info_from_data penv callee output) in
-    let _ = hdebug "  Final input : " pr_data output in
+    let _ = hdebug "  Final input : " sprint_data output in
     output
   ;;
 
@@ -3473,7 +3474,7 @@ struct
       if LL.is_null dst
       then input
       else (
-        (* let _ = hprint "handling store: " pr_instr instr in *)
+        (* let _ = hprint "handling store: " sprint_instr instr in *)
         (* let _ = hprint "  graph size: " pr_graph_size input in *)
         let sexp = get_bitcast_alias (expr_of_llvalue src) in
         let dexp = get_bitcast_alias (expr_of_llvalue dst) in
@@ -3498,7 +3499,7 @@ struct
                 dexp
                 May in
             (* (if !dfa_path_sensitive then May else Must) in *)
-            (* let _ = hprint "finish finding all aliases of " pr_expr dexp in *)
+            (* let _ = hprint "finish finding all aliases of " sprint_expr dexp in *)
             (* OPTIMIZATION: add found alias path to pgraph *)
             (* let _ = List.iter ~f:(fun (v, path, prec) ->
              *   insert_alias output prec dexp v) dst_aliases_precs in *)
@@ -3511,7 +3512,7 @@ struct
                   | Var v ->
                     if is_llvalue_param v
                     then
-                      (* let _ = hdebug "save deref param: " pr_value v in *)
+                      (* let _ = hdebug "save deref param: " sprint_value v in *)
                       fenv.fenv_deref_params
                         <- List.insert_dedup
                              fenv.fenv_deref_params
@@ -3519,7 +3520,7 @@ struct
                              ~equal:equal_param
                     else if is_llvalue_global v
                     then (
-                      (* let _ = hdebug "save deref global: " pr_value v in *)
+                      (* let _ = hdebug "save deref global: " sprint_value v in *)
                       let ndglobals =
                         List.insert_dedup
                           fenv.fenv_deref_globals
@@ -3613,9 +3614,9 @@ struct
         let sexp = get_bitcast_alias (expr_of_llvalue src) in
         let dexp = get_bitcast_alias (expr_of_llvalue dst) in
         let styp, dtyp = type_of_expr sexp, type_of_expr dexp in
-        let _ = hdebug "Src type: " pr_type styp in
+        let _ = hdebug "Src type: " sprint_type styp in
         let elem_typ = LL.element_type styp in
-        let _ = hdebug "Elem type: " pr_type elem_typ in
+        let _ = hdebug "Elem type: " sprint_type elem_typ in
         let _ =
           if equal_type styp dtyp && is_type_struct elem_typ
           then (
@@ -3652,8 +3653,8 @@ struct
         (* let edges = [] in
          * let edges = create_memcpy_edges output instr sexp dexp in
          * let _ = List.iter ~f:(PG.add_edge_e output) edges in *)
-        (* let _ = hdebug "   handle Memcpy: " pr_expr sexp in
-         * let _ = hdebug "   New Edges: " (sprint_items PG.pr_edge) edges in *)
+        (* let _ = hdebug "   handle Memcpy: " sprint_expr sexp in
+         * let _ = hdebug "   New Edges: " (sprint_string_list_itemized PG.pr_edge) edges in *)
         output)
       else if is_func_dynamic_cast callee
       then (
@@ -3677,7 +3678,7 @@ struct
           | _ -> [] in
         let _ =
           debug
-            ("- Function pointers of " ^ pr_value ptr ^ ": " ^ func_names funcs)
+            ("- Function pointers of " ^ sprint_value ptr ^ ": " ^ func_names funcs)
         in
         output)
       else output
@@ -3771,7 +3772,7 @@ struct
   let check_assertion (fenvs : func_env list) (ast : AS.assertion) : bool option
     =
     let instr = ast.AS.ast_instr in
-    let num_fenvs = string_of_int (List.length fenvs) in
+    let num_fenvs = sprint_int (List.length fenvs) in
     if ast.AS.ast_type == AS.Assert
     then (
       match ast.AS.ast_predicate with

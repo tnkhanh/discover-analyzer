@@ -27,7 +27,7 @@ let get_indent (msg : string) : int =
     with EInt res -> res)
 ;;
 
-let string_of_indent (indent : int) : string =
+let sprint_indent (indent : int) : string =
   let rec mk_whitespace (i : int) : string =
     if i <= 0 then "" else " " ^ mk_whitespace (i - 1) in
   mk_whitespace indent
@@ -37,17 +37,15 @@ let string_of_indent (indent : int) : string =
  ** Basic printer
  *******************************************************************)
 
-let pr_id x = x
-let string_of_bool : bool -> string = string_of_bool
-let string_of_float : float -> string = string_of_float
-let string_of_int (x : int) : string = string_of_int x
-let string_of_int64 = Int64.to_string
-let string_of_string (s : string) : string = s
+let sprint_bool : bool -> string = string_of_bool
+let sprint_float : float -> string = string_of_float
+let sprint_int : int -> string = string_of_int
+let sprint_int64 = Int64.to_string
 
 (** format a message by insert an indentation to each line *)
 
 let indent_line ?(skipfirst = false) (indent : int) (msg : string) : string =
-  let sindent = string_of_indent indent in
+  let sindent = sprint_indent indent in
   msg |> String.split ~on:'\n'
   |> List.mapi ~f:(fun i s -> if i = 0 && skipfirst then s else sindent ^ s)
   |> String.concat ~sep:"\n"
@@ -85,30 +83,27 @@ let prefix_line ~(prefix : string) (msg : string) : string =
 
 let sprintf = Printf.sprintf
 
-let sprint_list
+(** print a list of string to string *)
+let sprint_string_list
     ?(sep = ", ")
     ?(obrace = "[")
     ?(cbrace = "]")
     ?(indent = "")
     ?(extra = "")
-    ~(f : 'a -> string)
-    (xs : 'a list)
+    (xs : string list)
   =
   let extra =
     if String.equal obrace ""
     then extra
     else if String.is_substring sep ~substring:"\n"
-    then string_of_indent (String.length obrace + 1) ^ extra
+    then sprint_indent (String.length obrace + 1) ^ extra
     else extra in
   let content =
     match xs with
     | [] -> ""
-    | [ x ] -> f x
+    | [ x ] -> x
     | x :: nxs ->
-      let sxs =
-        let sx = f x in
-        let snxs = List.map ~f:(fun u -> indent ^ extra ^ f x) nxs in
-        sx :: snxs in
+      let sxs = x :: List.map ~f:(fun u -> indent ^ extra ^ u) nxs in
       String.concat ~sep sxs in
   let obrace, cbrace =
     if (not (String.is_substring content ~substring:"\n"))
@@ -118,37 +113,66 @@ let sprint_list
   obrace ^ content ^ cbrace
 ;;
 
+(** higher-order function to print a list to string *)
+let sprint_list
+    ?(sep = ", ")
+    ?(obrace = "[")
+    ?(cbrace = "]")
+    ?(indent = "")
+    ?(extra = "")
+    ~(f : 'a -> string)
+    (xs : 'a list)
+  =
+  let sxs = List.map ~f xs in
+  sprint_string_list ~sep ~obrace ~cbrace ~indent ~extra sxs
+;;
+
 let sprint_list_square = sprint_list ~obrace:"[" ~cbrace:"]"
 let sprint_list_curly = sprint_list ~obrace:"{" ~cbrace:"}"
 let sprint_list_paren = sprint_list ~obrace:"(" ~cbrace:")"
 let sprint_list_plain = sprint_list ~obrace:"" ~cbrace:""
 
-let sprint_items
+(** print a list of string to string in itemized format *)
+let sprint_string_list_itemized
+    ?(bullet = "-")
+    ?(obrace = "")
+    ?(cbrace = "")
+    ?(extra = "")
+    (xs : string list)
+  =
+  if List.is_empty xs
+  then "[]"
+  else (
+    let indent = String.length bullet + 1 in
+    let sprint x =
+      let res = indent_line ~skipfirst:true indent x in
+      bullet ^ " " ^ res in
+    "\n" ^ sprint_list ~sep:"\n" ~obrace ~cbrace ~extra ~f:sprint xs)
+;;
+
+(** higher-order function to print a list to string in itemized format *)
+let hsprint_list_itemized
     ?(bullet = "-")
     ?(obrace = "")
     ?(cbrace = "")
     ?(extra = "")
     ~(f : 'a -> string)
-    (items : 'a list)
+    (xs : 'a list)
   =
-  if List.is_empty items
-  then "[]"
-  else (
-    let indent = String.length bullet + 1 in
-    let print x =
-      let res = indent_line ~skipfirst:true indent (f x) in
-      bullet ^ " " ^ res in
-    let res = sprint_list ~sep:"\n" ~obrace ~cbrace ~extra ~f items in
-    "\n" ^ res)
+  let sxs = List.map ~f xs in
+  sprint_string_list_itemized ~bullet ~obrace ~cbrace ~extra sxs
 ;;
 
 let sprint_args ~(f : 'a -> string) (args : 'a list) : string =
   sprint_list ~sep:", " ~obrace:"" ~cbrace:"" ~f args
 ;;
 
-let sprint_pair ~(f1: 'a -> string) ~(f2: 'b -> string) (p: 'a * 'b) : string =
+let sprint_pair ~(f1 : 'a -> string) ~(f2 : 'b -> string) (p : 'a * 'b)
+    : string
+  =
   let x, y = p in
   "(" ^ f1 x ^ ", " ^ f2 y ^ ")"
+;;
 
 let beautiful_concat ?(column = 80) ~(sep : string) (strs : string list) =
   let rec concat strs current_line res =

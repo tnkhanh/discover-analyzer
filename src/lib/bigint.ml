@@ -31,5 +31,5 @@ module BInt = struct
     lb, ub
   ;;
 
-  let pr_bigint = Big_int.string_of_big_int
+  let sprint_bigint = Big_int.string_of_big_int
 end

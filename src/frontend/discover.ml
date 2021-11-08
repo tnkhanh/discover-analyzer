@@ -112,8 +112,8 @@ let print_analysis_summary () =
     let summary =
       [ "Summary:";
         "- Input file: " ^ !input_file;
-        "- Valid assertions: " ^ string_of_int !num_valid_asserts;
-        "- Invalid assertions: " ^ string_of_int !num_invalid_asserts;
+        "- Valid assertions: " ^ sprint_int !num_valid_asserts;
+        "- Invalid assertions: " ^ sprint_int !num_invalid_asserts;
         "- Analysis time: " ^ sprintf "%.2fs" !analysis_time;
         "- Total runtime: " ^ sprintf "%.2fs" !total_time;
         detailed_runtime
@@ -141,7 +141,7 @@ let analyze_program (prog : CI.program) : unit =
   | CI.Llprog prog ->
     let _ = hprint "Work mode: " pr_work_mode !work_mode in
     let num_assertions = AS.count_all_assertions prog in
-    let _ = print ("Found total assertions: " ^ string_of_int num_assertions) in
+    let _ = print ("Found total assertions: " ^ sprint_int num_assertions) in
     (match !work_mode with
     | WkmDFA -> DA.analyze_program_llvm prog
     (* | WkmDFA -> DAP.analyze_program_llvm prog *)

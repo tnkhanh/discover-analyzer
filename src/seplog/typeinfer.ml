@@ -46,7 +46,7 @@ let remove_all_vars_from_env (env : environment) : environment =
 ;;
 
 let remove_vars_from_env (env : environment) (vs : var list) : environment =
-  let ns = List.map ~f:pr_var vs in
+  let ns = List.map ~f:sprint_var vs in
   fun n -> if List.mem ~equal:String.equal ns n then TUnk else env n
 ;;
 
@@ -68,9 +68,9 @@ let update_substitution sst (old_typ : typ) (new_typ : typ) : substitution =
     then
       error
         ("update_sst: unmatched current and new types: "
-        ^ pr_type cur_typ
+        ^ sprint_type cur_typ
         ^ " ~~ "
-        ^ pr_type new_typ) in
+        ^ sprint_type new_typ) in
   fun t ->
     let substed_t = sst t in
     match cur_typ with
@@ -107,9 +107,9 @@ let unify_typ sst current_typ expected_typ : substitution =
     | _, _ ->
       error
         ("unify_typ: found typ: "
-        ^ pr_type current_typ
+        ^ sprint_type current_typ
         ^ " but expect typ: "
-        ^ pr_type expected_typ))
+        ^ sprint_type expected_typ))
 ;;
 
 (*******************************************************************
@@ -118,19 +118,19 @@ let unify_typ sst current_typ expected_typ : substitution =
 
 let annotate_typ_var prog env (v : var) : var * environment =
   let vname, vtyp = v in
-  let env_typ = env (pr_id vname) in
+  let env_typ = env (sprint_id vname) in
   match vtyp, env_typ with
   | TUnk, TUnk ->
     let ntyp = fresh_tvar () in
     let nv = vname, ntyp in
-    let nenv = extend_env env (pr_id vname) ntyp in
+    let nenv = extend_env env (sprint_id vname) ntyp in
     nv, nenv
   | TUnk, _ -> (vname, env_typ), env
-  | _, TUnk -> v, extend_env env (pr_id vname) vtyp
+  | _, TUnk -> v, extend_env env (sprint_id vname) vtyp
   | _, _ ->
     if equal_typ env_typ vtyp
     then v, env
-    else herror "annotate_typ_var: cannot annotate type of" pr_var v
+    else herror "annotate_typ_var: cannot annotate type of" sprint_var v
 ;;
 
 let annotate_typ_vars prog env vs : var list * environment =
@@ -205,7 +205,7 @@ let rec annotate_typ_formula prog env f : formula * environment =
       | Some a ->
         let addr, env = annotate_typ_addr_exp prog env a in
         Some a, env in
-    let dn = pr_type t in
+    let dn = sprint_type t in
     let env =
       match env dn with
       | TUnk ->
@@ -325,9 +325,9 @@ let rec find_substitution_exp env sst expected_typ e : substitution =
       | TFunc (arg_typs, ret_typ) ->
         let sst = unify_typ sst ret_typ t in
         List.fold2_exn ~f:(find_substitution_exp env) ~init:sst arg_typs es
-      | t -> herror "find_substitution_exp: expect TFunc but found:" pr_type t)
+      | t -> herror "find_substitution_exp: expect TFunc but found:" sprint_type t)
   with
-  | exc -> error ("find_substitution_exp: " ^ pr_exp e ^ "\n")
+  | exc -> error ("find_substitution_exp: " ^ sprint_exp e ^ "\n")
 ;;
 
 let rec find_substitution_form env sst f : substitution =
@@ -346,7 +346,7 @@ let rec find_substitution_form env sst f : substitution =
       let sst = find_substitution_exp env sst tvar e1 in
       find_substitution_exp env sst tvar e2
     | Data (e, t, es, _, _) ->
-      let sn = pr_type t in
+      let sn = sprint_type t in
       let res =
         match env sn with
         | TFunc (typs, _) ->
@@ -354,9 +354,9 @@ let rec find_substitution_form env sst f : substitution =
         | t ->
           error
             ("find_subst_data_form "
-            ^ pr_formula f
+            ^ sprint_formula f
             ^ ": expect TFunc"
-            ^ pr_type t) in
+            ^ sprint_type t) in
       res
     | Pred (pn, es, _) ->
       (match env pn with
@@ -365,9 +365,9 @@ let rec find_substitution_form env sst f : substitution =
       | t ->
         error
           ("find_subst_pred_form "
-          ^ pr_formula f
+          ^ sprint_formula f
           ^ ": expect TFunc but found: "
-          ^ pr_type t))
+          ^ sprint_type t))
     | Array (root, size, etyp, _) ->
       let sst = find_substitution_exp env sst (TInt 32) size in
       find_substitution_exp env sst etyp root
@@ -384,7 +384,7 @@ let rec find_substitution_form env sst f : substitution =
       find_substitution_form env sst f2
     | Neg g | Forall (_, g) | Exists (_, g) -> find_substitution_form env sst g
   with
-  | e -> error ("find_substitution_form: " ^ pr_formula f ^ "\n")
+  | e -> error ("find_substitution_form: " ^ sprint_formula f ^ "\n")
 ;;
 
 let find_substitution_forms env sst fs : substitution =
@@ -512,7 +512,7 @@ let infer_typ_data_defn prog env sst ddefn
   let root_typ = ddefn.datad_typ in
   let field_typs = ddefn.datad_fields |> List.unzip |> fst in
   let dtyp = TFunc (root_typ :: field_typs, TBool) in
-  let dname = pr_type ddefn.datad_typ in
+  let dname = sprint_type ddefn.datad_typ in
   let env = extend_env env dname dtyp in
   ddefn, sst, env
 ;;
