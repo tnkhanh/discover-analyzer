@@ -6,29 +6,34 @@ IDE and editors
 
 - Suggested editor: Emacs, Vim, Visual Studio Code.
 
-- Code completion, navigation, outline by ``merlin`` and ``ocamllsp``.
+- Code completion, navigation, outline by `merlin
+  <https://github.com/ocaml/merlin>`_ and `ocaml-lsp
+  <https://github.com/ocaml/ocaml-lsp>`_.
 
   .. code-block:: sh
 
      opam install merlin ocaml-lsp-server
 
-- Code auto-formatting and indentation: ``ocamlformat`` and ``ocp-indent``:
+- Code auto-formatting and indentation: `ocamlformat
+  <https://github.com/ocaml-ppx/ocamlformat>`_ and `ocp-indent
+  <https://github.com/OCamlPro/ocp-indent>`_:
 
   .. code-block:: sh
 
-     opam install ocamlformat  ocp-indent
+     opam install ocamlformat ocp-indent
 
 
-Coding format and convention
+Coding convention
 -------------------------------
 
-- Indentation by ``ocp-indent`` and follow the rules in
-  ``discover/.ocp-indent``.
+- Indentation by `ocp-indent <https://github.com/OCamlPro/ocp-indent>`_ and
+  follow the rules configured in in ``discover/.ocp-indent``.
 
-- Code auto-formatting by ``ocamlformat``
+- Code auto-formatting by `ocamlformat
+  <https://github.com/ocaml-ppx/ocamlformat>`_:
 
-  + Use ``janestreet`` style and settings in ``discover/.ocamlformat`` and
-    ``discover/.ocamlformat-ignore``.
+  + Use ``janestreet`` style and additional settings in
+    ``discover/.ocamlformat`` and ``discover/.ocamlformat-ignore``.
 
   + To disable ocamlformat for certain code, use ``[@ocamlformat "disable"]``:
 
@@ -38,19 +43,12 @@ Coding format and convention
          x; y; z
        ] [@ocamlformat "disable"]
 
-- Other general rules:
+- Coding standards follow the book `Real World Ocaml
+  <https://dev.realworldocaml.org/index.html>`_ (free, online).
+
+- Some general rules to write concise and readable code:
 
   + Use 2-white-space indentation style.
   + Each code line is at most 80 column.
   + Function and variable names follow snake case style (``snake_case_naming``).
   + Module and signature names follow Camel Case (``CamelCaseNaming``).
-
-- More coding standards
-  [Coding convention]() from Jane Street.
-
-OCaml tutorials
------------------
-
-- OCaml programming:
-
-  + `Real World Ocaml <https://dev.realworldocaml.org/index.html>`_: free, online book.

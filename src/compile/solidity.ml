@@ -8,8 +8,6 @@
 open Core
 open Globals
 open Libdiscover
-open Sprinter
-open Printer
 open Debugger
 module AG = Arguments
 module AS = Assertion
@@ -23,26 +21,33 @@ module LL = Llvm
 module LT = Llinstrument
 module LU = Llutils
 module PS = Process
+module FN = Filename
 
 let compile_solidity (filename : string) : LI.program =
   let _ = debug ("Compiling file: " ^ filename) in
-  let basename = Filename.chop_extension (Filename.basename filename) in
-  let dirname = Filename.dirname filename ^ Filename.dir_sep ^ "logs" in
-  let _ = Sys.mkdir_if_not_exists dirname in
-  let output_filename = dirname ^ Filename.dir_sep ^ basename ^ ".raw.bc" in
+  let contract_name = FN.basename filename in
+  let output_dir =
+    FN.dirname filename ^ FN.dir_sep ^ "logs" ^ FN.dir_sep ^ contract_name in
+  let _ = Sys.mkdir_if_not_exists output_dir in
   let _ =
-    let _ = Sys.remove_file_if_exists output_filename in
-    (* TODO: possibly use the  llvm-normalizer as a pass of clang or opt?? *)
-    let llcontext = LL.create_context () in
+    let _ = Sys.remove_if_exists output_dir in
     let cmd =
       [ !solang_path ]
-      @ [ "-o"; "-fno-rtti" ]
-      @ [ "-emit-llvm"; "-c"; filename ]
-      @ [ "-o"; output_filename ]
-      @ (if !llvm_orig_source_name then [ "-g" ] else [])
-      @ (String.split ~on:' ' !clang_user_options) in
+      @ [ "-emit"; "llvm-bc" ]
+      @ [ "-O"; "none" ]
+      @ [ "-o"; output_dir ]
+      @ [ "--target"; "ewasm" ]
+      @ String.split ~on:' ' !solang_user_options in
     let _ = debug (String.concat ~sep:" " cmd) in
     PS.run_command cmd in
-  let ann_marks = LT.extract_ann_marks filename in
-  BC.compile_bitcode ann_marks filename output_filename
+  let generated_files = Sys.ls_dir output_dir in
+  let deploy_file =
+    List.find
+      ~f:(String.is_suffix ~suffix:"_deploy.bc")
+      generated_files in
+  match deploy_file with
+  | None -> error "compile_solidity: no output file generated!"
+  | Some deploy_file ->
+    let output_file = output_dir ^ FN.dir_sep ^ deploy_file in
+    BC.compile_bitcode [] filename output_file
 ;;

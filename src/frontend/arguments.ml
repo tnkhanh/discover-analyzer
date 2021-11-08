@@ -92,7 +92,12 @@ and arguments_raw =
     ( [ "--clang-option" ],
       "Command options for Clang",
       Arg.Set_string clang_user_options );
-    [ "--opt-option" ], "Command options for Opt", Arg.Set_string opt_options;
+    ( [ "--solang-option" ],
+      "Command options for Solang",
+      Arg.Set_string solang_user_options );
+    ( [ "--opt-option" ],
+      "Command options for LLVM-Opt",
+      Arg.Set_string opt_user_options );
     (*--------------------------------------------------------
      * analysis
      *--------------------------------------------------------*)

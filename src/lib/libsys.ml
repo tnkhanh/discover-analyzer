@@ -42,30 +42,27 @@ module Sys = struct
     res
   ;;
 
-  let remove_file_if_exists (filename : string) : unit =
+  let remove_if_exists (filename : string) : unit =
     match Sys.file_exists filename with
     | `Yes -> Sys.remove filename
     | _ -> ()
   ;;
 
   let mkdir_if_not_exists (dirname : string) : unit =
-    let _ =
-      match Sys.file_exists dirname with
-      | `No -> Sys.command ("mkdir " ^ dirname)
-      | _ ->
-        (match Sys.is_directory dirname with
-        | `No ->
-          let _ =
-            print_endline
-              ("'"
-              ^ dirname
-              ^ "' is an regular file. "
-              ^ "Discover needs to use this name to work.\n"
-              ^ "Please remove or rename it to continue.\n") in
-          exit 0
-        | _ -> 0) in
-    ()
+    match Sys.file_exists dirname with
+    | `No ->
+      ignore (Sys.command ("mkdir " ^ dirname))
+    | _ ->
+      (match Sys.is_directory dirname with
+      | `No ->
+        print_endline
+          (("'" ^ dirname ^ "' is an regular file. ")
+          ^ "Discover needs to use this name to work.\n"
+          ^ "Please remove or rename it to continue.\n");
+        exit 0
+      | _ -> ())
   ;;
+
 
   (*-------------------------------------
    * Include the existing Sys library

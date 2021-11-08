@@ -177,7 +177,8 @@ let project_path = Filename.dirname discover_path
  *---------------------*)
 
 let clang_user_options = ref ""
-let opt_options = ref ""
+let solang_user_options = ref ""
+let opt_user_options = ref ""
 
 (*------------
  * Keywords

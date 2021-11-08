@@ -29,7 +29,7 @@ let compile_c_cpp (filename : string) : LI.program =
   let _ = Sys.mkdir_if_not_exists dirname in
   let output_filename = dirname ^ Filename.dir_sep ^ basename ^ ".raw.bc" in
   let _ =
-    let _ = Sys.remove_file_if_exists output_filename in
+    let _ = Sys.remove_if_exists output_filename in
     (* TODO: possibly use the  llvm-normalizer as a pass of clang or opt?? *)
     let cmd =
       [ !clang_path ]
