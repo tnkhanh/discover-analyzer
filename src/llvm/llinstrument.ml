@@ -51,10 +51,23 @@ let make_linecol line_ col_ =
     col = col_;
   }
 
+let dummy_linecol =
+  { line = 0;
+    col = 0;
+  }
+
 let lc_comp lcx lcy =
   let tuplex = (lcx.line, lcx.col) in
   let tupley = (lcy.line, lcy.col) in
   Poly.compare tuplex tupley
+
+let max_lc lcx lcy =
+  if lc_comp lcx lcy = 1 then lcx
+  else lcy
+
+let min_lc lcx lcy =
+  if lc_comp lcx lcy = 1 then lcy
+  else lcx
 
 let less_than ins ann =
   if Poly.((ins.pos.pos_line_end, ins.pos.pos_col_end) < 
@@ -64,15 +77,29 @@ let less_than ins ann =
 
 let coverage = Hashtbl.create (module Instr)
 
-let get_coverage instr =
+let rec get_coverage instr =
   match Hashtbl.find coverage instr with
   | None ->
       let pos_op = LS.position_of_instr instr in
+      let oprc = num_operands instr in
       let cover = 
-        match pos_op with
-        | None -> (make_linecol 0 0, make_linecol 0 0)
-        | Some pos -> (make_linecol pos.pos_line_start pos.pos_col_start,
-                       make_linecol pos.pos_line_end pos.pos_col_end) in
+        let init = 
+          match pos_op with
+          | None -> ({line=max_int; col=max_int}, {line=0; col=0})
+          | Some pos -> (make_linecol pos.pos_line_start pos.pos_col_start,
+                         make_linecol pos.pos_line_end pos.pos_col_end) in
+        let rec fold_opr acc idx =
+          if idx = oprc then acc
+          else
+            let opr = mk_instr (operand instr idx) in
+            let (opr_cov_start, opr_cov_end) = get_coverage opr in
+            match acc with 
+            | (acc_start, acc_end) ->
+                let new_start = min_lc opr_cov_start acc_start in
+                let new_end = max_lc opr_cov_end acc_end in
+                fold_opr (new_start, new_end) (idx+1) in
+        fold_opr init 0 in
+
       let _ = Hashtbl.add coverage ~key:instr ~data:cover in
       cover
   | Some cover -> cover
