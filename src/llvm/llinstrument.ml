@@ -114,7 +114,8 @@ let extract_ann_marks (filename: string) =
         [] in
 
   (*print all marks*)
-  let _ = List.iter (List.rev (List.map rev_mark_list ~f:Ann.str_of_mark)) ~f:print_endline in
+  let _ = hprint ~ruler:`Short "Annotations" pr_str "" in
+  let _ = List.iter (List.rev (List.map rev_mark_list ~f:Ann.str_of_mark)) ~f:(hprint "" pr_str) in
   List.rev rev_mark_list
 
 let get_func_name anntyp (bug:Ann.bug_group) ins =
@@ -257,24 +258,8 @@ let instrument_bug_annotation ann_marks source_name (modul: LL.llmodule) : unit 
      See module llsimp.ml, function elim_instr_intrinsic_lifetime ...
      for how to manipulating LLVM bitcode *)
 
-(*  let _ = print "INSTRUMENT BUG ANNOTATION" in
+  let _ = hprint ~ruler:`Long "Uninstrumented" pr_str (LL.string_of_llmodule modul) in
 
-  let sorted_anns = List.rev annotations in
-  let _ =
-    List.iter ~f:(fun ((line, col), ann) ->
-      print_endline (ann^"----------"^(pr_int line)^"------------"^(pr_int col))
-    ) sorted_anns in *)
-
-  (* map each instr to (line, col) * tag * instr *)
-
-  let _ = hprint "======== Source file: " pr_str source_name in
-
-  let _ = print_endline 
-          ("MODULE  =============================\n" ^
-            (LL.string_of_llmodule modul) ^
-            " =====================\n"
-          )in
-  
   let finstr = Some (fun acc instr ->
     let pos_op = LS.position_of_instr instr in
     match pos_op with
@@ -295,7 +280,7 @@ let instrument_bug_annotation ann_marks source_name (modul: LL.llmodule) : unit 
     else if Poly.(p1 < p2) then -1
     else 0 in
 
-  let _ = print_endline "Tags  =============================\n" in
+  let _ = hprint ~ruler:`Medium "Tags" pr_str "" in
 
   let sorted_ins = List.stable_sort ~compare tagged_ins in
   let llctx = LL.global_context () in
@@ -307,37 +292,20 @@ let instrument_bug_annotation ann_marks source_name (modul: LL.llmodule) : unit 
         match dbg with
         | None -> "None.."
         | Some d -> LL.string_of_llvalue d in
-      print_endline (
-(*        "Tag: " ^ (pr_int tin.tag) ^ "\n" ^
-                     "Debug: " ^ dbg_str ^ "\n" ^
-        "Instr: " ^ (LL.string_of_llvalue inx) ^ " +++ " ^ (pr_int tin.pos.pos_line_end) ^ " .. "
-        ^ (pr_int tin.pos.pos_col_end)
-        ^ " .. file: " ^ tin.pos.pos_file_name  *)
-        (LL.string_of_llvalue inx) 
-      )
-(*      let pos = LS.position_of_instr instr in
-        match pos with
-        | None -> ()
-        | Some p -> print_endline ((LL.string_of_llvalue inx)^"++++ "^
-                         (pr_int line) ^ "__" ^
-                         (pr_int col)) *)
+      hprint ~ruler:`Short "Instruction" pr_str (LL.string_of_llvalue inx) 
   ) (List.rev tagged_ins) (*sorted_ins*) in
 
-  let _ = print_endline "SORTED_INS===" in
+  let _ = hprint ~ruler:`Short "Sorted_ins" pr_str "" in
 
   let _ = List.iter tagged_ins ~f:(fun ins ->
     match ins.ins with
     | Instr inx ->
-      print_endline  (LL.string_of_llvalue inx)
+      hprint "Ins" pr_str (LL.string_of_llvalue inx)
   ) in
-
-  let _ = print_endline "===SORTED_INS" in
 
   let _ = resolve ann_marks sorted_ins [] modul in
   
-  print_endline ("INSTRUMENTED ***********************\n" ^ 
-                (LL.string_of_llmodule modul) ^
-                "***********************")
+  hprint ~ruler:`Long "Instrumented" pr_str (LL.string_of_llmodule modul)
 
 (*we need source_name to ignore instructions with location outside the source file *)
 let instrument_bitcode ann_marks source_name (modul: LL.llmodule) : unit =
