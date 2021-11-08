@@ -27,8 +27,8 @@
  ; (modes native)
  (modes byte)
  (flags (:standard
-          -w -3-26-27-28-32-33+60+66
-          -warn-error +60+66
+          -w -3+26-27-28-32+33+60+66+31
+          -warn-error +31+60+66
           -g -annot))
 
  (link_flags (-linkall)))
