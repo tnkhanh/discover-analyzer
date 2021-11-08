@@ -9,7 +9,6 @@ open Core
 open Globals
 open Libdiscover
 open Sprinter
-open Printer
 open Debugger
 open Llir
 module AS = Assertion
@@ -473,7 +472,6 @@ end
 
 module RangeTransfer : DF.ForwardDataTransfer with type t = IntervalData.t =
 struct
-  open IntervalDomain
   include IntervalData
   include RangeUtil
   include DF.MakeDefaultEnv (IntervalData)
@@ -690,28 +688,28 @@ struct
   ;;
 
   let refine_data_by_predicate ?(widen = false) (d : t) (p : predicate) : t =
-    let refine_interval (a : interval) (b : interval) : interval =
-      match a, b with
-      | Bottom, _ -> Bottom
-      | _, Bottom -> Bottom
-      | Range ra, Range rb ->
-        let lb, li =
-          let cmp = compare_bound ra.range_lb rb.range_lb in
-          if cmp > 0
-          then ra.range_lb, ra.range_lb_inclusive
-          else if cmp < 0
-          then ra.range_lb, ra.range_lb_inclusive
-          else ra.range_lb, ra.range_lb_inclusive && rb.range_lb_inclusive in
-        let ub, ui =
-          let cmp = compare_bound ra.range_ub rb.range_ub in
-          if cmp < 0
-          then ra.range_ub, ra.range_ub_inclusive
-          else if cmp > 0
-          then ra.range_ub, ra.range_ub_inclusive
-          else ra.range_ub, ra.range_ub_inclusive && rb.range_ub_inclusive in
-        if compare_bound lb ub > 0
-        then Bottom
-        else Range (mk_range lb ub ~li ~ui) in
+    (* let refine_interval (a : interval) (b : interval) : interval = *)
+    (*   match a, b with *)
+    (*   | Bottom, _ -> Bottom *)
+    (*   | _, Bottom -> Bottom *)
+    (*   | Range ra, Range rb -> *)
+    (*     let lb, li = *)
+    (*       let cmp = compare_bound ra.range_lb rb.range_lb in *)
+    (*       if cmp > 0 *)
+    (*       then ra.range_lb, ra.range_lb_inclusive *)
+    (*       else if cmp < 0 *)
+    (*       then ra.range_lb, ra.range_lb_inclusive *)
+    (*       else ra.range_lb, ra.range_lb_inclusive && rb.range_lb_inclusive in *)
+    (*     let ub, ui = *)
+    (*       let cmp = compare_bound ra.range_ub rb.range_ub in *)
+    (*       if cmp < 0 *)
+    (*       then ra.range_ub, ra.range_ub_inclusive *)
+    (*       else if cmp > 0 *)
+    (*       then ra.range_ub, ra.range_ub_inclusive *)
+    (*       else ra.range_ub, ra.range_ub_inclusive && rb.range_ub_inclusive in *)
+    (*     if compare_bound lb ub > 0 *)
+    (*     then Bottom *)
+    (*     else Range (mk_range lb ub ~li ~ui) in *)
     let pcond_data = extract_data_from_predicate ~widen p d in
     MP.merge
       ~f:(fun ~key:e i ->
@@ -723,14 +721,6 @@ struct
       pcond_data
   ;;
 
-  (* List.fold_left ~f:(fun acc ep ->
-   *   let e = ep.ei_expr in
-   *   match List.find ~f:(fun a -> equal_expr e a.ei_expr) acc with
-   *   | None -> acc
-   *   | Some ed ->
-   *     let nacc = List.exclude acc ~f:(fun a -> equal_expr e a.ei_expr) in
-   *     let nint = intersect_interval ep.ei_interval ed.ei_interval in
-   *     (mk_einterval e nint)::nacc) ~init:d pcond_data *)
 
   (*******************************************************************
    ** Core analysis functions
@@ -924,7 +914,6 @@ struct
   ;;
 
   let check_assertions (penv : prog_env) func : int =
-    let prog = penv.penv_prog in
     let assertions = AS.find_range_assertions func in
     let fenvs =
       match Hashtbl.find penv.penv_func_envs func with

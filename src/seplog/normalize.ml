@@ -6,11 +6,7 @@
  ********************************************************************)
 
 open Core
-open Globals
 open Libdiscover
-open Sprinter
-open Printer
-open Debugger
 open Slir
 module LA = Linarith
 module SMT = Smt.SmtSL

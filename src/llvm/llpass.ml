@@ -8,7 +8,6 @@
 open Core
 open Globals
 open Libdiscover
-open Sprinter
 open Printer
 open Debugger
 open Llir
@@ -22,7 +21,6 @@ module LG = Llcallgraph
 
 let construct_map_llvalue_to_source_name (prog : program) : unit =
   let _ = ddebugc "Construct mapping llvalue to source name" in
-  let metadata = ref [] in
   let finstr =
     Some
       (fun instr ->
@@ -31,12 +29,7 @@ let construct_map_llvalue_to_source_name (prog : program) : unit =
           if is_func_llvm_debug (callee_of_instr_func_call instr)
           then (
             let _ = hprint "instr: " sprint_instr instr in
-            let v0, v1 = operand instr 0, operand instr 1 in
-            let mdv0, mdv1 = LL.value_as_metadata v0, LL.value_as_metadata v1 in
-            let _ = hprint "opr 0: " LL.value_name (operand instr 0) in
-            let _ = hprint "opr 1: " LL.value_name (operand instr 1) in
-            let _ = hprint "opr 0: " LL.string_of_llvalue (operand instr 0) in
-            let _ = hprint "opr 1: " LL.string_of_llvalue (operand instr 1) in
+            (* let v0, v1 = operand instr 0, operand instr 1 in *)
             let vname = sprint_value (operand instr 0) in
             let sname = LD.extract_name_from_metadata (operand instr 1) in
             Hashtbl.set prog.prog_llvalue_original_name ~key:vname ~data:sname)
@@ -113,7 +106,6 @@ let compute_funcs_in_pointers (prog : program) : unit =
 let compute_func_used_globals prog : unit =
   let _ = print "Compute used globals in each functions" in
   let tbl_used_globals = prog.prog_func_used_globals in
-  let equal = equal_llvalue in
   let init_globals_of_all_funcs () =
     let _ =
       List.iter

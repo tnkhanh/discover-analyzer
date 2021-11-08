@@ -175,8 +175,7 @@ let project_path = Filename.dirname discover_path
  * Compilation options
  *---------------------*)
 
-let clang_options = ref ""
-let clang_extra_options = ref ""
+let clang_user_options = ref ""
 let opt_options = ref ""
 
 (*------------

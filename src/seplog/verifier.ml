@@ -9,7 +9,6 @@ open Core
 open Globals
 open Libdiscover
 open Sprinter
-open Printer
 open Debugger
 open Slir
 open Bug
@@ -32,30 +31,30 @@ let prefix_postcond = "post"
 let data_layout = ref ""
 
 type program_state =
-  { pgs_formula : formula
-  ; pgs_next_block : LI.block option
-  ; pgs_alloced_pointers : exp list
-  ; pgs_freed_pointers : exp list
-  ; pgs_reachable : bool
-  ; pgs_is_buggy : bool
-  ; pgs_last_instr : LI.instr option
-  ; pgs_entails : entailments
+  { pgs_formula : formula;
+    pgs_next_block : LI.block option;
+    pgs_alloced_pointers : exp list;
+    pgs_freed_pointers : exp list;
+    pgs_reachable : bool;
+    pgs_is_buggy : bool;
+    pgs_last_instr : LI.instr option;
+    pgs_entails : entailments
   }
 
 type program_states = program_state list
 
 type verifier_state =
-  { vrs_core_prog : program
-  ; vrs_llvm_prog : LI.program
-  ; vrs_recent_instr : LI.llvalue option
-  ; mutable vrs_interact : bool
+  { vrs_core_prog : program;
+    vrs_llvm_prog : LI.program;
+    vrs_recent_instr : LI.llvalue option;
+    mutable vrs_interact : bool
   }
 
 let mk_verifier_state (prog : LI.program) =
-  { vrs_core_prog = mk_program_empty ()
-  ; vrs_llvm_prog = prog
-  ; vrs_recent_instr = None
-  ; vrs_interact = !mode_interactive_prover
+  { vrs_core_prog = mk_program_empty ();
+    vrs_llvm_prog = prog;
+    vrs_recent_instr = None;
+    vrs_interact = !mode_interactive_prover
   }
 ;;
 
@@ -82,14 +81,14 @@ let sprint_program_states pstates =
 ;;
 
 let mk_program_state (f : formula) (ents : entailments) : program_state =
-  { pgs_formula = f
-  ; pgs_next_block = None
-  ; pgs_alloced_pointers = []
-  ; pgs_freed_pointers = []
-  ; pgs_reachable = true
-  ; pgs_is_buggy = false
-  ; pgs_last_instr = None
-  ; pgs_entails = ents
+  { pgs_formula = f;
+    pgs_next_block = None;
+    pgs_alloced_pointers = [];
+    pgs_freed_pointers = [];
+    pgs_reachable = true;
+    pgs_is_buggy = false;
+    pgs_last_instr = None;
+    pgs_entails = ents
   }
 ;;
 
@@ -375,8 +374,8 @@ let get_prepost_llproc (func : LI.func) (args : exp list) (res : exp) =
     (match proc_specs with
     | [] -> error ("get_precond_llproc: no specs of func: " ^ pname)
     | [ sp ] ->
-      ( substitute_formula sst sp.psp_precond
-      , substitute_formula sst sp.psp_postcond )
+      ( substitute_formula sst sp.psp_precond,
+        substitute_formula sst sp.psp_postcond )
     | _ -> error ("get_precond_llproc: many specs of func: " ^ pname))
 ;;
 
@@ -404,11 +403,11 @@ let analyze_instr_br vstate pstates (instr : LI.instr) =
   | Some (`Unconditional blk) ->
     List.map ~f:(fun ps -> { ps with pgs_next_block = Some blk }) pstates
   | Some (`Conditional (cond_llval, blk1, blk2)) ->
-    let cond = LI.operand instr 0 |> translate_llvalue |> mk_bexp in
+    (* let cond = LI.operand instr 0 |> translate_llvalue |> mk_bexp in *)
     List.fold
       ~f:(fun acc s ->
-        let f1 = mk_f_star_with s.pgs_formula ~pfs:[ cond ] in
-        let f2 = mk_f_star_with s.pgs_formula ~pfs:[ mk_pneg cond ] in
+        (* let f1 = mk_f_star_with s.pgs_formula ~pfs:[ cond ] in *)
+        (* let f2 = mk_f_star_with s.pgs_formula ~pfs:[ mk_pneg cond ] in *)
         let s1 = { s with pgs_next_block = Some blk1 } in
         let s2 = { s with pgs_next_block = Some blk2 } in
         acc @ [ s1; s2 ])
@@ -419,17 +418,14 @@ let analyze_instr_br vstate pstates (instr : LI.instr) =
 (*** instruction unreachable ***)
 
 let analyze_instr_unreachable vstate pstates (instr : LI.instr) =
-  let ents =
-    List.map ~f:(fun ps -> mk_entailment ps.pgs_formula (mk_f_false ())) pstates
-  in
   List.map
     ~f:(fun ps ->
       let ent = mk_entailment ps.pgs_formula (mk_f_false ()) in
       { ps with
-        pgs_formula = mk_f_false ()
-      ; pgs_next_block = None
-      ; pgs_reachable = false
-      ; pgs_entails = ps.pgs_entails @ [ ent ]
+        pgs_formula = mk_f_false ();
+        pgs_next_block = None;
+        pgs_reachable = false;
+        pgs_entails = ps.pgs_entails @ [ ent ]
       })
     pstates
 ;;
@@ -446,7 +442,8 @@ let analyze_instr_arith vstate pstates (instr : LI.instr) =
     | OC.Sub | OC.FSub -> mk_sub exp0 exp1
     | OC.Mul | OC.FMul -> mk_mul exp0 exp1
     | OC.UDiv | OC.SDiv | OC.FDiv -> mk_div exp0 exp1
-    | _ -> herror "analyze_instr_arith: unhandle opcode" LI.sprint_opcode op in
+    | _ -> herror "analyze_instr_arith: unhandle opcode" LI.sprint_opcode op
+  in
   let dst = translate_instr instr in
   let pf = mk_eq dst src in
   mk_star_program_states pstates ~pfs:[ pf ]
@@ -763,10 +760,10 @@ let process_one_state_instr_bitcast vstate pstate instr src dst =
 let analyze_instr_bitcast vstate pstates (instr : LI.instr) =
   let src = translate_llvalue (LI.operand instr 0) in
   let dst = translate_instr instr in
-  let src_mem_size =
-    let src_mem_lltyp = LL.element_type (LL.type_of (LI.operand instr 0)) in
-    let size = LTD.abi_size src_mem_lltyp (LTD.of_string !data_layout) in
-    mk_exp_int (Int64.to_int_exn size) in
+  (* let src_mem_size = *)
+  (*   let src_mem_lltyp = LL.element_type (LL.type_of (LI.operand instr 0)) in *)
+  (*   let size = LTD.abi_size src_mem_lltyp (LTD.of_string !data_layout) in *)
+  (*   mk_exp_int (Int64.to_int_exn size) in *)
   List.map
     ~f:(fun ps -> process_one_state_instr_bitcast vstate ps instr src dst)
     pstates
@@ -804,7 +801,6 @@ let analyze_instr_fcmp vstate pstates (instr : LI.instr) =
 
 let process_one_state_instr_call vstate instr pstate func args return =
   let precond, postcond = get_prepost_llproc func args return in
-  let proc_name = LI.func_name func in
   let evs = diff_vs (fv_f precond) (fv_es args) in
   let ent = mk_entailment pstate.pgs_formula (mk_f_exists evs precond) in
   let _ = hdebugc "CALL: Prove Pre-Condition By Frame:\n\n" sprint_ent ent in
@@ -880,7 +876,8 @@ let analyze_instruction vstate pstates (instr : LI.instr) =
     | OC.ICmp -> analyze_instr_icmp vstate pstates instr
     | OC.FCmp -> analyze_instr_fcmp vstate pstates instr
     | OC.Call -> analyze_instr_call vstate pstates instr
-    | _ -> herror "analyze_instruction: need to handle" LI.sprint_instr instr in
+    | _ -> herror "analyze_instruction: need to handle" LI.sprint_instr instr
+  in
   (* update program states *)
   List.map ~f:(fun ps -> { ps with pgs_last_instr = Some instr }) pstates
 ;;
@@ -965,7 +962,7 @@ let symexec_program vstate (prog : LI.program) : entailment list =
 
 let verify_program (prog : LI.program) =
   let _ = data_layout := prog.prog_data_layout in
-  let vstate = mk_verifier_state prog in
-  let ents = symexec_program vstate prog in
+  (* let vstate = mk_verifier_state prog in *)
+  (* let ents = symexec_program vstate prog in *)
   ()
 ;;

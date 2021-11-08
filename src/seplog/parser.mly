@@ -11,11 +11,6 @@
 
 %{
 open Globals
-open Libdiscover
-open Sprinter
-open Printer
-open Debugger
-
 open Slast
 
 let get_loc l = mk_position_lexing (fst l) (snd l)

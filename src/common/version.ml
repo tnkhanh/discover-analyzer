@@ -6,11 +6,6 @@
  ********************************************************************)
 
 open Core
-open Globals
-open Libdiscover
-open Sprinter
-open Printer
-open Debugger
 module PS = Process
 
 let discover_official_version = "1.0"

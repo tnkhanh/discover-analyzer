@@ -8,7 +8,6 @@
 (* Printer module *)
 
 open Core
-open Sprinter
 open Debugger
 open Libdiscover
 
@@ -136,3 +135,8 @@ let nhprint _ _ = ()
 
 let print_error (msg: string) : unit =
   prerr_endline msg
+
+(** print formatting *)
+
+let printf = Printf.printf
+let eprintf = Printf.eprintf

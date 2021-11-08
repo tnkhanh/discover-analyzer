@@ -10,7 +10,6 @@ open Globals
 open Libdiscover
 open Sprinter
 open Printer
-open Debugger
 open Dfcore
 open Bug
 module LL = Llvm
@@ -71,7 +70,6 @@ let check_bug_integer_overflow (pdata : program_data) bug : bug option =
 let find_bug_integer_overflow (pdata : program_data) =
   if !bug_all || !bug_memory_all || !bug_buffer_overflow
   then
-    let open Option.Let_syntax in
     pdata.pdata_potential_bugs
     |> List.map ~f:(check_bug_integer_overflow pdata)
     |> List.filter_opt
@@ -123,7 +121,6 @@ let check_bug_integer_underflow (pdata : program_data) bug : bug option =
 let find_bug_integer_underflow (pdata : program_data) =
   if !bug_all || !bug_memory_all || !bug_buffer_overflow
   then
-    let open Option.Let_syntax in
     pdata.pdata_potential_bugs
     |> List.map ~f:(check_bug_integer_overflow pdata)
     |> List.filter_opt
@@ -213,7 +210,6 @@ let check_bug_buffer_overflow (pdata : program_data) bug : bug option =
 let find_bug_buffer_overflow (pdata : program_data) : bug list =
   if !bug_all || !bug_memory_all || !bug_buffer_overflow
   then
-    let open Option.Let_syntax in
     pdata.pdata_potential_bugs
     |> List.map ~f:(check_bug_buffer_overflow pdata)
     |> List.filter_opt
@@ -225,7 +221,6 @@ let find_bug_buffer_overflow (pdata : program_data) : bug list =
  *-------------------*)
 
 let check_bug_memory_leak (pdata : program_data) bug : bug option =
-  let open Option.Let_syntax in
   match bug.bug_type with
   | MemoryLeak mlk ->
     let _ = print "check_bug_memory_leak: TO IMPLEMENT CHECK MEMORY LEAK" in
@@ -236,7 +231,6 @@ let check_bug_memory_leak (pdata : program_data) bug : bug option =
 let find_bug_memory_leak (pdata : program_data) : bug list =
   if !bug_all || !bug_memory_all || !bug_memory_leak
   then
-    let open Option.Let_syntax in
     pdata.pdata_potential_bugs
     |> List.map ~f:(check_bug_memory_leak pdata)
     |> List.filter_opt
@@ -249,7 +243,6 @@ let find_bug_memory_leak (pdata : program_data) : bug list =
 
 let find_all_bugs (pdata : program_data) : unit =
   let _ = println "Checking Bugs..." in
-  let prog = pdata.pdata_program in
   let bugs =
     find_bug_memory_leak pdata
     @ find_bug_buffer_overflow pdata

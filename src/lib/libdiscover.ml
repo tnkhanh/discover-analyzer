@@ -9,12 +9,13 @@
  * Extended libraries
  *--------------------*)
 
-include Bigint
-include Hashtbl
-include List
-include Math
-include String
-include Sys
+include Libbigint
+include Libhashtbl
+include Liblist
+include Libmath
+include Libstring
+include Libsys
+include Sprinter
 
 (*-----------------
  * Boolean result

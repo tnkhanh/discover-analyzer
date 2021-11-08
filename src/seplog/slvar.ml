@@ -9,8 +9,6 @@ open Core
 open Globals
 open Libdiscover
 open Sprinter
-open Printer
-open Debugger
 
 type typ =
   | TVoid

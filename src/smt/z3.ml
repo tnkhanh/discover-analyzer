@@ -9,7 +9,6 @@ open Core
 open Globals
 open Libdiscover
 open Sprinter
-open Printer
 open Debugger
 open Z3ir
 module PS = Process

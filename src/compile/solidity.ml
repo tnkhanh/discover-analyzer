@@ -8,6 +8,8 @@
 open Core
 open Globals
 open Libdiscover
+open Sprinter
+open Printer
 open Debugger
 module AG = Arguments
 module AS = Assertion
@@ -31,6 +33,7 @@ let compile_c_cpp (filename : string) : LI.program =
   let _ =
     let _ = Sys.remove_file_if_exists output_filename in
     (* TODO: possibly use the  llvm-normalizer as a pass of clang or opt?? *)
+    let llcontext = LL.create_context () in
     let cmd =
       [ !clang_path ]
       @ [ "-O0"; "-fno-rtti" ]

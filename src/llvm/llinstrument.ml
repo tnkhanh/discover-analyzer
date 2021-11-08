@@ -112,16 +112,16 @@ let get_func_name anntyp (bug : Ann.bug_group) ins =
 let apply_annotation anntyp instr bugs modul =
   match instr.ins with
   | Instr inx ->
-    let insert_pos = LL.instr_succ inx in
-    let builder = LL.builder_at (LL.module_context modul) insert_pos in
+    (* let insert_pos = LL.instr_succ inx in *)
+    (* let builder = LL.builder_at (LL.module_context modul) insert_pos in *)
     List.iter bugs ~f:(fun bug ->
         let assert_func_opt =
           LL.lookup_function (get_func_name anntyp bug inx) modul in
         match assert_func_opt with
         | None -> ()
         | Some assert_func ->
-          let assert_ins =
-            LL.build_call assert_func (Array.create ~len:1 inx) "" builder in
+          (* let assert_ins = *)
+          (*   LL.build_call assert_func (Array.create ~len:1 inx) "" builder in *)
           ())
 ;;
 
@@ -281,17 +281,17 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule) : unit
     if Poly.(p1 > p2) then 1 else if Poly.(p1 < p2) then -1 else 0 in
   let _ = print_endline "Tags  =============================\n" in
   let sorted_ins = List.stable_sort ~compare tagged_ins in
-  let llctx = LL.global_context () in
+  (* let llctx = LL.global_context () in *)
   let _ =
     List.iter
       ~f:(fun tin ->
         match tin.ins with
         | Instr inx ->
-          let dbg = LL.metadata inx (LL.mdkind_id llctx "dbg") in
-          let dbg_str =
-            match dbg with
-            | None -> "None.."
-            | Some d -> LL.string_of_llvalue d in
+          (* let dbg = LL.metadata inx (LL.mdkind_id llctx "dbg") in *)
+          (* let dbg_str = *)
+          (*   match dbg with *)
+          (*   | None -> "None.." *)
+          (*   | Some d -> LL.string_of_llvalue d in *)
           print_endline
             ((*        "Tag: " ^ (sprint_int tin.tag) ^ "\n" ^
                      "Debug: " ^ dbg_str ^ "\n" ^

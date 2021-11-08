@@ -8,9 +8,6 @@
 open Core
 open Globals
 open Libdiscover
-open Sprinter
-open Printer
-open Debugger
 module LL = Llvm
 module CI = Commonir
 module OC = Llvm.Opcode

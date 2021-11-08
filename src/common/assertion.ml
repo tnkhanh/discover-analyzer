@@ -10,7 +10,6 @@ open Globals
 open Libdiscover
 open Sprinter
 open Printer
-open Debugger
 module LL = Llvm
 module LI = Llir
 module LD = Lldebug

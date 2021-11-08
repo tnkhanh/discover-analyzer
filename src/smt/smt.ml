@@ -8,9 +8,6 @@
 open Core
 open Globals
 open Libdiscover
-open Sprinter
-open Printer
-open Debugger
 module SI = Slir
 module LI = Llir
 module Z3SL = Z3.Z3SL

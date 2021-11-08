@@ -8,7 +8,6 @@
 (* Printer module *)
 
 open Core
-open Sprinter
 open Libdiscover
 
 (*------------------

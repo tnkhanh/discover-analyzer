@@ -9,7 +9,6 @@ open Core
 open Globals
 open Libdiscover
 open Sprinter
-open Printer
 open Debugger
 open Slir
 open Normalize
@@ -19,51 +18,51 @@ open Normalize
  *******************************************************************)
 
 type view_unfold_case =
-  { vuc_view : view_form
-  ; vuc_orig_form : formula
-  ; vuc_case_id : int
-  ; vuc_is_base_case : bool
-  ; vuc_new_form : formula
+  { vuc_view : view_form;
+    vuc_orig_form : formula;
+    vuc_case_id : int;
+    vuc_is_base_case : bool;
+    vuc_new_form : formula
   }
 
 type view_unfold_cases = view_unfold_case list
 
 type data_split =
-  { dsp_head : data_form
-  ; dsp_rest : formula
-  ; dsp_evars : var list
-  ; dsp_orig_form : formula
+  { dsp_head : data_form;
+    dsp_rest : formula;
+    dsp_evars : var list;
+    dsp_orig_form : formula
   }
 
 type view_split =
-  { vsp_head : view_form
-  ; vsp_rest : formula
-  ; vsp_evars : var list
-  ; vsp_orig_form : formula
+  { vsp_head : view_form;
+    vsp_rest : formula;
+    vsp_evars : var list;
+    vsp_orig_form : formula
   }
 
 type array_split =
-  { asp_head : array_form
-  ; asp_rest : formula
-  ; asp_evars : var list
-  ; asp_orig_form : formula
+  { asp_head : array_form;
+    asp_rest : formula;
+    asp_evars : var list;
+    asp_orig_form : formula
   }
 
 type formula_stats =
-  { fst_fvs : var list
-  ; fst_is_pure : bool
-  ; fst_has_mwand : bool
-  ; fst_data_splits : data_split list
-  ; fst_view_splits : view_split list
-  ; fst_array_splits : array_split list
+  { fst_fvs : var list;
+    fst_is_pure : bool;
+    fst_has_mwand : bool;
+    fst_data_splits : data_split list;
+    fst_view_splits : view_split list;
+    fst_array_splits : array_split list
   }
 
 type entail_core =
-  { enc_lhs : formula
-  ; enc_rhs : formula
-  ; enc_lst : formula_stats
-  ; enc_rst : formula_stats
-  ; enc_id : int
+  { enc_lhs : formula;
+    enc_rhs : formula;
+    enc_lst : formula_stats;
+    enc_rst : formula_stats;
+    enc_id : int
   }
 
 type entail_cores = entail_core list
@@ -84,13 +83,13 @@ type rule_exists_left = { rexl_entails : entail_cores }
 type rule_exists_right = { rexr_entails : entail_cores }
 
 type rule_reln_left =
-  { rrl_rdefn : reln_defn
-  ; rrl_entail : entail_core
+  { rrl_rdefn : reln_defn;
+    rrl_entail : entail_core
   }
 
 type rule_reln_right =
-  { rrr_rdefn : reln_defn
-  ; rrr_entail : entail_core
+  { rrr_rdefn : reln_defn;
+    rrr_entail : entail_core
   }
 
 type rule_wand_inner = { rwi_entails : (entail_core * formula list) list }
@@ -99,9 +98,9 @@ type rule_wand_data = { rwd_entails : (entail_core * formula list) list }
 type rule_wand_right = { rwr_entail : entail_core }
 
 type rule_data_to_array_left =
-  { rdtal_lhs_data : data_form
-  ; rdtal_lhs_rest : formula
-  ; rdtal_entail : entail_core
+  { rdtal_lhs_data : data_form;
+    rdtal_lhs_rest : formula;
+    rdtal_entail : entail_core
   }
 
 (* transformation rules *)
@@ -109,70 +108,70 @@ type rule_data_to_array_left =
 type rule_unfold_head = { ruh_entail : entail_core }
 
 type rule_unfold_view_left =
-  { ruvl_lhs_view : view_form
-  ; ruvl_lhs_rest : formula
-  ; ruvl_lhs_evars : var list
-  ; ruvl_entail : entail_core
+  { ruvl_lhs_view : view_form;
+    ruvl_lhs_rest : formula;
+    ruvl_lhs_evars : var list;
+    ruvl_entail : entail_core
   }
 
 type rule_unfold_view_right =
-  { ruvr_rhs_view : view_form
-  ; ruvr_entail : entail_core
+  { ruvr_rhs_view : view_form;
+    ruvr_entail : entail_core
   }
 
 type rule_empty_array_right =
-  { rear_rhs_array : array_form
-  ; rear_rhs_rest : formula
-  ; rear_rhs_evs : vars
-  ; rear_empty_form : pure_form
-  ; rear_entail : entail_core
+  { rear_rhs_array : array_form;
+    rear_rhs_rest : formula;
+    rear_rhs_evs : vars;
+    rear_empty_form : pure_form;
+    rear_entail : entail_core
   }
 
 type rule_match_data =
-  { rmd_lhs_data : data_form
-  ; rmd_lhs_rest : formula
-  ; rmd_rhs_data : data_form
-  ; rmd_rhs_rest : formula
-  ; rmd_rhs_evars : var list
-  ; rmd_matching_form : pure_form
-  ; rmd_same_root : bool
-  ; rmd_apply_early : bool
-  ; rmd_entail : entail_core
+  { rmd_lhs_data : data_form;
+    rmd_lhs_rest : formula;
+    rmd_rhs_data : data_form;
+    rmd_rhs_rest : formula;
+    rmd_rhs_evars : var list;
+    rmd_matching_form : pure_form;
+    rmd_same_root : bool;
+    rmd_apply_early : bool;
+    rmd_entail : entail_core
   }
 
 type rule_match_view =
-  { rmv_lhs_view : view_form
-  ; rmv_lhs_rest : formula
-  ; rmv_rhs_view : view_form
-  ; rmv_rhs_rest : formula
-  ; rmv_rhs_evars : var list
-  ; rmv_matching_form : pure_form
-  ; rmv_same_args : bool
-  ; rmv_apply_early : bool
-  ; rmv_entail : entail_core
+  { rmv_lhs_view : view_form;
+    rmv_lhs_rest : formula;
+    rmv_rhs_view : view_form;
+    rmv_rhs_rest : formula;
+    rmv_rhs_evars : var list;
+    rmv_matching_form : pure_form;
+    rmv_same_args : bool;
+    rmv_apply_early : bool;
+    rmv_entail : entail_core
   }
 
 type rule_match_array =
-  { rma_lhs_array : array_form
-  ; rma_lhs_rest : formula
-  ; rma_rhs_array : array_form
-  ; rma_rhs_rest : formula
-  ; rma_rhs_evars : var list
-  ; rma_matching_form : pure_form
-  ; rma_same_args : bool
-  ; rma_apply_early : bool
-  ; rma_entail : entail_core
+  { rma_lhs_array : array_form;
+    rma_lhs_rest : formula;
+    rma_rhs_array : array_form;
+    rma_rhs_rest : formula;
+    rma_rhs_evars : var list;
+    rma_matching_form : pure_form;
+    rma_same_args : bool;
+    rma_apply_early : bool;
+    rma_entail : entail_core
   }
 
 type rule_subtract_data =
-  { rsd_lhs_array : array_form
-  ; rsd_lhs_new_array : array_form
-  ; rsd_lhs_rest : formula
-  ; rsd_rhs_data : data_form
-  ; rsd_rhs_rest : formula
-  ; rsd_rhs_evars : var list
-  ; rsd_matching_form : pure_form
-  ; rsd_entail : entail_core
+  { rsd_lhs_array : array_form;
+    rsd_lhs_new_array : array_form;
+    rsd_lhs_rest : formula;
+    rsd_rhs_data : data_form;
+    rsd_rhs_rest : formula;
+    rsd_rhs_evars : var list;
+    rsd_matching_form : pure_form;
+    rsd_entail : entail_core
   }
 
 type rule =
@@ -206,8 +205,8 @@ type rule =
   | RlSubtractData of rule_subtract_data
 
 type goal =
-  { gl_entail_cores : entail_core list
-  ; gl_trace : rule list
+  { gl_entail_cores : entail_core list;
+    gl_trace : rule list
   }
 
 type derivation_kind =
@@ -215,22 +214,22 @@ type derivation_kind =
   | DrvSubgoals of goal list
 
 type derivation =
-  { drv_goal : goal
-  ; drv_kind : derivation_kind
-  ; drv_rule : rule
+  { drv_goal : goal;
+    drv_kind : derivation_kind;
+    drv_rule : rule
   }
 
 type proof_tree =
-  { ptr_goal : goal
-  ; ptr_rule : rule option
-  ; ptr_sub_trees : proof_tree list
-  ; ptr_status : bool option
-  ; ptr_frames : formula list (* NOTE: can magicwand maintain only one frame? *)
+  { ptr_goal : goal;
+    ptr_rule : rule option;
+    ptr_sub_trees : proof_tree list;
+    ptr_status : bool option;
+    ptr_frames : formula list (* NOTE: can magicwand maintain only one frame? *)
   }
 
 type prover_state =
-  { prs_prog : program
-  ; mutable prs_interact : bool
+  { prs_prog : program;
+    mutable prs_interact : bool
   }
 
 (*******************************************************************
@@ -558,10 +557,10 @@ let mk_rule_unfold_head enc = RlUnfoldHead { ruh_entail = enc }
 
 let mk_rule_unfold_view_left vf frest qvars enc =
   RlUnfoldViewLeft
-    { ruvl_lhs_view = vf
-    ; ruvl_lhs_rest = frest
-    ; ruvl_lhs_evars = qvars
-    ; ruvl_entail = enc
+    { ruvl_lhs_view = vf;
+      ruvl_lhs_rest = frest;
+      ruvl_lhs_evars = qvars;
+      ruvl_entail = enc
     }
 ;;
 
@@ -587,15 +586,15 @@ let mk_rule_match_data enc ldsp rdsp =
     mk_matching_forms largs rargs in
   let has_same_root = equal_exp ldf.data_root rdf.data_root in
   RlMatchData
-    { rmd_lhs_data = ldsp.dsp_head
-    ; rmd_lhs_rest = ldsp.dsp_rest
-    ; rmd_rhs_data = rdsp.dsp_head
-    ; rmd_rhs_rest = rdsp.dsp_rest
-    ; rmd_rhs_evars = rdsp.dsp_evars
-    ; rmd_same_root = has_same_root
-    ; rmd_matching_form = matching_form
-    ; rmd_apply_early = has_same_root
-    ; rmd_entail = enc
+    { rmd_lhs_data = ldsp.dsp_head;
+      rmd_lhs_rest = ldsp.dsp_rest;
+      rmd_rhs_data = rdsp.dsp_head;
+      rmd_rhs_rest = rdsp.dsp_rest;
+      rmd_rhs_evars = rdsp.dsp_evars;
+      rmd_same_root = has_same_root;
+      rmd_matching_form = matching_form;
+      rmd_apply_early = has_same_root;
+      rmd_entail = enc
     }
 ;;
 
@@ -605,15 +604,15 @@ let mk_rule_match_view enc lvsp rvsp =
   let has_same_args =
     List.for_all2_exn ~f:equal_exp lvf.view_args rvf.view_args in
   RlMatchView
-    { rmv_lhs_view = lvsp.vsp_head
-    ; rmv_lhs_rest = lvsp.vsp_rest
-    ; rmv_rhs_view = rvsp.vsp_head
-    ; rmv_rhs_rest = rvsp.vsp_rest
-    ; rmv_rhs_evars = rvsp.vsp_evars
-    ; rmv_matching_form = matching_form
-    ; rmv_same_args = has_same_args
-    ; rmv_apply_early = has_same_args
-    ; rmv_entail = enc
+    { rmv_lhs_view = lvsp.vsp_head;
+      rmv_lhs_rest = lvsp.vsp_rest;
+      rmv_rhs_view = rvsp.vsp_head;
+      rmv_rhs_rest = rvsp.vsp_rest;
+      rmv_rhs_evars = rvsp.vsp_evars;
+      rmv_matching_form = matching_form;
+      rmv_same_args = has_same_args;
+      rmv_apply_early = has_same_args;
+      rmv_entail = enc
     }
 ;;
 
@@ -627,15 +626,15 @@ let mk_rule_match_array enc lasp rasp =
     equal_exp laf.array_root raf.array_root
     && equal_exp laf.array_size raf.array_size in
   RlMatchArray
-    { rma_lhs_array = lasp.asp_head
-    ; rma_lhs_rest = lasp.asp_rest
-    ; rma_rhs_array = rasp.asp_head
-    ; rma_rhs_rest = rasp.asp_rest
-    ; rma_rhs_evars = rasp.asp_evars
-    ; rma_matching_form = matching_form
-    ; rma_same_args = has_same_args
-    ; rma_apply_early = has_same_args
-    ; rma_entail = enc
+    { rma_lhs_array = lasp.asp_head;
+      rma_lhs_rest = lasp.asp_rest;
+      rma_rhs_array = rasp.asp_head;
+      rma_rhs_rest = rasp.asp_rest;
+      rma_rhs_evars = rasp.asp_evars;
+      rma_matching_form = matching_form;
+      rma_same_args = has_same_args;
+      rma_apply_early = has_same_args;
+      rma_entail = enc
     }
 ;;
 
@@ -661,25 +660,25 @@ let mk_rule_subtract_data enc lasp rdsp =
     let rargs = rdf.data_root :: rdf.data_args in
     mk_matching_forms largs rargs in
   RlSubtractData
-    { rsd_lhs_array = lasp.asp_head
-    ; rsd_lhs_new_array = new_array
-    ; rsd_lhs_rest = lasp.asp_rest
-    ; rsd_rhs_data = rdsp.dsp_head
-    ; rsd_rhs_rest = rdsp.dsp_rest
-    ; rsd_rhs_evars = rdsp.dsp_evars
-    ; rsd_matching_form = matching_form
-    ; rsd_entail = enc
+    { rsd_lhs_array = lasp.asp_head;
+      rsd_lhs_new_array = new_array;
+      rsd_lhs_rest = lasp.asp_rest;
+      rsd_rhs_data = rdsp.dsp_head;
+      rsd_rhs_rest = rdsp.dsp_rest;
+      rsd_rhs_evars = rdsp.dsp_evars;
+      rsd_matching_form = matching_form;
+      rsd_entail = enc
     }
 ;;
 
 let mk_rule_empty_array_right enc af rest evs =
   let empty_form = mk_eq af.array_size (mk_exp_int 0) in
   RlEmptyArrayRight
-    { rear_rhs_array = af
-    ; rear_rhs_rest = rest
-    ; rear_rhs_evs = evs
-    ; rear_empty_form = empty_form
-    ; rear_entail = enc
+    { rear_rhs_array = af;
+      rear_rhs_rest = rest;
+      rear_rhs_evs = evs;
+      rear_empty_form = empty_form;
+      rear_entail = enc
     }
 ;;
 
@@ -696,36 +695,36 @@ let mk_view_unfold_cases prog orig_form vf frest evars : view_unfold_cases =
     ~f:(fun vdc ->
       let nf = mk_f_star [ vdc.vdc_form; frest ] in
       let nf = simplify_f (mk_f_exists evars nf) in
-      { vuc_view = vf
-      ; vuc_orig_form = orig_form
-      ; vuc_case_id = vdc.vdc_id
-      ; vuc_is_base_case = vdc.vdc_is_base_case
-      ; vuc_new_form = nf
+      { vuc_view = vf;
+        vuc_orig_form = orig_form;
+        vuc_case_id = vdc.vdc_id;
+        vuc_is_base_case = vdc.vdc_is_base_case;
+        vuc_new_form = nf
       })
     vdcs
 ;;
 
 let mk_data_split orig_form head rest evars =
-  { dsp_head = head
-  ; dsp_rest = rest
-  ; dsp_evars = evars
-  ; dsp_orig_form = orig_form
+  { dsp_head = head;
+    dsp_rest = rest;
+    dsp_evars = evars;
+    dsp_orig_form = orig_form
   }
 ;;
 
 let mk_view_split orig_form head rest evars =
-  { vsp_head = head
-  ; vsp_rest = rest
-  ; vsp_evars = evars
-  ; vsp_orig_form = orig_form
+  { vsp_head = head;
+    vsp_rest = rest;
+    vsp_evars = evars;
+    vsp_orig_form = orig_form
   }
 ;;
 
 let mk_array_split orig_form head rest evars =
-  { asp_head = head
-  ; asp_rest = rest
-  ; asp_evars = evars
-  ; asp_orig_form = orig_form
+  { asp_head = head;
+    asp_rest = rest;
+    asp_evars = evars;
+    asp_orig_form = orig_form
   }
 ;;
 
@@ -789,22 +788,22 @@ let split_one_array_form (f : formula) : array_split list =
 ;;
 
 let mk_formula_stats f =
-  { fst_fvs = fv_f f
-  ; fst_is_pure = is_f_pure f
-  ; fst_has_mwand = has_f_wand f
-  ; fst_data_splits = split_one_data_form f
-  ; fst_view_splits = split_one_view_form f
-  ; fst_array_splits = split_one_array_form f
+  { fst_fvs = fv_f f;
+    fst_is_pure = is_f_pure f;
+    fst_has_mwand = has_f_wand f;
+    fst_data_splits = split_one_data_form f;
+    fst_view_splits = split_one_view_form f;
+    fst_array_splits = split_one_array_form f
   }
 ;;
 
 let mk_entail_core ?(id = 0) lhs rhs =
   let enc_id = if id < 1 then fresh_entail_core_id () else id in
-  { enc_lhs = lhs
-  ; enc_rhs = rhs
-  ; enc_lst = mk_formula_stats lhs
-  ; enc_rst = mk_formula_stats rhs
-  ; enc_id
+  { enc_lhs = lhs;
+    enc_rhs = rhs;
+    enc_lst = mk_formula_stats lhs;
+    enc_rst = mk_formula_stats rhs;
+    enc_id
   }
 ;;
 
@@ -821,8 +820,8 @@ let update_goal_entcores goal encs : goal =
   let encs =
     List.map
       ~f:(fun enc ->
-        try List.find_exn ~f:(fun e -> enc.enc_id = e.enc_id) encs with
-        | _ -> enc)
+        try List.find_exn ~f:(fun e -> enc.enc_id = e.enc_id) encs
+        with _ -> enc)
       goal.gl_entail_cores in
   { goal with gl_entail_cores = encs }
 ;;
@@ -859,11 +858,11 @@ let mk_derivation_unknown goal rule =
 ;;
 
 let mk_proof_tree ?(frames = []) goal rule subtrees status =
-  { ptr_goal = goal
-  ; ptr_rule = rule
-  ; ptr_sub_trees = subtrees
-  ; ptr_status = status
-  ; ptr_frames = frames
+  { ptr_goal = goal;
+    ptr_rule = rule;
+    ptr_sub_trees = subtrees;
+    ptr_status = status;
+    ptr_frames = frames
   }
 ;;
 
@@ -923,11 +922,13 @@ let update_entail_core ?(lhs = []) ?(rhs = []) enc =
     match lhs with
     | [] -> enc
     | [ lhs ] -> { enc with enc_lhs = lhs; enc_lst = mk_formula_stats lhs }
-    | _ -> herror "update_entail_core: expect 1 lhs but found: " sprint_fs lhs in
+    | _ -> herror "update_entail_core: expect 1 lhs but found: " sprint_fs lhs
+  in
   let enc =
     match rhs with
     | [] -> enc
     | [ rhs ] -> { enc with enc_rhs = rhs; enc_rst = mk_formula_stats rhs }
-    | _ -> herror "update_entail_core: expect 1 rhs but found: " sprint_fs rhs in
+    | _ -> herror "update_entail_core: expect 1 rhs but found: " sprint_fs rhs
+  in
   enc
 ;;

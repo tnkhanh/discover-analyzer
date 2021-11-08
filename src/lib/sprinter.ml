@@ -8,23 +8,17 @@
 (** String printer module *)
 
 open Core
-open Libdiscover
 
 (*******************************************************************
  ** Utilites
  *******************************************************************)
 
-let get_indent (msg : string) : int =
-  let msg = String.lstrip ~drop:(fun ch -> ch == '\n') msg in
-  if String.is_empty msg
-  then 0
-  else (
-    try
-      for i = 0 to String.length msg do
-        if String.get msg i != ' ' then raise (EInt i)
-      done;
-      String.length msg
-    with EInt res -> res)
+let get_indent (str : string) : int =
+  let str = String.lstrip ~drop:(fun c -> c == '\n') str in
+  let index = String.lfindi ~f:(fun _ c -> c != ' ') str in
+  match index with
+  | None -> 0
+  | Some i -> i
 ;;
 
 let sprint_indent (indent : int) : string =
@@ -46,7 +40,8 @@ let sprint_int64 = Int64.to_string
 
 let indent_line ?(skipfirst = false) (indent : int) (msg : string) : string =
   let sindent = sprint_indent indent in
-  msg |> String.split ~on:'\n'
+  msg
+  |> String.split ~on:'\n'
   |> List.mapi ~f:(fun i s -> if i = 0 && skipfirst then s else sindent ^ s)
   |> String.concat ~sep:"\n"
 ;;
@@ -60,7 +55,8 @@ let hindent_line ?(skipfirst = false) (i : int) (f : 'a -> string) (v : 'a)
 
 (** auto-insert indentation to align_line with the prefix string *)
 let align_line (prefix : string) (msg : string) : string =
-  let indent = String.length (String.strip_newline prefix) in
+  let prefix = String.strip ~drop:(fun c -> c == '\n') prefix in
+  let indent = String.length prefix in
   let skipfirst = not (String.is_suffix ~suffix:"\n" prefix) in
   prefix ^ indent_line ~skipfirst indent msg
 ;;
@@ -72,7 +68,8 @@ let halign_line prefix (f : 'a -> string) (v : 'a) : string =
 
 (** insert a prefix to each line of a string *)
 let prefix_line ~(prefix : string) (msg : string) : string =
-  msg |> String.split_lines
+  msg
+  |> String.split_lines
   |> List.map ~f:(fun s -> prefix ^ s)
   |> String.concat ~sep:"\n"
 ;;
@@ -167,8 +164,7 @@ let sprint_args ~(f : 'a -> string) (args : 'a list) : string =
   sprint_list ~sep:", " ~obrace:"" ~cbrace:"" ~f args
 ;;
 
-let sprint_pair ~(f1 : 'a -> string) ~(f2 : 'b -> string) (p : 'a * 'b)
-    : string
+let sprint_pair ~(f1 : 'a -> string) ~(f2 : 'b -> string) (p : 'a * 'b) : string
   =
   let x, y = p in
   "(" ^ f1 x ^ ", " ^ f2 y ^ ")"

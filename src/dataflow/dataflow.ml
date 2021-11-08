@@ -991,7 +991,7 @@ functor
         if String.is_empty res then " []" else "\n   [" ^ res ^ "]" in
       let _ =
         let filename = basefilename ^ ".globals.dbg" in
-        let msg = print ("Export used globals information to: " ^ filename) in
+        let _ = print ("Export used globals information to: " ^ filename) in
         let file = open_out filename in
         let _ = fprintf file "===================================\n" in
         let _ = fprintf file "USED GLOBALS IN USER FUNCTIONS:\n\n" in
@@ -1010,7 +1010,7 @@ functor
         close_out file in
       let _ =
         let filename = basefilename ^ ".globals.sparse.dbg" in
-        let msg = print ("Export used globals information to: " ^ filename) in
+        let _ = print ("Export used globals information to: " ^ filename) in
         let file = open_out filename in
         let _ = fprintf file "===================================\n" in
         let _ = fprintf file "USED SPARSE GLOBALS IN USER FUNCTIONS:\n\n" in
@@ -1030,7 +1030,7 @@ functor
         close_out file in
       let _ =
         let filename = basefilename ^ ".calleegraph.dbg" in
-        let msg = print ("Export call graph information to: " ^ filename) in
+        let _ = print ("Export call graph information to: " ^ filename) in
         let file = open_out filename in
         let _ = fprintf file "===================================\n" in
         let _ = fprintf file "CALLEE GRAPH OF USER FUNCTIONS:\n\n" in
@@ -1048,7 +1048,7 @@ functor
         close_out file in
       let _ =
         let filename = basefilename ^ ".callergraph.dbg" in
-        let msg = print ("Export call graph information to: " ^ filename) in
+        let _ = print ("Export call graph information to: " ^ filename) in
         let file = open_out filename in
         let _ = fprintf file "===================================\n" in
         let _ = fprintf file "CALLER GRAPH OF USER FUNCTIONS:\n\n" in
@@ -1066,7 +1066,7 @@ functor
         close_out file in
       let _ =
         let filename = basefilename ^ ".reachgraph.dbg" in
-        let msg = print ("Export reachable graph information to: " ^ filename) in
+        let _ = print ("Export reachable graph information to: " ^ filename) in
         let file = open_out filename in
         let _ = fprintf file "===================================\n" in
         let _ = fprintf file "REACHABLE GRAPH OF USER FUNCTIONS:\n\n" in
@@ -1092,11 +1092,11 @@ functor
       let filename =
         Filename.chop_extension prog.prog_bitcode_filename
         ^ if sparse then ".sparse.ll" else ".ll" in
-      let msg =
-        print
-          ("Export "
-          ^ (if sparse then "sparse " else "")
-          ^ "program to: " ^ filename) in
+      let _ =
+        printf
+          "Export %s program to: %s"
+          (if sparse then "sparse " else "")
+          filename in
       let file = open_out filename in
       let _ =
         let _ = fprintf file "Globals:\n" in
@@ -1542,7 +1542,6 @@ functor
     (* working with pending analyzing function *)
 
     let compute_core_callee_input penv instr callee args (input : T.t) =
-      let prog = penv.penv_prog in
       let res = T.prepare_callee_input penv instr callee args input in
       res
     ;;
@@ -1732,7 +1731,6 @@ functor
     (** compute input of block *)
     let compute_block_input penv ?(widen = false) (fenv : func_env) blk : t =
       let _ = hdebug "Compute input of block: " block_name blk in
-      let prog = fenv.fenv_prog in
       (* let _ = hdebugc "  pathcond: " pr_pathcond pcond in *)
       (* let pblks = get_preceding_blocks prog blk |>
        *             List.map ~f:(fun pb -> pb.pblk_block) in *)
@@ -1742,7 +1740,6 @@ functor
       let pblks_data =
         List.fold_left
           ~f:(fun acc pblk ->
-            let pbname = block_name pblk in
             match last_instr_of_block pblk with
             | None -> acc
             | Some instr ->
@@ -1808,7 +1805,6 @@ functor
     let analyze_instr_call_user_func penv fenv instr callee args input
         : T.t * bool
       =
-      let prog = penv.penv_prog in
       let caller = func_of_instr instr in
       let caller_input = fenv.fenv_input in
       if is_intra_proc_dfa_mode ()
@@ -2183,9 +2179,6 @@ functor
           hdebug "    Block input: " T.sprint_data binput)
         else hdebug " - Continuing from instruction: " sprint_instr wb.wb_instr
       in
-      (* let _ = hprint "  Time compute block input: " (sprintf "%.3fs") time in *)
-      (* let changed = ref input_changed in *)
-      let changed = ref false in
       let _ = update_block_analyzed_stats penv func blk in
       let instrs, _ =
         fold_left_instrs
@@ -2232,7 +2225,6 @@ functor
     ;;
 
     let compare_block_by_num_pair_pred_succ_blocks penv wblk1 wblk2 =
-      let prog = penv.penv_prog in
       let blk1, blk2 = wblk1.wb_block, wblk2.wb_block in
       let num_pred1 = get_sparse_preceding_blocks penv blk1 |> List.length in
       let num_pred2 = get_sparse_preceding_blocks penv blk2 |> List.length in
@@ -2288,7 +2280,6 @@ functor
     let rec analyze_blocks ?(widen = true) ?(fixpoint = true) penv fenv wblks
         : unit
       =
-      let prog = penv.penv_prog in
       let working_block, time =
         Sys.track_runtime (fun () -> choose_working_block penv wblks) in
       (* let _ = hprint "  Time choosing working block: " (sprintf "%.3fs") time in *)
@@ -2346,7 +2337,7 @@ functor
           | wbs -> wbs in
         let _ = fenv.fenv_working_blocks <- [] in
         analyze_blocks ~widen:true ~fixpoint:true penv fenv wblocks in
-      let do_narrowing () =
+      let _do_narrowing () =
         let wblocks =
           fold_left_blocks
             ~f:(fun acc blk ->
@@ -2445,12 +2436,10 @@ functor
           fenv.fenv_working_blocks in
       let _ = LP.get_loops_of_func prog func in
       let _ = update_func_analyzed_stats penv func in
-      let _, time =
-        Sys.track_runtime (fun () ->
-            if need_widening func
-            then do_widening_narrowing penv fenv func
-            else do_simple_fixpoint penv fenv func) in
-      (* let _ = hprint "  Time running iterative DFA: " (sprintf "%.3fs") time in *)
+      let _ =
+        if need_widening func
+        then do_widening_narrowing penv fenv func
+        else do_simple_fixpoint penv fenv func in
       let input_updated, output_updated, env_updated, env_completed =
         record_new_func_env penv fenv in
       let need_reanalyze = env_updated && has_call_to_user_funcs prog func in
@@ -2574,7 +2563,6 @@ functor
     ;;
 
     let compare_func_input penv (wf1 : working_func) (wf2 : working_func) : int =
-      let prog = penv.penv_prog in
       let f1, f2 = wf1.wf_func, wf2.wf_func in
       if equal_func f1 f2
       then (
@@ -2601,7 +2589,7 @@ functor
                   let n2 = compare_func_call_order penv wf1 wf2 in
                   let n3 = compare_func_call_stack penv wf1 wf2 in
                   (* let n4 = compare_func_callee_distance penv wf1 wf2 in *)
-                  let n5 = compare_func_analyzed_times penv wf1 wf2 in
+                  (* let n5 = compare_func_analyzed_times penv wf1 wf2 in *)
                   n1 <= 0 && n2 <= 0 && n3 <= 0
                   && (* n4 <= 0 && n5 <= 0 && *)
                   n1 + n2 + n3 (* + n4 + n5 *) < 0)
@@ -2663,7 +2651,6 @@ functor
 
     (** analyze all functions, using the MFP approach *)
     let rec analyze_functions penv : unit =
-      let prog = penv.penv_prog in
       match choose_working_func penv with
       | None -> ()
       | Some (wf, other_wfs) ->
@@ -2789,7 +2776,6 @@ functor
 
     let refine_sparse_blocks penv : bool =
       let updated = ref false in
-      let prog = penv.penv_prog in
       let equal = equal_block in
       let get_sparse_block_reachable_from_entry func : block list =
         let rec get_blocks blks res : block list =
@@ -2864,7 +2850,6 @@ functor
 
     let refine_sparse_funcs penv : bool =
       let updated = ref false in
-      let prog = penv.penv_prog in
       let rec mark_non_sparse_funcs penv =
         let continue = ref false in
         let _ =
@@ -2918,7 +2903,6 @@ functor
       let _ = print "Compute sparse used globals" in
       let prog = penv.penv_prog in
       let tbl_used_globals = penv.penv_sparse_used_globals in
-      let equal = equal_llvalue in
       let init_globals_of_all_funcs () =
         let _ =
           List.iter

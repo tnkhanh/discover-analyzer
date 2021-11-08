@@ -8,8 +8,6 @@
 open Core
 open Globals
 open Libdiscover
-open Sprinter
-open Printer
 open Debugger
 
 (*******************************************************************
@@ -51,225 +49,222 @@ let rec print_usage () =
   exit 0
 
 and arguments_release =
-  [ ( [ "--clang-option" ]
-    , "Command options for Clang"
-    , Arg.Set_string clang_options )
+  [ ( [ "--clang-option" ],
+      "Command options for Clang",
+      Arg.Set_string clang_user_options )
   ]
 
 and arguments_raw =
   [ (*--------------------------------------------------------
      * printing
      *--------------------------------------------------------*)
-    [ "--pip" ], "Print input programs", Arg.Set print_input_prog
-  ; [ "--type" ], "Print type information of variables", Arg.Set print_type
-  ; [ "--pcp" ], "Print core programs", Arg.Set print_core_prog
-  ; [ "--pap" ], "Print analyzed programs", Arg.Set print_analyzed_prog
-  ; [ "--psp" ], "Print statistics of programs", Arg.Set print_stats_prog
-  ; ( [ "--pap-off" ]
-    , "Turn off printing analyzed programs"
-    , Arg.Clear print_analyzed_prog )
-  ; [ "--pco" ], "Print concise output", Arg.Set print_concise_output
-  ; [ "--pcd" ], "Print concise debug", Arg.Set print_concise_debug
-  ; [ "--no-debug" ], "No debugging", Arg.Set no_debug
-  ; [ "--no-print" ], "No printing", Arg.Set no_print
-  ; ( [ "--edf" ]
-    , "Export debugging information to file"
-    , Arg.Unit
+    [ "--pip" ], "Print input programs", Arg.Set print_input_prog;
+    [ "--type" ], "Print type information of variables", Arg.Set print_type;
+    [ "--pcp" ], "Print core programs", Arg.Set print_core_prog;
+    [ "--pap" ], "Print analyzed programs", Arg.Set print_analyzed_prog;
+    [ "--psp" ], "Print statistics of programs", Arg.Set print_stats_prog;
+    ( [ "--pap-off" ],
+      "Turn off printing analyzed programs",
+      Arg.Clear print_analyzed_prog );
+    [ "--pco" ], "Print concise output", Arg.Set print_concise_output;
+    [ "--pcd" ], "Print concise debug", Arg.Set print_concise_debug;
+    [ "--no-debug" ], "No debugging", Arg.Set no_debug;
+    [ "--no-print" ], "No printing", Arg.Set no_print;
+    ( [ "--edf" ],
+      "Export debugging information to file",
+      Arg.Unit
         (fun () ->
           export_core_prog := true;
           export_cfg_prog := true;
-          export_debug_info := true) )
-  ; ( [ "--msg-source-code" ]
-    , "Report bug at source code"
-    , Arg.Set location_source_code_only )
-  ; (*--------------------------------------------------------
+          export_debug_info := true) );
+    ( [ "--msg-source-code" ],
+      "Report bug at source code",
+      Arg.Set location_source_code_only );
+    (*--------------------------------------------------------
      * input and compilation
      *--------------------------------------------------------*)
-    ( [ "--input-horn" ]
-    , "Proving formulas"
-    , Arg.Unit (fun () -> input_mode := InpSepLogic) )
-  ; ( [ "--input-llvm" ]
-    , "Analyzing LLVM bitcode"
-    , Arg.Unit (fun () -> input_mode := InpBitcode) )
-  ; ( [ "--clang-option" ]
-    , "Command options for Clang"
-    , Arg.Set_string clang_options )
-  ; ( [ "--clang-extra-option" ]
-    , "Extra command options for Clang"
-    , Arg.Set_string clang_extra_options )
-  ; [ "--opt-option" ], "Command options for Opt", Arg.Set_string opt_options
-  ; (*--------------------------------------------------------
+    ( [ "--input-horn" ],
+      "Proving formulas",
+      Arg.Unit (fun () -> input_mode := InpSepLogic) );
+    ( [ "--input-llvm" ],
+      "Analyzing LLVM bitcode",
+      Arg.Unit (fun () -> input_mode := InpBitcode) );
+    ( [ "--clang-option" ],
+      "Command options for Clang",
+      Arg.Set_string clang_user_options );
+    [ "--opt-option" ], "Command options for Opt", Arg.Set_string opt_options;
+    (*--------------------------------------------------------
      * analysis
      *--------------------------------------------------------*)
-    [ "--analysis-off" ], "Disable all analysis passes", Arg.Set skip_analysis
-  ; ( [ "--symexec" ]
-    , "Symbolic execution"
-    , Arg.Unit (fun () -> work_mode := WkmSymExec) )
-  ; ( [ "--dataflow"; "--dfa" ]
-    , "Data Flow Analysis"
-    , Arg.Unit (fun () -> work_mode := WkmDFA) )
-  ; ( [ "--dfa-range" ]
-    , "Perform the data-flow range analysis"
-    , Arg.Unit
+    [ "--analysis-off" ], "Disable all analysis passes", Arg.Set skip_analysis;
+    ( [ "--symexec" ],
+      "Symbolic execution",
+      Arg.Unit (fun () -> work_mode := WkmSymExec) );
+    ( [ "--dataflow"; "--dfa" ],
+      "Data Flow Analysis",
+      Arg.Unit (fun () -> work_mode := WkmDFA) );
+    ( [ "--dfa-range" ],
+      "Perform the data-flow range analysis",
+      Arg.Unit
         (fun () ->
           work_mode := WkmDFA;
           dfa_sparse_analysis := false;
-          dfa_analyses := !dfa_analyses @ [ DfaRange ]) )
-  ; ( [ "--dfa-undef" ]
-    , "Perform the data-flow undef analysis"
-    , Arg.Unit
+          dfa_analyses := !dfa_analyses @ [ DfaRange ]) );
+    ( [ "--dfa-undef" ],
+      "Perform the data-flow undef analysis",
+      Arg.Unit
         (fun () ->
           work_mode := WkmDFA;
-          dfa_analyses := !dfa_analyses @ [ DfaUndef ]) )
-  ; ( [ "--dfa-memsize" ]
-    , "Perform the data-flow memory size analysis"
-    , Arg.Unit
+          dfa_analyses := !dfa_analyses @ [ DfaUndef ]) );
+    ( [ "--dfa-memsize" ],
+      "Perform the data-flow memory size analysis",
+      Arg.Unit
         (fun () ->
           work_mode := WkmDFA;
-          dfa_analyses := !dfa_analyses @ [ DfaMemsize ]) )
-  ; ( [ "--dfa-pointer" ]
-    , "Perform the data-flow pointer analysis"
-    , Arg.Unit
+          dfa_analyses := !dfa_analyses @ [ DfaMemsize ]) );
+    ( [ "--dfa-pointer" ],
+      "Perform the data-flow pointer analysis",
+      Arg.Unit
         (fun () ->
           work_mode := WkmDFA;
           dfa_pointer_conservative := false;
-          dfa_analyses := !dfa_analyses @ [ DfaPointer ]) )
-  ; ( [ "--dfa-pointer-conservative" ]
-    , "Perform the data-flow pointer analysis conservatively"
-    , Arg.Unit
+          dfa_analyses := !dfa_analyses @ [ DfaPointer ]) );
+    ( [ "--dfa-pointer-conservative" ],
+      "Perform the data-flow pointer analysis conservatively",
+      Arg.Unit
         (fun () ->
           work_mode := WkmDFA;
           dfa_pointer_conservative := true;
-          dfa_analyses := !dfa_analyses @ [ DfaPointer ]) )
-  ; ( [ "--dfa-pointer-full" ]
-    , "Perform the data-flow pointer analysis"
-    , Arg.Unit
+          dfa_analyses := !dfa_analyses @ [ DfaPointer ]) );
+    ( [ "--dfa-pointer-full" ],
+      "Perform the data-flow pointer analysis",
+      Arg.Unit
         (fun () ->
           work_mode := WkmDFA;
-          dfa_analyses := !dfa_analyses @ [ DfaUndef; DfaPointer ]) )
-  ; ( [ "--dfa-all-analysis" ]
-    , "Perform all data-flow analyses"
-    , Arg.Unit
+          dfa_analyses := !dfa_analyses @ [ DfaUndef; DfaPointer ]) );
+    ( [ "--dfa-all-analysis" ],
+      "Perform all data-flow analyses",
+      Arg.Unit
         (fun () ->
           work_mode := WkmDFA;
-          dfa_analyses := [ DfaAllAnalyses ]) )
-  ; ( [ "--dfa-auto-schedule" ]
-    , "Auto schedule DFA analyses by bug types"
-    , Arg.Unit
+          dfa_analyses := [ DfaAllAnalyses ]) );
+    ( [ "--dfa-auto-schedule" ],
+      "Auto schedule DFA analyses by bug types",
+      Arg.Unit
         (fun () ->
           work_mode := WkmDFA;
-          dfa_analyses := [ DfaAutoSchedule ]) )
-  ; ( [ "--dfa-func" ]
-    , "Function to be analyzed"
-    , Arg.String (fun s -> dfa_func_name := Some s) )
-  ; ( [ "--dfa-intra" ]
-    , "Intra-procedural analysis"
-    , Arg.Unit (fun () -> dfa_mode := DfaIntraProc) )
-  ; ( [ "--dfa-inter" ]
-    , "Inter-procedural analysis, from the main function"
-    , Arg.Unit (fun () -> dfa_mode := DfaInterProc) )
-  ; ( [ "--dfa-context-split-phi" ]
-    , "Enable/disable exhaustively split context from PHI instruction"
-    , Arg.Bool (fun b -> dfa_context_split_phi := b) )
-  ; ( [ "--dfa-path-sensitive" ]
-    , "Enable/disable path-insensitive analysis"
-    , Arg.Bool (fun b -> dfa_path_sensitive := b) )
-  ; ( [ "--dfa-sparse" ]
-    , "Enable/disable sparse analysis"
-    , Arg.Bool (fun b -> dfa_sparse_analysis := b) )
-  ; ( [ "--dfa-used-globals-selective" ]
-    , "Enable/disable selectively analyzing global vars"
-    , Arg.Bool (fun b -> dfa_used_globals_selective := b) )
-  ; ( [ "--dfa-used-globals-in-func-ptrs" ]
-    , "Enable/disable compute used globals in function pointers"
-    , Arg.Bool (fun b -> dfa_used_globals_in_func_ptrs := b) )
-  ; (*--------------------------------------------------------
+          dfa_analyses := [ DfaAutoSchedule ]) );
+    ( [ "--dfa-func" ],
+      "Function to be analyzed",
+      Arg.String (fun s -> dfa_func_name := Some s) );
+    ( [ "--dfa-intra" ],
+      "Intra-procedural analysis",
+      Arg.Unit (fun () -> dfa_mode := DfaIntraProc) );
+    ( [ "--dfa-inter" ],
+      "Inter-procedural analysis, from the main function",
+      Arg.Unit (fun () -> dfa_mode := DfaInterProc) );
+    ( [ "--dfa-context-split-phi" ],
+      "Enable/disable exhaustively split context from PHI instruction",
+      Arg.Bool (fun b -> dfa_context_split_phi := b) );
+    ( [ "--dfa-path-sensitive" ],
+      "Enable/disable path-insensitive analysis",
+      Arg.Bool (fun b -> dfa_path_sensitive := b) );
+    ( [ "--dfa-sparse" ],
+      "Enable/disable sparse analysis",
+      Arg.Bool (fun b -> dfa_sparse_analysis := b) );
+    ( [ "--dfa-used-globals-selective" ],
+      "Enable/disable selectively analyzing global vars",
+      Arg.Bool (fun b -> dfa_used_globals_selective := b) );
+    ( [ "--dfa-used-globals-in-func-ptrs" ],
+      "Enable/disable compute used globals in function pointers",
+      Arg.Bool (fun b -> dfa_used_globals_in_func_ptrs := b) );
+    (*--------------------------------------------------------
      * bug passes
      *--------------------------------------------------------*)
-    ( [ "--bug-integer-overflow" ]
-    , "Find integer-overflow bugs"
-    , Arg.Unit (fun () -> bug_integer_overflow := true) )
-  ; ( [ "--bug-integer-underflow" ]
-    , "Find integer-underflow bugs"
-    , Arg.Unit (fun () -> bug_integer_underflow := true) )
-  ; ( [ "--bug-memory-leak" ]
-    , "Find memory leak bugs"
-    , Arg.Unit (fun () -> bug_memory_leak := true) )
-  ; ( [ "--bug-null-pointer-deref" ]
-    , "Find null pointer dereference bugs"
-    , Arg.Unit (fun () -> bug_null_pointer_deref := true) )
-  ; ( [ "--bug-buffer-overflow" ]
-    , "Find buffer overflow bugs"
-    , Arg.Unit (fun () -> bug_buffer_overflow := true) )
-  ; ( [ "--bug-integer-all" ]
-    , "Find all integer bugs"
-    , Arg.Unit (fun () -> bug_integer_all := true) )
-  ; ( [ "--bug-memory-all" ]
-    , "Find all memory bugs"
-    , Arg.Unit (fun () -> bug_memory_all := true) )
-  ; ( [ "--bug-all" ]
-    , "Find all bugs"
-    , Arg.Unit
+    ( [ "--bug-integer-overflow" ],
+      "Find integer-overflow bugs",
+      Arg.Unit (fun () -> bug_integer_overflow := true) );
+    ( [ "--bug-integer-underflow" ],
+      "Find integer-underflow bugs",
+      Arg.Unit (fun () -> bug_integer_underflow := true) );
+    ( [ "--bug-memory-leak" ],
+      "Find memory leak bugs",
+      Arg.Unit (fun () -> bug_memory_leak := true) );
+    ( [ "--bug-null-pointer-deref" ],
+      "Find null pointer dereference bugs",
+      Arg.Unit (fun () -> bug_null_pointer_deref := true) );
+    ( [ "--bug-buffer-overflow" ],
+      "Find buffer overflow bugs",
+      Arg.Unit (fun () -> bug_buffer_overflow := true) );
+    ( [ "--bug-integer-all" ],
+      "Find all integer bugs",
+      Arg.Unit (fun () -> bug_integer_all := true) );
+    ( [ "--bug-memory-all" ],
+      "Find all memory bugs",
+      Arg.Unit (fun () -> bug_memory_all := true) );
+    ( [ "--bug-all" ],
+      "Find all bugs",
+      Arg.Unit
         (fun () ->
           bug_integer_all := true;
-          bug_memory_all := true) )
-  ; (*--------------------------------------------------------
+          bug_memory_all := true) );
+    (*--------------------------------------------------------
      * llvm options
      *--------------------------------------------------------*)
-    ( [ "--llvm-source-name" ]
-    , "Enable LLVM mode_debug with original source info"
-    , Arg.Set llvm_orig_source_name )
-  ; ( [ "--llvm-prog-info" ]
-    , "Enable printing program's information"
-    , Arg.Set llvm_print_prog_info )
-  ; [ "--llvm-no-simplify" ], "No not simplify LLVM IR", Arg.Clear llvm_simplify
-  ; [ "--llvm-no-optimize" ], "Do not optimize LLVM IR", Arg.Clear llvm_optimize
-  ; ( [ "--llvm-no-normalize" ]
-    , "Do not normalize LLVM IR"
-    , Arg.Clear llvm_normalize )
-  ; [ "--llvm-path" ], "Path to llvm", Arg.Set_string llvm_path
-  ; (*--------------------------------------------------------
+    ( [ "--llvm-source-name" ],
+      "Enable LLVM mode_debug with original source info",
+      Arg.Set llvm_orig_source_name );
+    ( [ "--llvm-prog-info" ],
+      "Enable printing program's information",
+      Arg.Set llvm_print_prog_info );
+    [ "--llvm-no-simplify" ], "No not simplify LLVM IR", Arg.Clear llvm_simplify;
+    [ "--llvm-no-optimize" ], "Do not optimize LLVM IR", Arg.Clear llvm_optimize;
+    ( [ "--llvm-no-normalize" ],
+      "Do not normalize LLVM IR",
+      Arg.Clear llvm_normalize );
+    [ "--llvm-path" ], "Path to llvm", Arg.Set_string llvm_path;
+    (*--------------------------------------------------------
      * gollvm options
      *--------------------------------------------------------*)
-    ( [ "--gollvm-path" ]
-    , "Path to gollvm, e.g., /usr/bin if gollvm is /usr/bin/go"
-    , Arg.Set_string gollvm_path )
-  ; (*--------------------------------------------------------
+    ( [ "--gollvm-path" ],
+      "Path to gollvm, e.g., /usr/bin if gollvm is /usr/bin/go",
+      Arg.Set_string gollvm_path );
+    (*--------------------------------------------------------
      * input and output export
      *--------------------------------------------------------*)
-    [ "--export-entailments" ], "Export entailments", Arg.Set export_entailment
-  ; [ "--export-bitcode" ], "Export LLVM Bitcode", Arg.Set export_bitcode
-  ; [ "--ascii" ], "Print proof in ascii format", Arg.Set export_proof_ascii
-  ; (*--------------------------------------------------------
+    [ "--export-entailments" ], "Export entailments", Arg.Set export_entailment;
+    [ "--export-bitcode" ], "Export LLVM Bitcode", Arg.Set export_bitcode;
+    [ "--ascii" ], "Print proof in ascii format", Arg.Set export_proof_ascii;
+    (*--------------------------------------------------------
      * mode_debug and help
      *--------------------------------------------------------*)
-    [ "-i" ], "Interactive", Arg.Set mode_interactive
-  ; ( [ "-d" ]
-    , "Debug"
-    , Arg.Unit
+    [ "-i" ], "Interactive", Arg.Set mode_interactive;
+    ( [ "-d" ],
+      "Debug",
+      Arg.Unit
         (fun () ->
           mode_debug := true;
-          print_core_prog := true) )
-  ; ( [ "-dd" ]
-    , "Deep Debug"
-    , Arg.Unit
+          print_core_prog := true) );
+    ( [ "-dd" ],
+      "Deep Debug",
+      Arg.Unit
         (fun () ->
           mode_debug := true;
           mode_deep_debug := true;
-          print_core_prog := true) )
-  ; ( [ "--debug-function" ]
-    , "Specify target functions for debugging"
-    , Arg.String
+          print_core_prog := true) );
+    ( [ "--debug-function" ],
+      "Specify target functions for debugging",
+      Arg.String
         (fun s ->
           mode_debug_function := true;
-          regex_debug_function := s) )
-  ; ( [ "--debug-working-function" ]
-    , "Specify target working functions for debugging"
-    , Arg.String
+          regex_debug_function := s) );
+    ( [ "--debug-working-function" ],
+      "Specify target working functions for debugging",
+      Arg.String
         (fun s ->
           mode_debug_working_function := true;
-          regex_debug_working_function := s) )
-  ; [ "-h"; "-help"; "--help" ], "Print all options", Arg.Unit print_usage
+          regex_debug_working_function := s) );
+    [ "-h"; "-help"; "--help" ], "Print all options", Arg.Unit print_usage
   ]
 ;;
 

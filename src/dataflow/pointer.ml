@@ -8,8 +8,6 @@
 open Core
 open Globals
 open Libdiscover
-open Sprinter
-open Printer
 open Debugger
 open Graph
 open Llir
@@ -620,8 +618,6 @@ module PointerGraph = struct
 
   let is_valid_path_trace prog (g : t) (path : path) : bool =
     (* check path's main blocks *)
-    let trace = path.path_trace_all in
-    let trace_may_alias = path.path_trace_may in
     let main_blks, incoming_blks =
       List.fold_left
         ~f:(fun (accm, acci) ti ->
@@ -636,14 +632,6 @@ module PointerGraph = struct
             List.insert_dedup accm b ~equal:equal_block, acci)
         ~init:([], [])
         path.path_trace_all in
-    let may_blks =
-      List.fold_left
-        ~f:(fun acc ti ->
-          match ti with
-          | TPhi (_, _, i) | TSimple i ->
-            List.insert_dedup acc (block_of_instr i) ~equal:equal_block)
-        ~init:[]
-        path.path_trace_may in
     (* check path reachability *)
     let check_read_write_flow () =
       let deref_traces = get_traces_of_deref path in
@@ -928,7 +916,6 @@ module PointerGraph = struct
   ;;
 
   let rec merge_label (l1 : label) (l2 : label) : label option =
-    let sl1, sl2 = pr_label l1, pr_label l2 in
     match l1, l2 with
     | Alias (p1, t1), Alias (p2, t2) ->
       Some (Alias (merge_precision p1 p2, merge_trace t1 t2))
@@ -1371,7 +1358,6 @@ module PointerDomain = struct
 
   let connect_sub_vertices (g : pgraph) : pgraph =
     let pathchecker = PC.create g in
-    let has_path v1 v2 = PC.check_path pathchecker v1 v2 in
     let vertices =
       PG.fold_vertex
         (fun v acc ->
@@ -1470,7 +1456,7 @@ module PointerDomain = struct
           | PG.GEP (t1, idxs1, PG.To) ->
             let res =
               match List.rev acc with
-              | (PG.GEP (t2, idxs2, PG.From) as lbl2) :: nracc ->
+              | PG.GEP (t2, idxs2, PG.From) :: nracc ->
                 let len2 = List.length idxs2 in
                 if List.length idxs1 > len2
                 then (
@@ -1521,7 +1507,6 @@ module PointerDomain = struct
 
   let check_path_balance_direction path (p : precision) : alias_path_type =
     (* use a visited list to check balancing *)
-    let has_alias_edge = ref false in
     let rec check_balance (labels : PE.label list) (visited : PE.label list) =
       match labels with
       | [] ->
@@ -1542,7 +1527,7 @@ module PointerDomain = struct
         (match visited with
         | PG.GEP (_, _, PG.To) :: _ -> ApNone
         | _ -> check_balance nlabels (l1 :: visited))
-      | (PG.GEP (t1, idxs1, PG.To) as l1) :: nlabels ->
+      | PG.GEP (t1, idxs1, PG.To) :: nlabels ->
         (match visited with
         | [] -> ApNone
         | l2 :: nvisited ->
@@ -3023,7 +3008,6 @@ struct
   (* sparse analysis *)
 
   let is_candidate_sparse_instr penv instr : bool =
-    let vinstr = llvalue_of_instr instr in
     match instr_opcode instr with
     | LO.Alloca
     | LO.Br
@@ -3462,11 +3446,9 @@ struct
   let analyze_instr ?(widen = false) penv fenv (instr : instr) (input : t) : t =
     let prog = penv.penv_prog in
     let func, blk = func_of_instr instr, block_of_instr instr in
-    let genv = penv.penv_global_env in
     let trace =
       if !dfa_path_sensitive then Some (PG.mk_trace_simple instr) else None
     in
-    let loc = llvalue_of_instr instr in
     match instr_opcode instr with
     | LO.BitCast -> input
     | LO.Store when is_llvalue_contain_pointer (operand instr 0) ->
@@ -3503,7 +3485,6 @@ struct
             (* OPTIMIZATION: add found alias path to pgraph *)
             (* let _ = List.iter ~f:(fun (v, path, prec) ->
              *   insert_alias output prec dexp v) dst_aliases_precs in *)
-            let deref_paths = find_deref_paths input dexp in
             let dst_and_aliases = dexp :: fst3 (List.unzip3 dst_aliases_precs) in
             let _ =
               List.iter
@@ -3772,7 +3753,6 @@ struct
   let check_assertion (fenvs : func_env list) (ast : AS.assertion) : bool option
     =
     let instr = ast.AS.ast_instr in
-    let num_fenvs = sprint_int (List.length fenvs) in
     if ast.AS.ast_type == AS.Assert
     then (
       match ast.AS.ast_predicate with
@@ -3819,14 +3799,13 @@ struct
   ;;
 
   let check_assertions (penv : prog_env) (func : func) : int =
-    let prog = penv.penv_prog in
     let assertions = AS.find_alias_assertions func in
     let fenvs =
       match Hashtbl.find penv.penv_func_envs func with
       | None -> []
       | Some fenvs -> fenvs in
     let num_checked_assertions = ref 0 in
-    let results =
+    let _ =
       List.iter
         ~f:(fun ast ->
           match check_assertion fenvs ast with

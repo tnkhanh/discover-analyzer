@@ -9,7 +9,6 @@ open Core
 open Globals
 open Libdiscover
 open Sprinter
-open Printer
 open Debugger
 module SA = Slast
 module LL = Llvm

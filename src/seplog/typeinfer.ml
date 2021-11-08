@@ -8,9 +8,6 @@
 open Core
 open Globals
 open Libdiscover
-open Sprinter
-open Printer
-open Debugger
 open Slast
 
 type environment = string -> typ
@@ -325,9 +322,9 @@ let rec find_substitution_exp env sst expected_typ e : substitution =
       | TFunc (arg_typs, ret_typ) ->
         let sst = unify_typ sst ret_typ t in
         List.fold2_exn ~f:(find_substitution_exp env) ~init:sst arg_typs es
-      | t -> herror "find_substitution_exp: expect TFunc but found:" sprint_type t)
-  with
-  | exc -> error ("find_substitution_exp: " ^ sprint_exp e ^ "\n")
+      | t ->
+        herror "find_substitution_exp: expect TFunc but found:" sprint_type t)
+  with exc -> error ("find_substitution_exp: " ^ sprint_exp e ^ "\n")
 ;;
 
 let rec find_substitution_form env sst f : substitution =
@@ -383,8 +380,7 @@ let rec find_substitution_form env sst f : substitution =
       let sst = find_substitution_form env sst f1 in
       find_substitution_form env sst f2
     | Neg g | Forall (_, g) | Exists (_, g) -> find_substitution_form env sst g
-  with
-  | e -> error ("find_substitution_form: " ^ sprint_formula f ^ "\n")
+  with e -> error ("find_substitution_form: " ^ sprint_formula f ^ "\n")
 ;;
 
 let find_substitution_forms env sst fs : substitution =
@@ -424,9 +420,9 @@ let rec substitute_exp sst e : exp =
 and substitute_exps sst es = List.map ~f:(substitute_exp sst) es
 
 let substitute_addr_exp sst a : addr_exp =
-  { addr_base = substitute_exp sst a.addr_base
-  ; addr_elem = substitute_exp sst a.addr_elem
-  ; addr_field = substitute_exp sst a.addr_field
+  { addr_base = substitute_exp sst a.addr_base;
+    addr_elem = substitute_exp sst a.addr_elem;
+    addr_field = substitute_exp sst a.addr_field
   }
 ;;
 
@@ -460,8 +456,8 @@ let substitute_forms sst fs = List.map ~f:(substitute_form sst) fs
 let substitute_entail sst ent : entailment =
   let lhs, rhs = ent.ent_lhs, ent.ent_rhs in
   { ent with
-    ent_lhs = substitute_form sst lhs
-  ; ent_rhs = substitute_form sst rhs
+    ent_lhs = substitute_form sst lhs;
+    ent_rhs = substitute_form sst rhs
   }
 ;;
 
@@ -496,9 +492,9 @@ let substitute_program prog sst : program =
   let pdefns = List.map ~f:(substitute_pred_defn sst) prog.prog_pred_defns in
   let commands = List.map ~f:(substitute_command sst) prog.prog_commands in
   { prog with
-    prog_func_defns = fdefns
-  ; prog_pred_defns = pdefns
-  ; prog_commands = commands
+    prog_func_defns = fdefns;
+    prog_pred_defns = pdefns;
+    prog_commands = commands
   }
 ;;
 
@@ -620,10 +616,10 @@ let infer_typ_program prog : program =
       prog.prog_commands in
   let prog =
     { prog with
-      prog_data_defns = ddefns
-    ; prog_func_defns = fdefns
-    ; prog_pred_defns = pdefns
-    ; prog_commands = cmds
+      prog_data_defns = ddefns;
+      prog_func_defns = fdefns;
+      prog_pred_defns = pdefns;
+      prog_commands = cmds
     } in
   (* finally apply the substitution again *)
   substitute_program prog sst

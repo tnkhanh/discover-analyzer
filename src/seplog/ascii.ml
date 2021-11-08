@@ -6,12 +6,9 @@
  ********************************************************************)
 
 open Core
-open Globals
 open Libdiscover
 open Sprinter
 open Printer
-open Debugger
-open Slir
 
 module Entail = struct
   open Proof

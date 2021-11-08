@@ -6,11 +6,8 @@
  ********************************************************************)
 
 open Core
-open Globals
 open Libdiscover
 open Sprinter
-open Printer
-open Debugger
 
 exception Invalid_Z3_val
 

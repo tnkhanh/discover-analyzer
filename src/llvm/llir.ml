@@ -9,7 +9,6 @@ open Core
 open Globals
 open Libdiscover
 open Sprinter
-open Printer
 open Debugger
 module LL = Llvm
 module LT = LL.TypeKind
@@ -1005,7 +1004,6 @@ let deep_iter_block
     (blk : block)
     : unit
   =
-  let blkname = LL.value_name (LL.value_of_block blk) in
   let iter () =
     LL.iter_instrs (fun i -> deep_iter_instr ~finstr (mk_instr i)) blk in
   let open Option.Let_syntax in

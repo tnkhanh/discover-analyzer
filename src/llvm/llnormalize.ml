@@ -7,9 +7,7 @@
 
 open Core
 open Globals
-open Libdiscover
 open Sprinter
-open Printer
 open Debugger
 open Llir
 module LL = Llvm

@@ -5,12 +5,6 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
-open Globals
-open Libdiscover
-open Sprinter
-open Printer
-open Debugger
 module LI = Llir
 module LL = Llvm
 module LO = Llvm.Opcode
