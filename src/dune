@@ -27,7 +27,7 @@
  ; (modes native)
  (modes byte)
  (flags (:standard
-          -w -3+26-27-28-32+33+60+66+31
+          -w -3+26-27-28+31-32+33+60+66+31
           -warn-error +31+60+66
           -g -annot))
 

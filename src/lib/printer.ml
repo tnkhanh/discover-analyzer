@@ -275,9 +275,9 @@ let nhprint _ _ = ()
 
 (** Print error *)
 
-let print_error (msg : string) : unit = prerr_endline msg
+let eprint (msg : string) : unit = prerr_endline msg
+let eprintf = Printf.eprintf
 
 (** print formatting *)
 
 let printf = Printf.printf
-let eprintf = Printf.eprintf

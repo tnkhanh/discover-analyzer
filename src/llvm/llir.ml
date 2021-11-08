@@ -849,7 +849,6 @@ let expr_operand (i : instr) (idx : int) : expr =
   expr_of_llvalue (operand i idx)
 ;;
 
-let instr_pred (i : instr) = LL.instr_pred (llvalue_of_instr i)
 let num_operands (i : instr) : int = LL.num_operands (llvalue_of_instr i)
 
 let set_operand (i : instr) (idx : int) (opr : llvalue) : unit =

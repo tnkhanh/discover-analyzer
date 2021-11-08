@@ -10,13 +10,13 @@ IDE and editors
 
   .. code-block:: sh
 
-     opam install merlin ocp-indent
+     opam install merlin ocaml-lsp-server
 
-- Code indentation: ``ocp-indent`` and ``ocamlformat``:
+- Code auto-formatting and indentation: ``ocamlformat`` and ``ocp-indent``:
 
   .. code-block:: sh
 
-     opam install merlin ocp-indent
+     opam install ocamlformat  ocp-indent
 
 
 Coding format and convention

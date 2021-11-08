@@ -43,6 +43,7 @@ type input_mode =
   | InpLlir
   | InpCCpp
   | InpGolang
+  | InpSolidity
 
 (*******************************************************************
  ** Global Flags
@@ -130,7 +131,6 @@ let bug_memory_all = ref false
 let bug_memory_leak = ref false
 let bug_null_pointer_deref = ref false
 let bug_buffer_overflow = ref false
-let bug_memory_leak = ref false
 
 (*******************************************************************
  ** global variables
@@ -145,6 +145,7 @@ let file_ext_llir = [ "ll" ]
 let file_ext_seplogic = [ "sl" ]
 let file_ext_c_cpp = [ "c"; "cpp"; "h"; "hpp"; "cc" ]
 let file_ext_go = [ "go" ]
+let file_ext_solidity = [ "sol" ]
 
 (*--------------
  * Input files
@@ -165,6 +166,7 @@ let llvm_version = "13" (* using LLVM 13 *)
 let llvm_path = ref ""
 let clang_path = ref "clang"
 let opt_path = ref "opt"
+let solang_path = ref "solang"
 let gollvm_path = ref ""
 let llvm_normalizer_path = ref "normalizer"
 let discover_path = Filename.realpath Sys.argv.(0)

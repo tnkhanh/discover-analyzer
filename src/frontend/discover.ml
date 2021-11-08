@@ -30,6 +30,10 @@ module TI = Typeinfer
 module SE = Symexec
 module VS = Version
 
+module S = struct
+  let foo = 1
+end
+
 let print_discover_settings () =
   let _ = print ~always:true ("Checking file: " ^ !input_file) in
   let info =
@@ -126,9 +130,9 @@ let handle_system_signals () =
     if is_debug_mode ()
     then (
       let _ = flush_all () in
-      let _ = print_endline "\nReceived a keyboard interrupted signal!" in
-      let _ = print_endline "\nBacktrace:" in
-      let _ = print_endline (String.hindent_line 2 Printexc.get_backtrace ()) in
+      let _ = println "\nReceived a keyboard interrupted signal!" in
+      let _ = println "\nBacktrace:" in
+      let _ = println (String.hindent_line 2 Printexc.get_backtrace ()) in
       exit 1)
     else exit 1 in
   (* handle system signals manually *)
@@ -174,19 +178,19 @@ let main () : unit =
 let _ =
   try main () with
   | EError (msg, log) ->
-    let _ = prerr_endline ("ERROR: " ^ msg) in
+    let _ = eprint ("ERROR: " ^ msg) in
     if not (!release_mode || String.is_empty log)
     then (
-      prerr_endline ("Detailed message:\n\n" ^ String.prefix_line ~prefix:"  > " log);
-      prerr_endline ("Exception:\n\n" ^ String.hindent_line 2 Printexc.get_backtrace ()));
+      eprint ("Detailed message:\n\n" ^ String.prefix_line ~prefix:"  > " log);
+      eprint ("Exception:\n\n" ^ String.hindent_line 2 Printexc.get_backtrace ()));
     exit 1
   | e ->
     if not !release_mode
     then (
-      prerr_endline "ERROR: an exception occurred!";
-      prerr_endline ("Exception: " ^ Exn.to_string e);
-      prerr_endline (Printexc.get_backtrace ()));
+      eprint "ERROR: an exception occurred!";
+      eprint ("Exception: " ^ (Exn.to_string e));
+      eprint (Printexc.get_backtrace ()));
     if not (is_debug_mode ())
-    then prerr_endline "To debug, run Discover again with additional '-d'.";
+    then eprint "To debug, run Discover again with additional '-d'.";
     exit 1
 ;;

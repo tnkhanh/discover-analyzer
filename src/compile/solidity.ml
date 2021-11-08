@@ -24,7 +24,7 @@ module LT = Llinstrument
 module LU = Llutils
 module PS = Process
 
-let compile_c_cpp (filename : string) : LI.program =
+let compile_solidity (filename : string) : LI.program =
   let _ = debug ("Compiling file: " ^ filename) in
   let basename = Filename.chop_extension (Filename.basename filename) in
   let dirname = Filename.dirname filename ^ Filename.dir_sep ^ "logs" in
@@ -35,11 +35,8 @@ let compile_c_cpp (filename : string) : LI.program =
     (* TODO: possibly use the  llvm-normalizer as a pass of clang or opt?? *)
     let llcontext = LL.create_context () in
     let cmd =
-      [ !clang_path ]
-      @ [ "-O0"; "-fno-rtti" ]
-      @ [ "-Xclang"; "-disable-llvm-passes" ]
-      @ [ "-Xclang"; "-disable-O0-optnone" ]
-      @ [ "-Werror=implicit-function-declaration" ]
+      [ !solang_path ]
+      @ [ "-o"; "-fno-rtti" ]
       @ [ "-emit-llvm"; "-c"; filename ]
       @ [ "-o"; output_filename ]
       @ (if !llvm_orig_source_name then [ "-g" ] else [])

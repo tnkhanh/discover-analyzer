@@ -103,6 +103,8 @@ let get_input_type (filename : string) =
       then InpGolang
       else if List.exists ~f:(String.equal ext) file_ext_c_cpp
       then InpCCpp
+      else if List.exists ~f:(String.equal ext) file_ext_solidity
+      then InpSolidity
       else InpUnkn)
   | _ -> !input_mode
 ;;
@@ -115,5 +117,6 @@ let compile_input_file (filename : string) : CI.program =
   | InpLlir -> filename |> BC.compile_llir |> CI.mk_llvm_prog
   | InpCCpp -> filename |> Ccpp.compile_c_cpp |> CI.mk_llvm_prog
   | InpGolang -> filename |> Golang.compile_golang |> CI.mk_llvm_prog
+  | InpSolidity -> filename |> Golang.compile_golang |> CI.mk_llvm_prog
   | InpUnkn -> error2 "Unknown input type: " filename
 ;;
