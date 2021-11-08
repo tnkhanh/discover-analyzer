@@ -1,6 +1,5 @@
 open Core
 open Libdiscover
-open Sprinter
 
 type bug_group =
   | MemoryLeak

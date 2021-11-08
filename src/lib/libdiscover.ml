@@ -15,7 +15,7 @@ include Liblist
 include Libmath
 include Libstring
 include Libsys
-include Sprinter
+include Printer
 
 (*-----------------
  * Boolean result

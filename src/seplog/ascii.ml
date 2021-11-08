@@ -7,7 +7,6 @@
 
 open Core
 open Libdiscover
-open Sprinter
 open Printer
 
 module Entail = struct

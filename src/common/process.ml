@@ -8,17 +8,16 @@
 open Core
 open Globals
 open Libdiscover
-open Sprinter
 
 let pid_dummy = -1000
 
 type process =
-  { proc_exe : string
-  ; proc_cmd : string list
-  ; proc_pid : int
-  ; proc_in_channel : in_channel
-  ; proc_out_channel : out_channel
-  ; proc_err_channel : in_channel
+  { proc_exe : string;
+    proc_cmd : string list;
+    proc_pid : int;
+    proc_in_channel : in_channel;
+    proc_out_channel : out_channel;
+    proc_err_channel : in_channel
   }
 
 type process_output =
@@ -27,14 +26,12 @@ type process_output =
 (* error message *)
 
 let mk_proc_dummy (cmd : string list) =
-  { proc_exe =
-      (try List.hd_exn cmd with
-      | _ -> "")
-  ; proc_cmd = cmd
-  ; proc_pid = pid_dummy
-  ; proc_in_channel = stdin
-  ; proc_out_channel = stdout
-  ; proc_err_channel = stdin
+  { proc_exe = (try List.hd_exn cmd with _ -> "");
+    proc_cmd = cmd;
+    proc_pid = pid_dummy;
+    proc_in_channel = stdin;
+    proc_out_channel = stdout;
+    proc_err_channel = stdin
   }
 ;;
 
@@ -71,24 +68,22 @@ let close_process proc : unit =
     let _ = Unix.close (Unix.descr_of_out_channel proc.proc_out_channel) in
     let _ = Unix.close (Unix.descr_of_in_channel proc.proc_err_channel) in
     Signal.send_exn Signal.kill (`Pid (Pid.of_int proc.proc_pid))
-  with
-  | e ->
-    (try Unix.close (Unix.descr_of_in_channel proc.proc_in_channel) with
-    | e -> ())
+  with e ->
+    (try Unix.close (Unix.descr_of_in_channel proc.proc_in_channel)
+     with e -> ())
 ;;
 
 let read_output proc : string =
   let rec read acc =
-    try read (acc @ [ input_line proc.proc_in_channel ]) with
-    | End_of_file -> acc in
+    try read (acc @ [ input_line proc.proc_in_channel ])
+    with End_of_file -> acc in
   let res = String.concat ~sep:"\n" (read []) in
   res
 ;;
 
 let read_error proc : string =
   let rec read acc =
-    try read (acc @ [ input_line proc.proc_err_channel ]) with
-    | _ -> acc in
+    try read (acc @ [ input_line proc.proc_err_channel ]) with _ -> acc in
   let res = String.concat ~sep:"\n" (read []) in
   res
 ;;
@@ -101,20 +96,14 @@ let send_input proc input =
 let start_process (cmd : string list) : process =
   try
     let inchn, outchn, errchn, npid = open_process cmd in
-    { proc_exe =
-        (try List.hd_exn cmd with
-        | _ -> "")
-    ; proc_cmd = cmd
-    ; proc_pid = npid
-    ; proc_in_channel = inchn
-    ; proc_out_channel = outchn
-    ; proc_err_channel = errchn
+    { proc_exe = (try List.hd_exn cmd with _ -> "");
+      proc_cmd = cmd;
+      proc_pid = npid;
+      proc_in_channel = inchn;
+      proc_out_channel = outchn;
+      proc_err_channel = errchn
     }
-  with
-  | e ->
-    flush stdout;
-    flush stderr;
-    raise e
+  with e -> flush stdout; flush stderr; raise e
 ;;
 
 let stop_process proc = close_process proc
@@ -133,7 +122,9 @@ let run_command (cmd : string list) : unit =
     let msg = read_error proc in
     let _ = close_process proc in
     let cmd = beautiful_concat ~column:80 ~sep:" " cmd in
-    error ~log:msg ("Failed to run external command:\n\n" ^ indent_line 2 cmd)
+    error
+      ~log:msg
+      ("Failed to run external command:\n\n" ^ String.indent_line 2 cmd)
 ;;
 
 let run_command_get_output (cmd : string list) : process_output =

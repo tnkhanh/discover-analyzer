@@ -8,7 +8,6 @@
 open Core
 open Globals
 open Libdiscover
-open Sprinter
 
 type typ =
   | TVoid

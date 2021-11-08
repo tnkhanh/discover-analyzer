@@ -7,8 +7,8 @@
 
 open Core
 open Globals
-open Sprinter
 open Debugger
+open Libdiscover
 open Llir
 module LL = Llvm
 module LO = Llvm.Opcode

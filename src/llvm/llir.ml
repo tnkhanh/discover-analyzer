@@ -8,7 +8,6 @@
 open Core
 open Globals
 open Libdiscover
-open Sprinter
 open Debugger
 module LL = Llvm
 module LT = LL.TypeKind
@@ -550,7 +549,10 @@ let sprint_values = sprint_list ~f:sprint_value
 let value_names (vs : llvalue list) : string = sprint_list ~f:sprint_value vs
 
 let sprint_value_detail (v : llvalue) : string =
-  v |> LL.string_of_llvalue |> String.split_lines |> List.map ~f:String.strip
+  v
+  |> LL.string_of_llvalue
+  |> String.split_lines
+  |> List.map ~f:String.strip
   |> String.concat ~sep:" "
 ;;
 
@@ -805,8 +807,10 @@ let sprint_exprs (es : expr list) : string = sprint_list ~f:sprint_expr es
 let rec sprint_predicate (p : predicate) : string =
   match p with
   | PBool b -> sprint_bool b
-  | PIcmp (cmp, lhs, rhs) -> sprint_value lhs ^ sprint_icmp cmp ^ sprint_value rhs
-  | PFcmp (cmp, lhs, rhs) -> sprint_value lhs ^ sprint_fcmp cmp ^ sprint_value rhs
+  | PIcmp (cmp, lhs, rhs) ->
+    sprint_value lhs ^ sprint_icmp cmp ^ sprint_value rhs
+  | PFcmp (cmp, lhs, rhs) ->
+    sprint_value lhs ^ sprint_fcmp cmp ^ sprint_value rhs
   | PNeg p -> "!" ^ sprint_predicate p
   | PConj ps -> sprint_list_plain ~sep:" & " ~f:sprint_predicate ps
   | PDisj ps -> sprint_list_plain ~sep:" | " ~f:sprint_predicate ps
@@ -1303,7 +1307,8 @@ let rec get_elemptr_typ (typ : lltype) (idxs : expr list) : lltype =
         Array.get (LL.subtypes typ) fld_idx
       | LT.Array -> LL.element_type typ
       | LT.Pointer -> LL.element_type typ
-      | _ -> herror "get_elemptr_typ: need to handle type: " sprint_type typ in
+      | _ -> herror "get_elemptr_typ: need to handle type: " sprint_type typ
+    in
     get_elemptr_typ ntyp nidxs
 ;;
 
@@ -1773,7 +1778,10 @@ let is_func_llvm_debug_value (f : func) : bool =
 
 let is_library_function (f : func) : bool =
   List.is_empty (blocks_of_func f)
-  || is_func_free f || is_func_malloc f || is_func_realloc f || is_func_nondet f
+  || is_func_free f
+  || is_func_malloc f
+  || is_func_realloc f
+  || is_func_nondet f
 ;;
 
 let is_assert_func (f : func) : bool =
@@ -2568,7 +2576,8 @@ let num_args_of_instr_func_app (i : instr) : int =
   | LO.Call -> num_args_of_instr_call i
   | LO.CallBr -> num_args_of_instr_call i
   | LO.Invoke -> num_args_of_instr_invoke i
-  | _ -> herror "num_args_of_instr_func_app: not a callable instr: " sprint_instr i
+  | _ ->
+    herror "num_args_of_instr_func_app: not a callable instr: " sprint_instr i
 ;;
 
 let callee_of_instr_func_call (i : instr) : func =
@@ -2576,7 +2585,8 @@ let callee_of_instr_func_call (i : instr) : func =
   | LO.Call -> callee_of_instr_call i
   | LO.CallBr -> callee_of_instr_callbr i
   | LO.Invoke -> callee_of_instr_invoke i
-  | _ -> herror "callee_of_instr_func_call: not a callable instr: " sprint_instr i
+  | _ ->
+    herror "callee_of_instr_func_call: not a callable instr: " sprint_instr i
 ;;
 
 let arg_of_instr_func_app (i : instr) (idx : int) : llvalue =
@@ -2922,7 +2932,8 @@ let get_reachable_blocks (prog : program) (blk : block) : blocks =
     | [] -> visited
     | blk :: nqueue ->
       let nblks =
-        blk |> get_succeeding_blocks prog
+        blk
+        |> get_succeeding_blocks prog
         |> List.map ~f:(fun sblk -> sblk.sblk_block)
         |> List.exclude ~f:(List.mem ~equal:( == ) visited)
         |> List.exclude ~f:(List.mem ~equal:( == ) nqueue) in
@@ -3081,14 +3092,17 @@ let sprint_loop (l : loop) : string =
   String.concat ~sep:"; " loop_info
 ;;
 
-let sprint_loops (ls : loop list) : string = hsprint_list_itemized ~f:sprint_loop ls
+let sprint_loops (ls : loop list) : string =
+  hsprint_list_itemized ~f:sprint_loop ls
+;;
 
 let sprint_block (blk : block) : string =
   let blkname = block_name blk in
   let sinstrs =
-    blk |> map_instrs ~f:(hindent_line 2 sprint_instr) |> String.concat ~sep:"\n"
-  in
-  " " ^ blkname ^ ":\n"
+    blk
+    |> map_instrs ~f:(String.hindent_line 2 sprint_instr)
+    |> String.concat ~sep:"\n" in
+  (" " ^ blkname ^ ":\n")
   ^ String.replace_if_empty sinstrs ~replacer:"{Empty block}"
 ;;
 
@@ -3100,7 +3114,9 @@ let sprint_func (f : func) : string =
       (func_name f)
       (sprint_args ~f:sprint_typed_param (func_params f)) in
   let sblks =
-    f |> map_blocks ~f:sprint_block |> String.concat ~sep:"\n\n"
+    f
+    |> map_blocks ~f:sprint_block
+    |> String.concat ~sep:"\n\n"
     |> String.replace_if_empty ~replacer:"{Empty function}" in
   fname ^ "\n" ^ sblks
 ;;
@@ -3110,7 +3126,7 @@ let sprint_module (m : llmodule) : string = LL.string_of_llmodule m
 let sprint_program (prog : program) : string =
   let sglobals =
     prog.prog_globals
-    |> List.map ~f:(hindent_line 2 (sprint_global ~detailed:true))
+    |> List.map ~f:(String.hindent_line 2 (sprint_global ~detailed:true))
     |> String.concat ~sep:"\n"
     |> String.prefix_if_not_empty ~prefix:"Globals:\n" in
   let sstructs =
@@ -3156,7 +3172,10 @@ let print_program_analysis_info prog =
           if List.is_empty callees
           then acc
           else
-            acc ^ "\n - " ^ func_name f ^ ":"
+            acc
+            ^ "\n - "
+            ^ func_name f
+            ^ ":"
             ^ hsprint_list_itemized ~bullet:"    ->" ~f:func_name callees)
         ~init:""
         prog.prog_func_callees in
@@ -3169,7 +3188,10 @@ let print_program_analysis_info prog =
           if List.is_empty callers
           then acc
           else
-            acc ^ "\n - " ^ func_name f ^ ":"
+            acc
+            ^ "\n - "
+            ^ func_name f
+            ^ ":"
             ^ hsprint_list_itemized ~bullet:"    <-" ~f:func_name callers)
         ~init:""
         prog.prog_func_callers in

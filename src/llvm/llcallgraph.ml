@@ -7,7 +7,6 @@
 
 open Core
 open Libdiscover
-open Sprinter
 open Llir
 module LL = Llvm
 module BG = BlockGraph

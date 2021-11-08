@@ -8,7 +8,6 @@
 open Core
 open Globals
 open Libdiscover
-open Sprinter
 open Printer
 open Debugger
 module AG = Arguments
@@ -129,7 +128,7 @@ let handle_system_signals () =
       let _ = flush_all () in
       let _ = print_endline "\nReceived a keyboard interrupted signal!" in
       let _ = print_endline "\nBacktrace:" in
-      let _ = print_endline (hindent_line 2 Printexc.get_backtrace ()) in
+      let _ = print_endline (String.hindent_line 2 Printexc.get_backtrace ()) in
       exit 1)
     else exit 1 in
   (* handle system signals manually *)
@@ -178,8 +177,8 @@ let _ =
     let _ = prerr_endline ("ERROR: " ^ msg) in
     if not (!release_mode || String.is_empty log)
     then (
-      prerr_endline ("Detailed message:\n\n" ^ prefix_line ~prefix:"  > " log);
-      prerr_endline ("Exception:\n\n" ^ hindent_line 2 Printexc.get_backtrace ()));
+      prerr_endline ("Detailed message:\n\n" ^ String.prefix_line ~prefix:"  > " log);
+      prerr_endline ("Exception:\n\n" ^ String.hindent_line 2 Printexc.get_backtrace ()));
     exit 1
   | e ->
     if not !release_mode

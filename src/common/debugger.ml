@@ -8,7 +8,7 @@
 (* Printer module *)
 
 open Core
-open Libdiscover
+open Libstring
 
 (*------------------
  * debugging flags
@@ -19,7 +19,6 @@ let mode_debug = ref false (* parameter: -d  *)
 let mode_deep_debug = ref false (* parameter: -dd *)
 
 let no_debug = ref false
-let no_print = ref false
 
 (*-------------------
  * Interactive mode
@@ -101,7 +100,7 @@ let debug_core
     let msg =
       match ruler with
       | `Header ->
-        let prefix = String.suffix_if_not_empty prefix ~suffix:"\n\n" in
+        let prefix = String.prefix_if_not_empty prefix ~prefix:"\n\n" in
         ruler_long ^ prefix ^ msg
       | `Long -> ruler_long ^ prefix ^ msg
       | `Medium -> ruler_medium ^ prefix ^ msg
@@ -110,13 +109,13 @@ let debug_core
         if String.is_prefix ~prefix:"\n" msg
            || (String.length prefix > 1 && String.is_suffix ~suffix:"\n" prefix)
         then (
-          let indent = get_indent prefix + 2 + indent in
-          prefix ^ indent_line indent msg)
+          let indent = String.count_indent prefix + 2 + indent in
+          prefix ^ String.indent_line indent msg)
         else if String.length prefix > 12 && String.is_infix ~infix:"\n" msg
         then (
-          let indent = get_indent prefix + 2 + indent in
-          prefix ^ "\n" ^ indent_line indent msg)
-        else indent_line indent (align_line prefix msg) in
+          let indent = String.count_indent prefix + 2 + indent in
+          prefix ^ "\n" ^ String.indent_line indent msg)
+        else String.indent_line indent (String.align_line prefix msg) in
     print_endline msg)
   else ()
 ;;
@@ -293,12 +292,12 @@ let display_choices msg (pr_choice : 'a -> string) (choices : 'a list) : string 
   let all_choices =
     choices
     |> List.mapi ~f:(fun idx c ->
-           " [" ^ sprint_int (idx + 1) ^ "]. " ^ pr_choice c)
+           " [" ^ string_of_int (idx + 1) ^ "]. " ^ pr_choice c)
     |> String.concat ~sep:"\n" in
   let _ = print_endline (msg ^ "\n" ^ all_choices) in
   let range =
     let num_choices = List.length choices in
-    if num_choices = 1 then "1" else "1" ^ ".." ^ sprint_int num_choices
+    if num_choices = 1 then "1" else "1" ^ ".." ^ string_of_int num_choices
   in
   range
 ;;

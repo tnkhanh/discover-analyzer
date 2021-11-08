@@ -7,7 +7,6 @@
 
 open Core
 open Libdiscover
-open Sprinter
 
 exception Invalid_Z3_val
 
