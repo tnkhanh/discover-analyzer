@@ -41,35 +41,43 @@ let make_tagged_ins pos_ tag_ ins_=
     ins = ins_;
   }
 
+type linecol = {
+  line: int;
+  col: int;
+}
+
+let make_linecol line_ col_ = 
+  { line = line_;
+    col = col_;
+  }
+
+let lc_comp lcx lcy =
+  let tuplex = (lcx.line, lcx.col) in
+  let tupley = (lcy.line, lcy.col) in
+  Poly.compare tuplex tupley
+
 let less_than ins ann =
   if Poly.((ins.pos.pos_line_end, ins.pos.pos_col_end) < 
            (Ann.pos_of_ann ann)) then true
   else
     false
 
+let coverage = Hashtbl.create (module Instr)
+
+let get_coverage instr =
+  match Hashtbl.find coverage instr with
+  | None ->
+      let pos_op = LS.position_of_instr instr in
+      let cover = 
+        match pos_op with
+        | None -> (make_linecol 0 0, make_linecol 0 0)
+        | Some pos -> (make_linecol pos.pos_line_start pos.pos_col_start,
+                       make_linecol pos.pos_line_end pos.pos_col_end) in
+      let _ = Hashtbl.add coverage ~key:instr ~data:cover in
+      cover
+  | Some cover -> cover
+
 let extract_ann_marks (filename: string) = 
-(*  let _ = print_endline ("File:.........."^filename) in
-  let inchan = 
-    try open_in filename 
-    with e -> error ("Unable to open file: " ^ filename) in
-  let rec read_line line_number annot_list =
-    try 
-      let line = input_line inchan in
-      let rec find_annot col_number old_list =
-        let match_pos =
-          try
-          (*NOTE: no asterisk allowed in Bug string*)
-            Str.search_forward
-            (Str.regexp "/\\*{\\(Bug\\):\\([^*]*\\)\\*/") line col_number
-          with Not_found -> -1 in
-        if match_pos = -1 then old_list
-        else
-          find_annot (Str.match_end ())
-            (((line_number, (Str.match_end ()) + 1), Str.matched_group 2 line)::old_list) in
-      let new_list = find_annot 0 annot_list in
-      read_line (line_number+1) new_list
-    with End_of_file -> let _ = close_in inchan in annot_list in
-  read_line 1 [] *)
   let inx = In_channel.create filename in 
   let lexbuf = Lexing.from_channel inx in
   let rev_mark_list =
@@ -244,9 +252,6 @@ let instrument_bug_annotation ann_marks source_name (modul: LL.llmodule) : unit 
     let pos_op = LS.position_of_instr instr in
     match pos_op with
     | None -> acc
-       (* let pop = mk_position "Hi!" (-1) (-1) (-1) (-1) in
-        let ins = make_tagged_ins pop (-1) instr in
-        ins::acc ) *)
     | Some pos -> 
         if not (String.equal pos.pos_file_name source_name) then
           acc
