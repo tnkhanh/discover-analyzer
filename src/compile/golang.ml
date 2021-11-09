@@ -45,7 +45,7 @@ let compile_golang (filename : string) : LI.program =
   let _ = debug2 "Compiling Go file: " filename in
   let _ = debug2 "gollvm_path: " !gollvm_path in
   let dirname = Filename.dirname filename ^ Filename.dir_sep ^ "logs" in
-  let _ = Sys.mkdir_if_not_exists dirname in
+  let _ = Sys.make_dir dirname in
   let bitcode_filename = dirname ^ Filename.dir_sep ^ filename ^ ".raw.bc" in
   (* Code to compile Go file in OCaml
 

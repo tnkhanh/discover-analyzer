@@ -76,24 +76,21 @@ let optimize_bitcode (filename : string) : string =
   let _ = print2 "Optimize bitcode: " filename in
   let basename = Filename.chop_extension (Filename.basename filename) in
   let dirname = Filename.dirname filename in
-  let _ = Sys.mkdir_if_not_exists dirname in
+  let _ = Sys.make_dir dirname in
   let optimized_file = dirname ^ Filename.dir_sep ^ basename ^ ".opt.bc" in
   let _ =
-    let _ = Sys.remove_if_exists optimized_file in
-    let opt_user_options =
-      if String.is_empty !opt_user_options
-      then []
-      else String.split ~on:' ' !opt_user_options in
+    let _ = Sys.remove_file optimized_file in
     let cmd =
       [ !opt_path; "-mem2reg"; filename; "-o"; optimized_file ]
-      @ opt_user_options in
+      @ String.split ~on:' ' !opt_user_options in
+    let cmd = List.exclude ~f:String.is_empty cmd in
     let _ = debug ("Running llvm-opt:\n" ^ String.concat ~sep:" " cmd) in
     PS.run_command cmd in
   let output_file = dirname ^ Filename.dir_sep ^ basename ^ ".core.bc" in
   let _ =
     if !llvm_normalize
     then (
-      let _ = Sys.remove_if_exists output_file in
+      let _ = Sys.remove_file output_file in
       let cmd =
         [ !llvm_normalizer_path; optimized_file; "-o"; output_file ] in
       let _ =

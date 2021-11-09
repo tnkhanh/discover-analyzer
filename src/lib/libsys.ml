@@ -42,16 +42,23 @@ module Sys = struct
     res
   ;;
 
-  let remove_if_exists (filename : string) : unit =
-    match Sys.file_exists filename with
-    | `Yes -> Sys.remove filename
-    | _ -> ()
+  let is_os_unix () : bool = String.equal Sys.os_type "Unix"
+
+  let remove_dir (filename : string) : unit =
+    if is_os_unix ()
+    then ignore (Sys.command ("rm -rf " ^ filename))
+    else prerr_endline ("TODO: remove_dir: need to support " ^ Sys.os_type)
   ;;
 
-  let mkdir_if_not_exists (dirname : string) : unit =
+  let remove_file (filename : string) : unit =
+    if is_os_unix ()
+    then ignore (Sys.command ("rm -f " ^ filename))
+    else prerr_endline ("TODO: remove_file: need to support " ^ Sys.os_type)
+  ;;
+
+  let make_dir (dirname : string) : unit =
     match Sys.file_exists dirname with
-    | `No ->
-      ignore (Sys.command ("mkdir " ^ dirname))
+    | `No -> ignore (Sys.command ("mkdir -p " ^ dirname))
     | _ ->
       (match Sys.is_directory dirname with
       | `No ->
@@ -62,7 +69,6 @@ module Sys = struct
         exit 0
       | _ -> ())
   ;;
-
 
   (*-------------------------------------
    * Include the existing Sys library

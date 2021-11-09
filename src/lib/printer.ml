@@ -200,7 +200,7 @@ let print_core
           let indent = String.count_indent prefix + 2 + indent in
           prefix ^ "\n" ^ String.indent_line indent msg)
         else String.indent_line indent (String.align_line prefix msg) in
-    print_endline msg)
+    print_endline ("[info]" ^ msg))
   else ()
 ;;
 
@@ -229,6 +229,19 @@ let print2
     : unit
   =
   print_core ~ruler ~indent ~always ~format (msg1 ^ msg2)
+;;
+
+(** print a list of messages *)
+
+let prints
+      ?(ruler = `None)
+      ?(indent = 0)
+      ?(always = false)
+      ?(format = true)
+      (msgs : string list)
+  : unit
+  =
+  print_core ~ruler ~indent ~always ~format (String.concat msgs)
 ;;
 
 let println
