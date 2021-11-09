@@ -91,13 +91,20 @@ let rec get_coverage instr =
         let rec fold_opr acc idx =
           if idx = oprc then acc
           else
-            let opr = mk_instr (operand instr idx) in
-            let (opr_cov_start, opr_cov_end) = get_coverage opr in
-            match acc with 
-            | (acc_start, acc_end) ->
-                let new_start = min_lc opr_cov_start acc_start in
-                let new_end = max_lc opr_cov_end acc_end in
-                fold_opr (new_start, new_end) (idx+1) in
+            let opr_llvalue = operand instr idx in
+            match LL.classify_value opr_llvalue with
+            | LV.Instruction _ ->
+              let opr = mk_instr opr_llvalue in
+              let (opr_cov_start, opr_cov_end) = get_coverage opr in
+              begin
+              match acc with 
+              | (acc_start, acc_end) ->
+                  let new_start = min_lc opr_cov_start acc_start in
+                  let new_end = max_lc opr_cov_end acc_end in
+                  fold_opr (new_start, new_end) (idx+1)
+              end
+            | _ -> fold_opr acc (idx+1) in
+
         fold_opr init 0 in
 
       let _ = Hashtbl.add coverage ~key:instr ~data:cover in
@@ -163,7 +170,7 @@ let apply_annotation anntyp instr bugs modul=
            (Array.create ~len:1 inx) "" builder in ()
     )
 
-let rec update ins anns =
+let rec update (ins:instr_with_tag) anns =
   match anns with
   | [] -> []
   | hd_match::tl ->
@@ -171,7 +178,19 @@ let rec update ins anns =
     | (ann, ins_op) ->
       match ins_op with
       | None -> (ann, Some ins)::(update ins tl)
-      | Some old_ins -> (ann, Some (if old_ins.tag < ins.tag then ins else old_ins))::(update ins tl)
+      | Some old_ins -> 
+          let choose_ins =
+            let (old_start, old_end) = get_coverage old_ins.ins in
+            let (cstart, cend) = get_coverage ins.ins in
+            let start_comp = lc_comp old_start cstart in
+              if start_comp < 0 then old_ins else
+              if start_comp > 0 then ins else
+            let end_comp = lc_comp old_end cend in
+              if end_comp > 0 then old_ins else
+              if end_comp < 0 then ins else
+            if old_ins.tag < ins.tag then old_ins else
+            ins in
+          (ann, Some choose_ins)::(update ins tl)
 
 let apply_hd_bug end_ann (matched_anns: (Ann.mark * instr_with_tag option) list) modul =
   match matched_anns with
