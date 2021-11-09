@@ -77,43 +77,42 @@ let optimize_bitcode (filename : string) : string =
   let basename = Filename.chop_extension (Filename.basename filename) in
   let dirname = Filename.dirname filename in
   let _ = Sys.mkdir_if_not_exists dirname in
-  let opted_filename = dirname ^ Filename.dir_sep ^ basename ^ ".opt.bc" in
+  let optimized_file = dirname ^ Filename.dir_sep ^ basename ^ ".opt.bc" in
   let _ =
-    let _ = Sys.remove_if_exists opted_filename in
+    let _ = Sys.remove_if_exists optimized_file in
+    let opt_user_options =
+      if String.is_empty !opt_user_options
+      then []
+      else String.split ~on:' ' !opt_user_options in
     let cmd =
-      [ !opt_path ]
-      @ [ "-mem2reg" ]
-      (* "-instcombine" (\* simple algebraic simplification *\); *)
-      (* "-consthoist"; "-constprop"; *)
-      (* "--early-cse"; "--early-cse-memssa"; *)
-      @ [ filename; "-o"; opted_filename ]
-      @ String.split ~on:' ' !opt_user_options in
+      [ !opt_path; "-mem2reg"; filename; "-o"; optimized_file ]
+      @ opt_user_options in
     let _ = debug ("Running llvm-opt:\n" ^ String.concat ~sep:" " cmd) in
     PS.run_command cmd in
-  let output_filename = dirname ^ Filename.dir_sep ^ basename ^ ".core.bc" in
+  let output_file = dirname ^ Filename.dir_sep ^ basename ^ ".core.bc" in
   let _ =
     if !llvm_normalize
     then (
-      let _ = Sys.remove_if_exists output_filename in
+      let _ = Sys.remove_if_exists output_file in
       let cmd =
-        [ !llvm_normalizer_path; opted_filename; "-o"; output_filename ] in
+        [ !llvm_normalizer_path; optimized_file; "-o"; output_file ] in
       let _ =
         debug ("Running llvm-normalizer:\n" ^ String.concat ~sep:" " cmd) in
       PS.run_command cmd)
-    else PS.run_command [ "cp"; opted_filename; output_filename ] in
-  output_filename
+    else PS.run_command [ "cp"; optimized_file; output_file ] in
+  output_file
 ;;
 
 let compile_bitcode ann_marks source_name (filename : string) : LI.program =
   let _ = print_module_stats filename in
-  let output_filename = optimize_bitcode filename in
+  let output_file = optimize_bitcode filename in
   let llcontext = LL.create_context () in
-  let llmem = LL.MemoryBuffer.of_file output_filename in
+  let llmem = LL.MemoryBuffer.of_file output_file in
   let modul = Llvm_bitreader.parse_bitcode llcontext llmem in
   let _ =
     print_endline
       ("=======================================\n"
-      ^ output_filename
+      ^ output_file
       ^ LL.string_of_llmodule modul
       ^ "=======================================") in
   let _ = LL.MemoryBuffer.dispose llmem in
@@ -121,7 +120,7 @@ let compile_bitcode ann_marks source_name (filename : string) : LI.program =
     if !print_input_prog
     then hprint ~ruler:`Long "ORIGINAL BITCODE MODULE" LI.sprint_module modul
   in
-  process_module ann_marks source_name output_filename modul
+  process_module ann_marks source_name output_file modul
 ;;
 
 let compile_llir (filename : string) : LI.program =
