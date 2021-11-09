@@ -36,6 +36,12 @@ Development Guide
 
 # Coding convention:
 
+- Indentation should follow the rules of `ocp-indent`. See more settings in
+  `discover/.ocp-indent`.
+
+- Code format should follow `janestreet` style and settings in
+  `discover/.ocamlformat`.
+
 - Use only white-spaces for indentation, each indentation is 2 whitespaces
 
 - The length of each code line is at most 80 column.
@@ -45,6 +51,8 @@ Development Guide
   + Modules' names: Camel Case (`UpperCaseWithouthUnderscore`)
 
 - Use 2 blank lines between to separate functions.
+
+- [Coding convention](https://opensource.janestreet.com/standards/) from Jane Street.
 
 # Tutorials
 

@@ -1,4 +1,5 @@
 open Core
+open Libdiscover
 
 type bug_group =
   | MemoryLeak
@@ -9,7 +10,7 @@ type bug_group =
   | DivisionByZero
   | NewType of string
 
-type mark = 
+type mark =
     | Bug_start of (int * int) * (bug_group list)
     | Bug_end of (int * int)
     | Safe_start of (int * int) * (bug_group list)
@@ -24,9 +25,9 @@ let pos_of_ann (ann:mark) =
   | Safe_end p -> p
   | Skip -> (-1, -1)
 
-let pr_pos_ann ann =
+let sprint_pos_ann ann =
   let (line, col) = pos_of_ann ann in
-  (string_of_int line) ^ " " ^ (string_of_int col) 
+  (sprint_int line) ^ " " ^ (sprint_int col)
 
 type program = mark list
 
@@ -45,13 +46,13 @@ let str_of_bg_list l =
 
 let str_of_mark m =
   match m with
-  | Bug_start ((x, y), bl) -> "Bug_start " ^ (string_of_int x) ^ " " ^ (string_of_int y)
+  | Bug_start ((x, y), bl) -> "Bug_start " ^ (sprint_int x) ^ " " ^ (sprint_int y)
       ^ " " ^ (str_of_bg_list bl)
-  | Bug_end (x, y) -> "Bug_end " ^ (string_of_int x) ^ " " ^ (string_of_int y)
-  | Safe_start ((x, y), bl) -> "Safe_start " ^ (string_of_int x) ^ " " ^ (string_of_int y)
+  | Bug_end (x, y) -> "Bug_end " ^ (sprint_int x) ^ " " ^ (sprint_int y)
+  | Safe_start ((x, y), bl) -> "Safe_start " ^ (sprint_int x) ^ " " ^ (sprint_int y)
       ^ " " ^ (str_of_bg_list bl)
 
-  | Safe_end (x, y) -> "Safe_end " ^ (string_of_int x) ^ " " ^ (string_of_int y)
+  | Safe_end (x, y) -> "Safe_end " ^ (sprint_int x) ^ " " ^ (sprint_int y)
   | Skip -> "Skip_"
 
 (*let list_of_prog (p:prog) =

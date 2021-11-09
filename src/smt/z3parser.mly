@@ -10,14 +10,9 @@
  *******************************************************************)
 
 %{
-  open Globals
-open Lib
-open Sprinter
-open Printer
-open Debugger
-
-  open Z3ir
+open Z3ir
 %}
+
 
 (*******************************************************************
  ** Token
@@ -44,7 +39,7 @@ output:
   | SAT; output                         { Sat [] }
   | SAT; m=model; output                { Sat m }
   | UNK; output                         { Unk }
-  | msg=error_message; o=output         { Error msg }
+  | msg=error_message; output           { Error msg }
 
 error_message:
   | LPAREN; ERR; msg=STRING_LIT; RPAREN { msg }

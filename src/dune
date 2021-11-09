@@ -24,7 +24,11 @@
  ; (flags (:standard -w -3-27-28-32-33))
 
  ;; For develoment
+ ; (modes native)
  (modes byte)
- (flags (:standard -w -3-26-27-28-32-33 -g -annot))
+ (flags (:standard
+          -w -3+26-27-28+31-32+33+60+66
+          -warn-error +31+60+66
+          -g -annot))
 
  (link_flags (-linkall)))

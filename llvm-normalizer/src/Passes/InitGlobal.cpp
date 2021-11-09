@@ -70,7 +70,11 @@ void InitGlobal::uninlineAggregateInitValue(LLVMContext &ctx,
   if (initValue->isNullValue() || initValue->isZeroValue())
     return;
 
-  Align align = global->getAlign().getValue();
+  MaybeAlign mbAlign = global->getAlign();
+  if (!mbAlign.hasValue())
+    return;
+
+  Align align = mbAlign.getValue();
 
   // ConstExpr
   if (ConstantExpr *exprInit = dyn_cast<ConstantExpr>(initValue)) {

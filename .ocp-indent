@@ -61,8 +61,8 @@ ppx_stritem_ext = 2
 #          x)                      #        x)
 #        )                         #      )
 #      )                           #    )
-max_indent = none
-# max_indent = 4
+# max_indent = none
+max_indent = 2
 
 #
 #    INDENTATION TOGGLES
