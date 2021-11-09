@@ -314,15 +314,26 @@ let instrument_bug_annotation ann_marks source_name (modul: LL.llmodule) : unit 
       hprint ~ruler:`Short "Instruction" pr_str (LL.string_of_llvalue inx) 
   ) (List.rev tagged_ins) (*sorted_ins*) in
 
+  let _ = resolve ann_marks sorted_ins [] modul in
+
   let _ = hprint ~ruler:`Short "Sorted_ins" pr_str "" in
 
   let _ = List.iter tagged_ins ~f:(fun ins ->
-    match ins.ins with
-    | Instr inx ->
-      hprint "Ins" pr_str (LL.string_of_llvalue inx)
-  ) in
+    let ins_str =
+      match ins.ins with
+      | Instr inx -> LL.string_of_llvalue inx in
+    let cover = 
+      match Hashtbl.find coverage ins.ins with
+      | None -> "None"
+      | Some (lc_start, lc_end) ->
+       ((pr_int lc_start.line) ^ " " ^
+        (pr_int lc_start.col) ^ " " ^
+        (pr_int lc_end.line) ^ " " ^
+        (pr_int lc_end.col))
 
-  let _ = resolve ann_marks sorted_ins [] modul in
+    in
+        hprint "Ins" pr_str (ins_str ^ " " ^ cover)
+  ) in
   
   hprint ~ruler:`Long "Instrumented" pr_str (LL.string_of_llmodule modul)
 
