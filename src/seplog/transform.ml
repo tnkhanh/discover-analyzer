@@ -6,7 +6,7 @@
  ********************************************************************)
 
 open Core
-open Globals
+(* open Globals *)
 open Libdiscover
 module SA = Slast
 module SI = Slir

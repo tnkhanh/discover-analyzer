@@ -81,18 +81,18 @@ let optimize_bitcode (filename : string) : string =
   let _ =
     let _ = Sys.remove_file optimized_file in
     let cmd =
-      [ !opt_path; "-mem2reg"; filename; "-o"; optimized_file ]
+      [ !opt_path; filename; "-o"; optimized_file ]
+      @ [ "-mem2reg"; "--disable-verify" ]
       @ String.split ~on:' ' !opt_user_options in
     let cmd = List.exclude ~f:String.is_empty cmd in
-    let _ = debug ("Running llvm-opt:\n" ^ String.concat ~sep:" " cmd) in
+    (* let _ = debug ("Running llvm-opt:\n" ^ String.concat ~sep:" " cmd) in *)
     PS.run_command cmd in
   let output_file = dirname ^ Filename.dir_sep ^ basename ^ ".core.bc" in
   let _ =
     if !llvm_normalize
     then (
       let _ = Sys.remove_file output_file in
-      let cmd =
-        [ !llvm_normalizer_path; optimized_file; "-o"; output_file ] in
+      let cmd = [ !llvm_normalizer_path; optimized_file; "-o"; output_file ] in
       let _ =
         debug ("Running llvm-normalizer:\n" ^ String.concat ~sep:" " cmd) in
       PS.run_command cmd)

@@ -6,7 +6,7 @@
  ********************************************************************)
 
 open Core
-open Globals
+(* open Globals *)
 open Libdiscover
 open Debugger
 open Slir

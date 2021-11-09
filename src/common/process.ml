@@ -6,7 +6,6 @@
  ********************************************************************)
 
 open Core
-open Globals
 open Libdiscover
 
 let pid_dummy = -1000

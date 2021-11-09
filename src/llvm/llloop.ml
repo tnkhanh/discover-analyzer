@@ -6,7 +6,6 @@
  ********************************************************************)
 
 open Core
-open Globals
 open Libdiscover
 open Llir
 module LL = Llvm

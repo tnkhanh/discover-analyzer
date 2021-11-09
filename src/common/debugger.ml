@@ -116,7 +116,7 @@ let debug_core
           let indent = String.count_indent prefix + 2 + indent in
           prefix ^ "\n" ^ String.indent_line indent msg)
         else String.indent_line indent (String.align_line prefix msg) in
-    print_endline msg)
+    print_endline ("[debug] " ^ msg))
   else ()
 ;;
 

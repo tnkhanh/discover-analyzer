@@ -8,6 +8,7 @@
 open Core
 open Globals
 open Libdiscover
+open Source
 open Debugger
 open Slir
 open Bug
