@@ -7,9 +7,13 @@
 
 (include_subdirs unqualified)
 
+; (env (_ (flags :standard -w +60)))
+
 ;; binary
 (executable
  (name Discover)
+
+ ; (empty_module_interface_if_absent)
 
  (preprocess (pps ppx_compare ppx_sexp_conv
                   ppx_deriving.show ppx_deriving.ord ppx_deriving.eq

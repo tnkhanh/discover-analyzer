@@ -12,27 +12,12 @@ open Printer
 open Debugger
 module AG = Arguments
 module AS = Assertion
-module BG = Bug
 module CI = Commonir
 module DA = Dfanalyzer
-module DF = Dataflow
 module CP = Compile
-module LI = Llir
-module LL = Llvm
-module LU = Llutils
-module NO = Normalize
 module PS = Process
-module PV = Prover
-module SA = Slast
-module SI = Slir
-module TF = Transform
-module TI = Typeinfer
 module SE = Symexec
 module VS = Version
-
-module S = struct
-  let foo = 1
-end
 
 let print_discover_settings () =
   let _ = print ~always:true ("Checking file: " ^ !input_file) in

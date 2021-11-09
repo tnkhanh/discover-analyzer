@@ -36,6 +36,8 @@ let compile_solidity (filename : string) : LI.program =
       [ !solang_path; filename ]
       @ [ "--emit"; "llvm-bc" ]
       @ [ "-O"; "none"; "--target"; "ewasm" ]
+      @ [ "--no-constant-folding"; "--no-strength-reduce";
+          "--no-dead-storage"; "--no-vector-to-slice" ]
       @ [ "-o"; output_dir ]
       @ String.split ~on:' ' !solang_user_options in
     let cmd = List.exclude ~f:String.is_empty cmd in
