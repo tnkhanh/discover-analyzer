@@ -115,12 +115,12 @@ let extract_ann_marks (filename: string) =
   let rev_mark_list =
     try Annparser.prog Annlexer.read lexbuf with 
       Annparser.Error -> 
-        let _ = hdebug "Parsing failed. Annotations ignored in file: " pr_str filename in 
+        let _ = debug2 "Parsing failed. Annotations ignored in file: " filename in 
         [] in
 
   (*print all marks*)
-  let _ = hprint ~ruler:`Short "Annotations" pr_str "" in
-  let _ = List.iter (List.rev (List.map rev_mark_list ~f:Ann.str_of_mark)) ~f:(hprint "" pr_str) in
+  let _ = debug ~ruler:`Short "Annotations" in
+  let _ = List.iter (List.rev (List.map rev_mark_list ~f:Ann.str_of_mark)) ~f:debug in
   List.rev rev_mark_list
 ;;
 
@@ -162,7 +162,7 @@ let apply_annotation anntyp instr bugs modul=
       match assert_func_opt with
       | None -> ()
       | Some assert_func ->
-        let assert_ins = LL.build_call assert_func 
+        let _ = LL.build_call assert_func 
            (Array.create ~len:1 inx) "" builder in ()
     )
 ;;
@@ -294,7 +294,7 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule) : unit
      See module llsimp.ml, function elim_instr_intrinsic_lifetime ...
      for how to manipulating LLVM bitcode *)
 
-  let _ = hprint ~ruler:`Long "Uninstrumented" pr_str (LL.string_of_llmodule modul) in
+  let _ = debug2 ~ruler:`Long "Uninstrumented: "  (LL.string_of_llmodule modul) in
 
   let finstr = Some (fun acc instr ->
     let pos_op = LS.position_of_instr instr in
@@ -316,7 +316,7 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule) : unit
     else if Poly.(p1 < p2) then -1
     else 0 in
 
-  let _ = hprint ~ruler:`Medium "Tags" pr_str "" in
+  let _ = debug ~ruler:`Medium "Tags" in
 
   let sorted_ins = List.stable_sort ~compare tagged_ins in
   let llctx = LL.global_context () in
@@ -328,12 +328,13 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule) : unit
         match dbg with
         | None -> "None.."
         | Some d -> LL.string_of_llvalue d in
-      hprint ~ruler:`Short "Instruction" pr_str (LL.string_of_llvalue inx) 
+      debug2 ~ruler:`Short "Instruction: " 
+        (LL.string_of_llvalue inx ^ " " ^ dbg_str)
   ) (List.rev tagged_ins) (*sorted_ins*) in
 
   let _ = resolve ann_marks sorted_ins [] modul in
 
-  let _ = hprint ~ruler:`Short "Sorted_ins" pr_str "" in
+  let _ = debug ~ruler:`Short "Sorted_ins" in
 
   let _ = List.iter tagged_ins ~f:(fun ins ->
     let ins_str =
@@ -343,16 +344,16 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule) : unit
       match Hashtbl.find coverage ins.ins with
       | None -> "None"
       | Some (lc_start, lc_end) ->
-       ((pr_int lc_start.line) ^ " " ^
-        (pr_int lc_start.col) ^ " " ^
-        (pr_int lc_end.line) ^ " " ^
-        (pr_int lc_end.col))
+       ((sprint_int lc_start.line) ^ " " ^
+        (sprint_int lc_start.col) ^ " " ^
+        (sprint_int lc_end.line) ^ " " ^
+        (sprint_int lc_end.col))
 
     in
-        hprint "Ins" pr_str (ins_str ^ " " ^ cover)
+        debug2 "Ins: " (ins_str ^ " " ^ cover)
   ) in
   
-  hprint ~ruler:`Long "Instrumented" pr_str (LL.string_of_llmodule modul)
+  debug2 ~ruler:`Long "Instrumented" (LL.string_of_llmodule modul)
 
 ;;
 
