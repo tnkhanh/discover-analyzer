@@ -155,15 +155,23 @@ let get_func_name anntyp (bug : Ann.bug_group) ins =
 let apply_annotation anntyp instr bugs modul=
   match instr.ins with 
   | Instr inx ->
-    let insert_pos = LL.instr_succ inx in
+    (* if ins is store and first operand is trunc *)
+    let actual_ins =
+      if is_instr_store instr.ins then
+        let first_opr = operand instr.ins 0 in
+        match LL.instr_opcode first_opr with
+        | LO.Trunc -> first_opr
+        | _ -> inx
+      else inx in
+    let insert_pos = LL.instr_succ actual_ins in
     let builder = LL.builder_at (LL.module_context modul) insert_pos in
     List.iter bugs ~f:(fun bug ->
-      let assert_func_opt = LL.lookup_function (get_func_name anntyp bug inx) modul in
+      let assert_func_opt = LL.lookup_function (get_func_name anntyp bug actual_ins) modul in
       match assert_func_opt with
       | None -> ()
       | Some assert_func ->
         let _ = LL.build_call assert_func 
-           (Array.create ~len:1 inx) "" builder in ()
+           (Array.create ~len:1 actual_ins) "" builder in ()
     )
 ;;
 
@@ -350,8 +358,57 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule) : unit
         (sprint_int lc_end.col))
 
     in
-        debug2 "Ins: " (ins_str ^ " " ^ cover)
+
+    let llins = llvalue_of_instr ins.ins in
+    let args =
+      let num_args = LL.num_operands llins in
+      let rec fold_oprs acc idx =
+        if idx >= num_args then acc^"\n"
+        else
+          let opr = LL.operand llins idx in
+          fold_oprs (acc^"."^LL.string_of_llvalue opr) (idx+1)
+      in
+      fold_oprs "" 0 in
+(*  -- printing operands of instruction (args variable)
+ *  let llins = llvalue_of_instr ins.ins in
+    let args =
+      match LL.instr_opcode llins with
+      | LO.Call ->
+        let num_args = LL.num_arg_operands llins in
+        let rec fold_oprs acc idx =
+          if idx = num_args+1 then acc^"\n"
+          else
+            let opr = LL.operand llins idx in
+            let kind =
+              match LL.classify_value opr with
+              | MDNode -> 
+                let mdnode_oprs =
+                  LL.get_mdnode_operands opr in
+                Array.fold mdnode_oprs ~init:"MDNode!!" ~f:(fun acc mdo ->
+                  acc ^ " | " ^ LL.string_of_llvalue mdo)
+              | Instruction _ (*of Opcode.t *) ->"ins!"
+              | _ -> "x"
+            in
+            fold_oprs (acc^"\n.."^kind^": " ^ (LL.string_of_llvalue opr)) (idx+1)
+        in fold_oprs "" 0
+
+      | _ -> "" in *)
+        debug2 "Ins: " (ins_str ^ "..Args: " ^ args ^ ".." ^ cover)
   ) in
+
+(*  let strhash = Hashtbl.fold coverage ~init:"" ~f:(fun ~key ~data acc ->
+    let findx = Hashtbl.find coverage key in
+    let findstr = match findx with
+    | None -> "None"
+    | Some _ -> "Some" in
+    acc ^ (LL.string_of_llvalue (llvalue_of_instr key)) ^ " " ^ 
+      (match data with
+      | (st, fn) -> 
+        sprint_int st.line ^ " " ^ sprint_int st.col ^ " " ^
+        sprint_int fn.line ^ " " ^ sprint_int fn.col
+    ) ^ " " ^ findstr ^ "\n"
+  ) in
+  let _ = debug2 ~ruler:`Long "Hashtbl" strhash in *)
   
   debug2 ~ruler:`Long "Instrumented" (LL.string_of_llmodule modul)
 

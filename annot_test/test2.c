@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
 
   if (a > 10) a = 1234560;
 
-  x = /*@{Bug:IntegerOverflow*/ a * 10 /*@:Bug}*/;
+  /*@{Bug:IntegerOverflow*/ x = a * 10 /*@:Bug}*/;
 
   printf("%d\n", x);
 

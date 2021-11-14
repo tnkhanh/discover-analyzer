@@ -46,9 +46,9 @@ let process_module
       let _ =
         Sys.report_runtime ~task:"Time simplifying bitcode" (fun () ->
             LS.simplify_module filename modul) in
-      let _ =
+(*      let _ =
         Sys.report_runtime ~task:"Time instrumenting bitcode" (fun () ->
-            LT.instrument_bitcode ann_marks source_name modul) in
+            LT.instrument_bitcode ann_marks source_name modul) in *)
       (* (fun () -> LT.instrument_bitcode filename modul) in *)
       if !export_bitcode
       then (
@@ -109,12 +109,7 @@ let compile_bitcode ann_marks source_name (filename : string) : LI.program =
   let llcontext = LL.create_context () in
   let llmem = LL.MemoryBuffer.of_file output_file in
   let modul = Llvm_bitreader.parse_bitcode llcontext llmem in
-  let _ =
-    print_endline
-      ("=======================================\n"
-      ^ output_file
-      ^ LL.string_of_llmodule modul
-      ^ "=======================================") in
+  let _ = debug2 ~ruler:`Long "Opted" (LL.string_of_llmodule modul) in
   let _ = LL.MemoryBuffer.dispose llmem in
   let _ =
     if !print_input_prog
