@@ -132,9 +132,12 @@ let get_func_name anntyp (bug : Ann.bug_group) ins =
     | NullPointerDeref -> "__assert_null_pointer_deref"
     | BufferOverflow -> "__assert_buffer_overflow"
     | IntegerOverflow ->
-      if LL.integer_bitwidth (LL.type_of ins) = 64
-      then "__assert_bug_integer_overflow_i64"
-      else "__assert_bug_integer_overflow_i32"
+      let width = LL.integer_bitwidth (LL.type_of ins) in
+      if width = 64 then "__assert_bug_integer_overflow_i64" else
+      if width = 32 then "__assert_bug_integer_overflow_i32" else
+      if width = 16 then "__assert_bug_integer_overflow_i16" else
+      if width = 8 then "__assert_bug_integer_overflow_i8" else
+      "__assert_bug_integer_overflow_i1"
     | IntegerUnderflow -> "__assert_integer_underflow"
     | DivisionByZero -> "__assert_division_by_zero"
     | NewType t -> "__assert_unnamed_bug")
@@ -144,9 +147,12 @@ let get_func_name anntyp (bug : Ann.bug_group) ins =
     | NullPointerDeref -> "__refute_null_pointer_deref"
     | BufferOverflow -> "__refute_buffer_overflow"
     | IntegerOverflow ->
-      if LL.integer_bitwidth (LL.type_of ins) = 64
-      then "__refute_bug_integer_overflow_i64"
-      else "__refute_bug_integer_overflow_i32"
+      let width = LL.integer_bitwidth (LL.type_of ins) in
+      if width = 64 then "__refute_bug_integer_overflow_i64" else
+      if width = 32 then "__refute_bug_integer_overflow_i32" else
+      if width = 16 then "__refute_bug_integer_overflow_i16" else
+      if width = 8 then "__refute_bug_integer_overflow_i8" else
+      "__refute_bug_integer_overflow_i1"
     | IntegerUnderflow -> "__refute_integer_underflow"
     | DivisionByZero -> "__refute_division_by_zero"
     | NewType t -> "__refute_unnamed_bug")
