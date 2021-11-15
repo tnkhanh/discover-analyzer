@@ -168,7 +168,9 @@ let sprint_buggy_exps prog exps : string =
              match e with
              | Var v ->
                (match
-                  Hashtbl.find prog.LI.prog_llvalue_original_name (sprint_var v)
+                  Hashtbl.find
+                    prog.LI.prog_llvalue_original_name
+                    (sprint_var v)
                 with
                | None -> acc
                | Some v -> acc @ [ v ])
@@ -322,7 +324,8 @@ let encode_block_pre_state blk : view_form =
     then func |> LI.func_params |> List.map ~f:LI.llvalue_of_param
     else
       (func |> LI.func_params |> List.map ~f:LI.llvalue_of_param)
-      @ (func |> LI.local_vars_of_func |> List.map ~f:LI.llvalue_of_instr) in
+      @ (func |> LI.local_vars_of_func |> List.map ~f:LI.llvalue_of_instr)
+  in
   let args = List.map ~f:translate_llvalue llargs in
   mk_view vname args
 ;;

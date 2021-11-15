@@ -62,8 +62,7 @@ let read_output proc : string =
       (* let _ = hdebugc "Z3bin OUTPUT: " pr_str line in *)
       let nacc = acc @ [ line ] in
       if String.equal line z3eof then nacc else read nacc
-    with
-    | End_of_file -> read acc in
+    with End_of_file -> read acc in
   let output = [] |> read |> String.concat ~sep:"\n" in
   (* let _ = hdebugc "Z3bin OUTPUT FINAL: " pr_str output in *)
   output
@@ -76,8 +75,7 @@ let read_all_output proc : string =
       let () = debugc ("line: " ^ line) in
       let nacc = acc @ [ line ] in
       read nacc
-    with
-    | End_of_file -> acc in
+    with End_of_file -> acc in
   let res = String.concat ~sep:"\n" (read []) in
   (* let _ = hdebugc "Z3bin output: " pr_str res in *)
   res
@@ -119,7 +117,8 @@ module Z3SL = struct
     | Float f -> transform_float f
     | String s -> transform_string s
     | Var v -> transform_var v
-    | Cast (e, _, _) -> transform_exp e (* TODO: need to consider casted type *)
+    | Cast (e, _, _) ->
+      transform_exp e (* TODO: need to consider casted type *)
     | Func (Add, [ e1; e2 ], _) ->
       "(+ " ^ transform_exp e1 ^ " " ^ transform_exp e2 ^ ")"
     | Func (Sub, [ e1; e2 ], _) ->
@@ -140,7 +139,8 @@ module Z3SL = struct
     | BExp e -> transform_exp e
     | BEq (e, f) -> "(= " ^ transform_exp e ^ " " ^ transform_pure_form f ^ ")"
     | Reln (Eq, [ e1; e2 ]) ->
-      "(= " ^ transform_exp e1 ^ " " ^ transform_exp e2 ^ ")"
+      let se1, se2 = transform_exp e1, transform_exp e2 in
+      "(= " ^ se1 ^ " " ^ se2 ^ ")"
     | Reln (Ne, [ e1; e2 ]) ->
       "(not (= " ^ transform_exp e1 ^ " " ^ transform_exp e2 ^ "))"
     | Reln (Lt, [ e1; e2 ]) ->
@@ -151,15 +151,19 @@ module Z3SL = struct
       "(<= " ^ transform_exp e1 ^ " " ^ transform_exp e2 ^ ")"
     | Reln (Ge, [ e1; e2 ]) ->
       "(>= " ^ transform_exp e1 ^ " " ^ transform_exp e2 ^ ")"
-    | Reln (RName n, es) -> Printf.sprintf "(%s %s)" n (transform_exps es)
+    | Reln (RName n, es) -> "(" ^ n ^ " " ^ transform_exps es ^ ")"
     | Reln _ -> error "z3: transform_atom: unexpected relation: (need details)"
-    | PNeg f -> Printf.sprintf "(not %s)" (transform_pure_form f)
-    | PConj fs -> Printf.sprintf "(and %s)" (transform_forms fs)
-    | PDisj fs -> Printf.sprintf "(or %s)" (transform_forms fs)
+    | PNeg f -> sprintf "(not " ^ transform_pure_form f ^ ")"
+    | PConj fs -> "(and " ^ transform_forms fs ^ ")"
+    | PDisj fs -> "(or " ^ transform_forms fs ^ ")"
     | PForall (vs, g) ->
-      "(forall (" ^ transform_typed_vars vs ^ ") " ^ transform_pure_form g ^ ")"
+      let svs = transform_typed_vars vs in
+      let sg = transform_pure_form g in
+      "(forall (" ^ svs ^ ") " ^ sg ^ ")"
     | PExists (vs, g) ->
-      "(exists (" ^ transform_typed_vars vs ^ ") " ^ transform_pure_form g ^ ")"
+      let svs = transform_typed_vars vs in
+      let sg = transform_pure_form g in
+      "(exists (" ^ svs ^ ") " ^ sg ^ ")"
 
   and transform_forms fs =
     fs |> List.map ~f:transform_pure_form |> String.concat ~sep:" "
@@ -179,9 +183,7 @@ module Z3SL = struct
         |> String.concat ~sep:" " in
       let return_typ = fd.funcd_ret_typ |> transform_typ in
       "(declare-fun "
-      ^ fd.funcd_name
-      ^ (" (" ^ param_typs ^ ") ")
-      ^ return_typ
+      ^ (fd.funcd_name ^ (" (" ^ param_typs ^ ") ") ^ return_typ)
       ^ ")"
     | Some e ->
       let param_typs =
@@ -193,10 +195,7 @@ module Z3SL = struct
       let return_typ = transform_typ (SI.typ_of_exp e) in
       let body = transform_exp e in
       "(define-fun "
-      ^ fd.funcd_name
-      ^ (" (" ^ param_typs ^ ") ")
-      ^ return_typ
-      ^ " "
+      ^ (fd.funcd_name ^ (" (" ^ param_typs ^ ") ") ^ return_typ)
       ^ body
       ^ ")"
   ;;
@@ -289,11 +288,11 @@ module Z3SL = struct
           ~f:(fun acc (s, i) ->
             try
               let var =
-                List.find_exn ~f:(fun v -> String.equal (SI.sprint_var v) s) mvars
-              in
+                List.find_exn
+                  ~f:(fun v -> String.equal (SI.sprint_var v) s)
+                  mvars in
               acc @ [ var, SI.mk_exp_int i ]
-            with
-            | _ -> acc)
+            with _ -> acc)
           ~init:[]
           (norm_model model) in
       (* sort decreasingly *)
@@ -364,7 +363,8 @@ module Z3LL = struct
     match LL.classify_type t with
     | LL.TypeKind.Integer -> "Int"
     | LL.TypeKind.Pointer -> "Int" (* handle pointer as Int type *)
-    | _ -> herror "Z3LL.transform_lltype: need to handle type: " LI.sprint_type t
+    | _ ->
+      herror "Z3LL.transform_lltype: need to handle type: " LI.sprint_type t
   ;;
 
   let transform_llvalue (v : LI.llvalue) : string =
@@ -413,7 +413,8 @@ module Z3LL = struct
       |> List.exclude ~f:(fun v ->
              LI.is_llvalue_null_constant v || LI.is_llvalue_integer_constant v)
     in
-    let var_decls = vars |> List.map ~f:mk_var_decl |> String.concat ~sep:"\n" in
+    let var_decls =
+      vars |> List.map ~f:mk_var_decl |> String.concat ~sep:"\n" in
     let assertion = mk_assertion p in
     var_decls ^ "\n" ^ assertion
   ;;

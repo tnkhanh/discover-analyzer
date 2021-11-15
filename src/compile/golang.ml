@@ -37,7 +37,7 @@ let config_golang_compiler () =
       gollvm_path := String.sub go_path ~pos:0 ~len:(String.length go_path - 2)
     with _ -> ());
   if (not (String.equal !gollvm_path ""))
-  && not (String.is_suffix !gollvm_path ~suffix:"/")
+     && not (String.is_suffix !gollvm_path ~suffix:"/")
   then gollvm_path := !gollvm_path ^ "/"
 ;;
 
@@ -90,11 +90,11 @@ let compile_golang (filename : string) : LI.program =
   let go_build_output = dirname ^ Filename.dir_sep ^ filename ^ ".txt" in
   let _ =
     PS.run_command
-      [ script_name
-      ; filename
-      ; bitcode_filename
-      ; !gollvm_path ^ "go"
-      ; go_build_output
+      [ script_name;
+        filename;
+        bitcode_filename;
+        !gollvm_path ^ "go";
+        go_build_output
       ] in
   BC.compile_bitcode [] "" bitcode_filename
 ;;

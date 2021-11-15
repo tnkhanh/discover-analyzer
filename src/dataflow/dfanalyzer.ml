@@ -61,8 +61,7 @@ let perform_range_analysis (pdata : program_data) : program_data =
       if (not !print_concise_output) && !print_analyzed_prog
       then hprint ~ruler:`Header "RANGE INFO" RG.sprint_prog_env penv in
     { pdata with pdata_env_range = Some penv }
-  with
-  | ESkip -> pdata
+  with ESkip -> pdata
 ;;
 
 let perform_undef_analysis (pdata : program_data) : program_data =
@@ -76,8 +75,7 @@ let perform_undef_analysis (pdata : program_data) : program_data =
       if (not !print_concise_output) && !print_analyzed_prog
       then hprint ~ruler:`Header "UNDEF INFO" UA.sprint_prog_env penv in
     { pdata with pdata_env_undef = Some penv }
-  with
-  | ESkip -> pdata
+  with ESkip -> pdata
 ;;
 
 let perform_memsize_analysis (pdata : program_data) : program_data =
@@ -90,8 +88,7 @@ let perform_memsize_analysis (pdata : program_data) : program_data =
       if (not !print_concise_output) && !print_analyzed_prog
       then hprint ~ruler:`Header "MEMSIZE INFO" MS.sprint_prog_env penv in
     { pdata with pdata_env_memsize = Some penv }
-  with
-  | ESkip -> pdata
+  with ESkip -> pdata
 ;;
 
 let perform_pointer_analysis (pdata : program_data) : program_data =
@@ -105,8 +102,7 @@ let perform_pointer_analysis (pdata : program_data) : program_data =
       if (not !print_concise_output) && !print_analyzed_prog
       then hprint ~ruler:`Header "POINTER INFO" PA.sprint_prog_env penv in
     { pdata with pdata_env_pointer = Some penv }
-  with
-  | ESkip -> pdata
+  with ESkip -> pdata
 ;;
 
 let perform_main_analysis_passes (pdata : program_data) : program_data =

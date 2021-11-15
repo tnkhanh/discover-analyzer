@@ -27,7 +27,8 @@ let compile_solidity (filename : string) : LI.program =
   let _ = debug ("Compiling file: " ^ filename) in
   let contract_name = FN.basename filename in
   let output_dir =
-    FN.dirname filename ^ FN.dir_sep ^ "logs" ^ FN.dir_sep ^ contract_name in
+    FN.dirname filename ^ FN.dir_sep ^ "logs" ^ FN.dir_sep ^ contract_name
+  in
   let _ = debug2 "Output dir: " output_dir in
   let _ = Sys.remove_dir output_dir in
   let _ = Sys.make_dir output_dir in
@@ -36,19 +37,20 @@ let compile_solidity (filename : string) : LI.program =
       [ !solang_path; filename ]
       @ [ "--emit"; "llvm-bc" ]
       @ [ "-O"; "none"; "--target"; "ewasm" ]
-      @ [ "--no-constant-folding"; "--no-strength-reduce";
-          "--no-dead-storage"; "--no-vector-to-slice" ]
+      @ [ "--no-constant-folding";
+          "--no-strength-reduce";
+          "--no-dead-storage";
+          "--no-vector-to-slice"
+        ]
       @ [ "-o"; output_dir ]
       @ String.split ~on:' ' !solang_user_options in
     let cmd = List.exclude ~f:String.is_empty cmd in
-    let _ = debugs ["COMMAND: '"; (String.concat ~sep:" " cmd); "'"] in
+    let _ = debugs [ "COMMAND: '"; String.concat ~sep:" " cmd; "'" ] in
     PS.run_command cmd in
   let generated_files = Sys.ls_dir output_dir in
   let _ = hdebug "Generated files: " sprint_string_list generated_files in
   let deploy_file =
-    List.find
-      ~f:(String.is_suffix ~suffix:"_deploy.bc")
-      generated_files in
+    List.find ~f:(String.is_suffix ~suffix:"_deploy.bc") generated_files in
   match deploy_file with
   | None -> error "compile_solidity: no output file generated!"
   | Some deploy_file ->

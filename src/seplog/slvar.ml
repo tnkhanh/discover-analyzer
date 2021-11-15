@@ -60,13 +60,18 @@ let rec sprint_type (t : typ) : string =
 
 and sprint_types (ts : typ list) : string =
   sprint_list ~sep:" * " ~f:sprint_type ts
+;;
 
 let sprint_var (v : var) : string =
   let id, typ = v in
-  if not !print_type then sprint_id id else "(" ^ sprint_id id ^ ":" ^ sprint_type typ ^ ")"
+  if not !print_type
+  then sprint_id id
+  else "(" ^ sprint_id id ^ ":" ^ sprint_type typ ^ ")"
 ;;
 
-let sprint_vars (vs : var list) : string = sprint_list ~sep:"," ~f:sprint_var vs
+let sprint_vars (vs : var list) : string =
+  sprint_list ~sep:"," ~f:sprint_var vs
+;;
 
 (*******************************************************************
  ** Constructors

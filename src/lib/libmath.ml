@@ -36,7 +36,7 @@ module Math = struct
     | x :: xs -> List.fold_left ~f:(fun acc x' -> lcm acc x') ~init:x xs
   ;;
 
-    (** extract all possible combination of k elements from a list
+  (** extract all possible combination of k elements from a list
       reference: https://ocaml.org/learn/tutorials/99problems.html *)
   let gen_combinations (k : int) list =
     let rec aux k acc emit = function
@@ -81,8 +81,8 @@ module Math = struct
       | 0, _ -> [ [] ]
       | _, [] -> []
       | k, x :: xs ->
-        List.map ~f:(fun ys -> x :: ys) (gen_combs (k - 1) xxs) @ gen_combs k xs
-    in
+        List.map ~f:(fun ys -> x :: ys) (gen_combs (k - 1) xxs)
+        @ gen_combs k xs in
     gen_combs k list
   ;;
 

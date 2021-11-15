@@ -40,7 +40,7 @@ let compile_c_cpp (filename : string) : LI.program =
       @ [ "-emit-llvm"; "-c"; filename ]
       @ [ "-o"; output_filename ]
       @ (if !llvm_orig_source_name then [ "-g" ] else [])
-      @ (String.split ~on:' ' !clang_user_options) in
+      @ String.split ~on:' ' !clang_user_options in
     let _ = debug (String.concat ~sep:" " cmd) in
     PS.run_command cmd in
   let ann_marks = LT.extract_ann_marks filename in

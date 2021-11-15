@@ -78,7 +78,9 @@ let simplify_tauto_contra_f (f : formula) : formula * bool =
       mk_f_star nfs
     | Wand (f1, f2) ->
       let f1, f2 = simplify f1, simplify f2 in
-      if is_f_emp f1 || is_f_true f1 then return_changed f2 else mk_f_wand f1 f2
+      if is_f_emp f1 || is_f_true f1
+      then return_changed f2
+      else mk_f_wand f1 f2
     | Septract (f1, f2) -> mk_f_septract (simplify f1) (simplify f2)
     | Exists (vs, g) -> mk_f_exists vs (simplify g) in
   simplify f, !changed
@@ -249,17 +251,17 @@ let simplify_arith_p (f : pure_form) =
 ;;
 
 let simplify_arith_ad a =
-  { addr_base = simplify_arith_e a.addr_base
-  ; addr_elem = simplify_arith_e a.addr_elem
-  ; addr_field = simplify_arith_e a.addr_field
+  { addr_base = simplify_arith_e a.addr_base;
+    addr_elem = simplify_arith_e a.addr_elem;
+    addr_field = simplify_arith_e a.addr_field
   }
 ;;
 
 let simplify_arith_sf d =
   { d with
-    data_root = simplify_arith_e d.data_root
-  ; data_args = simplify_arith_es d.data_args
-  ; data_addr = Option.map ~f:simplify_arith_ad d.data_addr
+    data_root = simplify_arith_e d.data_root;
+    data_args = simplify_arith_es d.data_args;
+    data_addr = Option.map ~f:simplify_arith_ad d.data_addr
   }
 ;;
 
@@ -267,17 +269,17 @@ let simplify_arith_vf v = { v with view_args = simplify_arith_es v.view_args }
 
 let simplify_arith_if i =
   { i with
-    iter_base = simplify_arith_e i.iter_base
-  ; iter_element_index = simplify_arith_e i.iter_element_index
-  ; iter_begin = simplify_arith_e i.iter_begin
-  ; iter_end = simplify_arith_e i.iter_end
+    iter_base = simplify_arith_e i.iter_base;
+    iter_element_index = simplify_arith_e i.iter_element_index;
+    iter_begin = simplify_arith_e i.iter_begin;
+    iter_end = simplify_arith_e i.iter_end
   }
 ;;
 
 let simplify_arith_af a =
   { a with
-    array_root = simplify_arith_e a.array_root
-  ; array_size = simplify_arith_e a.array_size
+    array_root = simplify_arith_e a.array_root;
+    array_size = simplify_arith_e a.array_size
   }
 ;;
 

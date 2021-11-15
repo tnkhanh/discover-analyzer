@@ -20,12 +20,12 @@ module UA = Undef.UndefAnalysis
  *******************************************************************)
 
 type program_data =
-  { pdata_program : LI.program
-  ; pdata_potential_bugs : BG.bug list
-  ; pdata_env_memsize : MS.prog_env option
-  ; pdata_env_pointer : PA.prog_env option
-  ; pdata_env_range : RG.prog_env option
-  ; pdata_env_undef : UA.prog_env option
+  { pdata_program : LI.program;
+    pdata_potential_bugs : BG.bug list;
+    pdata_env_memsize : MS.prog_env option;
+    pdata_env_pointer : PA.prog_env option;
+    pdata_env_range : RG.prog_env option;
+    pdata_env_undef : UA.prog_env option
   }
 
 (*******************************************************************
@@ -33,11 +33,11 @@ type program_data =
  *******************************************************************)
 
 let mk_program_data (prog : LI.program) : program_data =
-  { pdata_program = prog
-  ; pdata_potential_bugs = []
-  ; pdata_env_memsize = None
-  ; pdata_env_pointer = None
-  ; pdata_env_range = None
-  ; pdata_env_undef = None
+  { pdata_program = prog;
+    pdata_potential_bugs = [];
+    pdata_env_memsize = None;
+    pdata_env_pointer = None;
+    pdata_env_range = None;
+    pdata_env_undef = None
   }
 ;;

@@ -6,6 +6,7 @@
  ********************************************************************)
 
 open Core
+
 (* open Libdiscover *)
 module LL = Llvm
 module LX = Lexing
@@ -203,7 +204,8 @@ let __init_globals = __init ^ "globals"
  * Time statistics
  *-----------------*)
 
-let detailed_task_time : (string * float) list ref = ref [] (* tasks and time *)
+let detailed_task_time : (string * float) list ref = ref []
+(* tasks and time *)
 
 let sparse_time : float ref = ref 0.0
 let analysis_time : float ref = ref 0.0

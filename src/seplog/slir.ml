@@ -40,9 +40,9 @@ type exp =
 [@@deriving equal]
 
 type addr_exp =
-  { addr_base : exp
-  ; addr_elem : exp
-  ; addr_field : exp
+  { addr_base : exp;
+    addr_elem : exp;
+    addr_field : exp
   }
 
 type exps = exp list
@@ -76,34 +76,34 @@ type pure_forms = pure_form list
 (*** basic data structure ***)
 
 type data_form =
-  { data_typ : typ
-  ; data_root : exp
-  ; data_args : exp list
-  ; data_addr : addr_exp option
+  { data_typ : typ;
+    data_root : exp;
+    data_args : exp list;
+    data_addr : addr_exp option
   }
 
 type view_form =
-  { view_name : string
-  ; view_args : exp list
+  { view_name : string;
+    view_args : exp list
   }
 
 type iter_form =
   { (* iterated separating conjunction *)
-    iter_base : exp
-  ; iter_element_index : exp
-  ; iter_running_index : var
-  ; iter_begin : exp
-  ; iter_end : exp
+    iter_base : exp;
+    iter_element_index : exp;
+    iter_running_index : var;
+    iter_begin : exp;
+    iter_end : exp
         (* iter_content : ?: *)
         (* TODO: how to model content? *)
   }
 
 type array_form =
-  { array_root : exp
-  ; array_size : exp
-  ; array_typ : typ
-  ; array_update : data_form list
-  ; (* update is always applied first *)
+  { array_root : exp;
+    array_size : exp;
+    array_typ : typ;
+    array_update : data_form list;
+    (* update is always applied first *)
     array_subtract : data_form list
   }
 
@@ -132,9 +132,9 @@ type formulas = formula list
 (*** entailments ***)
 
 type entailment =
-  { ent_id : int
-  ; ent_rhs : formula
-  ; ent_lhs : formula
+  { ent_id : int;
+    ent_rhs : formula;
+    ent_lhs : formula
   }
 
 type entailments = entailment list
@@ -148,45 +148,45 @@ type smt_result = bool option * (var * exp) list
  *******************************************************************)
 
 type func_defn =
-  { funcd_name : string
-  ; funcd_params : var list
-  ; funcd_body : exp option
-  ; funcd_ret_typ : typ
+  { funcd_name : string;
+    funcd_params : var list;
+    funcd_body : exp option;
+    funcd_ret_typ : typ
   }
 
 type reln_defn =
-  { relnd_name : string
-  ; relnd_params : var list
-  ; relnd_body : pure_form option
+  { relnd_name : string;
+    relnd_params : var list;
+    relnd_body : pure_form option
   }
 
 type data_defn =
-  { datad_typ : typ
-  ; datad_fields : (typ * string) list
+  { datad_typ : typ;
+    datad_fields : (typ * string) list
   }
 
 type view_defn_case =
-  { vdc_id : int
-  ; vdc_form : formula
-  ; vdc_is_base_case : bool
+  { vdc_id : int;
+    vdc_form : formula;
+    vdc_is_base_case : bool
   }
 
 type view_defn =
-  { viewd_name : string
-  ; viewd_params : var list
-  ; viewd_body : view_defn_case list
+  { viewd_name : string;
+    viewd_params : var list;
+    viewd_body : view_defn_case list
   }
 
 type proc_specs =
-  { psp_precond : formula
-  ; psp_postcond : formula
+  { psp_precond : formula;
+    psp_postcond : formula
   }
 
 type proc_defn =
-  { procd_name : string
-  ; procd_params : var list
-  ; procd_return_typ : typ
-  ; procd_specs : proc_specs list
+  { procd_name : string;
+    procd_params : var list;
+    procd_return_typ : typ;
+    procd_specs : proc_specs list
   }
 
 type command =
@@ -195,13 +195,13 @@ type command =
   | InferFrame of entailment
 
 type program =
-  { prog_file_name : string
-  ; prog_func_defns : func_defn list
-  ; prog_reln_defns : reln_defn list
-  ; prog_data_defns : data_defn list
-  ; prog_view_defns : view_defn list
-  ; prog_proc_defns : proc_defn list
-  ; prog_commands : command list
+  { prog_file_name : string;
+    prog_func_defns : func_defn list;
+    prog_reln_defns : reln_defn list;
+    prog_data_defns : data_defn list;
+    prog_view_defns : view_defn list;
+    prog_proc_defns : proc_defn list;
+    prog_commands : command list
   }
 
 (*******************************************************************
@@ -225,7 +225,9 @@ let rec sprint_exp (e : exp) : string =
   | Func (FName n, es, _) -> n ^ "(" ^ sprint_exps es ^ ")"
   | Func _ -> error "sprint_exp: unexpected exp: (need details)"
 
-and sprint_exps (es : exp list) : string = sprint_list ~sep:"," ~f:sprint_exp es
+and sprint_exps (es : exp list) : string =
+  sprint_list ~sep:"," ~f:sprint_exp es
+;;
 
 let sprint_reln_form (rf : reln_form) : string =
   match rf with
@@ -252,13 +254,20 @@ let rec sprint_pure_form (f : pure_form) : string =
   | BEq (e, p) -> sprint_exp e ^ "=" ^ "(" ^ sprint_pure_form p ^ ")"
   | PConj fs -> sprint_list ~sep:" & " ~f:pr_aux fs
   | PDisj fs -> sprint_list ~sep:" | " ~f:pr_aux fs
-  | PForall (vs, f) -> "(forall " ^ sprint_vars vs ^ ". " ^ sprint_pure_form f ^ ")"
-  | PExists (vs, f) -> "(exists " ^ sprint_vars vs ^ ". " ^ sprint_pure_form f ^ ")"
+  | PForall (vs, f) ->
+    "(forall " ^ sprint_vars vs ^ ". " ^ sprint_pure_form f ^ ")"
+  | PExists (vs, f) ->
+    "(exists " ^ sprint_vars vs ^ ". " ^ sprint_pure_form f ^ ")"
 
 and sprint_pf (f : pure_form) = sprint_pure_form f
-and sprint_pfs (fs : pure_forms) : string = sprint_list ~sep:"\n" ~f:sprint_pf fs
 
-let sprint_addr_form a = "(" ^ sprint_exp a.addr_base ^ "," ^ sprint_exp a.addr_elem ^ ")"
+and sprint_pfs (fs : pure_forms) : string =
+  sprint_list ~sep:"\n" ~f:sprint_pf fs
+;;
+
+let sprint_addr_form a =
+  "(" ^ sprint_exp a.addr_base ^ "," ^ sprint_exp a.addr_elem ^ ")"
+;;
 
 let sprint_data_form (d : data_form) : string =
   let addr =
@@ -275,14 +284,20 @@ let sprint_data_form (d : data_form) : string =
 ;;
 
 let sprint_df (s : data_form) = sprint_data_form s
-let sprint_dfs sfs : string = sprint_list ~obrace:"[" ~cbrace:"]" ~sep:", " ~f:sprint_df sfs
+
+let sprint_dfs sfs : string =
+  sprint_list ~obrace:"[" ~cbrace:"]" ~sep:", " ~f:sprint_df sfs
+;;
 
 let sprint_view_form (v : view_form) : string =
   v.view_name ^ "(" ^ sprint_exps v.view_args ^ ")"
 ;;
 
 let sprint_vf (v : view_form) = sprint_view_form v
-let sprint_vfs vfs : string = sprint_list ~obrace:"[" ~cbrace:"]" ~sep:", " ~f:sprint_vf vfs
+
+let sprint_vfs vfs : string =
+  sprint_list ~obrace:"[" ~cbrace:"]" ~sep:", " ~f:sprint_vf vfs
+;;
 
 let sprint_iter_form (i : iter_form) =
   "aiter("
@@ -372,7 +387,8 @@ let sprint_ents_ids (ents : entailments) : string =
 (*** print declarations ***)
 
 let sprint_func_defn (f : func_defn) : string =
-  let header = "func " ^ f.funcd_name ^ "(" ^ sprint_vars f.funcd_params ^ ") := " in
+  let header =
+    "func " ^ f.funcd_name ^ "(" ^ sprint_vars f.funcd_params ^ ") := " in
   let body =
     match f.funcd_body with
     | None -> "?"
@@ -381,7 +397,8 @@ let sprint_func_defn (f : func_defn) : string =
 ;;
 
 let sprint_reln_defn (r : reln_defn) : string =
-  let header = "rel " ^ r.relnd_name ^ "(" ^ sprint_vars r.relnd_params ^ ") := " in
+  let header =
+    "rel " ^ r.relnd_name ^ "(" ^ sprint_vars r.relnd_params ^ ") := " in
   let body =
     match r.relnd_body with
     | None -> "?"
@@ -397,10 +414,13 @@ let sprint_data_defn (d : data_defn) : string =
   "data " ^ sprint_type d.datad_typ ^ "{\n" ^ fields ^ "\n};"
 ;;
 
-let sprint_view_defn_case (vdc : view_defn_case) : string = sprint_f vdc.vdc_form
+let sprint_view_defn_case (vdc : view_defn_case) : string =
+  sprint_f vdc.vdc_form
+;;
 
 let sprint_view_defn (v : view_defn) : string =
-  let header = "view " ^ v.viewd_name ^ "(" ^ sprint_vars v.viewd_params ^ ") := " in
+  let header =
+    "view " ^ v.viewd_name ^ "(" ^ sprint_vars v.viewd_params ^ ") := " in
   let body =
     match v.viewd_body with
     | [] -> "?"
@@ -865,20 +885,20 @@ let mk_view name args = { view_name = name; view_args = args }
 (* array *)
 
 let mk_iter base index iter begin_iter end_iter =
-  { iter_base = base
-  ; iter_element_index = index
-  ; iter_running_index = iter
-  ; iter_begin = begin_iter
-  ; iter_end = end_iter
+  { iter_base = base;
+    iter_element_index = index;
+    iter_running_index = iter;
+    iter_begin = begin_iter;
+    iter_end = end_iter
   }
 ;;
 
 let mk_array ?(update = []) ?(subtract = []) root size etyp =
-  { array_root = root
-  ; array_size = size
-  ; array_typ = etyp
-  ; array_update = update
-  ; array_subtract = subtract
+  { array_root = root;
+    array_size = size;
+    array_typ = etyp;
+    array_update = update;
+    array_subtract = subtract
   }
 ;;
 
@@ -954,10 +974,10 @@ let mk_func_defn name params body =
     match body with
     | None -> TUnk
     | Some e -> typ_of_exp e in
-  { funcd_name = name
-  ; funcd_params = params
-  ; funcd_body = body
-  ; funcd_ret_typ = return_typ
+  { funcd_name = name;
+    funcd_params = params;
+    funcd_body = body;
+    funcd_ret_typ = return_typ
   }
 ;;
 
@@ -966,7 +986,10 @@ let mk_reln_defn name params body =
 ;;
 
 let mk_data_defn typ params = { datad_typ = typ; datad_fields = params }
-let mk_view_defn_case f = { vdc_id = -1; vdc_form = f; vdc_is_base_case = true }
+
+let mk_view_defn_case f =
+  { vdc_id = -1; vdc_form = f; vdc_is_base_case = true }
+;;
 
 let mk_view_defn name params body =
   { viewd_name = name; viewd_params = params; viewd_body = body }
@@ -978,13 +1001,13 @@ let mk_cmd_check_sat f = CheckSat f
 let mk_cmd_prove_entailments ents = ProveEntails ents
 
 let mk_program_empty () =
-  { prog_file_name = ""
-  ; prog_func_defns = []
-  ; prog_reln_defns = []
-  ; prog_data_defns = []
-  ; prog_view_defns = []
-  ; prog_proc_defns = []
-  ; prog_commands = []
+  { prog_file_name = "";
+    prog_func_defns = [];
+    prog_reln_defns = [];
+    prog_data_defns = [];
+    prog_view_defns = [];
+    prog_proc_defns = [];
+    prog_commands = []
   }
 ;;
 
@@ -1077,9 +1100,9 @@ let substitute_exp (sst : substitution) (e : exp) : exp =
 ;;
 
 let subst_addr_exp (sst : substitution) (a : addr_exp) =
-  { addr_base = substitute_exp sst a.addr_base
-  ; addr_elem = substitute_exp sst a.addr_elem
-  ; addr_field = substitute_exp sst a.addr_field
+  { addr_base = substitute_exp sst a.addr_base;
+    addr_elem = substitute_exp sst a.addr_elem;
+    addr_field = substitute_exp sst a.addr_field
   }
 ;;
 
@@ -1108,9 +1131,9 @@ let substitute_pure_form (sst : substitution) (p : pure_form) =
 
 let subst_data_form (sst : substitution) (d : data_form) =
   { d with
-    data_root = substitute_exp sst d.data_root
-  ; data_addr = Option.map ~f:(subst_addr_exp sst) d.data_addr
-  ; data_args = List.map ~f:(substitute_exp sst) d.data_args
+    data_root = substitute_exp sst d.data_root;
+    data_addr = Option.map ~f:(subst_addr_exp sst) d.data_addr;
+    data_args = List.map ~f:(substitute_exp sst) d.data_args
   }
 ;;
 
@@ -1120,17 +1143,17 @@ let substitute_view_form (sst : substitution) (v : view_form) =
 
 let substitute_iter_form (sst : substitution) (i : iter_form) =
   { i with
-    iter_base = substitute_exp sst i.iter_base
-  ; iter_element_index = substitute_exp sst i.iter_element_index
-  ; iter_begin = substitute_exp sst i.iter_begin
-  ; iter_end = substitute_exp sst i.iter_end
+    iter_base = substitute_exp sst i.iter_base;
+    iter_element_index = substitute_exp sst i.iter_element_index;
+    iter_begin = substitute_exp sst i.iter_begin;
+    iter_end = substitute_exp sst i.iter_end
   }
 ;;
 
 let substitute_array_form (sst : substitution) (a : array_form) =
   { a with
-    array_root = substitute_exp sst a.array_root
-  ; array_size = substitute_exp sst a.array_size
+    array_root = substitute_exp sst a.array_root;
+    array_size = substitute_exp sst a.array_size
   }
 ;;
 
@@ -1242,9 +1265,9 @@ let rename_exp (rnm : renaming) (e : exp) : exp =
 let rename_e = rename_exp
 
 let rename_addr_exp (rnm : renaming) (a : addr_exp) =
-  { addr_base = rename_e rnm a.addr_base
-  ; addr_elem = rename_e rnm a.addr_elem
-  ; addr_field = rename_e rnm a.addr_field
+  { addr_base = rename_e rnm a.addr_base;
+    addr_elem = rename_e rnm a.addr_elem;
+    addr_field = rename_e rnm a.addr_field
   }
 ;;
 
@@ -1267,9 +1290,9 @@ let rename_pf = rename_pure_form
 
 let rename_data_form (rnm : renaming) (d : data_form) =
   { d with
-    data_root = rename_e rnm d.data_root
-  ; data_args = List.map ~f:(rename_e rnm) d.data_args
-  ; data_addr = Option.map ~f:(rename_addr_exp rnm) d.data_addr
+    data_root = rename_e rnm d.data_root;
+    data_args = List.map ~f:(rename_e rnm) d.data_args;
+    data_addr = Option.map ~f:(rename_addr_exp rnm) d.data_addr
   }
 ;;
 
@@ -1284,10 +1307,10 @@ let rename_vf = rename_view_form
 let rename_iter_form (rnm : renaming) (i : iter_form) =
   let rnm = cancel_renaming rnm i.iter_running_index in
   { i with
-    iter_base = rename_e rnm i.iter_base
-  ; iter_element_index = rename_e rnm i.iter_element_index
-  ; iter_begin = rename_e rnm i.iter_begin
-  ; iter_end = rename_e rnm i.iter_end
+    iter_base = rename_e rnm i.iter_base;
+    iter_element_index = rename_e rnm i.iter_element_index;
+    iter_begin = rename_e rnm i.iter_begin;
+    iter_end = rename_e rnm i.iter_end
   }
 ;;
 
@@ -1295,8 +1318,8 @@ let rename_if = rename_iter_form
 
 let rename_array_form (rnm : renaming) (a : array_form) =
   { a with
-    array_root = rename_e rnm a.array_root
-  ; array_size = rename_e rnm a.array_size
+    array_root = rename_e rnm a.array_root;
+    array_size = rename_e rnm a.array_size
   }
 ;;
 
@@ -1321,8 +1344,8 @@ let rename_form (rnm : renaming) (f : formula) =
 let rename_f = rename_form
 
 let rename_spec (rnm : renaming) (spec : proc_specs) : proc_specs =
-  { psp_precond = rename_f rnm spec.psp_precond
-  ; psp_postcond = rename_f rnm spec.psp_postcond
+  { psp_precond = rename_f rnm spec.psp_precond;
+    psp_postcond = rename_f rnm spec.psp_postcond
   }
 ;;
 
@@ -1445,7 +1468,8 @@ let translate_llvalue (v : LL.llvalue) : exp =
       | TStruct _ | TPointer _ -> mk_exp_var_typ vname typ
       | TVoid -> mk_void ()
       | TUnk -> herror "translate_llvalue: unknown type of: " LI.sprint_value v
-      | _ -> herror "translate_llvalue: unhandled typ of" LI.sprint_value v in
+      | _ -> herror "translate_llvalue: unhandled typ of" LI.sprint_value v
+    in
     res)
 ;;
 
@@ -1484,7 +1508,8 @@ let extract_pure_form (f : formula) : pure_form =
   extract f
 ;;
 
-let mk_f_star_with ?(dfs = []) ?(vfs = []) ?(afs = []) ?(pfs = []) ?(fs = []) f =
+let mk_f_star_with ?(dfs = []) ?(vfs = []) ?(afs = []) ?(pfs = []) ?(fs = []) f
+  =
   let pfs = List.exclude ~f:is_pf_true pfs in
   let nfs =
     List.map ~f:f_of_data dfs
@@ -1495,7 +1520,8 @@ let mk_f_star_with ?(dfs = []) ?(vfs = []) ?(afs = []) ?(pfs = []) ?(fs = []) f 
   mk_f_star (f :: nfs)
 ;;
 
-let mk_f_wand_with ?(dfs = []) ?(vfs = []) ?(afs = []) ?(pfs = []) ?(fs = []) f =
+let mk_f_wand_with ?(dfs = []) ?(vfs = []) ?(afs = []) ?(pfs = []) ?(fs = []) f
+  =
   let pfs = List.exclude ~f:is_pf_true pfs in
   let nfs =
     List.map ~f:f_of_data dfs
@@ -1516,8 +1542,7 @@ let mk_eq_exps_pair (es1 : exps) (es2 : exps) : pure_form =
         es1
         es2 in
     mk_pconj pfs
-  with
-  | _ -> error "mk_eq_exps_pair: lists of different length"
+  with _ -> error "mk_eq_exps_pair: lists of different length"
 ;;
 
 (*******************************************************************

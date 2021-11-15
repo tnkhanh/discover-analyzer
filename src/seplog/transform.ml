@@ -6,6 +6,7 @@
  ********************************************************************)
 
 open Core
+
 (* open Globals *)
 open Libdiscover
 module SA = Slast
@@ -38,9 +39,9 @@ and transform_exps (es : SA.exp list) : SI.exp list =
 ;;
 
 let transform_addr_exp (a : SA.addr_exp) : SI.addr_exp =
-  { SI.addr_base = transform_exp a.SA.addr_base
-  ; SI.addr_elem = transform_exp a.SA.addr_elem
-  ; SI.addr_field = transform_exp a.SA.addr_field
+  { SI.addr_base = transform_exp a.SA.addr_base;
+    SI.addr_elem = transform_exp a.SA.addr_elem;
+    SI.addr_field = transform_exp a.SA.addr_field
   }
 ;;
 
@@ -62,7 +63,8 @@ let rec transform_formula (prog : SA.program) (f : SA.formula) : SI.formula =
     let p =
       match transform_formula prog f0 with
       | Pure p -> p
-      | _ -> herror "transform_formula: BEq: not a pure" SA.sprint_formula f in
+      | _ -> herror "transform_formula: BEq: not a pure" SA.sprint_formula f
+    in
     SI.mk_f_pure (SI.mk_beq (transform_exp e) p)
   | SA.Emp l -> SI.mk_emp ()
   | SA.BinRel (rel, e1, e2, _) ->
@@ -87,19 +89,22 @@ let rec transform_formula (prog : SA.program) (f : SA.formula) : SI.formula =
     let p =
       match transform_formula prog f0 with
       | SI.Pure p -> p
-      | _ -> herror "transform_formula: Neg: not a pure" SA.sprint_formula f in
+      | _ -> herror "transform_formula: Neg: not a pure" SA.sprint_formula f
+    in
     SI.mk_f_pure (SI.mk_pneg p)
   | SA.Conj (f1, f2) ->
     let p1, p2 =
       match transform_formula prog f1, transform_formula prog f2 with
       | SI.Pure p1, SI.Pure p2 -> p1, p2
-      | _ -> herror "transform_formula: Conj: not a pure" SA.sprint_formula f in
+      | _ -> herror "transform_formula: Conj: not a pure" SA.sprint_formula f
+    in
     SI.mk_f_pure (SI.mk_pconj [ p1; p2 ])
   | SA.Disj (f1, f2) ->
     let p1, p2 =
       match transform_formula prog f1, transform_formula prog f2 with
       | SI.Pure p1, SI.Pure p2 -> p1, p2
-      | _ -> herror "transform_formula: Disj: not a pure" SA.sprint_formula f in
+      | _ -> herror "transform_formula: Disj: not a pure" SA.sprint_formula f
+    in
     SI.mk_f_pure (SI.mk_pdisj [ p1; p2 ])
   | SA.Star (f1, f2) ->
     let f1, f2 = transform_formula prog f1, transform_formula prog f2 in
@@ -118,7 +123,8 @@ let rec transform_formula (prog : SA.program) (f : SA.formula) : SI.formula =
   | SA.Forall (vs, f0) ->
     (match transform_formula prog f0 with
     | SI.Pure p -> Pure (SI.mk_pforall vs p)
-    | g -> herror "transform_formula: Forall: expect pure: " SA.sprint_formula f)
+    | g ->
+      herror "transform_formula: Forall: expect pure: " SA.sprint_formula f)
   | SA.Exists (vs, f0) ->
     (match transform_formula prog f0 with
     | SI.Pure p -> Pure (SI.mk_pforall vs p)
@@ -136,10 +142,10 @@ let transform_entailment prog (ent : SA.entailment) : SI.entailment =
 ;;
 
 let transform_func_defn prog (fd : SA.func_defn) : SI.func_defn =
-  { SI.funcd_name = fd.SA.funcd_name
-  ; SI.funcd_params = fd.SA.funcd_params
-  ; SI.funcd_body = Option.map ~f:transform_exp fd.SA.funcd_body
-  ; SI.funcd_ret_typ = fd.SA.funcd_ret_typ
+  { SI.funcd_name = fd.SA.funcd_name;
+    SI.funcd_params = fd.SA.funcd_params;
+    SI.funcd_body = Option.map ~f:transform_exp fd.SA.funcd_body;
+    SI.funcd_ret_typ = fd.SA.funcd_ret_typ
   }
 ;;
 
@@ -156,7 +162,8 @@ let transform_pred_defn prog (pd : SA.pred_defn) =
     let body =
       match f with
       | SI.Pure p -> Some p
-      | _ -> herror "transform_pred_reln: not a pure body" SI.sprint_formula f in
+      | _ -> herror "transform_pred_reln: not a pure body" SI.sprint_formula f
+    in
     PReln (SI.mk_reln_defn name params body)
   | SA.PtReln, _ -> error ("transform_pred_reln: expect 1 body form: " ^ name)
   | SA.PtView, fs ->
@@ -172,10 +179,10 @@ let transform_proc_specs prog (sp : SA.proc_specs) : SI.proc_specs =
 
 let transform_proc_defn prog (pd : SA.proc_defn) =
   let specs = List.map ~f:(transform_proc_specs prog) pd.SA.procd_specs in
-  { SI.procd_name = pd.SA.procd_name
-  ; SI.procd_params = pd.SA.procd_params
-  ; SI.procd_return_typ = pd.SA.procd_return_typ
-  ; SI.procd_specs = specs
+  { SI.procd_name = pd.SA.procd_name;
+    SI.procd_params = pd.SA.procd_params;
+    SI.procd_return_typ = pd.SA.procd_return_typ;
+    SI.procd_specs = specs
   }
 ;;
 
@@ -200,12 +207,12 @@ let transform_program (prog : SA.program) : SI.program =
       prog.SA.prog_pred_defns in
   let procs = List.map ~f:(transform_proc_defn prog) prog.SA.prog_proc_defns in
   let cmds = List.map ~f:(transform_command prog) prog.SA.prog_commands in
-  { SI.prog_file_name = prog.SA.prog_file_name
-  ; SI.prog_func_defns = funcs
-  ; SI.prog_reln_defns = relns
-  ; SI.prog_data_defns = datas
-  ; SI.prog_view_defns = views
-  ; SI.prog_proc_defns = procs
-  ; SI.prog_commands = cmds
+  { SI.prog_file_name = prog.SA.prog_file_name;
+    SI.prog_func_defns = funcs;
+    SI.prog_reln_defns = relns;
+    SI.prog_data_defns = datas;
+    SI.prog_view_defns = views;
+    SI.prog_proc_defns = procs;
+    SI.prog_commands = cmds
   }
 ;;

@@ -49,8 +49,17 @@ let sprint_file_position_and_excerpt (p : position) =
     if lstart = lend && cstart = cend
     then sprint_int lstart ^ ":" ^ sprint_int cstart
     else
-      sprint_int lstart ^ ":" ^ sprint_int cstart ^ " ~> "
-      ^ sprint_int lend ^ ":" ^ sprint_int cend in
-  "File: " ^ fname ^ ", line/column position: " ^ line_column ^ "\n"
+      sprint_int lstart
+      ^ ":"
+      ^ sprint_int cstart
+      ^ " ~> "
+      ^ sprint_int lend
+      ^ ":"
+      ^ sprint_int cend in
+  "File: "
+  ^ fname
+  ^ ", line/column position: "
+  ^ line_column
+  ^ "\n"
   ^ sprint_file_excerpt fname lstart lend cstart cend
 ;;

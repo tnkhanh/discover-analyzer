@@ -122,7 +122,8 @@ let debug_core
 
 (** print a message *)
 
-let debug ?(ruler = `None) ?(indent = 0) ?(always = false) (msg : string) : unit
+let debug ?(ruler = `None) ?(indent = 0) ?(always = false) (msg : string)
+    : unit
   =
   let enable = (not !no_debug) && (!mode_debug || !mode_deep_debug || always) in
   let prefix = if ruler == `None then "\n" else "" in
@@ -146,7 +147,11 @@ let debug2
 
 (** print a list of messages *)
 
-let debugs ?(ruler = `None) ?(indent = 0) ?(always = false) (msgs : string list)
+let debugs
+    ?(ruler = `None)
+    ?(indent = 0)
+    ?(always = false)
+    (msgs : string list)
     : unit
   =
   let enable = (not !no_debug) && (!mode_debug || !mode_deep_debug || always) in
@@ -224,6 +229,7 @@ let hdebugc
 ;;
 
 (** high-order print a mode_debug message and a new line *)
+
 let hdebugln
     ?(ruler = `None)
     ?(indent = 0)
@@ -288,7 +294,8 @@ let hddebugln
 
 (** display choices and return a range *)
 
-let display_choices msg (pr_choice : 'a -> string) (choices : 'a list) : string =
+let display_choices msg (pr_choice : 'a -> string) (choices : 'a list) : string
+  =
   let all_choices =
     choices
     |> List.mapi ~f:(fun idx c ->

@@ -23,8 +23,8 @@ module SP = Set.Poly
 
 module UndefDomain = struct
   type undef =
-    { undef_pointers : llvalues
-    ; undef_values : llvalues
+    { undef_pointers : llvalues;
+      undef_values : llvalues
     }
 
   let mk_undef pointers values =
@@ -40,7 +40,10 @@ module UndefDomain = struct
 
   let equal_undef (ud1 : undef) (ud2 : undef) : bool =
     List.length ud1.undef_pointers = List.length ud2.undef_pointers
-    && List.is_subset ud1.undef_pointers ud2.undef_pointers ~equal:equal_llvalue
+    && List.is_subset
+         ud1.undef_pointers
+         ud2.undef_pointers
+         ~equal:equal_llvalue
     && List.length ud1.undef_pointers = List.length ud2.undef_pointers
     && List.is_subset ud1.undef_values ud2.undef_values ~equal:equal_llvalue
   ;;
@@ -94,7 +97,8 @@ module UndefData = struct
   type t = UD.undef
 end
 
-module UndefTransfer : DF.ForwardDataTransfer with type t = UndefData.t = struct
+module UndefTransfer : DF.ForwardDataTransfer with type t = UndefData.t =
+struct
   include UndefData
   include DF.MakeDefaultEnv (UndefData)
 

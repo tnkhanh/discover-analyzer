@@ -6,6 +6,7 @@
  ********************************************************************)
 
 open Core
+
 (* open Globals *)
 open Libdiscover
 open Debugger
@@ -52,8 +53,7 @@ let choose_rule_invalid_entail prog goal : rule list =
           | _ -> false)
         goal.gl_entail_cores in
     [ mk_rule_invalid_entail enc ]
-  with
-  | _ -> []
+  with _ -> []
 ;;
 
 (* normalization rules *)
@@ -156,8 +156,9 @@ let choose_rule_exists_left prog goal : rule list =
     | Exists (vs, g) ->
       need_simplify_f g || can_subst_vars vs (collect_eq_exp_f g) in
   let encs =
-    List.filter ~f:(fun enc -> need_simplify_f enc.enc_lhs) goal.gl_entail_cores
-  in
+    List.filter
+      ~f:(fun enc -> need_simplify_f enc.enc_lhs)
+      goal.gl_entail_cores in
   if List.is_empty encs then [] else [ mk_rule_exists_left encs ]
 ;;
 
@@ -187,8 +188,9 @@ let choose_rule_exists_right prog goal : rule list =
     | Exists (vs, g) ->
       need_simplify_f g || can_subst_vars vs (collect_eq_exp_f g) in
   let encs =
-    List.filter ~f:(fun enc -> need_simplify_f enc.enc_rhs) goal.gl_entail_cores
-  in
+    List.filter
+      ~f:(fun enc -> need_simplify_f enc.enc_rhs)
+      goal.gl_entail_cores in
   if List.is_empty encs then [] else [ mk_rule_exists_right encs ]
 ;;
 
@@ -204,8 +206,7 @@ let choose_rule_reln_left prog goal : rule list =
              ~f:(fun rd -> SP.exists ~f:(String.equal rd.relnd_name) rnames)
              prog.prog_reln_defns in
          [ mk_rule_reln_left rdefn enc ]
-       with
-      | _ -> find_rule encs) in
+       with _ -> find_rule encs) in
   find_rule goal.gl_entail_cores
 ;;
 
@@ -241,13 +242,13 @@ let choose_rule_wand_inner prog goal : rule list =
               ~f:(fun f1 ->
                 List.exists
                   ~f:(function
-                    | Wand (f2, _) -> equal_df_form f1 f2 || equal_vf_form f1 f2
+                    | Wand (f2, _) ->
+                      equal_df_form f1 f2 || equal_vf_form f1 f2
                     | _ -> false)
                   fs2)
               fs1 in
           [ f ]
-        with
-        | _ -> [] in
+        with _ -> [] in
       List.fold_left ~f:(fun acc f -> acc @ find_elim_form f) ~init:gs fs
     | Exists (_, g) -> find_elim_form g in
   let encs =
@@ -523,7 +524,8 @@ let choose_rule_empty_array_right prog goal : rule list =
               enc.enc_lst.fst_data_splits in
           let has_array_same_root =
             List.exists
-              ~f:(fun lasp -> equal_exp lasp.asp_head.array_root raf.array_root)
+              ~f:(fun lasp ->
+                equal_exp lasp.asp_head.array_root raf.array_root)
               enc.enc_lst.fst_array_splits in
           if (not has_data_same_root) && not has_array_same_root
           then acc @ [ mk_rule_empty_array_right enc raf rest evs ]
@@ -972,7 +974,8 @@ let process_rule_match_data pstate goal r : derivation =
           r.rmd_rhs_rest
           |> mk_f_star_with ~pfs:[ r.rmd_matching_form ]
           |> mk_f_exists r.rmd_rhs_evars in
-        let nenc = update_entail_core enc ~lhs:[ r.rmd_lhs_rest ] ~rhs:[ rhs ] in
+        let nenc =
+          update_entail_core enc ~lhs:[ r.rmd_lhs_rest ] ~rhs:[ rhs ] in
         acc @ [ nenc ] @ encs)
       else process encs (acc @ [ enc ]) in
   let encs = process goal.gl_entail_cores [] in
@@ -992,7 +995,8 @@ let process_rule_match_view pstate goal r : derivation =
           r.rmv_rhs_rest
           |> mk_f_star_with ~pfs:[ r.rmv_matching_form ]
           |> mk_f_exists r.rmv_rhs_evars in
-        let nenc = update_entail_core enc ~lhs:[ r.rmv_lhs_rest ] ~rhs:[ rhs ] in
+        let nenc =
+          update_entail_core enc ~lhs:[ r.rmv_lhs_rest ] ~rhs:[ rhs ] in
         acc @ [ nenc ] @ encs)
       else process encs (acc @ [ enc ]) in
   let encs = process goal.gl_entail_cores [] in
@@ -1012,7 +1016,8 @@ let process_rule_match_array pstate goal r : derivation =
           r.rma_rhs_rest
           |> mk_f_star_with ~pfs:[ r.rma_matching_form ]
           |> mk_f_exists r.rma_rhs_evars in
-        let nenc = update_entail_core enc ~lhs:[ r.rma_lhs_rest ] ~rhs:[ rhs ] in
+        let nenc =
+          update_entail_core enc ~lhs:[ r.rma_lhs_rest ] ~rhs:[ rhs ] in
         acc @ [ nenc ] @ encs)
       else process encs (acc @ [ enc ]) in
   let encs = process goal.gl_entail_cores [] in
@@ -1084,20 +1089,17 @@ let process_one_rule pstate goal rule : derivation =
 
 let compare_rule_unfold_head_vs_unfold_head pstate goal r1 r2 =
   try (* default *)
-      PrioEqual with
-  | EPrio p -> p
+      PrioEqual with EPrio p -> p
 ;;
 
 let compare_rule_unfold_head_vs_unfold_view_left pstate goal r1 r2 =
   try (* default *)
-      PrioHigh with
-  | EPrio p -> p
+      PrioHigh with EPrio p -> p
 ;;
 
 let compare_rule_unfold_head_vs_unfold_view_right pstate goal r1 r2 =
   try (* default *)
-      PrioLow with
-  | EPrio p -> p
+      PrioLow with EPrio p -> p
 ;;
 
 let compare_rule_unfold_head_vs_match_data pstate goal r1 r2 =
@@ -1105,44 +1107,41 @@ let compare_rule_unfold_head_vs_match_data pstate goal r1 r2 =
     if r2.rmd_same_root then raise_prio PrioLow;
     (* default *)
     PrioEqual
-  with
-  | EPrio p -> p
+  with EPrio p -> p
 ;;
 
 let compare_rule_unfold_head_vs_match_view pstate goal r1 r2 =
   try (* default *)
-      PrioEqual with
-  | EPrio p -> p
+      PrioEqual with EPrio p -> p
 ;;
 
 let compare_rule_unfold_head_vs_match_array pstate goal r1 r2 =
   try (* default *)
-      PrioEqual with
-  | EPrio p -> p
+      PrioEqual with EPrio p -> p
 ;;
 
 let compare_rule_unfold_head_vs_subtract_data pstate goal r1 r2 =
   try (* default *)
-      PrioEqual with
-  | EPrio p -> p
+      PrioEqual with EPrio p -> p
 ;;
 
 let compare_rule_unfold_head_vs_empty_array_right pstate goal r1 r2 =
   try (* default *)
-      PrioLow with
-  | EPrio p -> p
+      PrioLow with EPrio p -> p
 ;;
 
 let compare_rule_unfold_head_vs_others pstate goal r1 r2 =
   match r2 with
-  | RlUnfoldHead r2 -> compare_rule_unfold_head_vs_unfold_head pstate goal r1 r2
+  | RlUnfoldHead r2 ->
+    compare_rule_unfold_head_vs_unfold_head pstate goal r1 r2
   | RlUnfoldViewLeft r2 ->
     compare_rule_unfold_head_vs_unfold_view_left pstate goal r1 r2
   | RlUnfoldViewRight r2 ->
     compare_rule_unfold_head_vs_unfold_view_right pstate goal r1 r2
   | RlMatchData r2 -> compare_rule_unfold_head_vs_match_data pstate goal r1 r2
   | RlMatchView r2 -> compare_rule_unfold_head_vs_match_view pstate goal r1 r2
-  | RlMatchArray r2 -> compare_rule_unfold_head_vs_match_array pstate goal r1 r2
+  | RlMatchArray r2 ->
+    compare_rule_unfold_head_vs_match_array pstate goal r1 r2
   | RlSubtractData r2 ->
     compare_rule_unfold_head_vs_subtract_data pstate goal r1 r2
   | RlEmptyArrayRight r2 ->
@@ -1158,14 +1157,12 @@ let compare_rule_unfold_view_left_vs_unfold_head pstate goal r1 r2 =
 
 let compare_rule_unfold_view_left_vs_unfold_view_left pstate goal r1 r2 =
   try (* default *)
-      PrioEqual with
-  | EPrio p -> p
+      PrioEqual with EPrio p -> p
 ;;
 
 let compare_rule_unfold_view_left_vs_unfold_view_right pstate goal r1 r2 =
   try (* default *)
-      PrioLow with
-  | EPrio p -> p
+      PrioLow with EPrio p -> p
 ;;
 
 let compare_rule_unfold_view_left_vs_match_data pstate goal r1 r2 =
@@ -1173,32 +1170,27 @@ let compare_rule_unfold_view_left_vs_match_data pstate goal r1 r2 =
     if r2.rmd_same_root then raise_prio PrioLow;
     (* default *)
     PrioEqual
-  with
-  | EPrio p -> p
+  with EPrio p -> p
 ;;
 
 let compare_rule_unfold_view_left_vs_match_view pstate goal r1 r2 =
   try (* default *)
-      PrioEqual with
-  | EPrio p -> p
+      PrioEqual with EPrio p -> p
 ;;
 
 let compare_rule_unfold_view_left_vs_match_array pstate goal r1 r2 =
   try (* default *)
-      PrioEqual with
-  | EPrio p -> p
+      PrioEqual with EPrio p -> p
 ;;
 
 let compare_rule_unfold_view_left_vs_subtract_data pstate goal r1 r2 =
   try (* default *)
-      PrioLow with
-  | EPrio p -> p
+      PrioLow with EPrio p -> p
 ;;
 
 let compare_rule_unfold_view_left_vs_empty_array_right pstate goal r1 r2 =
   try (* default *)
-      PrioLow with
-  | EPrio p -> p
+      PrioLow with EPrio p -> p
 ;;
 
 let compare_rule_unfold_view_left_vs_others pstate goal r1 r2 =
@@ -1219,7 +1211,8 @@ let compare_rule_unfold_view_left_vs_others pstate goal r1 r2 =
     compare_rule_unfold_view_left_vs_subtract_data pstate goal r1 r2
   | RlEmptyArrayRight r2 ->
     compare_rule_unfold_view_left_vs_empty_array_right pstate goal r1 r2
-  | _ -> herror "compare_rule_unfold_view_left_vs_others: not expect" pr_rule r2
+  | _ ->
+    herror "compare_rule_unfold_view_left_vs_others: not expect" pr_rule r2
 ;;
 
 (*** compare rule unfold view right with others ***)
@@ -1235,8 +1228,7 @@ let compare_rule_unfold_view_right_vs_unfold_view_left pstate goal r1 r2 =
 
 let compare_rule_unfold_view_right_vs_unfold_view_right pstate goal r1 r2 =
   try (* default *)
-      PrioEqual with
-  | EPrio p -> p
+      PrioEqual with EPrio p -> p
 ;;
 
 let compare_rule_unfold_view_right_vs_match_data pstate goal r1 r2 =
@@ -1244,32 +1236,27 @@ let compare_rule_unfold_view_right_vs_match_data pstate goal r1 r2 =
     if r2.rmd_same_root then raise_prio PrioLow;
     (* default *)
     PrioEqual
-  with
-  | EPrio p -> p
+  with EPrio p -> p
 ;;
 
 let compare_rule_unfold_view_right_vs_match_view pstate goal r1 r2 =
   try (* default *)
-      PrioEqual with
-  | EPrio p -> p
+      PrioEqual with EPrio p -> p
 ;;
 
 let compare_rule_unfold_view_right_vs_match_array pstate goal r1 r2 =
   try (* default *)
-      PrioEqual with
-  | EPrio p -> p
+      PrioEqual with EPrio p -> p
 ;;
 
 let compare_rule_unfold_view_right_vs_subtract_data pstate goal r1 r2 =
   try (* default *)
-      PrioLow with
-  | EPrio p -> p
+      PrioLow with EPrio p -> p
 ;;
 
 let compare_rule_unfold_view_right_vs_empty_array_right pstate goal r1 r2 =
   try (* default *)
-      PrioLow with
-  | EPrio p -> p
+      PrioLow with EPrio p -> p
 ;;
 
 let compare_rule_unfold_view_right_vs_others pstate goal r1 r2 =
@@ -1315,8 +1302,7 @@ let compare_rule_match_data_vs_match_data pstate goal r1 r2 =
     if (not r1.rmd_same_root) && r2.rmd_same_root then raise_prio PrioLow;
     (* default *)
     PrioEqual
-  with
-  | EPrio p -> p
+  with EPrio p -> p
 ;;
 
 let compare_rule_match_data_vs_match_view pstate goal r1 r2 =
@@ -1325,8 +1311,7 @@ let compare_rule_match_data_vs_match_view pstate goal r1 r2 =
     if r2.rmv_same_args then raise_prio PrioLow;
     (* default *)
     PrioEqual
-  with
-  | EPrio p -> p
+  with EPrio p -> p
 ;;
 
 let compare_rule_match_data_vs_match_array pstate goal r1 r2 =
@@ -1335,8 +1320,7 @@ let compare_rule_match_data_vs_match_array pstate goal r1 r2 =
     if r2.rma_same_args then raise_prio PrioLow;
     (* default *)
     PrioEqual
-  with
-  | EPrio p -> p
+  with EPrio p -> p
 ;;
 
 let compare_rule_match_data_vs_subtract_data pstate goal r1 r2 =
@@ -1344,14 +1328,12 @@ let compare_rule_match_data_vs_subtract_data pstate goal r1 r2 =
     if r1.rmd_same_root then raise_prio PrioHigh;
     (* default *)
     PrioLow
-  with
-  | EPrio p -> p
+  with EPrio p -> p
 ;;
 
 let compare_rule_match_data_vs_empty_array_right pstate goal r1 r2 =
   try (* default *)
-      PrioLow with
-  | EPrio p -> p
+      PrioLow with EPrio p -> p
 ;;
 
 let compare_rule_match_data_vs_others pstate goal r1 r2 =
@@ -1391,26 +1373,22 @@ let compare_rule_match_view_vs_match_data pstate goal r1 r2 =
 
 let compare_rule_match_view_vs_match_view pstate goal r1 r2 =
   try (* default *)
-      PrioEqual with
-  | EPrio p -> p
+      PrioEqual with EPrio p -> p
 ;;
 
 let compare_rule_match_view_vs_match_array pstate goal r1 r2 =
   try (* default *)
-      PrioEqual with
-  | EPrio p -> p
+      PrioEqual with EPrio p -> p
 ;;
 
 let compare_rule_match_view_vs_subtract_data pstate goal r1 r2 =
   try (* default *)
-      PrioLow with
-  | EPrio p -> p
+      PrioLow with EPrio p -> p
 ;;
 
 let compare_rule_match_view_vs_empty_array_right pstate goal r1 r2 =
   try (* default *)
-      PrioLow with
-  | EPrio p -> p
+      PrioLow with EPrio p -> p
 ;;
 
 let compare_rule_match_view_vs_others pstate goal r1 r2 =
@@ -1454,32 +1432,31 @@ let compare_rule_match_array_vs_match_view pstate goal r1 r2 =
 
 let compare_rule_match_array_vs_match_array pstate goal r1 r2 =
   try (* default *)
-      PrioEqual with
-  | EPrio p -> p
+      PrioEqual with EPrio p -> p
 ;;
 
 let compare_rule_match_array_vs_subtract_data pstate goal r1 r2 =
   try (* default *)
-      PrioLow with
-  | EPrio p -> p
+      PrioLow with EPrio p -> p
 ;;
 
 let compare_rule_match_array_vs_empty_array_right pstate goal r1 r2 =
   try (* default *)
-      PrioLow with
-  | EPrio p -> p
+      PrioLow with EPrio p -> p
 ;;
 
 let compare_rule_match_array_vs_others pstate goal r1 r2 =
   match r2 with
-  | RlUnfoldHead r2 -> compare_rule_match_array_vs_unfold_head pstate goal r1 r2
+  | RlUnfoldHead r2 ->
+    compare_rule_match_array_vs_unfold_head pstate goal r1 r2
   | RlUnfoldViewLeft r2 ->
     compare_rule_match_array_vs_unfold_view_left pstate goal r1 r2
   | RlUnfoldViewRight r2 ->
     compare_rule_match_array_vs_unfold_view_right pstate goal r1 r2
   | RlMatchData r2 -> compare_rule_match_array_vs_match_data pstate goal r1 r2
   | RlMatchView r2 -> compare_rule_match_array_vs_match_view pstate goal r1 r2
-  | RlMatchArray r2 -> compare_rule_match_array_vs_match_array pstate goal r1 r2
+  | RlMatchArray r2 ->
+    compare_rule_match_array_vs_match_array pstate goal r1 r2
   | RlSubtractData r2 ->
     compare_rule_match_array_vs_subtract_data pstate goal r1 r2
   | RlEmptyArrayRight r2 ->
@@ -1515,14 +1492,12 @@ let compare_rule_subtract_data_vs_match_array pstate goal r1 r2 =
 
 let compare_rule_subtract_data_vs_subtract_data pstate goal r1 r2 =
   try (* default *)
-      PrioEqual with
-  | EPrio p -> p
+      PrioEqual with EPrio p -> p
 ;;
 
 let compare_rule_subtract_data_vs_empty_array_right pstate goal r1 r2 =
   try (* default *)
-      PrioLow with
-  | EPrio p -> p
+      PrioLow with EPrio p -> p
 ;;
 
 let compare_rule_subtract_data_vs_others pstate goal r1 r2 =
@@ -1533,8 +1508,10 @@ let compare_rule_subtract_data_vs_others pstate goal r1 r2 =
     compare_rule_subtract_data_vs_unfold_view_left pstate goal r1 r2
   | RlUnfoldViewRight r2 ->
     compare_rule_subtract_data_vs_unfold_view_right pstate goal r1 r2
-  | RlMatchData r2 -> compare_rule_subtract_data_vs_match_data pstate goal r1 r2
-  | RlMatchView r2 -> compare_rule_subtract_data_vs_match_view pstate goal r1 r2
+  | RlMatchData r2 ->
+    compare_rule_subtract_data_vs_match_data pstate goal r1 r2
+  | RlMatchView r2 ->
+    compare_rule_subtract_data_vs_match_view pstate goal r1 r2
   | RlMatchArray r2 ->
     compare_rule_subtract_data_vs_match_array pstate goal r1 r2
   | RlSubtractData r2 ->
@@ -1578,8 +1555,7 @@ let compare_rule_empty_array_right_vs_subtract_data pstate goal r1 r2 =
 
 let compare_rule_empty_array_right_vs_empty_array_right pstate goal r1 r2 =
   try (* default *)
-      PrioEqual with
-  | EPrio p -> p
+      PrioEqual with EPrio p -> p
 ;;
 
 let compare_rule_empty_array_right_vs_others pstate goal r1 r2 =
@@ -1639,8 +1615,7 @@ let is_rule_unfold_head_useless pstate goal rules r =
     if List.exists ~f:is_rule_apply_early rules then raise_bool true;
     (* default *)
     false
-  with
-  | EBool res -> res
+  with EBool res -> res
 ;;
 
 let is_rule_unfold_view_left_useless pstate goal rules r =
@@ -1648,8 +1623,7 @@ let is_rule_unfold_view_left_useless pstate goal rules r =
     if List.exists ~f:is_rule_apply_early rules then raise_bool true;
     (* default *)
     false
-  with
-  | EBool res -> res
+  with EBool res -> res
 ;;
 
 let is_rule_unfold_view_right_useless pstate goal rules r =
@@ -1657,8 +1631,7 @@ let is_rule_unfold_view_right_useless pstate goal rules r =
     if List.exists ~f:is_rule_apply_early rules then raise_bool true;
     (* default *)
     false
-  with
-  | EBool res -> res
+  with EBool res -> res
 ;;
 
 let is_rule_match_data_useless pstate goal rules r =
@@ -1667,8 +1640,7 @@ let is_rule_match_data_useless pstate goal rules r =
     if List.exists ~f:is_rule_apply_early rules then raise_bool true;
     (* default *)
     false
-  with
-  | EBool res -> res
+  with EBool res -> res
 ;;
 
 let is_rule_match_view_useless pstate goal rules r =
@@ -1677,8 +1649,7 @@ let is_rule_match_view_useless pstate goal rules r =
     if List.exists ~f:is_rule_apply_early rules then raise_bool true;
     (* default *)
     false
-  with
-  | EBool res -> res
+  with EBool res -> res
 ;;
 
 let is_rule_match_array_useless pstate goal rules r =
@@ -1687,15 +1658,15 @@ let is_rule_match_array_useless pstate goal rules r =
     if List.exists ~f:is_rule_apply_early rules then raise_bool true;
     (* default *)
     false
-  with
-  | EBool res -> res
+  with EBool res -> res
 ;;
 
 let is_rule_useless pstate goal rules rule =
   match rule with
   | RlUnfoldHead r -> is_rule_unfold_head_useless pstate goal rules r
   | RlUnfoldViewLeft r -> is_rule_unfold_view_left_useless pstate goal rules r
-  | RlUnfoldViewRight r -> is_rule_unfold_view_right_useless pstate goal rules r
+  | RlUnfoldViewRight r ->
+    is_rule_unfold_view_right_useless pstate goal rules r
   | RlMatchData r -> is_rule_match_data_useless pstate goal rules r
   | RlMatchView r -> is_rule_match_view_useless pstate goal rules r
   | RlMatchArray r -> is_rule_match_array_useless pstate goal rules r

@@ -45,7 +45,8 @@ let open_process cmd : in_channel * out_channel * in_channel * int =
     match Unix.fork () with
     | `In_the_child ->
       (* NOTE: the flag "close_on_exec" might affect reading output/error *)
-      let () = Unix.dup2 ~src:out_read ~dst:Unix.stdin ~close_on_exec:false () in
+      let () =
+        Unix.dup2 ~src:out_read ~dst:Unix.stdin ~close_on_exec:false () in
       let () =
         Unix.dup2 ~src:in_write ~dst:Unix.stdout ~close_on_exec:false () in
       let () =

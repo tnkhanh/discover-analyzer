@@ -167,13 +167,14 @@ let _ =
     if not (!release_mode || String.is_empty log)
     then (
       eprint ("Detailed message:\n\n" ^ String.prefix_line ~prefix:"  > " log);
-      eprint ("Exception:\n\n" ^ String.hindent_line 2 Printexc.get_backtrace ()));
+      eprint
+        ("Exception:\n\n" ^ String.hindent_line 2 Printexc.get_backtrace ()));
     exit 1
   | e ->
     if not !release_mode
     then (
       eprint "ERROR: an exception occurred!";
-      eprint ("Exception: " ^ (Exn.to_string e));
+      eprint ("Exception: " ^ Exn.to_string e);
       eprint (Printexc.get_backtrace ()));
     if not (is_debug_mode ())
     then eprint "To debug, run Discover again with additional '-d'.";

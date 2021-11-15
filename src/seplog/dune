@@ -6,7 +6,11 @@
 ;;---------------------------------------------------------------------
 
 ;; lexer
-(ocamllex (modules lexer))
+
+(ocamllex
+ (modules lexer))
 
 ;; parser for entailments
-(menhir (modules parser))
+
+(menhir
+ (modules parser))

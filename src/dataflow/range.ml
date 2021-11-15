@@ -33,10 +33,10 @@ module IntervalDomain = struct
     | BInt of bint
 
   type range =
-    { range_lb : bound
-    ; range_lb_inclusive : bool
-    ; range_ub : bound
-    ; range_ub_inclusive : bool
+    { range_lb : bound;
+      range_lb_inclusive : bool;
+      range_ub : bound;
+      range_ub_inclusive : bool
     }
 
   type interval =
@@ -44,8 +44,8 @@ module IntervalDomain = struct
     | Range of range
 
   type einterval =
-    { ei_expr : expr
-    ; ei_interval : interval
+    { ei_expr : expr;
+      ei_interval : interval
     }
 
   (* printers *)
@@ -88,10 +88,10 @@ module IntervalDomain = struct
       match ub, ui with
       | Int64 x, false -> Int64 (Int64.( - ) x Int64.one), true
       | _ -> ub, ui in
-    { range_lb = lb
-    ; range_lb_inclusive = li
-    ; range_ub = ub
-    ; range_ub_inclusive = ui
+    { range_lb = lb;
+      range_lb_inclusive = li;
+      range_ub = ub;
+      range_ub_inclusive = ui
     }
   ;;
 
@@ -178,7 +178,8 @@ module IntervalDomain = struct
   ;;
 
   let equal_einterval (a : einterval) (b : einterval) : bool =
-    equal_expr a.ei_expr b.ei_expr && equal_interval a.ei_interval b.ei_interval
+    equal_expr a.ei_expr b.ei_expr
+    && equal_interval a.ei_interval b.ei_interval
   ;;
 
   (* operations with bound *)
@@ -289,17 +290,17 @@ module IntervalDomain = struct
       then b2, i2
       else b1, i1 || i2 in
     let b1, i1 =
-      ( mult_bound a.range_lb b.range_lb
-      , a.range_lb_inclusive && b.range_lb_inclusive ) in
+      ( mult_bound a.range_lb b.range_lb,
+        a.range_lb_inclusive && b.range_lb_inclusive ) in
     let b2, i2 =
-      ( mult_bound a.range_lb b.range_ub
-      , a.range_lb_inclusive && b.range_ub_inclusive ) in
+      ( mult_bound a.range_lb b.range_ub,
+        a.range_lb_inclusive && b.range_ub_inclusive ) in
     let b3, i3 =
-      ( mult_bound a.range_ub b.range_lb
-      , a.range_ub_inclusive && b.range_lb_inclusive ) in
+      ( mult_bound a.range_ub b.range_lb,
+        a.range_ub_inclusive && b.range_lb_inclusive ) in
     let b4, i4 =
-      ( mult_bound a.range_ub b.range_ub
-      , a.range_ub_inclusive && b.range_ub_inclusive ) in
+      ( mult_bound a.range_ub b.range_ub,
+        a.range_ub_inclusive && b.range_ub_inclusive ) in
     let lb, li =
       (b1, i1)
       |> get_lower_bound (b2, i2)
@@ -393,10 +394,13 @@ module IntervalDomain = struct
         else if cmp > 0
         then rb.range_ub, rb.range_ub_inclusive
         else ra.range_ub, ra.range_ub_inclusive && rb.range_ub_inclusive in
-      if compare_bound lb ub > 0 then Bottom else Range (mk_range lb ub ~li ~ui)
+      if compare_bound lb ub > 0
+      then Bottom
+      else Range (mk_range lb ub ~li ~ui)
   ;;
 
-  let combine_interval ?(widen = false) (a : interval) (b : interval) : interval
+  let combine_interval ?(widen = false) (a : interval) (b : interval)
+      : interval
     =
     match a, b with
     | Bottom, _ -> b
@@ -504,7 +508,8 @@ struct
     MP.for_alli
       ~f:(fun ~key:ea ~data:ia ->
         MP.existsi
-          ~f:(fun ~key:eb ~data:ib -> equal_expr ea eb && lequal_interval ia ib)
+          ~f:(fun ~key:eb ~data:ib ->
+            equal_expr ea eb && lequal_interval ia ib)
           b)
       a
   ;;
@@ -572,8 +577,8 @@ struct
         let b =
           match extract_constant_bound lhs with
           | Some b -> b
-          | None -> herror "extract_const_bound_lhs: not found:" sprint_expr lhs
-        in
+          | None ->
+            herror "extract_const_bound_lhs: not found:" sprint_expr lhs in
         match cmp with
         | LC.Eq -> MP.of_alist_exn [ rhs, interval_of_bound b ]
         | LC.Ne -> MP.empty (* TODO: can be improved here to be more precise *)
@@ -590,8 +595,8 @@ struct
         let b =
           match extract_constant_bound rhs with
           | Some b -> b
-          | None -> herror "extract_const_bound_rhs: not found:" sprint_expr rhs
-        in
+          | None ->
+            herror "extract_const_bound_rhs: not found:" sprint_expr rhs in
         match cmp with
         | LC.Eq -> MP.of_alist_exn [ lhs, interval_of_bound b ]
         | LC.Ne -> MP.empty (* TODO: can be improved here to be more precise *)
@@ -719,7 +724,6 @@ struct
       d
       pcond_data
   ;;
-
 
   (*******************************************************************
    ** Core analysis functions
@@ -877,13 +881,15 @@ struct
           BInt.le_big_int vub (BInt.big_int_of_int64 ub)))
   ;;
 
-  let check_range_full fenv instr (v : llvalue) (lb : int64) (ub : int64) : bool
+  let check_range_full fenv instr (v : llvalue) (lb : int64) (ub : int64)
+      : bool
     =
     check_range_lower_bound fenv instr v lb
     && check_range_upper_bound fenv instr v ub
   ;;
 
-  let check_assertion (fenvs : func_env list) (ast : AS.assertion) : bool option
+  let check_assertion (fenvs : func_env list) (ast : AS.assertion)
+      : bool option
     =
     let instr = ast.AS.ast_instr in
     match ast.AS.ast_type, ast.AS.ast_predicate with

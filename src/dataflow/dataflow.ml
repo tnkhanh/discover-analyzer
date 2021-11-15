@@ -382,7 +382,14 @@ module type ForwardDataTransfer = sig
   val clean_info_of_vars : t -> llvalues -> t
   val is_data_satisfied_predicate : t -> predicate -> bool
   val refine_data_by_predicate : ?widen:bool -> t -> predicate -> t
-  val prepare_callee_input : prog_env -> instr -> func -> llvalue list -> t -> t
+
+  val prepare_callee_input
+    :  prog_env ->
+    instr ->
+    func ->
+    llvalue list ->
+    t ->
+    t
 
   val compute_callee_output_exns
     :  prog_env ->
@@ -716,7 +723,8 @@ functor
           ~f:(fun ~key:f ~data:inputs acc ->
             let sfuncs =
               List.map
-                ~f:(fun input -> func_name f ^ " @ {" ^ sprint_data input ^ "}")
+                ~f:(fun input ->
+                  func_name f ^ " @ {" ^ sprint_data input ^ "}")
                 inputs in
             acc @ sfuncs)
           ~init:[]
@@ -1158,7 +1166,8 @@ functor
       ()
     ;;
 
-    let export_core_program_to_file ?(sparse = false) (penv : T.prog_env) : unit
+    let export_core_program_to_file ?(sparse = false) (penv : T.prog_env)
+        : unit
       =
       let prog = penv.penv_prog in
       let filename =
@@ -1202,7 +1211,10 @@ functor
                     ~f:(fun instr ->
                       if not sparse
                       then
-                        fprintf file "%s\n" (String.hindent_line 2 sprint_instr instr)
+                        fprintf
+                          file
+                          "%s\n"
+                          (String.hindent_line 2 sprint_instr instr)
                       else if is_sparse_instr penv instr
                       then fprintf file "  %s\n" (pr_sparse_instr penv instr))
                     blk))
@@ -1420,7 +1432,8 @@ functor
         Hashtbl.set penv.penv_func_summaries ~key:func ~data:nfsums
     ;;
 
-    let find_func_env_by_input penv (f : func) (input : T.t) : T.func_env option
+    let find_func_env_by_input penv (f : func) (input : T.t)
+        : T.func_env option
       =
       match Hashtbl.find penv.penv_func_envs f with
       | None -> None
@@ -1445,7 +1458,8 @@ functor
       | None, None -> newfe.fenv_state_changed
     ;;
 
-    let record_new_func_env (penv : T.prog_env) fenv : bool * bool * bool * bool
+    let record_new_func_env (penv : T.prog_env) fenv
+        : bool * bool * bool * bool
       =
       let func = fenv.fenv_func in
       let _ = hdebug ~always:true "Record new function env: " func_name func in
@@ -1456,7 +1470,8 @@ functor
       let env_completed =
         try
           let fblock =
-            Some (fun blk -> if is_sparse_block penv blk then None else Some ())
+            Some
+              (fun blk -> if is_sparse_block penv blk then None else Some ())
           in
           let finstr =
             Some
@@ -1474,7 +1489,8 @@ functor
           true
         with EBool res -> res in
       let _ =
-        hdebug ~always:true " - Env completed: " sprint_bool env_completed in
+        hdebug ~always:true " - Env completed: " sprint_bool env_completed
+      in
       match Hashtbl.find penv.penv_func_envs func with
       | None ->
         let fenv = { fenv with fenv_id = "1" } in
@@ -1513,7 +1529,8 @@ functor
         let _ =
           hdebug ~always:true " - Output updated: " sprint_bool output_updated
         in
-        let _ = hdebug ~always:true " - Env updated: " sprint_bool env_updated in
+        let _ =
+          hdebug ~always:true " - Env updated: " sprint_bool env_updated in
         input_updated, output_updated, env_updated, env_completed
     ;;
 
@@ -2021,7 +2038,10 @@ functor
                          let tinfo = exn.exn_type_info in
                          match Hashtbl.find fenv.fenv_thrown_exn tinfo with
                          | None ->
-                           Hashtbl.set fenv.fenv_thrown_exn ~key:tinfo ~data:exn
+                           Hashtbl.set
+                             fenv.fenv_thrown_exn
+                             ~key:tinfo
+                             ~data:exn
                          | Some cur_exn ->
                            let ndata =
                              T.merge_data exn.exn_data cur_exn.exn_data in
@@ -2055,7 +2075,10 @@ functor
           let nexn = { exn with exn_data = ndata } in
           Hashtbl.set fenv.fenv_thrown_exn ~key:tinfo ~data:nexn)
       else
-        herror "analyze_throw_exception: expect >=2 params: " sprint_instr instr
+        herror
+          "analyze_throw_exception: expect >=2 params: "
+          sprint_instr
+          instr
     ;;
 
     let analyze_instr_landingpad penv fenv instr : unit =
@@ -2078,7 +2101,10 @@ functor
         let _ = hdebug "landing exns: " pr_exns !landing_exns in
         Hashtbl.set fenv.fenv_landing_exns ~key:landing_ptr ~data:!landing_exns
       | _ ->
-        herror "analyze_instr_landingpad: not a landingpad: " sprint_instr instr
+        herror
+          "analyze_instr_landingpad: not a landingpad: "
+          sprint_instr
+          instr
     ;;
 
     let get_catch_exception_type_info penv fenv instr : llvalue option =
@@ -2141,7 +2167,8 @@ functor
       else input, true
     ;;
 
-    let rec analyze_instrs ?(widen = false) penv fenv instrs input : bool * bool
+    let rec analyze_instrs ?(widen = false) penv fenv instrs input
+        : bool * bool
       =
       match instrs with
       | [] -> true, true
@@ -2188,7 +2215,8 @@ functor
                   let _ = T.analyze_instr ~widen penv fenv instr input in
                   ()) in
               let ptr = llvalue_of_func callee in
-              let callees = ptr |> get_current_funcs_of_pointer penv.penv_prog in
+              let callees =
+                ptr |> get_current_funcs_of_pointer penv.penv_prog in
               let _ =
                 hdebug ~always:true "Function pointer: " sprint_value ptr in
               let _ = hdebug ~always:true "Callees: " func_names callees in
@@ -2256,7 +2284,8 @@ functor
       let prog, func, blk = penv.penv_prog, fenv.fenv_func, wb.wb_block in
       let _ =
         let n = get_block_session_analyzed_times penv blk in
-        print (sprintf "=> Analyzing block: %s ~ (%d)" (block_name blk) n) in
+        print (sprintf "=> Analyzing block: %s ~ (%d)" (block_name blk) n)
+      in
       let _ =
         if is_first_instr_of_block wb.wb_instr
         then (
@@ -2653,7 +2682,8 @@ functor
         else 0
     ;;
 
-    let compare_func_input penv (wf1 : working_func) (wf2 : working_func) : int =
+    let compare_func_input penv (wf1 : working_func) (wf2 : working_func) : int
+      =
       let f1, f2 = wf1.wf_func, wf2.wf_func in
       if equal_func f1 f2
       then (
@@ -2734,8 +2764,10 @@ functor
         else List.extract_nth (int_of_string decicion - 1) wfuncs
       | false ->
         let _ =
-          hdebug "\nWorking functions (after sorting): " pr_working_funcs wfuncs
-        in
+          hdebug
+            "\nWorking functions (after sorting): "
+            pr_working_funcs
+            wfuncs in
         (* let _ = hprint "\n#Working functions: " sprint_int (List.length wfuncs) in *)
         (* let _ = hdebug ~always:true "Working functions (after sorting): " pr_working_funcs wfuncs  in *)
         (* choose_best_working_func penv wfuncs *)
@@ -2769,7 +2801,8 @@ functor
               debug ~always:true ("Prepare to enqueue for reanalyze: " ^ fname)
             in
             enqueue_to_analyze_func ~msg:"reanalyze itself" penv wf)
-          else hdebug "Complete analyzing working function: " pr_working_func wf
+          else
+            hdebug "Complete analyzing working function: " pr_working_func wf
         in
         (* let _ = if input_updated || env_updated then *)
         (* let _ = if input_updated || env_updated || output_updated then *)
@@ -2833,8 +2866,8 @@ functor
             (match fenv.fenv_output with
             | None ->
               herror "analyze_globals: output not found: " func_name gfunc
-            | Some output -> T.clean_irrelevant_info_from_data penv gfunc output))
-      in
+            | Some output ->
+              T.clean_irrelevant_info_from_data penv gfunc output)) in
       genv.genv_globals_data <- output
     ;;
 
@@ -2920,7 +2953,8 @@ functor
                       let _ = num_sparse_instrs := !num_sparse_instrs + 1 in
                       let _ = has_return_or_unreachable := true in
                       if is_instr_return instr
-                         && not (is_llvalue_pointer (src_of_instr_return instr))
+                         && not
+                              (is_llvalue_pointer (src_of_instr_return instr))
                       then has_return_of_non_pointer := true
                     | _ -> num_sparse_instrs := !num_sparse_instrs + 1)) in
             let _ = deep_iter_func ~finstr f in
@@ -2974,7 +3008,8 @@ functor
                 if not !has_pointer_related_instr
                 then (
                   (* let _ = hprint "Set function to non-sparse: " func_name f in *)
-                  let _ = Hashtbl.set penv.penv_sparse_func ~key:f ~data:false in
+                  let _ =
+                    Hashtbl.set penv.penv_sparse_func ~key:f ~data:false in
                   let _ = continue := true in
                   let _ = updated := true in
                   let vf = llvalue_of_func f in
@@ -3081,8 +3116,8 @@ functor
     let initialize_analysis penv func =
       let prog = penv.penv_prog in
       let _ =
-        if !export_core_prog then export_core_program_to_file ~sparse:false penv
-      in
+        if !export_core_prog
+        then export_core_program_to_file ~sparse:false penv in
       let _ =
         penv.penv_goal_funcs <- prog.prog_init_funcs @ prog.prog_user_funcs
       in
@@ -3164,8 +3199,8 @@ functor
         | None ->
           (match prog.prog_main_func with
           | Some f -> f
-          | None -> error "analyze_program_interproc: entry function not found!")
-      in
+          | None ->
+            error "analyze_program_interproc: entry function not found!") in
       (* then analyze *)
       let _ = hprint "Entry function: " func_name func in
       let _ = initialize_analysis penv func in

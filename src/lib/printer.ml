@@ -121,7 +121,8 @@ let sprint_args ~(f : 'a -> string) (args : 'a list) : string =
   sprint_list ~sep:", " ~obrace:"" ~cbrace:"" ~f args
 ;;
 
-let sprint_pair ~(f1 : 'a -> string) ~(f2 : 'b -> string) (p : 'a * 'b) : string
+let sprint_pair ~(f1 : 'a -> string) ~(f2 : 'b -> string) (p : 'a * 'b)
+    : string
   =
   let x, y = p in
   "(" ^ f1 x ^ ", " ^ f2 y ^ ")"
@@ -236,12 +237,12 @@ let print2
 (** print a list of messages *)
 
 let prints
-      ?(ruler = `None)
-      ?(indent = 0)
-      ?(always = false)
-      ?(format = true)
-      (msgs : string list)
-  : unit
+    ?(ruler = `None)
+    ?(indent = 0)
+    ?(always = false)
+    ?(format = true)
+    (msgs : string list)
+    : unit
   =
   print_core ~ruler ~indent ~always ~format (String.concat msgs)
 ;;

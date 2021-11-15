@@ -466,7 +466,8 @@ let substitute_entails sst ents : entailment list =
 
 let substitute_func_defn sst fdefn : func_defn =
   match fdefn.funcd_body with
-  | None -> { fdefn with funcd_params = substitute_vars sst fdefn.funcd_params }
+  | None ->
+    { fdefn with funcd_params = substitute_vars sst fdefn.funcd_params }
   | Some e ->
     let params = substitute_vars sst fdefn.funcd_params in
     let body = Some (substitute_exp sst e) in

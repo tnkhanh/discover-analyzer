@@ -26,8 +26,7 @@ let choose_axiom_rules prog goal =
     let _ = choose_rule_all_pure prog goal |> raise_first_rule in
     let _ = choose_rule_invalid_entail prog goal |> raise_first_rule in
     []
-  with
-  | ERules rs -> rs
+  with ERules rs -> rs
 ;;
 
 let choose_normalization_rules prog goal =
@@ -47,8 +46,7 @@ let choose_normalization_rules prog goal =
     let _ = choose_rule_wand_right prog goal |> raise_first_rule in
     (* let _ = choose_rule_data_to_array_left prog goal |> raise_first_rule in *)
     []
-  with
-  | ERules rs -> rs
+  with ERules rs -> rs
 ;;
 
 let choose_transformation_rules prog goal =
@@ -63,8 +61,7 @@ let choose_transformation_rules prog goal =
     let rs = rs @ choose_rule_subtract_data prog goal in
     let rs = rs @ choose_rule_empty_array_right prog goal in
     rs
-  with
-  | ERules rs -> rs
+  with ERules rs -> rs
 ;;
 
 let choose_all_rules prog goal =
@@ -72,8 +69,7 @@ let choose_all_rules prog goal =
     let _ = choose_axiom_rules prog goal |> raise_first_rule in
     let _ = choose_normalization_rules prog goal |> raise_first_rule in
     choose_transformation_rules prog goal
-  with
-  | ERules rs -> rs
+  with ERules rs -> rs
 ;;
 
 (*******************************************************************

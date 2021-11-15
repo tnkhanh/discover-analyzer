@@ -38,7 +38,6 @@ let sprint_bresult (b : bresult) : string =
 
 type bint = BInt.big_int
 
-
 (*-----------------
  * Exceptions
  *----------------*)

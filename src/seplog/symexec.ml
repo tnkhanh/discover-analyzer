@@ -30,11 +30,15 @@ let parse_program_seplog (filename : string) : SA.program =
     let pos = lexbuf.Lexing.lex_curr_p in
     let line = pos.Lexing.pos_lnum in
     let col = pos.Lexing.pos_cnum - pos.Lexing.pos_bol + 1 in
-    "filename: " ^ fname ^ ", line: " ^ sprint_int line ^ ", col: " ^ sprint_int col
-  in
+    "filename: "
+    ^ fname
+    ^ ", line: "
+    ^ sprint_int line
+    ^ ", col: "
+    ^ sprint_int col in
   let inchan =
-    try open_in filename with
-    | e -> error ("Unable to open file:\n " ^ filename) in
+    try open_in filename
+    with e -> error ("Unable to open file:\n " ^ filename) in
   let lexbuf = Lexing.from_channel inchan in
   let prog =
     try Parser.program Lexer.read lexbuf with
@@ -46,7 +50,10 @@ let parse_program_seplog (filename : string) : SA.program =
         ^ "\n")
     | Parser.Error ->
       error
-        ("Syntax error!\n" ^ "Location: " ^ sprint_position filename lexbuf ^ "\n")
+        ("Syntax error!\n"
+        ^ "Location: "
+        ^ sprint_position filename lexbuf
+        ^ "\n")
     | End_of_file -> error ("Unable to parse filename: " ^ filename) in
   let _ = close_in inchan in
   prog
