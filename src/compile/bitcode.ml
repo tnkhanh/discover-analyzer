@@ -46,7 +46,7 @@ let process_module
       let _ =
         Sys.report_runtime ~task:"Time simplifying bitcode" (fun () ->
             LS.simplify_module filename modul) in
-(*      let _ =
+      (*      let _ =
         Sys.report_runtime ~task:"Time instrumenting bitcode" (fun () ->
             LT.instrument_bitcode ann_marks source_name modul) in *)
       (* (fun () -> LT.instrument_bitcode filename modul) in *)

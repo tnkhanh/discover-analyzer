@@ -44,15 +44,13 @@ let compile_c_cpp (filename : string) : LI.program =
     let _ = debug (String.concat ~sep:" " cmd) in
     PS.run_command cmd in
   let ann_marks = LT.extract_ann_marks filename in
-
   let llcontext = LL.create_context () in
   let llmem = LL.MemoryBuffer.of_file output_filename in
   let modul = Llvm_bitreader.parse_bitcode llcontext llmem in
   let _ = LT.instrument_bitcode ann_marks filename modul in
-
   let instrued_filename = dirname ^ Filename.dir_sep ^ basename ^ ".ins.bc" in
   let _ = LL.set_module_identifer modul instrued_filename in
-  let _ = debug2 ~ruler:`Long "Changed name: "  (LL.string_of_llmodule modul) in
+  let _ = debug2 ~ruler:`Long "Changed name: " (LL.string_of_llmodule modul) in
   let _ =
     let instrued_file = open_out instrued_filename in
     let _ = Llvm_bitwriter.output_bitcode instrued_file modul in

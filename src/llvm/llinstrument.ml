@@ -40,36 +40,26 @@ let less_than ins ann =
   else false
 ;;
 
-type linecol = {
-  line: int;
-  col: int;
-}
-
-let make_linecol line_ col_ = 
-  { line = line_;
-    col = col_;
+type linecol =
+  { line : int;
+    col : int
   }
 
+let make_linecol line_ col_ = { line = line_; col = col_ }
+
 let lc_comp lcx lcy =
-  let tuplex = (lcx.line, lcx.col) in
-  let tupley = (lcy.line, lcy.col) in
+  let tuplex = lcx.line, lcx.col in
+  let tupley = lcy.line, lcy.col in
   Poly.compare tuplex tupley
-
-let max_lc lcx lcy =
-  if lc_comp lcx lcy = 1 then lcx
-  else lcy
 ;;
 
-let min_lc lcx lcy =
-  if lc_comp lcx lcy = 1 then lcy
-  else lcx
-;;
+let max_lc lcx lcy = if lc_comp lcx lcy = 1 then lcx else lcy
+let min_lc lcx lcy = if lc_comp lcx lcy = 1 then lcy else lcx
 
 let less_than ins ann =
-  if Poly.((ins.pos.pos_line_end, ins.pos.pos_col_end) < 
-           (Ann.pos_of_ann ann)) then true
-  else
-    false
+  if Poly.((ins.pos.pos_line_end, ins.pos.pos_col_end) < Ann.pos_of_ann ann)
+  then true
+  else false
 ;;
 
 let coverage = Hashtbl.create (module Instr)
@@ -77,40 +67,38 @@ let coverage = Hashtbl.create (module Instr)
 let rec get_coverage instr =
   match Hashtbl.find coverage instr with
   | None ->
-      let pos_op = LS.position_of_instr instr in
-      let oprc = num_operands instr in
-      let cover = 
-        let init = 
-          match pos_op with
-          | None -> ({line=max_int; col=max_int}, {line=0; col=0})
-          | Some pos -> (make_linecol pos.pos_line_start pos.pos_col_start,
-                         make_linecol pos.pos_line_end pos.pos_col_end) in
-        let rec fold_opr acc idx =
-          if idx = oprc then acc
-          else
-            let opr_llvalue = operand instr idx in
-            match LL.classify_value opr_llvalue with
-            | LV.Instruction _ ->
-              let opr = mk_instr opr_llvalue in
-              let (opr_cov_start, opr_cov_end) = get_coverage opr in
-              begin
-              match acc with 
-              | (acc_start, acc_end) ->
-                  let new_start = min_lc opr_cov_start acc_start in
-                  let new_end = max_lc opr_cov_end acc_end in
-                  fold_opr (new_start, new_end) (idx+1)
-              end
-            | _ -> fold_opr acc (idx+1) in
-
-        fold_opr init 0 in
-
-      let _ = Hashtbl.add coverage ~key:instr ~data:cover in
-      cover
+    let pos_op = LS.position_of_instr instr in
+    let oprc = num_operands instr in
+    let cover =
+      let init =
+        match pos_op with
+        | None -> { line = max_int; col = max_int }, { line = 0; col = 0 }
+        | Some pos ->
+          ( make_linecol pos.pos_line_start pos.pos_col_start,
+            make_linecol pos.pos_line_end pos.pos_col_end ) in
+      let rec fold_opr acc idx =
+        if idx = oprc
+        then acc
+        else (
+          let opr_llvalue = operand instr idx in
+          match LL.classify_value opr_llvalue with
+          | LV.Instruction _ ->
+            let opr = mk_instr opr_llvalue in
+            let opr_cov_start, opr_cov_end = get_coverage opr in
+            (match acc with
+            | acc_start, acc_end ->
+              let new_start = min_lc opr_cov_start acc_start in
+              let new_end = max_lc opr_cov_end acc_end in
+              fold_opr (new_start, new_end) (idx + 1))
+          | _ -> fold_opr acc (idx + 1)) in
+      fold_opr init 0 in
+    let _ = Hashtbl.add coverage ~key:instr ~data:cover in
+    cover
   | Some cover -> cover
 ;;
 
-let extract_ann_marks (filename: string) = 
-  let inx = In_channel.create filename in 
+let extract_ann_marks (filename : string) =
+  let inx = In_channel.create filename in
   let lexbuf = Lexing.from_channel inx in
   let rev_mark_list =
     try Annparser.prog Annlexer.read lexbuf
@@ -119,10 +107,11 @@ let extract_ann_marks (filename: string) =
         debug ("Parsing failed. Annotations ignored in file: " ^ filename)
       in
       [] in
-
   (*print all marks*)
   let _ = debug ~ruler:`Short "Annotations" in
-  let _ = List.iter (List.rev (List.map rev_mark_list ~f:Ann.str_of_mark)) ~f:debug in
+  let _ =
+    List.iter (List.rev (List.map rev_mark_list ~f:Ann.str_of_mark)) ~f:debug
+  in
   List.rev rev_mark_list
 ;;
 
@@ -135,11 +124,15 @@ let get_func_name anntyp (bug : Ann.bug_group) ins =
     | BufferOverflow -> "__assert_buffer_overflow"
     | IntegerOverflow ->
       let width = LL.integer_bitwidth (LL.type_of ins) in
-      if width = 64 then "__assert_bug_integer_overflow_i64" else
-      if width = 32 then "__assert_bug_integer_overflow_i32" else
-      if width = 16 then "__assert_bug_integer_overflow_i16" else
-      if width = 8 then "__assert_bug_integer_overflow_i8" else
-      "__assert_bug_integer_overflow_i1"
+      if width = 64
+      then "__assert_bug_integer_overflow_i64"
+      else if width = 32
+      then "__assert_bug_integer_overflow_i32"
+      else if width = 16
+      then "__assert_bug_integer_overflow_i16"
+      else if width = 8
+      then "__assert_bug_integer_overflow_i8"
+      else "__assert_bug_integer_overflow_i1"
     | IntegerUnderflow -> "__assert_integer_underflow"
     | DivisionByZero -> "__assert_division_by_zero"
     | NewType t -> "__assert_unnamed_bug")
@@ -150,60 +143,76 @@ let get_func_name anntyp (bug : Ann.bug_group) ins =
     | BufferOverflow -> "__refute_buffer_overflow"
     | IntegerOverflow ->
       let width = LL.integer_bitwidth (LL.type_of ins) in
-      if width = 64 then "__refute_bug_integer_overflow_i64" else
-      if width = 32 then "__refute_bug_integer_overflow_i32" else
-      if width = 16 then "__refute_bug_integer_overflow_i16" else
-      if width = 8 then "__refute_bug_integer_overflow_i8" else
-      "__refute_bug_integer_overflow_i1"
+      if width = 64
+      then "__refute_bug_integer_overflow_i64"
+      else if width = 32
+      then "__refute_bug_integer_overflow_i32"
+      else if width = 16
+      then "__refute_bug_integer_overflow_i16"
+      else if width = 8
+      then "__refute_bug_integer_overflow_i8"
+      else "__refute_bug_integer_overflow_i1"
     | IntegerUnderflow -> "__refute_integer_underflow"
     | DivisionByZero -> "__refute_division_by_zero"
     | NewType t -> "__refute_unnamed_bug")
 ;;
 
-let apply_annotation anntyp instr bugs modul=
-  match instr.ins with 
+let apply_annotation anntyp instr bugs modul =
+  match instr.ins with
   | Instr inx ->
     (* if ins is store and first operand is trunc *)
     let actual_ins =
-      if is_instr_store instr.ins then
+      if is_instr_store instr.ins
+      then (
         let first_opr = operand instr.ins 0 in
         match LL.instr_opcode first_opr with
         | LO.Trunc -> first_opr
-        | _ -> inx
+        | _ -> inx)
       else inx in
     let insert_pos = LL.instr_succ actual_ins in
     let builder = LL.builder_at (LL.module_context modul) insert_pos in
     List.iter bugs ~f:(fun bug ->
-      let assert_func_opt = LL.lookup_function (get_func_name anntyp bug actual_ins) modul in
-      match assert_func_opt with
-      | None -> ()
-      | Some assert_func ->
-        let _ = LL.build_call assert_func 
-           (Array.create ~len:1 actual_ins) "" builder in ()
-    )
+        let assert_func_opt =
+          LL.lookup_function (get_func_name anntyp bug actual_ins) modul in
+        match assert_func_opt with
+        | None -> ()
+        | Some assert_func ->
+          let _ =
+            LL.build_call
+              assert_func
+              (Array.create ~len:1 actual_ins)
+              ""
+              builder in
+          ())
 ;;
 
-let rec update (ins:instr_with_tag) anns =
+let rec update (ins : instr_with_tag) anns =
   match anns with
   | [] -> []
-  | hd_match::tl ->
-    match hd_match with
-    | (ann, ins_op) ->
-      match ins_op with
-      | None -> (ann, Some ins)::(update ins tl)
-      | Some old_ins -> 
-          let choose_ins =
-            let (old_start, old_end) = get_coverage old_ins.ins in
-            let (cstart, cend) = get_coverage ins.ins in
-            let start_comp = lc_comp old_start cstart in
-              if start_comp < 0 then old_ins else
-              if start_comp > 0 then ins else
+  | hd_match :: tl ->
+    (match hd_match with
+    | ann, ins_op ->
+      (match ins_op with
+      | None -> (ann, Some ins) :: update ins tl
+      | Some old_ins ->
+        let choose_ins =
+          let old_start, old_end = get_coverage old_ins.ins in
+          let cstart, cend = get_coverage ins.ins in
+          let start_comp = lc_comp old_start cstart in
+          if start_comp < 0
+          then old_ins
+          else if start_comp > 0
+          then ins
+          else (
             let end_comp = lc_comp old_end cend in
-              if end_comp > 0 then old_ins else
-              if end_comp < 0 then ins else
-            if old_ins.tag < ins.tag then old_ins else
-            ins in
-          (ann, Some choose_ins)::(update ins tl)
+            if end_comp > 0
+            then old_ins
+            else if end_comp < 0
+            then ins
+            else if old_ins.tag < ins.tag
+            then old_ins
+            else ins) in
+        (ann, Some choose_ins) :: update ins tl))
 ;;
 
 let apply_hd_bug
@@ -316,76 +325,75 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
   (* TODO: fill code here.
      See module llsimp.ml, function elim_instr_intrinsic_lifetime ...
      for how to manipulating LLVM bitcode *)
-
-  let _ = debug2 ~ruler:`Long "Uninstrumented: "  (LL.string_of_llmodule modul) in
-
-  let finstr = Some (fun acc instr ->
-    let pos_op = LS.position_of_instr instr in
-    match pos_op with
-    | None -> acc
-    | Some pos -> 
-        if not (String.equal pos.pos_file_name source_name) then
-          acc
-        else
-          match acc with
-          | [] -> (make_tagged_ins pos 1 instr)::acc
-          | hd::tl -> 
-              (make_tagged_ins pos (hd.tag + 1) instr)::acc) in
+  let _ =
+    debug2 ~ruler:`Long "Uninstrumented: " (LL.string_of_llmodule modul) in
+  let finstr =
+    Some
+      (fun acc instr ->
+        let pos_op = LS.position_of_instr instr in
+        match pos_op with
+        | None -> acc
+        | Some pos ->
+          if not (String.equal pos.pos_file_name source_name)
+          then acc
+          else (
+            match acc with
+            | [] -> make_tagged_ins pos 1 instr :: acc
+            | hd :: tl -> make_tagged_ins pos (hd.tag + 1) instr :: acc)) in
   let tagged_ins = deep_fold_module ~finstr [] modul in
   let compare ins1 ins2 =
-    let p1 = (ins1.pos.pos_line_end, ins1.pos.pos_col_end) in
-    let p2 = (ins2.pos.pos_line_end, ins2.pos.pos_col_end) in
-    if Poly.(p1 > p2) then 1
-    else if Poly.(p1 < p2) then -1
-    else 0 in
-
+    let p1 = ins1.pos.pos_line_end, ins1.pos.pos_col_end in
+    let p2 = ins2.pos.pos_line_end, ins2.pos.pos_col_end in
+    if Poly.(p1 > p2) then 1 else if Poly.(p1 < p2) then -1 else 0 in
   let _ = debug ~ruler:`Medium "Tags" in
-
   let sorted_ins = List.stable_sort ~compare tagged_ins in
   let llctx = LL.global_context () in
-  let _ = List.iter ~f:(fun tin ->
-    match tin.ins with
-    | Instr inx ->  
-      let dbg = LL.metadata inx (LL.mdkind_id llctx "dbg") in
-      let dbg_str =
-        match dbg with
-        | None -> "None.."
-        | Some d -> LL.string_of_llvalue d in
-      debug2 ~ruler:`Short "Instruction: " 
-        (LL.string_of_llvalue inx ^ " " ^ dbg_str)
-  ) (List.rev tagged_ins) (*sorted_ins*) in
-
+  let _ =
+    List.iter
+      ~f:(fun tin ->
+        match tin.ins with
+        | Instr inx ->
+          let dbg = LL.metadata inx (LL.mdkind_id llctx "dbg") in
+          let dbg_str =
+            match dbg with
+            | None -> "None.."
+            | Some d -> LL.string_of_llvalue d in
+          debug2
+            ~ruler:`Short
+            "Instruction: "
+            (LL.string_of_llvalue inx ^ " " ^ dbg_str))
+      (List.rev tagged_ins)
+    (*sorted_ins*) in
   let _ = resolve ann_marks sorted_ins [] modul in
-
   let _ = debug ~ruler:`Short "Sorted_ins" in
-
-  let _ = List.iter tagged_ins ~f:(fun ins ->
-    let ins_str =
-      match ins.ins with
-      | Instr inx -> LL.string_of_llvalue inx in
-    let cover = 
-      match Hashtbl.find coverage ins.ins with
-      | None -> "None"
-      | Some (lc_start, lc_end) ->
-       ((sprint_int lc_start.line) ^ " " ^
-        (sprint_int lc_start.col) ^ " " ^
-        (sprint_int lc_end.line) ^ " " ^
-        (sprint_int lc_end.col))
-
-    in
-
-    let llins = llvalue_of_instr ins.ins in
-    let args =
-      let num_args = LL.num_operands llins in
-      let rec fold_oprs acc idx =
-        if idx >= num_args then acc^"\n"
-        else
-          let opr = LL.operand llins idx in
-          fold_oprs (acc^"."^LL.string_of_llvalue opr) (idx+1)
-      in
-      fold_oprs "" 0 in
-(*  -- printing operands of instruction (args variable)
- *  let llins = llvalue_of_instr ins.ins in
+  let _ =
+    List.iter tagged_ins ~f:(fun ins ->
+        let ins_str =
+          match ins.ins with
+          | Instr inx -> LL.string_of_llvalue inx in
+        let cover =
+          match Hashtbl.find coverage ins.ins with
+          | None -> "None"
+          | Some (lc_start, lc_end) ->
+            sprint_int lc_start.line
+            ^ " "
+            ^ sprint_int lc_start.col
+            ^ " "
+            ^ sprint_int lc_end.line
+            ^ " "
+            ^ sprint_int lc_end.col in
+        let llins = llvalue_of_instr ins.ins in
+        let args =
+          let num_args = LL.num_operands llins in
+          let rec fold_oprs acc idx =
+            if idx >= num_args
+            then acc ^ "\n"
+            else (
+              let opr = LL.operand llins idx in
+              fold_oprs (acc ^ "." ^ LL.string_of_llvalue opr) (idx + 1)) in
+          fold_oprs "" 0 in
+        (*  -- printing operands of instruction (args variable)
+         *  let llins = llvalue_of_instr ins.ins in
     let args =
       match LL.instr_opcode llins with
       | LO.Call ->
@@ -408,10 +416,8 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
         in fold_oprs "" 0
 
       | _ -> "" in *)
-        debug2 "Ins: " (ins_str ^ "..Args: " ^ args ^ ".." ^ cover)
-  ) in
-
-(*  let strhash = Hashtbl.fold coverage ~init:"" ~f:(fun ~key ~data acc ->
+        debug2 "Ins: " (ins_str ^ "..Args: " ^ args ^ ".." ^ cover)) in
+  (*  let strhash = Hashtbl.fold coverage ~init:"" ~f:(fun ~key ~data acc ->
     let findx = Hashtbl.find coverage key in
     let findstr = match findx with
     | None -> "None"
@@ -424,9 +430,7 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
     ) ^ " " ^ findstr ^ "\n"
   ) in
   let _ = debug2 ~ruler:`Long "Hashtbl" strhash in *)
-  
   debug2 ~ruler:`Long "Instrumented" (LL.string_of_llmodule modul)
-
 ;;
 
 (*we need source_name to ignore instructions with location outside the source file *)
