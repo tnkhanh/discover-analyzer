@@ -16,7 +16,9 @@ int main(int argc, char** argv) {
 
   if (a > 10) a = 123456;
   else a = 123457;
-  /*@{Bug:IntegerOverflow*/ short y = a * 10 /*@:Bug}*/;
+
+  short y;
+  /*@{Bug:IntegerOverflow*/ y = a * 10 /*@:Bug}*/;
 
   long z = x+y;
 

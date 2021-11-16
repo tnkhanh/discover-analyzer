@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 # Example:
-#   ./check-assertions.py --clang-libs "../lib/discover.h"
-#                         --options "--dfa-alias --dfa-inter"
+#   ./check-assertions.py --clang-option "-I ../lib/discover.h"
+#                         --discover-option "--dfa-alias --dfa-inter"
 #                         /path/to/a/benchmark/folder
 #
 

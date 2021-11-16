@@ -25,8 +25,8 @@ module SP = Set.Poly
 
 module SizeDomain = struct
   type size =
-    { size_min : int64
-    ; (* minimum size in bytes, inclusive *)
+    { size_min : int64;
+      (* minimum size in bytes, inclusive *)
       size_max : int64 (* maximum size in bytes, inclusive *)
     }
 
@@ -77,8 +77,7 @@ module SizeUtil = struct
   include SizeData
 
   let get_size (v : llvalue) (d : t) : SD.size =
-    try LA.find_exn d ~equal:( == ) v with
-    | _ -> SD.least_size
+    try LA.find_exn d ~equal:( == ) v with _ -> SD.least_size
   ;;
 end
 
@@ -97,7 +96,9 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
 
   let sprint_data d =
     "MemSize: "
-    ^ sprint_list_square ~f:(fun (v, s) -> sprint_value v ^ ": " ^ SD.sprint_size s) d
+    ^ sprint_list_square
+        ~f:(fun (v, s) -> sprint_value v ^ ": " ^ SD.sprint_size s)
+        d
   ;;
 
   let sprint_data_checksum = sprint_data

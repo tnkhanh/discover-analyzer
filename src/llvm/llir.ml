@@ -959,13 +959,15 @@ let fold_left_params ~(f : 'a -> param -> 'a) ~(init : 'a) (func : func) : 'a =
   LL.fold_left_params ff init (llvalue_of_func func)
 ;;
 
-let fold_left_globals ~(f : 'a -> global -> 'a) ~(init : 'a) (m : llmodule) : 'a
+let fold_left_globals ~(f : 'a -> global -> 'a) ~(init : 'a) (m : llmodule)
+    : 'a
   =
   let ff acc v = f acc (mk_global v) in
   LL.fold_left_globals ff init m
 ;;
 
-let fold_left_functions ~(f : 'a -> func -> 'a) ~(init : 'a) (m : llmodule) : 'a
+let fold_left_functions ~(f : 'a -> func -> 'a) ~(init : 'a) (m : llmodule)
+    : 'a
   =
   let ff acc v = f acc (mk_func v) in
   LL.fold_left_functions ff init m
@@ -981,13 +983,15 @@ type iter_global = global -> unit
 type iter_block = block -> unit option
 type iter_func = func -> unit option
 
-let deep_iter_instr ?(finstr : iter_instr option = None) (instr : instr) : unit =
+let deep_iter_instr ?(finstr : iter_instr option = None) (instr : instr) : unit
+  =
   match finstr with
   | None -> ()
   | Some f -> f instr
 ;;
 
-let deep_iter_param ?(fparam : iter_param option = None) (param : param) : unit =
+let deep_iter_param ?(fparam : iter_param option = None) (param : param) : unit
+  =
   match fparam with
   | None -> ()
   | Some f -> f param
@@ -1530,7 +1534,8 @@ let rec get_expr_depth (e : expr) : int =
 
 let rec is_sub_expr (e : expr) ~(sub : expr) : bool =
   match e with
-  | Undef _ | Int64 _ | Float _ | String _ | Var _ | OldE _ | FuncRes _ -> false
+  | Undef _ | Int64 _ | Float _ | String _ | Var _ | OldE _ | FuncRes _ ->
+    false
   | Deref ne | ElemPtr (ne, _, _) | Malloc ne | Exn ne ->
     equal_expr ne sub || is_sub_expr ne ~sub
 ;;
@@ -2247,7 +2252,8 @@ let get_struct_types (m : llmodule) : lltype list =
       let subtypes = typ |> LL.subtypes |> Array.to_list in
       List.iter ~f:collect_struct_type subtypes) in
   let fglobal =
-    Some (fun glob -> collect_struct_type (LL.type_of (llvalue_of_global glob)))
+    Some
+      (fun glob -> collect_struct_type (LL.type_of (llvalue_of_global glob)))
   in
   let finstr =
     Some
@@ -2848,7 +2854,8 @@ let formal_params_of_func (f : func) : param list =
   let v = llvalue_of_func f in
   match LL.classify_value v with
   | LV.Function -> fold_left_params ~f:(fun acc p -> acc @ [ p ]) ~init:[] f
-  | _ -> herror "formal_params_of_func: not an actual function: " sprint_value v
+  | _ ->
+    herror "formal_params_of_func: not an actual function: " sprint_value v
 ;;
 
 let entry_block (f : func) : block = LL.entry_block (llvalue_of_func f)
@@ -2941,8 +2948,9 @@ let get_reachable_blocks (prog : program) (blk : block) : blocks =
       compute_reachables nqueue nvisited in
   let compute () =
     let sblks =
-      blk |> get_succeeding_blocks prog |> List.map ~f:(fun sb -> sb.sblk_block)
-    in
+      blk
+      |> get_succeeding_blocks prog
+      |> List.map ~f:(fun sb -> sb.sblk_block) in
     compute_reachables sblks [] in
   Hashtbl.find_or_compute prog.prog_block_reachables ~key:blk ~f:compute
 ;;
@@ -3024,7 +3032,8 @@ let update_funcs_of_pointer (prog : program) (v : llvalue) (funcs : funcs) =
 let mk_program (filename : string) (m : llmodule) : program =
   let compiled_target = LL.target_triple m in
   let data_layout = LL.data_layout m in
-  let globals = LL.fold_left_globals (fun acc g -> acc @ [ mk_global g ]) [] m in
+  let globals =
+    LL.fold_left_globals (fun acc g -> acc @ [ mk_global g ]) [] m in
   (* let module_id, source_filename =
    *   let str = LL.string_of_llmodule m in
    *   let re = Str.regexp ".*ModuleID.*'\\(.*\\\)'\nsource_filename.=.\"\\(.*\\\)\"" in

@@ -12,27 +12,12 @@ open Printer
 open Debugger
 module AG = Arguments
 module AS = Assertion
-module BG = Bug
 module CI = Commonir
 module DA = Dfanalyzer
-module DF = Dataflow
 module CP = Compile
-module LI = Llir
-module LL = Llvm
-module LU = Llutils
-module NO = Normalize
 module PS = Process
-module PV = Prover
-module SA = Slast
-module SI = Slir
-module TF = Transform
-module TI = Typeinfer
 module SE = Symexec
 module VS = Version
-
-module S = struct
-  let foo = 1
-end
 
 let print_discover_settings () =
   let _ = print ~always:true ("Checking file: " ^ !input_file) in
@@ -182,13 +167,14 @@ let _ =
     if not (!release_mode || String.is_empty log)
     then (
       eprint ("Detailed message:\n\n" ^ String.prefix_line ~prefix:"  > " log);
-      eprint ("Exception:\n\n" ^ String.hindent_line 2 Printexc.get_backtrace ()));
+      eprint
+        ("Exception:\n\n" ^ String.hindent_line 2 Printexc.get_backtrace ()));
     exit 1
   | e ->
     if not !release_mode
     then (
       eprint "ERROR: an exception occurred!";
-      eprint ("Exception: " ^ (Exn.to_string e));
+      eprint ("Exception: " ^ Exn.to_string e);
       eprint (Printexc.get_backtrace ()));
     if not (is_debug_mode ())
     then eprint "To debug, run Discover again with additional '-d'.";

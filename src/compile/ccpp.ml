@@ -26,10 +26,10 @@ let compile_c_cpp (filename : string) : LI.program =
   let _ = debug ("Compiling file: " ^ filename) in
   let basename = Filename.chop_extension (Filename.basename filename) in
   let dirname = Filename.dirname filename ^ Filename.dir_sep ^ "logs" in
-  let _ = Sys.mkdir_if_not_exists dirname in
+  let _ = Sys.make_dir dirname in
   let output_filename = dirname ^ Filename.dir_sep ^ basename ^ ".raw.bc" in
   let _ =
-    let _ = Sys.remove_if_exists output_filename in
+    let _ = Sys.remove_file output_filename in
     (* TODO: possibly use the  llvm-normalizer as a pass of clang or opt?? *)
     let cmd =
       [ !clang_path ]
@@ -40,7 +40,7 @@ let compile_c_cpp (filename : string) : LI.program =
       @ [ "-emit-llvm"; "-c"; filename ]
       @ [ "-o"; output_filename ]
       @ (if !llvm_orig_source_name then [ "-g" ] else [])
-      @ (String.split ~on:' ' !clang_user_options) in
+      @ String.split ~on:' ' !clang_user_options in
     let _ = debug (String.concat ~sep:" " cmd) in
     PS.run_command cmd in
   let ann_marks = LT.extract_ann_marks filename in

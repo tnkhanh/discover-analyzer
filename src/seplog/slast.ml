@@ -26,9 +26,9 @@ type exp =
 
 type addr_exp =
   { (* similar to getelementptr of LLVM*)
-    addr_base : exp
-  ; addr_elem : exp
-  ; addr_field : exp
+    addr_base : exp;
+    addr_elem : exp;
+    addr_field : exp
   }
 
 type bin_rel =
@@ -60,23 +60,23 @@ type formula =
   | Exists of (var list * formula)
 
 type entailment =
-  { ent_id : int
-  ; ent_rhs : formula
-  ; ent_lhs : formula
+  { ent_id : int;
+    ent_rhs : formula;
+    ent_lhs : formula
   }
 
 type func_defn =
-  { funcd_name : string
-  ; funcd_params : var list
-  ; funcd_body : exp option
-  ; funcd_ret_typ : typ
-  ; funcd_loc : position
+  { funcd_name : string;
+    funcd_params : var list;
+    funcd_body : exp option;
+    funcd_ret_typ : typ;
+    funcd_loc : position
   }
 
 type data_defn =
-  { datad_typ : typ
-  ; datad_fields : (typ * string) list
-  ; datad_loc : position
+  { datad_typ : typ;
+    datad_fields : (typ * string) list;
+    datad_loc : position
   }
 
 type pred_typ =
@@ -85,24 +85,24 @@ type pred_typ =
 [@@deriving equal]
 
 type pred_defn =
-  { predd_name : string
-  ; predd_params : var list
-  ; predd_body : formula list
-  ; predd_typ : pred_typ
-  ; predd_loc : position
+  { predd_name : string;
+    predd_params : var list;
+    predd_body : formula list;
+    predd_typ : pred_typ;
+    predd_loc : position
   }
 
 type proc_specs =
-  { psp_precond : formula
-  ; psp_postcond : formula
+  { psp_precond : formula;
+    psp_postcond : formula
   }
 
 type proc_defn =
-  { procd_name : string
-  ; procd_params : var list
-  ; procd_return_typ : typ
-  ; procd_specs : proc_specs list
-  ; procd_loc : position
+  { procd_name : string;
+    procd_params : var list;
+    procd_return_typ : typ;
+    procd_specs : proc_specs list;
+    procd_loc : position
   }
 
 type command =
@@ -111,12 +111,12 @@ type command =
   | InferFrame of (entailment * position)
 
 type program =
-  { prog_file_name : string
-  ; prog_func_defns : func_defn list
-  ; prog_data_defns : data_defn list
-  ; prog_pred_defns : pred_defn list
-  ; prog_proc_defns : proc_defn list
-  ; prog_commands : command list
+  { prog_file_name : string;
+    prog_func_defns : func_defn list;
+    prog_data_defns : data_defn list;
+    prog_pred_defns : pred_defn list;
+    prog_proc_defns : proc_defn list;
+    prog_commands : command list
   }
 
 (*******************************************************************
@@ -151,11 +151,11 @@ let mk_func_defn name params body loc =
     match body with
     | None -> TUnk
     | Some e -> typ_of_exp e in
-  { funcd_name = name
-  ; funcd_params = params
-  ; funcd_body = body
-  ; funcd_ret_typ = return_typ
-  ; funcd_loc = loc
+  { funcd_name = name;
+    funcd_params = params;
+    funcd_body = body;
+    funcd_ret_typ = return_typ;
+    funcd_loc = loc
   }
 ;;
 
@@ -164,32 +164,32 @@ let mk_data_defn typ params loc =
 ;;
 
 let mk_pred_defn name params ptype body loc =
-  { predd_name = name
-  ; predd_params = params
-  ; predd_typ = ptype
-  ; predd_body = body
-  ; predd_loc = loc
+  { predd_name = name;
+    predd_params = params;
+    predd_typ = ptype;
+    predd_body = body;
+    predd_loc = loc
   }
 ;;
 
 let mk_proc_specs pre post = { psp_precond = pre; psp_postcond = post }
 
 let mk_proc_defn name params rtyp specs loc =
-  { procd_name = name
-  ; procd_params = params
-  ; procd_return_typ = rtyp
-  ; procd_specs = specs
-  ; procd_loc = loc
+  { procd_name = name;
+    procd_params = params;
+    procd_return_typ = rtyp;
+    procd_specs = specs;
+    procd_loc = loc
   }
 ;;
 
 let mk_program_empty () =
-  { prog_file_name = ""
-  ; prog_func_defns = []
-  ; prog_data_defns = []
-  ; prog_pred_defns = []
-  ; prog_proc_defns = []
-  ; prog_commands = []
+  { prog_file_name = "";
+    prog_func_defns = [];
+    prog_data_defns = [];
+    prog_pred_defns = [];
+    prog_proc_defns = [];
+    prog_commands = []
   }
 ;;
 
@@ -209,7 +209,9 @@ let rec sprint_exp (e : exp) : string =
   | BinExp (Div, e1, e2, _) -> sprint_exp e1 ^ "/" ^ sprint_exp e2
   | Func (fn, es, _, _) -> fn ^ "(" ^ sprint_exps es ^ ")"
 
-and sprint_exps (es : exp list) : string = sprint_list ~sep:"," ~f:sprint_exp es
+and sprint_exps (es : exp list) : string =
+  sprint_list ~sep:"," ~f:sprint_exp es
+;;
 
 let pr_addr_exp (a : addr_exp) : string =
   "("
@@ -249,8 +251,10 @@ let rec sprint_formula (f : formula) : string =
   | Wand (f1, f2) -> sprint_formula f1 ^ " --* " ^ sprint_formula f2
   | Septract (f1, f2) -> sprint_formula f1 ^ " *- " ^ sprint_formula f2
   | Update (f1, f2) -> sprint_formula f1 ^ " *+ " ^ sprint_formula f2
-  | Forall (vs, f) -> "(exists " ^ sprint_vars vs ^ ". " ^ sprint_formula f ^ ")"
-  | Exists (vs, f) -> "(forall " ^ sprint_vars vs ^ ". " ^ sprint_formula f ^ ")"
+  | Forall (vs, f) ->
+    "(exists " ^ sprint_vars vs ^ ". " ^ sprint_formula f ^ ")"
+  | Exists (vs, f) ->
+    "(forall " ^ sprint_vars vs ^ ". " ^ sprint_formula f ^ ")"
 ;;
 
 let sprint_ent (ent : entailment) : string =
@@ -288,7 +292,8 @@ let sprint_predicate_defn (p : pred_defn) : string =
 ;;
 
 let sprint_func_defn (f : func_defn) : string =
-  let header = "func " ^ f.funcd_name ^ "(" ^ sprint_vars f.funcd_params ^ ") := " in
+  let header =
+    "func " ^ f.funcd_name ^ "(" ^ sprint_vars f.funcd_params ^ ") := " in
   let body =
     match f.funcd_body with
     | None -> "?"
@@ -311,7 +316,13 @@ let sprint_proc_defn (p : proc_defn) : string =
            ^ sprint_formula s.psp_postcond
            ^ ";")
     |> String.concat ~sep:"\n" in
-  sprint_type p.procd_return_typ ^ " " ^ p.procd_name ^ "(" ^ params ^ ")\n" ^ specs
+  sprint_type p.procd_return_typ
+  ^ " "
+  ^ p.procd_name
+  ^ "("
+  ^ params
+  ^ ")\n"
+  ^ specs
 ;;
 
 let sprint_command (c : command) =

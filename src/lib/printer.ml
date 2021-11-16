@@ -8,7 +8,9 @@
 (* Printer module *)
 
 open Core
+open Globals
 open Libstring
+open Libcore
 
 let no_print = ref false
 
@@ -119,7 +121,8 @@ let sprint_args ~(f : 'a -> string) (args : 'a list) : string =
   sprint_list ~sep:", " ~obrace:"" ~cbrace:"" ~f args
 ;;
 
-let sprint_pair ~(f1 : 'a -> string) ~(f2 : 'b -> string) (p : 'a * 'b) : string
+let sprint_pair ~(f1 : 'a -> string) ~(f2 : 'b -> string) (p : 'a * 'b)
+    : string
   =
   let x, y = p in
   "(" ^ f1 x ^ ", " ^ f2 y ^ ")"
@@ -200,7 +203,7 @@ let print_core
           let indent = String.count_indent prefix + 2 + indent in
           prefix ^ "\n" ^ String.indent_line indent msg)
         else String.indent_line indent (String.align_line prefix msg) in
-    print_endline msg)
+    print_endline ("[info] " ^ msg))
   else ()
 ;;
 
@@ -229,6 +232,19 @@ let print2
     : unit
   =
   print_core ~ruler ~indent ~always ~format (msg1 ^ msg2)
+;;
+
+(** print a list of messages *)
+
+let prints
+    ?(ruler = `None)
+    ?(indent = 0)
+    ?(always = false)
+    ?(format = true)
+    (msgs : string list)
+    : unit
+  =
+  print_core ~ruler ~indent ~always ~format (String.concat msgs)
 ;;
 
 let println
@@ -281,3 +297,40 @@ let eprintf = Printf.eprintf
 (** print formatting *)
 
 let printf = Printf.printf
+
+(*******************************************************************
+ ** Warning and error
+ *******************************************************************)
+
+let warning msg =
+  let msg = "[warning] " ^ msg in
+  if not !print_concise_output then prerr_endline msg
+;;
+
+let hwarning msg f x =
+  let msg = msg ^ ": " ^ f x in
+  warning msg
+;;
+
+(** report an error message *)
+
+let error ?(log = "") (msg : string) = raise (EError (msg, log))
+
+(** report 2 error messages *)
+
+let error2 ?(log = "") (msg1 : string) (msg2 : string) =
+  let msg = msg1 ^ msg2 in
+  error ~log msg
+;;
+
+(** report a list of error messages *)
+
+let errors ?(log = "") (msgs : string list) =
+  let msg = String.concat ~sep:"" msgs in
+  error ~log msg
+;;
+
+let herror msg f x =
+  let msg = msg ^ f x in
+  error msg
+;;

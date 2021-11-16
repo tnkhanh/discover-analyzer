@@ -37,7 +37,7 @@ let config_golang_compiler () =
       gollvm_path := String.sub go_path ~pos:0 ~len:(String.length go_path - 2)
     with _ -> ());
   if (not (String.equal !gollvm_path ""))
-  && not (String.is_suffix !gollvm_path ~suffix:"/")
+     && not (String.is_suffix !gollvm_path ~suffix:"/")
   then gollvm_path := !gollvm_path ^ "/"
 ;;
 
@@ -45,7 +45,7 @@ let compile_golang (filename : string) : LI.program =
   let _ = debug2 "Compiling Go file: " filename in
   let _ = debug2 "gollvm_path: " !gollvm_path in
   let dirname = Filename.dirname filename ^ Filename.dir_sep ^ "logs" in
-  let _ = Sys.mkdir_if_not_exists dirname in
+  let _ = Sys.make_dir dirname in
   let bitcode_filename = dirname ^ Filename.dir_sep ^ filename ^ ".raw.bc" in
   (* Code to compile Go file in OCaml
 
@@ -90,11 +90,11 @@ let compile_golang (filename : string) : LI.program =
   let go_build_output = dirname ^ Filename.dir_sep ^ filename ^ ".txt" in
   let _ =
     PS.run_command
-      [ script_name
-      ; filename
-      ; bitcode_filename
-      ; !gollvm_path ^ "go"
-      ; go_build_output
+      [ script_name;
+        filename;
+        bitcode_filename;
+        !gollvm_path ^ "go";
+        go_build_output
       ] in
   BC.compile_bitcode [] "" bitcode_filename
 ;;

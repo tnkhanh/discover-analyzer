@@ -6,7 +6,8 @@
  ********************************************************************)
 
 open Core
-open Globals
+
+(* open Globals *)
 open Libdiscover
 open Debugger
 open Slir
@@ -223,7 +224,8 @@ type proof_tree =
     ptr_rule : rule option;
     ptr_sub_trees : proof_tree list;
     ptr_status : bool option;
-    ptr_frames : formula list (* NOTE: can magicwand maintain only one frame? *)
+    ptr_frames : formula list
+        (* NOTE: can magicwand maintain only one frame? *)
   }
 
 type prover_state =
@@ -533,11 +535,19 @@ let mk_rule_false_left encs = RlFalseLeft { rfl_entails = encs }
 let mk_rule_valid_entails encs = RlValidEntails { rve_entails = encs }
 let mk_rule_infer_frame enc = RlInferFrame { rif_entail = enc }
 let mk_rule_elim_bvar ents_eqss = RlElimBVar { reb_entails_eqss = ents_eqss }
-let mk_rule_equal_left ents_eqss = RlEqualLeft { reql_entails_eqss = ents_eqss }
+
+let mk_rule_equal_left ents_eqss =
+  RlEqualLeft { reql_entails_eqss = ents_eqss }
+;;
+
 let mk_rule_exists_left encs = RlExistsLeft { rexl_entails = encs }
 let mk_rule_exists_right encs = RlExistsRight { rexr_entails = encs }
 let mk_rule_reln_left rd enc = RlRelnLeft { rrl_rdefn = rd; rrl_entail = enc }
-let mk_rule_reln_right rd enc = RlRelnRight { rrr_rdefn = rd; rrr_entail = enc }
+
+let mk_rule_reln_right rd enc =
+  RlRelnRight { rrr_rdefn = rd; rrr_entail = enc }
+;;
+
 let mk_rule_wand_inner encs = RlWandInner { rwi_entails = encs }
 let mk_rule_wand_outer encs = RlWandOuter { rwo_entails = encs }
 let mk_rule_wand_data encs = RlWandData { rwd_entails = encs }
@@ -839,8 +849,9 @@ let remove_goal_entcores goal encs : goal =
 
 let mk_derivation_subgoals goal sub_goals rule =
   let sub_goals =
-    List.map ~f:(fun g -> { g with gl_trace = g.gl_trace @ [ rule ] }) sub_goals
-  in
+    List.map
+      ~f:(fun g -> { g with gl_trace = g.gl_trace @ [ rule ] })
+      sub_goals in
   { drv_goal = goal; drv_kind = DrvSubgoals sub_goals; drv_rule = rule }
 ;;
 

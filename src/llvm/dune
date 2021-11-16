@@ -6,7 +6,11 @@
 ;;---------------------------------------------------------------------
 
 ;; lexer
- (ocamllex (modules annlexer))
 
- ;; parser for entailments
- (menhir (modules annparser))
+(ocamllex
+ (modules annlexer))
+
+;; parser for entailments
+
+(menhir
+ (modules annparser))

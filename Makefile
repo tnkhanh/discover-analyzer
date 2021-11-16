@@ -1,3 +1,5 @@
+.DEFAULT_GOAL := all
+
 all:
 	dune build src/Discover.exe
 	@echo ""
@@ -5,3 +7,8 @@ all:
 
 clean:
 	dune clean
+
+# Auto-format code
+format:
+	dune build @fmt
+	dune promote

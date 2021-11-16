@@ -27,9 +27,9 @@ type ann_type =
   | Safe
 
 type instr_with_tag =
-  { pos : position
-  ; tag : int
-  ; ins : instr
+  { pos : position;
+    tag : int;
+    ins : instr
   }
 
 let make_tagged_ins pos_ tag_ ins_ = { pos = pos_; tag = tag_; ins = ins_ }
@@ -214,21 +214,24 @@ let apply_hd_bug
   match matched_anns with
   | [] ->
     raise
-      (AnnotFormat ("Error: Bug_end without start at " ^ Ann.sprint_pos_ann end_ann))
+      (AnnotFormat
+         ("Error: Bug_end without start at " ^ Ann.sprint_pos_ann end_ann))
   | (ann, ins_op) :: tl ->
     (match ann with
     | Bug_start ((line, col), bugs) ->
       (match ins_op with
       | None ->
         raise
-          (AnnotFormat ("Error: No ins for annot at " ^ Ann.sprint_pos_ann end_ann))
+          (AnnotFormat
+             ("Error: No ins for annot at " ^ Ann.sprint_pos_ann end_ann))
       | Some ins ->
         let _ = apply_annotation Bug ins bugs modul in
         tl)
     | Bug_end _ | Safe_start _ | Safe_end _ | Skip ->
       raise
         (AnnotFormat
-           ("Error: no Bug_start matching Bug_end at " ^ Ann.sprint_pos_ann end_ann)))
+           ("Error: no Bug_start matching Bug_end at "
+           ^ Ann.sprint_pos_ann end_ann)))
 ;;
 
 let apply_hd_safe
@@ -239,21 +242,24 @@ let apply_hd_safe
   match matched_anns with
   | [] ->
     raise
-      (AnnotFormat ("Error: Safe_end without start at " ^ Ann.sprint_pos_ann end_ann))
+      (AnnotFormat
+         ("Error: Safe_end without start at " ^ Ann.sprint_pos_ann end_ann))
   | (ann, ins_op) :: tl ->
     (match ann with
     | Safe_start ((line, col), bugs) ->
       (match ins_op with
       | None ->
         raise
-          (AnnotFormat ("Error: No ins for annot at " ^ Ann.sprint_pos_ann end_ann))
+          (AnnotFormat
+             ("Error: No ins for annot at " ^ Ann.sprint_pos_ann end_ann))
       | Some ins ->
         let _ = apply_annotation Safe ins bugs modul in
         tl)
     | Bug_start _ | Bug_end _ | Safe_end _ | Skip ->
       raise
         (AnnotFormat
-           ("Error: no Safe_start matching Safe_end at" ^ Ann.sprint_pos_ann end_ann)))
+           ("Error: no Safe_start matching Safe_end at"
+           ^ Ann.sprint_pos_ann end_ann)))
 ;;
 
 let rec resolve
@@ -304,7 +310,8 @@ let rec resolve
     | Skip -> resolve tl_anns instrs matched_anns modul)
 ;;
 
-let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule) : unit
+let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
+    : unit
   =
   (* TODO: fill code here.
      See module llsimp.ml, function elim_instr_intrinsic_lifetime ...

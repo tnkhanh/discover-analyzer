@@ -6,7 +6,8 @@
  ********************************************************************)
 
 open Core
-open Libdiscover
+
+(* open Libdiscover *)
 module LL = Llvm
 module LX = Lexing
 
@@ -203,7 +204,8 @@ let __init_globals = __init ^ "globals"
  * Time statistics
  *-----------------*)
 
-let detailed_task_time : (string * float) list ref = ref [] (* tasks and time *)
+let detailed_task_time : (string * float) list ref = ref []
+(* tasks and time *)
 
 let sparse_time : float ref = ref 0.0
 let analysis_time : float ref = ref 0.0
@@ -245,59 +247,6 @@ let mk_position_lexing (pstart : LX.position) (pend : LX.position) : position =
     pos_col_start = pstart.Lexing.pos_cnum - pstart.Lexing.pos_bol + 1;
     pos_col_end = pend.Lexing.pos_cnum - pend.Lexing.pos_bol + 1
   }
-;;
-
-let sprint_file_excerpt
-    filename
-    (lstart : int)
-    (lend : int)
-    (cstart : int)
-    (cend : int)
-  =
-  (* let _ = print_endline ("File: " ^ filename) in *)
-  let file_lines = In_channel.read_lines filename in
-  let num_lines = List.length file_lines in
-  let lstart = if lstart < 3 then 3 else lstart in
-  let lend = if lend > num_lines - 2 then num_lines - 2 else lend in
-  let rec pr_excerpt lines lcur acc =
-    match lines with
-    | [] -> List.rev acc
-    | line :: nlines ->
-      let nl = lcur + 1 in
-      if lcur < lstart - 1 || lcur >= lend
-      then (
-        let marked_line = Printf.sprintf "%6d" nl ^ ".  " ^ line ^ "\n" in
-        pr_excerpt nlines (lcur + 1) (marked_line :: acc))
-      else (
-        let marked_line = Printf.sprintf "%6d" nl ^ ".> " ^ line ^ "\n" in
-        let marked_col =
-          if lcur = lstart - 1
-          then (
-            let nc = if cstart > 2 then cstart - 2 else 0 in
-            "       > " ^ String.make nc ' ' ^ "^^^\n")
-          else if lcur = lend - 1
-          then (
-            let nc = if cend > 2 then cend - 2 else 0 in
-            "       > " ^ String.make nc ' ' ^ "^^^\n")
-          else "" in
-        pr_excerpt nlines (lcur + 1) (marked_col :: marked_line :: acc)) in
-  let excerpt_lines = List.slice file_lines (lstart - 3) (lend + 2) in
-  let format_str = pr_excerpt excerpt_lines (lstart - 3) [] in
-  String.rstrip (String.concat ~sep:"" format_str)
-;;
-
-let sprint_file_position_and_excerpt (p : position) =
-  let fname = p.pos_file_name in
-  let lstart, lend = p.pos_line_start, p.pos_line_end in
-  let cstart, cend = p.pos_col_start, p.pos_col_end in
-  let line_column =
-    if lstart = lend && cstart = cend
-    then sprint_int lstart ^ ":" ^ sprint_int cstart
-    else
-      sprint_int lstart ^ ":" ^ sprint_int cstart ^ " ~> "
-      ^ sprint_int lend ^ ":" ^ sprint_int cend in
-  "File: " ^ fname ^ ", line/column position: " ^ line_column ^ "\n"
-  ^ sprint_file_excerpt fname lstart lend cstart cend
 ;;
 
 (*******************************************************************
@@ -346,41 +295,4 @@ let pr_work_mode wm =
   | WkmDFA -> "Data Flow Analysis"
   | WkmAbsInt -> "Abstract Interpretation"
   | WkmNoAnalysis -> "No Analysis"
-;;
-
-(*******************************************************************
- ** Warning and error
- *******************************************************************)
-
-let warning msg =
-  let msg = "Warning: " ^ msg in
-  if not !print_concise_output then prerr_endline msg
-;;
-
-let hwarning msg f x =
-  let msg = msg ^ ": " ^ f x in
-  warning msg
-;;
-
-(** report an error message *)
-
-let error ?(log = "") (msg : string) = raise (EError (msg, log))
-
-(** report 2 error messages *)
-
-let error2 ?(log = "") (msg1 : string) (msg2 : string) =
-  let msg = msg1 ^ msg2 in
-  error ~log msg
-;;
-
-(** report a list of error messages *)
-
-let errors ?(log = "") (msgs : string list) =
-  let msg = String.concat ~sep:"" msgs in
-  error ~log msg
-;;
-
-let herror msg f x =
-  let msg = msg ^ f x in
-  error msg
 ;;

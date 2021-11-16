@@ -55,7 +55,8 @@ let compute_func_call_info (prog : program) : unit =
               List.insert_dedup (get_func_callers prog callee) caller ~equal
             in
             let _ =
-              Hashtbl.set prog.prog_func_callers ~key:callee ~data:callers in
+              Hashtbl.set prog.prog_func_callers ~key:callee ~data:callers
+            in
             let callees =
               List.insert_dedup (get_func_callees prog caller) callee ~equal
             in

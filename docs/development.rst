@@ -24,7 +24,7 @@ IDE and editors
 
 
 Coding convention
--------------------------------
+-------------------
 
 - Indentation by `ocp-indent <https://github.com/OCamlPro/ocp-indent>`_ and
   follow the rules configured in in ``discover/.ocp-indent``.
@@ -52,3 +52,23 @@ Coding convention
   + Each code line is at most 80 column.
   + Function and variable names follow snake case style (``snake_case_naming``).
   + Module and signature names follow Camel Case (``CamelCaseNaming``).
+
+Autoformat project using Dune
+--------------------------------
+
+- Require ``ocamlformat`` to be installed and the configuration file
+  ``.ocamlformat`` at the project's root directory.
+
+- Formatting the project by two commands:
+
+  .. code-block:: sh
+
+     # Format the source code and display the differences
+     dune build @fmt
+
+     # Replace the source files by the corrected versions.
+     dune promote
+
+
+- Read more at this `formatting project tutorial
+  <https://dune.readthedocs.io/en/stable/formatting.html>.`_

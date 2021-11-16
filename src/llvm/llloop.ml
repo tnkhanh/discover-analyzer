@@ -6,7 +6,6 @@
  ********************************************************************)
 
 open Core
-open Globals
 open Libdiscover
 open Llir
 module LL = Llvm
@@ -126,7 +125,8 @@ let find_innermost_loop_of_block (prog : program) blk : loop option =
       find_loop blk)
 ;;
 
-let find_innermost_loop_of_llvalue (prog : program) (v : llvalue) : loop option =
+let find_innermost_loop_of_llvalue (prog : program) (v : llvalue) : loop option
+  =
   let find_loop v =
     if is_llvalue_instr v
     then (

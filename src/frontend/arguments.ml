@@ -11,10 +11,6 @@ open Libdiscover
 open Debugger
 
 (*******************************************************************
- ** utilities function
- *******************************************************************)
-
-(*******************************************************************
  ** arguments management
  *******************************************************************)
 
@@ -222,8 +218,12 @@ and arguments_raw =
     ( [ "--llvm-prog-info" ],
       "Enable printing program's information",
       Arg.Set llvm_print_prog_info );
-    [ "--llvm-no-simplify" ], "No not simplify LLVM IR", Arg.Clear llvm_simplify;
-    [ "--llvm-no-optimize" ], "Do not optimize LLVM IR", Arg.Clear llvm_optimize;
+    ( [ "--llvm-no-simplify" ],
+      "No not simplify LLVM IR",
+      Arg.Clear llvm_simplify );
+    ( [ "--llvm-no-optimize" ],
+      "Do not optimize LLVM IR",
+      Arg.Clear llvm_optimize );
     ( [ "--llvm-no-normalize" ],
       "Do not normalize LLVM IR",
       Arg.Clear llvm_normalize );

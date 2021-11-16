@@ -57,8 +57,7 @@ let shortest_block_distance bg (src : block) (dst : block) : int option =
   try
     let _, distance = BG.Dijkstra.shortest_path bg src dst in
     Some distance
-  with
-  | _ -> None
+  with _ -> None
 ;;
 
 (*******************************************************************
@@ -130,8 +129,7 @@ let shortest_callee_distance rg (caller : func) (callee : func) : int option =
     let src, dst = llvalue_of_func caller, llvalue_of_func callee in
     let _, distance = IG.Dijkstra.shortest_path rg src dst in
     Some distance
-  with
-  | _ -> None
+  with _ -> None
 ;;
 
 (*******************************************************************

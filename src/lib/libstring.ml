@@ -62,7 +62,6 @@ module String = struct
     mk_whitespace indent
   ;;
 
-
   (** format a message by insert an indentation to each line *)
 
   let indent_line ?(skipfirst = false) (indent : int) (msg : string) : string =
@@ -75,7 +74,7 @@ module String = struct
 
   (** high-order insert an indentation to each line of a message *)
   let hindent_line ?(skipfirst = false) (i : int) (f : 'a -> string) (v : 'a)
-    : string
+      : string
     =
     indent_line ~skipfirst i (f v)
   ;;

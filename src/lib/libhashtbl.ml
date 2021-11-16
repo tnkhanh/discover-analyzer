@@ -13,7 +13,7 @@ open Core
 
 module Hashtbl = struct
   let find_or_compute (tbl : ('a, 'b) Hashtbl.t) ~(key : 'a) ~(f : unit -> 'b)
-    : 'b
+      : 'b
     =
     match Hashtbl.find tbl key with
     | Some data -> data

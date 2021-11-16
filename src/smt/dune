@@ -6,9 +6,12 @@
 ;;---------------------------------------------------------------------
 
 ;; lexer
-(ocamllex (modules z3lexer))
+
+(ocamllex
+ (modules z3lexer))
 
 ;; parser for z3 binary
+
 (menhir
  ; (flags (--compile-errors hb.messages))
  (modules z3parser))

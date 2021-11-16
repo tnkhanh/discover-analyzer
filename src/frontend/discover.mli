@@ -5,15 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-(*---------------------
- * Extended libraries
- *--------------------*)
+(* IMPORTANT: do not delete this file.
 
-include Libbigint
-include Libhashtbl
-include Liblist
-include Libmath
-include Libstring
-include Libsys
-include Libcore
-include Printer
+   It's kept as an empty file so that the OCaml compiler can report warnings
+   about unused module aliases *)
