@@ -1,5 +1,4 @@
-# mli:
-# 	 dune exec -- ocaml-print-intf src/frontend/discover.ml
+.DEFAULT_GOAL := all
 
 all:
 	dune build src/Discover.exe
@@ -8,3 +7,8 @@ all:
 
 clean:
 	dune clean
+
+# Auto-format code
+format:
+	dune build @fmt
+	dune promote
