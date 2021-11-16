@@ -113,10 +113,12 @@ let extract_ann_marks (filename: string) =
   let inx = In_channel.create filename in 
   let lexbuf = Lexing.from_channel inx in
   let rev_mark_list =
-    try Annparser.prog Annlexer.read lexbuf with 
-      Annparser.Error -> 
-        let _ = debug2 "Parsing failed. Annotations ignored in file: " filename in 
-        [] in
+    try Annparser.prog Annlexer.read lexbuf
+    with Annparser.Error ->
+      let _ =
+        debug ("Parsing failed. Annotations ignored in file: " ^ filename)
+      in
+      [] in
 
   (*print all marks*)
   let _ = debug ~ruler:`Short "Annotations" in
