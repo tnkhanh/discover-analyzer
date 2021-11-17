@@ -960,7 +960,8 @@ module RangeAnalysis = struct
     | Bottom -> "[Empty]"
     | Range r ->
       if r.ID.range_lb_inclusive
-         && r.ID.range_ub_inclusive
+      && r.ID.range_ub_inclusive
+
          && r.range_lb == r.range_ub
       then ID.sprint_bound r.range_ub
       else ID.sprint_range r
