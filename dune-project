@@ -1,5 +1,4 @@
-(lang dune 3.0)
-
+(lang dune 2.9)
 
 ;; project name
 (name discover)
@@ -12,15 +11,14 @@
 (package
  (name discover)
  (description "A source code static analyzer")
- (depends
-  (dune (> 2.9))
-  (core (>= 0.14.1))
-  (ocamlgraph (>= 2.0.0))
-  filetutils
-  llvm
-  yaml
-  ezjsonm
-  num))
+ (depends (core (>= 0.14.1))
+          dune
+          (ocamlgraph (>= 2.0.0))
+          fileutils
+          llvm
+          yaml
+          ezjsonm
+          num))
 
 ;; Generate interface
 (executables_implicit_empty_intf true)

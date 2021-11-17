@@ -2,10 +2,10 @@
 opam-version: "2.0"
 description: "A source code static analyzer"
 depends: [
-  "dune" {>= "3.0" & > "2.9"}
   "core" {>= "0.14.1"}
+  "dune" {>= "2.9"}
   "ocamlgraph" {>= "2.0.0"}
-  "filetutils"
+  "fileutils"
   "llvm"
   "yaml"
   "ezjsonm"
