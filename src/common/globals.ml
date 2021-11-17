@@ -165,11 +165,11 @@ let user_config_file = "discover.yaml"
 let llvm_version = "13" (* using LLVM 13 *)
 
 let llvm_path = ref ""
-let clang_path = ref "clang"
-let opt_path = ref "opt"
-let solang_path = ref "solang"
+let clang_exe = ref "clang"
+let opt_exe = ref "opt"
+let solang_exe = ref "solang"
 let gollvm_path = ref ""
-let llvm_normalizer_path = ref "normalizer"
+let normalizer_exe = ref "normalizer"
 let discover_path = Filename.realpath Sys.argv.(0)
 let project_path = Filename.dirname discover_path
 

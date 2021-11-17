@@ -19,11 +19,6 @@ type process =
     proc_err_channel : in_channel
   }
 
-type process_output =
-  | POutput of string (* output *)
-  | PError of string
-(* error message *)
-
 let mk_proc_dummy (cmd : string list) =
   { proc_exe = (try List.hd_exn cmd with _ -> "");
     proc_cmd = cmd;
@@ -124,18 +119,22 @@ let run_command (cmd : string list) : unit =
     let cmd = beautiful_concat ~column:80 ~sep:" " cmd in
     error
       ~log:msg
-      ("Failed to run external command:\n\n" ^ String.indent_line 2 cmd)
+      ("Failed to run external command:\n\n" ^ String.indent 2 cmd)
 ;;
 
-let run_command_get_output (cmd : string list) : process_output =
+(** Run a command and get output. The output can be:
+    - (Ok string_output)
+    - (Error error_message) *)
+
+let run_command_get_output (cmd : string list) : (string, string) result =
   let proc = start_process cmd in
   match Unix.waitpid (Pid.of_int proc.proc_pid) with
   | Ok _ ->
     let output = read_output proc ^ read_error proc in
     let _ = close_process proc in
-    POutput output
+    (Ok output)
   | Error _ ->
     let msg = read_error proc in
     let _ = close_process proc in
-    PError msg
+    (Error msg)
 ;;

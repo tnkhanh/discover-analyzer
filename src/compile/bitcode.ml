@@ -80,11 +80,14 @@ let optimize_bitcode (filename : string) : string =
   let optimized_file = dirname ^ Filename.dir_sep ^ basename ^ ".opt.bc" in
   let _ =
     let _ = Sys.remove_file optimized_file in
+    let user_options =
+      if String.is_empty !opt_user_options
+      then []
+      else String.split ~on:' ' !opt_user_options in
     let cmd =
-      [ !opt_path; filename; "-o"; optimized_file ]
+      [ !opt_exe; filename; "-o"; optimized_file ]
       @ [ "-mem2reg"; "--disable-verify" ]
-      @ String.split ~on:' ' !opt_user_options in
-    let cmd = List.exclude ~f:String.is_empty cmd in
+      @ user_options in
     (* let _ = debug ("Running llvm-opt:\n" ^ String.concat ~sep:" " cmd) in *)
     PS.run_command cmd in
   let output_file = dirname ^ Filename.dir_sep ^ basename ^ ".core.bc" in
@@ -92,7 +95,7 @@ let optimize_bitcode (filename : string) : string =
     if !llvm_normalize
     then (
       let _ = Sys.remove_file output_file in
-      let cmd = [ !llvm_normalizer_path; optimized_file; "-o"; output_file ] in
+      let cmd = [ !normalizer_exe; optimized_file; "-o"; output_file ] in
       let _ =
         debug ("Running llvm-normalizer:\n" ^ String.concat ~sep:" " cmd) in
       PS.run_command cmd)
@@ -100,18 +103,14 @@ let optimize_bitcode (filename : string) : string =
   output_file
 ;;
 
+(* let disassemble_bitcode (filename: string) : unit = *)
+
 let compile_bitcode ann_marks source_name (filename : string) : LI.program =
   let _ = print_module_stats filename in
   let output_file = optimize_bitcode filename in
   let llcontext = LL.create_context () in
   let llmem = LL.MemoryBuffer.of_file output_file in
   let modul = Llvm_bitreader.parse_bitcode llcontext llmem in
-  let _ =
-    print_endline
-      ("=======================================\n"
-      ^ output_file
-      ^ LL.string_of_llmodule modul
-      ^ "=======================================") in
   let _ = LL.MemoryBuffer.dispose llmem in
   let _ =
     if !print_input_prog

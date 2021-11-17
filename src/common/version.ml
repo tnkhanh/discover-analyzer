@@ -15,12 +15,12 @@ let get_current_revision () : string =
   let rev =
     PS.run_command_get_output [ "git"; "rev-parse"; "--short"; "HEAD" ] in
   match rev with
-  | PError _ -> "<Unable to get Git revision>"
-  | POutput rev ->
+  | Error _ -> "<Unable to get Git revision>"
+  | Ok rev ->
     let date =
       PS.run_command_get_output [ "git"; "show"; "-s"; "--format=%ci"; rev ]
     in
     (match date with
-    | POutput date -> rev ^ " @ " ^ date
-    | PError _ -> rev ^ " @ <unknown date>")
+    | Ok date -> rev ^ " @ " ^ date
+    | Error _ -> rev ^ " @ <unknown date>")
 ;;

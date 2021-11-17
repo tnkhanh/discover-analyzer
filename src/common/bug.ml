@@ -297,7 +297,7 @@ let report_bug (bug : bug) : unit =
   let reason =
     match bug.bug_reason with
     | None -> ""
-    | Some s -> String.indent_line 2 ("Reason: " ^ s) ^ "\n" in
+    | Some s -> String.indent 2 ("Reason: " ^ s) ^ "\n" in
   let msg =
     "BUG: "
     ^ pr_bug_type ~detailed:false bug.bug_type

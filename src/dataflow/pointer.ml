@@ -1650,7 +1650,7 @@ module PointerDomain = struct
         ^ " --> "
         ^ sprint_expr dst
         ^ "\n"
-        ^ String.hindent_line 4 PG.pr_path path) in
+        ^ String.hindent 4 PG.pr_path path) in
     match check_path_balance_direction path p with
     | ApNone ->
       let _ = debug ~indent:4 "  -> Path contains unbalanced subpath!" in
