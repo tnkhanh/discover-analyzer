@@ -141,8 +141,8 @@ let get_func_args (bug : Ann.bug_group) ins llctx =
   match bug with
   | IntegerOverflow ->
     let width = LL.integer_bitwidth (LL.type_of ins) in
-    [|ins;LL.const_int (LL.i32_type llctx) width|]
-  | _ -> [|ins|]
+    [| ins; LL.const_int (LL.i32_type llctx) width |]
+  | _ -> [| ins |]
 ;;
 
 let apply_annotation anntyp instr bugs modul =
@@ -167,12 +167,7 @@ let apply_annotation anntyp instr bugs modul =
         | None -> ()
         | Some assert_func ->
           let args = get_func_args bug actual_ins llctx in
-          let _ =
-            LL.build_call
-              assert_func
-              args 
-              ""
-              builder in
+          let _ = LL.build_call assert_func args "" builder in
           ())
 ;;
 
@@ -352,9 +347,9 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
             ~ruler:`Short
             "Instruction: "
             (LL.string_of_llvalue inx ^ " " ^ dbg_str))
-      (List.rev tagged_ins)
-    (*sorted_ins*) in
+      (List.rev tagged_ins) in
   let _ = resolve ann_marks sorted_ins [] modul in
+  (* Code to debug instructions
   let _ = debug ~ruler:`Short "Sorted_ins" in
   let _ =
     List.iter tagged_ins ~f:(fun ins ->
@@ -379,32 +374,9 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
               let opr = LL.operand llins idx in
               fold_oprs (acc ^ "." ^ LL.string_of_llvalue opr) (idx + 1)) in
           fold_oprs "" 0 in
-        (*  -- printing operands of instruction (args variable)
-         *  let llins = llvalue_of_instr ins.ins in
-    let args =
-      match LL.instr_opcode llins with
-      | LO.Call ->
-        let num_args = LL.num_arg_operands llins in
-        let rec fold_oprs acc idx =
-          if idx = num_args+1 then acc^"\n"
-          else
-            let opr = LL.operand llins idx in
-            let kind =
-              match LL.classify_value opr with
-              | MDNode -> 
-                let mdnode_oprs =
-                  LL.get_mdnode_operands opr in
-                Array.fold mdnode_oprs ~init:"MDNode!!" ~f:(fun acc mdo ->
-                  acc ^ " | " ^ LL.string_of_llvalue mdo)
-              | Instruction _ (*of Opcode.t *) ->"ins!"
-              | _ -> "x"
-            in
-            fold_oprs (acc^"\n.."^kind^": " ^ (LL.string_of_llvalue opr)) (idx+1)
-        in fold_oprs "" 0
-
-      | _ -> "" in *)
-        debug2 "Ins: " (ins_str ^ "..Args: " ^ args ^ ".." ^ cover)) in
-  (*  let strhash = Hashtbl.fold coverage ~init:"" ~f:(fun ~key ~data acc ->
+        debug2 "Ins: " (ins_str ^ "..Args: " ^ args ^ ".." ^ cover)) in *)
+  (*  Code to debug coverage
+    let strhash = Hashtbl.fold coverage ~init:"" ~f:(fun ~key ~data acc ->
     let findx = Hashtbl.find coverage key in
     let findstr = match findx with
     | None -> "None"
