@@ -824,10 +824,8 @@ functor
             then (
               let bname = block_name blk in
               let binput =
-                String.hindent
-                  4
-                  sprint_data_opt
-                  (T.get_block_input fenv blk) in
+                String.hindent 4 sprint_data_opt (T.get_block_input fenv blk)
+              in
               let instrs_output =
                 fold_left_instrs
                   ~f:(fun acc2 instr ->
@@ -933,9 +931,7 @@ functor
         |> List.fold_left
              ~f:(fun acc g ->
                if is_sparse_global penv g
-               then
-                 acc
-                 @ [ String.hindent 2 (sprint_global ~detailed:true) g ]
+               then acc @ [ String.hindent 2 (sprint_global ~detailed:true) g ]
                else acc)
              ~init:[]
         |> String.concat ~sep:"\n"

@@ -117,9 +117,7 @@ let run_command (cmd : string list) : unit =
     let msg = read_error proc in
     let _ = close_process proc in
     let cmd = beautiful_concat ~column:80 ~sep:" " cmd in
-    error
-      ~log:msg
-      ("Failed to run external command:\n\n" ^ String.indent 2 cmd)
+    error ~log:msg ("Failed to run external command:\n\n" ^ String.indent 2 cmd)
 ;;
 
 (** Run a command and get output. The output can be:
@@ -132,9 +130,9 @@ let run_command_get_output (cmd : string list) : (string, string) result =
   | Ok _ ->
     let output = read_output proc ^ read_error proc in
     let _ = close_process proc in
-    (Ok output)
+    Ok output
   | Error _ ->
     let msg = read_error proc in
     let _ = close_process proc in
-    (Error msg)
+    Error msg
 ;;

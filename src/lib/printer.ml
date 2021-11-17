@@ -339,6 +339,7 @@ let herror msg f x =
  ** Warning and error
  *******************************************************************)
 
-let print_endline (str: string) : unit =
+let print_endline (str : string) : unit =
   let _ = print_endline str in
   ()
+;;

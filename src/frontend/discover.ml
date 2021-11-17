@@ -167,8 +167,7 @@ let _ =
     if not (!release_mode || String.is_empty log)
     then (
       eprint ("Detailed message:\n\n" ^ String.prefix_line ~prefix:"  > " log);
-      eprint
-        ("Exception:\n\n" ^ String.hindent 2 Printexc.get_backtrace ()));
+      eprint ("Exception:\n\n" ^ String.hindent 2 Printexc.get_backtrace ()));
     exit 1
   | e ->
     if not !release_mode
