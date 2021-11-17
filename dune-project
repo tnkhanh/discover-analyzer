@@ -19,6 +19,9 @@
           yaml
           ezjsonm
           ocamlformat
+          ppx_deriving
+          ppx_sexp_conv
+          ppx_compare
           num))
 
 ;; Generate interface
