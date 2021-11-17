@@ -33,14 +33,13 @@ void uninlineConstantExpr(IRBuilder<> *builder, Instruction *instr) {
 
       // debug() << " ConstantExpr: " << *exprInstr << "\n";
 
-      if (PHINode* phiInstr = dyn_cast<PHINode>(instr)){
+      if (PHINode *phiInstr = dyn_cast<PHINode>(instr)) {
         // set the insertion point in the incoming blocks to make sure
         // the current PHINode is always at the beginning of this block
-        BasicBlock* incomingBlock = phiInstr->getIncomingBlock(i);
-        Instruction* terminator = incomingBlock->getTerminator();
+        BasicBlock *incomingBlock = phiInstr->getIncomingBlock(i);
+        Instruction *terminator = incomingBlock->getTerminator();
         builder->SetInsertPoint(terminator);
-      }
-      else {
+      } else {
         // set the insertion point in this block
         builder->SetInsertPoint(instr);
       }
@@ -59,13 +58,13 @@ void uninlineConstantExpr(IRBuilder<> *builder, Instruction *instr) {
 bool UninlineInstruction::runOnFunction(Function &F) {
   StringRef passName = this->getPassName();
   debug() << "=========================================\n"
-          << "Running Function Pass <" << passName << "> on: "
-          << F.getName() << "\n";
+          << "Running Function Pass <" << passName << "> on: " << F.getName()
+          << "\n";
 
-  for (BasicBlock &B: F.getBasicBlockList()){
+  for (BasicBlock &B : F.getBasicBlockList()) {
     IRBuilder<> builder(&B);
 
-    for (Instruction &I: B){
+    for (Instruction &I : B) {
       uninlineConstantExpr(&builder, &I);
     }
   }
@@ -76,11 +75,12 @@ bool UninlineInstruction::runOnFunction(Function &F) {
 }
 
 static RegisterPass<UninlineInstruction> X("UninlineInstruction",
-    "UninlineInstruction",
-    false /* Only looks at CFG */,
-    false /* Analysis Pass */);
+                                           "UninlineInstruction",
+                                           false /* Only looks at CFG */,
+                                           false /* Analysis Pass */);
 
 static RegisterStandardPasses Y(PassManagerBuilder::EP_EarlyAsPossible,
-    [](const PassManagerBuilder &Builder, legacy::PassManagerBase &PM) {
-      PM.add(new UninlineInstruction());
-    });
+                                [](const PassManagerBuilder &Builder,
+                                   legacy::PassManagerBase &PM) {
+                                  PM.add(new UninlineInstruction());
+                                });

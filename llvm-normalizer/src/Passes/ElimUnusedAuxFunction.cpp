@@ -27,8 +27,8 @@ bool ElimUnusedAuxFunction::runOnModule(Module &M) {
     StringRef funcName = func->getName();
 
     // not auxiliary function of Discover
-    if (funcName.startswith("__assert") || funcName.startswith("__refute")
-        || funcName.contains("main"))
+    if (funcName.startswith("__assert") || funcName.startswith("__refute") ||
+        funcName.contains("main"))
       continue;
 
     if (func->getNumUses() == 0)
@@ -38,7 +38,7 @@ bool ElimUnusedAuxFunction::runOnModule(Module &M) {
     //        << ", num of uses: " << func->getNumUses() << "\n";
   }
 
-  for (Function* func: unusedFuncs) {
+  for (Function *func : unusedFuncs) {
     // outs() << "Remove function: " << func->getName() << "\n";
 
     func->removeFromParent();
@@ -56,10 +56,12 @@ bool ElimUnusedAuxFunction::normalizeModule(Module &M) {
 }
 
 static RegisterPass<ElimUnusedAuxFunction> X("ElimUnusedAuxFunction",
-    "ElimUnusedAuxFunction",
-    false /* Only looks at CFG */,
-    false /* Analysis Pass */);
+                                             "ElimUnusedAuxFunction",
+                                             false /* Only looks at CFG */,
+                                             false /* Analysis Pass */);
 
 static RegisterStandardPasses Y(PassManagerBuilder::EP_EarlyAsPossible,
-    [](const PassManagerBuilder &Builder, legacy::PassManagerBase &PM) {
-      PM.add(new ElimUnusedAuxFunction());});
+                                [](const PassManagerBuilder &Builder,
+                                   legacy::PassManagerBase &PM) {
+                                  PM.add(new ElimUnusedAuxFunction());
+                                });

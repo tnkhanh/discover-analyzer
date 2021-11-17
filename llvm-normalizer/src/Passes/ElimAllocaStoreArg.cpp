@@ -23,7 +23,6 @@ using namespace llvm;
  * can be replaced by `arg`
  */
 
-
 char ElimAllocaStoreArg::ID = 0;
 
 void ElimAllocaStoreArg::removeAllocaStoreArg(Function &F,
@@ -31,17 +30,17 @@ void ElimAllocaStoreArg::removeAllocaStoreArg(Function &F,
   for (auto it = ASLList.begin(); it != ASLList.end(); it++) {
     ASLInstrs instrTuple = *it;
 
-    AllocaInst* allocInst = std::get<0>(instrTuple);
-    StoreInst* storeInst = std::get<1>(instrTuple);
-    std::vector<LoadInst*> loadInsts = std::get<2>(instrTuple);
+    AllocaInst *allocInst = std::get<0>(instrTuple);
+    StoreInst *storeInst = std::get<1>(instrTuple);
+    std::vector<LoadInst *> loadInsts = std::get<2>(instrTuple);
 
     debug() << "- Elim AllocaInst: " << *allocInst << "\n";
     debug() << "  StoreInst: " << *storeInst << "\n";
 
-    Value* storeSrc = storeInst->getOperand(0);
+    Value *storeSrc = storeInst->getOperand(0);
 
     for (auto it = loadInsts.begin(); it != loadInsts.end(); it++) {
-      LoadInst* loadInst = *it;
+      LoadInst *loadInst = *it;
       debug() << "   replace: " << *loadInst << "\n"
               << "      by: " << *storeSrc << "\n";
       llvm::replaceOperand(&F, loadInst, storeSrc);
@@ -64,8 +63,8 @@ std::vector<ASLInstrs> ElimAllocaStoreArg::findAllocaStoreArg(Function &F) {
 
   BasicBlockList &BS = F.getBasicBlockList();
 
-  for (BasicBlock &B: BS) {
-    for (Instruction &I: B) {
+  for (BasicBlock &B : BS) {
+    for (Instruction &I : B) {
       if (!isa<AllocaInst>(&I))
         continue;
 
@@ -73,13 +72,14 @@ std::vector<ASLInstrs> ElimAllocaStoreArg::findAllocaStoreArg(Function &F) {
       // debug() << "AllocaInst: " << *allocInst << "\n";
 
       StoreInst *storeInst;
-      std::vector<LoadInst*> loadInsts;
+      std::vector<LoadInst *> loadInsts;
 
       bool isStoreLoadArgOnly = true;
       int numStoreInst = 0;
       int numLoadInst = 0;
 
-      for (auto it = allocInst->user_begin(); it != allocInst->user_end(); it++) {
+      for (auto it = allocInst->user_begin(); it != allocInst->user_end();
+           it++) {
         Value *allocUser = *it;
         // debug() << "  user: " << *it->getUser() << "\n";
 
@@ -89,13 +89,11 @@ std::vector<ASLInstrs> ElimAllocaStoreArg::findAllocaStoreArg(Function &F) {
             isStoreLoadArgOnly = false;
           // debug() << "  StoreInst: " << *storeInst << "\n";
           numStoreInst++;
-        }
-        else if (LoadInst *loadInst = dyn_cast<LoadInst>(allocUser)) {
+        } else if (LoadInst *loadInst = dyn_cast<LoadInst>(allocUser)) {
           // debug() << "  LoadInst: " << *loadInst << "\n";
           loadInsts.push_back(loadInst);
           numLoadInst++;
-        }
-        else {
+        } else {
           isStoreLoadArgOnly = false;
           break;
         }
@@ -114,8 +112,8 @@ std::vector<ASLInstrs> ElimAllocaStoreArg::findAllocaStoreArg(Function &F) {
 bool ElimAllocaStoreArg::runOnFunction(Function &F) {
   StringRef passName = this->getPassName();
   debug() << "=========================================\n"
-          << "Running Function Pass <" << passName << "> on: "
-          << F.getName() << "\n";
+          << "Running Function Pass <" << passName << "> on: " << F.getName()
+          << "\n";
 
   // if (F.getName().equals("parse_shell_options"))
   //   debug() << "Input function: " << F << "\n";

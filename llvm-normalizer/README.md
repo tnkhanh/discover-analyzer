@@ -100,7 +100,7 @@ llvm-normalizer
 
 - Compile `llvm-normalizer`
 
-  ``` bash
+  ``` sh
   mkdir build
   cd build
   cmake ../
@@ -109,6 +109,16 @@ llvm-normalizer
 
 - After compilation, copy the output file `llvm-normalizer` to the same folder
   with the main tool `discover`.
+
+# Development
+
+- Auto-format code using `clang-format`:
+
+  ```sh
+  cd build
+  cmake ../
+  make clangformat
+  ```
 
 # Running llvm-normalizer
 

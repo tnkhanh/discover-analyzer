@@ -25,14 +25,13 @@ bool ElimInlineAsm::runOnModule(Module &M) {
     const string expectedLastLineToDelete = "\n\t.text\n";
     if (nextLinePos != string::npos &&
         inlineAsm.substr(nextLinePos, 8) == expectedLastLineToDelete) {
-        M.setModuleInlineAsm(inlineAsm.substr(nextLinePos + 8));
+      M.setModuleInlineAsm(inlineAsm.substr(nextLinePos + 8));
 
-        debug() << "Final module-level inline asm: __" << M.getModuleInlineAsm() << "__\n";
-    }
-    else
+      debug() << "Final module-level inline asm: __" << M.getModuleInlineAsm()
+              << "__\n";
+    } else
       debug() << "Module-level inline asm is unchanged\n";
-  }
-  else
+  } else
     debug() << "Module-level inline asm is unchanged\n";
 
   debug() << "Finish Module Pass: " << passName << "\n";
@@ -40,11 +39,12 @@ bool ElimInlineAsm::runOnModule(Module &M) {
   return true;
 }
 
-static RegisterPass<ElimInlineAsm> X("ElimInlineAsm",
-                                        "ElimInlineAsm",
-                                        false /* Only looks at CFG */,
-                                        true /* Analysis Pass */);
+static RegisterPass<ElimInlineAsm> X("ElimInlineAsm", "ElimInlineAsm",
+                                     false /* Only looks at CFG */,
+                                     true /* Analysis Pass */);
 
 static RegisterStandardPasses Y(PassManagerBuilder::EP_EarlyAsPossible,
-                                [](const PassManagerBuilder &Builder, legacy::PassManagerBase &PM)
-                                {PM.add(new ElimInlineAsm());});
+                                [](const PassManagerBuilder &Builder,
+                                   legacy::PassManagerBase &PM) {
+                                  PM.add(new ElimInlineAsm());
+                                });

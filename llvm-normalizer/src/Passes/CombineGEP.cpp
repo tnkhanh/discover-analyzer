@@ -10,7 +10,7 @@
 using namespace discover;
 using namespace llvm;
 
-using GEPInstList = std::vector<GetElementPtrInst*>;
+using GEPInstList = std::vector<GetElementPtrInst *>;
 
 /*
  * This pass combines a sequence of GEP instructions that serve to compute
@@ -31,29 +31,31 @@ char CombineGEP::ID = 0;
 /*
  * Combine GEP Instructions
  */
-void combineGEPInstructions(Function& F,
+void combineGEPInstructions(Function &F,
                             std::vector<GEPInstList> combinationGEPList) {
-  for (auto it = combinationGEPList.begin(); it != combinationGEPList.end(); it++) {
+  for (auto it = combinationGEPList.begin(); it != combinationGEPList.end();
+       it++) {
     GEPInstList gepInstList = *it;
 
     auto it2 = gepInstList.begin();
 
-    GetElementPtrInst* firstGEP = *it2;
+    GetElementPtrInst *firstGEP = *it2;
 
-    std::vector<Value*> newIdxs;
+    std::vector<Value *> newIdxs;
     for (int i = 1; i < firstGEP->getNumOperands(); i++)
       newIdxs.push_back(firstGEP->getOperand(i));
 
     it2++;
-    GetElementPtrInst* otherGEP;
+    GetElementPtrInst *otherGEP;
     for (; it2 != gepInstList.end(); it2++) {
       otherGEP = *it2;
       for (int i = 2; i < otherGEP->getNumOperands(); i++)
         newIdxs.push_back(otherGEP->getOperand(i));
     }
 
-    Value* rootPtr = firstGEP->getPointerOperand();
-    Instruction* newGepInstr = GetElementPtrInst::CreateInBounds(rootPtr, newIdxs);
+    Value *rootPtr = firstGEP->getPointerOperand();
+    Instruction *newGepInstr =
+        GetElementPtrInst::CreateInBounds(rootPtr, newIdxs);
 
     IRBuilder<> builder = IRBuilder(firstGEP);
     builder.SetInsertPoint(otherGEP);
@@ -61,19 +63,17 @@ void combineGEPInstructions(Function& F,
     llvm::replaceOperand(&F, otherGEP, newGepInstr);
 
     for (it2 = gepInstList.begin(); it2 != gepInstList.end(); it2++) {
-      GetElementPtrInst* instr = *it2;
+      GetElementPtrInst *instr = *it2;
       instr->removeFromParent();
       instr->deleteValue();
     }
-
   }
-
 }
 
 /*
  * Find GEP Instructions combinable with another instruction
  */
-GEPInstList findCombinableGEPs(GetElementPtrInst* instr) {
+GEPInstList findCombinableGEPs(GetElementPtrInst *instr) {
   // stop finding if the current instr has more than 1 uses
   if (instr->getNumUses() != 1)
     return GEPInstList();
@@ -86,8 +86,8 @@ GEPInstList findCombinableGEPs(GetElementPtrInst* instr) {
   if (!isa<GetElementPtrInst>(firstUser))
     return GEPInstList();
 
-  GetElementPtrInst* nextInstr = dyn_cast<GetElementPtrInst>(firstUser);
-  Value* firstIdx = instr->getOperand(1);
+  GetElementPtrInst *nextInstr = dyn_cast<GetElementPtrInst>(firstUser);
+  Value *firstIdx = instr->getOperand(1);
 
   if (ConstantInt *intIdx = dyn_cast<ConstantInt>(firstIdx)) {
     if (intIdx->getZExtValue() == 0) {
@@ -106,16 +106,16 @@ GEPInstList findCombinableGEPs(GetElementPtrInst* instr) {
  */
 std::vector<GEPInstList> findCombinableGEPList(Function &F) {
   std::vector<GEPInstList> candidateGEPList;
-  std::set<GetElementPtrInst*> visitedGEPInstrs;
+  std::set<GetElementPtrInst *> visitedGEPInstrs;
 
   BasicBlockList &BS = F.getBasicBlockList();
 
-  for (BasicBlock &B: BS) {
-    for (Instruction &I: B) {
+  for (BasicBlock &B : BS) {
+    for (Instruction &I : B) {
       if (!isa<GetElementPtrInst>(&I))
         continue;
 
-      GetElementPtrInst* gepInstr = dyn_cast<GetElementPtrInst>(&I);
+      GetElementPtrInst *gepInstr = dyn_cast<GetElementPtrInst>(&I);
 
       if (visitedGEPInstrs.find(gepInstr) != visitedGEPInstrs.end()) {
         GEPInstList gepInstList = findCombinableGEPs(gepInstr);
@@ -139,8 +139,8 @@ std::vector<GEPInstList> findCombinableGEPList(Function &F) {
 bool CombineGEP::runOnFunction(Function &F) {
   StringRef passName = this->getPassName();
   debug() << "=========================================\n"
-          << "Running Function Pass <" << passName << "> on: "
-          << F.getName() << "\n";
+          << "Running Function Pass <" << passName << "> on: " << F.getName()
+          << "\n";
 
   std::vector<GEPInstList> allGEPList = findCombinableGEPList(F);
   combineGEPInstructions(F, allGEPList);
@@ -150,8 +150,7 @@ bool CombineGEP::runOnFunction(Function &F) {
   return true;
 }
 
-static RegisterPass<CombineGEP> X("CombineGEP",
-                                  "CombineGEP Pass",
+static RegisterPass<CombineGEP> X("CombineGEP", "CombineGEP Pass",
                                   false /* Only looks at CFG */,
                                   false /* Analysis Pass */);
 
