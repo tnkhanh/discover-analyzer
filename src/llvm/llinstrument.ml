@@ -115,24 +115,14 @@ let extract_ann_marks (filename : string) =
   List.rev rev_mark_list
 ;;
 
-let get_func_name anntyp (bug : Ann.bug_group) ins =
+let get_func_name anntyp (bug : Ann.bug_group) =
   match anntyp with
   | Bug ->
     (match bug with
     | MemoryLeak -> "__assert_memory_leak"
     | NullPointerDeref -> "__assert_null_pointer_deref"
     | BufferOverflow -> "__assert_buffer_overflow"
-    | IntegerOverflow ->
-      let width = LL.integer_bitwidth (LL.type_of ins) in
-      if width = 64
-      then "__assert_bug_integer_overflow_i64"
-      else if width = 32
-      then "__assert_bug_integer_overflow_i32"
-      else if width = 16
-      then "__assert_bug_integer_overflow_i16"
-      else if width = 8
-      then "__assert_bug_integer_overflow_i8"
-      else "__assert_bug_integer_overflow_i1"
+    | IntegerOverflow -> "__assert_bug_integer_overflow"
     | IntegerUnderflow -> "__assert_integer_underflow"
     | DivisionByZero -> "__assert_division_by_zero"
     | NewType t -> "__assert_unnamed_bug")
@@ -141,20 +131,18 @@ let get_func_name anntyp (bug : Ann.bug_group) ins =
     | MemoryLeak -> "__refute_memory_leak"
     | NullPointerDeref -> "__refute_null_pointer_deref"
     | BufferOverflow -> "__refute_buffer_overflow"
-    | IntegerOverflow ->
-      let width = LL.integer_bitwidth (LL.type_of ins) in
-      if width = 64
-      then "__refute_bug_integer_overflow_i64"
-      else if width = 32
-      then "__refute_bug_integer_overflow_i32"
-      else if width = 16
-      then "__refute_bug_integer_overflow_i16"
-      else if width = 8
-      then "__refute_bug_integer_overflow_i8"
-      else "__refute_bug_integer_overflow_i1"
+    | IntegerOverflow -> "__refute_bug_integer_overflow"
     | IntegerUnderflow -> "__refute_integer_underflow"
     | DivisionByZero -> "__refute_division_by_zero"
     | NewType t -> "__refute_unnamed_bug")
+;;
+
+let get_func_args (bug : Ann.bug_group) ins llctx =
+  match bug with
+  | IntegerOverflow ->
+    let width = LL.integer_bitwidth (LL.type_of ins) in
+    [|ins;LL.const_int (LL.i32_type llctx) width|]
+  | _ -> [|ins|]
 ;;
 
 let apply_annotation anntyp instr bugs modul =
@@ -170,17 +158,19 @@ let apply_annotation anntyp instr bugs modul =
         | _ -> inx)
       else inx in
     let insert_pos = LL.instr_succ actual_ins in
-    let builder = LL.builder_at (LL.module_context modul) insert_pos in
+    let llctx = LL.module_context modul in
+    let builder = LL.builder_at llctx insert_pos in
     List.iter bugs ~f:(fun bug ->
         let assert_func_opt =
-          LL.lookup_function (get_func_name anntyp bug actual_ins) modul in
+          LL.lookup_function (get_func_name anntyp bug) modul in
         match assert_func_opt with
         | None -> ()
         | Some assert_func ->
+          let args = get_func_args bug actual_ins llctx in
           let _ =
             LL.build_call
               assert_func
-              (Array.create ~len:1 actual_ins)
+              args 
               ""
               builder in
           ())
@@ -375,12 +365,9 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
           match Hashtbl.find coverage ins.ins with
           | None -> "None"
           | Some (lc_start, lc_end) ->
-            sprint_int lc_start.line
-            ^ " "
-            ^ sprint_int lc_start.col
-            ^ " "
-            ^ sprint_int lc_end.line
-            ^ " "
+            (sprint_int lc_start.line ^ " ")
+            ^ (sprint_int lc_start.col ^ " ")
+            ^ (sprint_int lc_end.line ^ " ")
             ^ sprint_int lc_end.col in
         let llins = llvalue_of_instr ins.ins in
         let args =
