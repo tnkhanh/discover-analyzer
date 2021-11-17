@@ -9,6 +9,7 @@ depends: [
   "llvm"
   "yaml"
   "ezjsonm"
+  "ocamlformat"
   "num"
   "odoc" {with-doc}
 ]

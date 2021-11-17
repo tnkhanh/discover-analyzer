@@ -18,6 +18,7 @@
           llvm
           yaml
           ezjsonm
+          ocamlformat
           num))
 
 ;; Generate interface
