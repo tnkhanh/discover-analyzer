@@ -49,9 +49,21 @@ Coding convention
 - Some general rules to write concise and readable code:
 
   + Use 2-white-space indentation style.
+
   + Each code line is at most 80 column.
-  + Function and variable names follow snake case style (``snake_case_naming``).
-  + Module and signature names follow Camel Case (``CamelCaseNaming``).
+
+  + Function and variable names follow: ``snake_case_naming_style``.
+
+  + Module and signature names follow: (``CamelCaseNamingStyle``).
+
+  + Comment a region: always comment each line separately.
+
+    .. code-block:: ocaml
+
+       (* let list_head (lst: 'a list) : 'a option = *)
+       (*   match lst with *)
+       (*   | [] -> None *)
+       (*   | hd :: tl -> Some tl  *)
 
 Autoformat project using Dune
 --------------------------------
@@ -72,6 +84,7 @@ Autoformat project using Dune
   or just run ``make format``:
 
   .. code-block:: sh
+
      make format
 
 - Read more at this `formatting project tutorial

@@ -36,6 +36,7 @@ Contents
 
 .. toctree::
    :maxdepth: 2
-   :caption: Development
+   :caption: Discover
 
    development.rst
+   find-bugs.rst
