@@ -16,12 +16,11 @@ bool hasGlobalValue(Function &F) {
   for (BasicBlock &B : F)
     for (Instruction &I : B)
       for (Value *Op : I.operands())
-        if (GlobalValue* G = dyn_cast<GlobalValue>(Op))
+        if (GlobalValue *G = dyn_cast<GlobalValue>(Op))
           return true;
 
   return false;
 }
-
 
 // A function is called a transfer-call function if it only performs
 // bitcast, call another function once and return the result;
@@ -32,8 +31,7 @@ bool isCallTransferFunc(Function &F) {
     // debug() << " has 1 block\n";
     BasicBlock &B = blockList.front();
     for (Instruction &I : B) {
-      if (!(isa<CallInst>(&I)) &&
-          !(isa<BitCastInst>(&I)) &&
+      if (!(isa<CallInst>(&I)) && !(isa<BitCastInst>(&I)) &&
           !(isa<ReturnInst>(&I)))
         return false;
     }
@@ -51,8 +49,7 @@ bool isGEPTransferFunc(Function &F) {
     // debug() << " has 1 block\n";
     BasicBlock &B = blockList.front();
     for (Instruction &I : B) {
-      if (!(isa<GetElementPtrInst>(&I)) &&
-          !(isa<BitCastInst>(&I)) &&
+      if (!(isa<GetElementPtrInst>(&I)) && !(isa<BitCastInst>(&I)) &&
           !(isa<ReturnInst>(&I)))
         return false;
     }
@@ -61,13 +58,13 @@ bool isGEPTransferFunc(Function &F) {
   return false;
 }
 
-Function* InlineSimpleFunction::findCandidate(Module &M,
+Function *InlineSimpleFunction::findCandidate(Module &M,
                                               FunctionSet attemptedFuncs) {
   FunctionList &funcList = M.getFunctionList();
 
   for (Function &F : funcList) {
     bool attempted = false;
-    for (Function *f: attemptedFuncs) {
+    for (Function *f : attemptedFuncs) {
       if (f->getName().equals(F.getName())) {
         attempted = true;
         break;
@@ -93,12 +90,12 @@ Function* InlineSimpleFunction::findCandidate(Module &M,
   return NULL;
 }
 
-bool InlineSimpleFunction::inlineFunction(Module &M, Function* F) {
+bool InlineSimpleFunction::inlineFunction(Module &M, Function *F) {
   debug() << "* Start to inline function: " << F->getName() << "\n";
   StringRef funcName = F->getName();
   llvm::InlineFunctionInfo IFI;
 
-  SmallSetVector<CallBase*, 16> Calls;
+  SmallSetVector<CallBase *, 16> Calls;
   for (User *U : F->users())
     if (auto CB = dyn_cast<CallBase>(U))
       if (CB->getCalledFunction() == F)
@@ -106,7 +103,7 @@ bool InlineSimpleFunction::inlineFunction(Module &M, Function* F) {
 
   bool successful = true;
 
-  for (CallBase* CB : Calls) {
+  for (CallBase *CB : Calls) {
     InlineResult res = llvm::InlineFunction(*CB, IFI);
     successful = successful && res.isSuccess();
   }
@@ -117,8 +114,7 @@ bool InlineSimpleFunction::inlineFunction(Module &M, Function* F) {
       F->eraseFromParent();
       debug() << "    Removed the inlined function from parent!\n";
       return true;
-    }
-    else {
+    } else {
       debug() << "    Failed to remove the inlined function from parent!\n";
       return false;
     }
@@ -153,8 +149,7 @@ bool InlineSimpleFunction::runOnModule(Module &M) {
 
 bool InlineSimpleFunction::inlineFunction(Module &M, vector<string> funcNames) {
 
-
-  for(string funcName: funcNames) {
+  for (string funcName : funcNames) {
 
     Function *inlineFunc = NULL;
 
@@ -164,7 +159,6 @@ bool InlineSimpleFunction::inlineFunction(Module &M, vector<string> funcNames) {
         break;
       }
     }
-
 
     if (inlineFunc == NULL) {
       debug() << "Error: function not found: " << funcName << "\n";

@@ -25,9 +25,9 @@ let print_discover_settings () =
     [ "Discover's settings:";
       "  Git revision: " ^ VS.get_current_revision ();
       "  LLVM version: " ^ llvm_version;
-      "  llvm-clang: " ^ !clang_path;
-      "  llvm-opt: " ^ !opt_path;
-      "  llvm-discover-normalizer: " ^ !llvm_normalizer_path;
+      "  llvm-clang: " ^ !clang_exe;
+      "  llvm-opt: " ^ !opt_exe;
+      "  llvm-discover-normalizer: " ^ !normalizer_exe;
       "  Z3 solver: " ^ !Z3.z3cmd ^ " (" ^ !Z3.z3version ^ ")"
     ] in
   debug (String.concat ~sep:"\n" info)
@@ -36,8 +36,8 @@ let print_discover_settings () =
 let init_solvers () =
   let _ =
     match PS.run_command_get_output [ !Z3.z3cmd; "--version" ] with
-    | PS.POutput res -> Z3.z3version := res
-    | PS.PError _ ->
+    | Ok res -> Z3.z3version := res
+    | Error msg ->
       let _ = debug2 "Checking Z3 command: " !Z3.z3cmd in
       error "Z3 solver not found!" in
   ()
@@ -117,7 +117,7 @@ let handle_system_signals () =
       let _ = flush_all () in
       let _ = println "\nReceived a keyboard interrupted signal!" in
       let _ = println "\nBacktrace:" in
-      let _ = println (String.hindent_line 2 Printexc.get_backtrace ()) in
+      let _ = println (String.hindent 2 Printexc.get_backtrace ()) in
       exit 1)
     else exit 1 in
   (* handle system signals manually *)
@@ -167,8 +167,7 @@ let _ =
     if not (!release_mode || String.is_empty log)
     then (
       eprint ("Detailed message:\n\n" ^ String.prefix_line ~prefix:"  > " log);
-      eprint
-        ("Exception:\n\n" ^ String.hindent_line 2 Printexc.get_backtrace ()));
+      eprint ("Exception:\n\n" ^ String.hindent 2 Printexc.get_backtrace ()));
     exit 1
   | e ->
     if not !release_mode

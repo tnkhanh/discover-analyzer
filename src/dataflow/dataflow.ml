@@ -614,7 +614,7 @@ functor
       if List.is_empty prog.prog_globals
       then ""
       else (
-        let ginput = String.hindent_line 4 T.sprint_data T.least_data in
+        let ginput = String.hindent 4 T.sprint_data T.least_data in
         let globals =
           List.fold_left
             ~f:(fun acc global ->
@@ -622,7 +622,7 @@ functor
               ^ "\n  "
               ^ sprint_global global
               ^ "\n"
-              ^ String.hindent_line
+              ^ String.hindent
                   4
                   sprint_data_opt
                   (T.get_global_output genv global))
@@ -778,7 +778,7 @@ functor
                       block_name blk ^ ": " ^ sprint_int btimes)
                     func in
                 beautiful_concat ~column:75 ~sep:", " stats in
-              func_stat ^ "\n" ^ String.indent_line 4 blk_stats))
+              func_stat ^ "\n" ^ String.indent 4 blk_stats))
           penv.penv_goal_funcs in
       let func_sequence =
         let funcs = List.rev (Stack.to_list penv.penv_func_analysis_stack) in
@@ -824,10 +824,8 @@ functor
             then (
               let bname = block_name blk in
               let binput =
-                String.hindent_line
-                  4
-                  sprint_data_opt
-                  (T.get_block_input fenv blk) in
+                String.hindent 4 sprint_data_opt (T.get_block_input fenv blk)
+              in
               let instrs_output =
                 fold_left_instrs
                   ~f:(fun acc2 instr ->
@@ -839,8 +837,8 @@ functor
                       ^ "\n\n"
                       ^
                       match T.get_instr_output fenv instr with
-                      | None -> String.indent_line 4 "{No data}"
-                      | Some output -> String.hindent_line 4 sprint_data output
+                      | None -> String.indent 4 "{No data}"
+                      | Some output -> String.hindent 4 sprint_data output
                     else acc2)
                   ~init:""
                   blk in
@@ -899,12 +897,12 @@ functor
           |> fold_left_instrs
                ~f:(fun acc i ->
                  if is_sparse_instr penv i
-                 then acc @ [ String.hindent_line 2 (pr_sparse_instr penv) i ]
+                 then acc @ [ String.hindent 2 (pr_sparse_instr penv) i ]
                  else if is_instr_invoke i
                  then (
                    let sblks = get_sparse_succeeding_blocks penv blk in
                    let jump_sparse = "jump<sparse> " ^ block_names sblks in
-                   acc @ [ String.indent_line 2 jump_sparse ])
+                   acc @ [ String.indent 2 jump_sparse ])
                  else acc)
                ~init:[]
           |> String.concat ~sep:"\n" in
@@ -933,9 +931,7 @@ functor
         |> List.fold_left
              ~f:(fun acc g ->
                if is_sparse_global penv g
-               then
-                 acc
-                 @ [ String.hindent_line 2 (sprint_global ~detailed:true) g ]
+               then acc @ [ String.hindent 2 (sprint_global ~detailed:true) g ]
                else acc)
              ~init:[]
         |> String.concat ~sep:"\n"
@@ -1066,7 +1062,7 @@ functor
           items
           |> List.map ~f:printer
           |> beautiful_concat ~sep:", "
-          |> String.indent_line ~skipfirst:true 4 in
+          |> String.indent ~skipfirst:true 4 in
         if String.is_empty res then " []" else "\n   [" ^ res ^ "]" in
       let _ =
         let filename = basefilename ^ ".globals.dbg" in
@@ -1188,7 +1184,7 @@ functor
               fprintf
                 file
                 "%s\n"
-                (String.hindent_line 2 (sprint_global ~detailed:true) g))
+                (String.hindent 2 (sprint_global ~detailed:true) g))
           prog.prog_globals in
       let _ =
         let funcs = penv.penv_goal_funcs in
@@ -1214,7 +1210,7 @@ functor
                         fprintf
                           file
                           "%s\n"
-                          (String.hindent_line 2 sprint_instr instr)
+                          (String.hindent 2 sprint_instr instr)
                       else if is_sparse_instr penv instr
                       then fprintf file "  %s\n" (pr_sparse_instr penv instr))
                     blk))

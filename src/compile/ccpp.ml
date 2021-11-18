@@ -32,7 +32,7 @@ let compile_c_cpp (filename : string) : LI.program =
     let _ = Sys.remove_file output_filename in
     (* TODO: possibly use the  llvm-normalizer as a pass of clang or opt?? *)
     let cmd =
-      [ !clang_path ]
+      [ !clang_exe ]
       @ [ "-O0"; "-fno-rtti" ]
       @ [ "-Xclang"; "-disable-llvm-passes" ]
       @ [ "-Xclang"; "-disable-O0-optnone" ]

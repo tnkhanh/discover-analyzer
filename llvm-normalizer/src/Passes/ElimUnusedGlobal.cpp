@@ -18,7 +18,7 @@ bool ElimUnusedGlobal::runOnModule(Module &M) {
           << "Running Module Pass: " << passName << "\n";
 
   GlobalVariableList &globalList = M.getGlobalList();
-  SmallSetVector<GlobalVariable*, 16> removableGlobals;
+  SmallSetVector<GlobalVariable *, 16> removableGlobals;
 
   for (GlobalVariable &global : globalList)
     if (global.getNumUses() == 0)
@@ -35,11 +35,12 @@ bool ElimUnusedGlobal::runOnModule(Module &M) {
   return true;
 }
 
-static RegisterPass<ElimUnusedGlobal> X("ElimUnusedGlobal",
-                                        "ElimUnusedGlobal",
+static RegisterPass<ElimUnusedGlobal> X("ElimUnusedGlobal", "ElimUnusedGlobal",
                                         false /* Only looks at CFG */,
                                         true /* Analysis Pass */);
 
 static RegisterStandardPasses Y(PassManagerBuilder::EP_EarlyAsPossible,
-                                [](const PassManagerBuilder &Builder, legacy::PassManagerBase &PM)
-                                {PM.add(new ElimUnusedGlobal());});
+                                [](const PassManagerBuilder &Builder,
+                                   legacy::PassManagerBase &PM) {
+                                  PM.add(new ElimUnusedGlobal());
+                                });

@@ -33,18 +33,18 @@ let compile_solidity (filename : string) : LI.program =
   let _ = Sys.remove_dir output_dir in
   let _ = Sys.make_dir output_dir in
   let _ =
+    let user_options =
+      if String.is_empty !solang_user_options
+      then []
+      else String.split ~on:' ' !solang_user_options in
     let cmd =
-      [ !solang_path; filename ]
+      [ !solang_exe; filename ]
       @ [ "--emit"; "llvm-bc" ]
       @ [ "-O"; "none"; "--target"; "ewasm" ]
-      @ [ "--no-constant-folding";
-          "--no-strength-reduce";
-          "--no-dead-storage";
-          "--no-vector-to-slice"
-        ]
+      @ [ "--no-constant-folding"; "--no-strength-reduce" ]
+      @ [ "--no-dead-storage"; "--no-vector-to-slice" ]
       @ [ "-o"; output_dir ]
-      @ String.split ~on:' ' !solang_user_options in
-    let cmd = List.exclude ~f:String.is_empty cmd in
+      @ user_options in
     let _ = debugs [ "COMMAND: '"; String.concat ~sep:" " cmd; "'" ] in
     PS.run_command cmd in
   let generated_files = Sys.ls_dir output_dir in

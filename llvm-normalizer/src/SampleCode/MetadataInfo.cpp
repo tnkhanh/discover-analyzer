@@ -16,22 +16,20 @@ void printVariableOriginalName(Function &F) {
 
   for (BasicBlock &B : BS) {
     outs() << " " << B.getName() << "\n";
-    for (Instruction &I: B) {
+    for (Instruction &I : B) {
       outs() << "  " << I << "\n";
 
       if (DbgDeclareInst *dbgDeclare = dyn_cast<DbgDeclareInst>(&I)) {
-        Value* dclValue = dbgDeclare->getAddress();
+        Value *dclValue = dbgDeclare->getAddress();
         outs() << "      Declare value: " << *dclValue << "\n";
-        DIVariable* var = dbgDeclare->getVariable();
+        DIVariable *var = dbgDeclare->getVariable();
         outs() << "      Declare name: " << var->getName() << "\n";
-      }
-      else if (DbgValueInst *dbgValue = dyn_cast<DbgValueInst>(&I)) {
-        Value* varValue = dbgValue->getValue();
+      } else if (DbgValueInst *dbgValue = dyn_cast<DbgValueInst>(&I)) {
+        Value *varValue = dbgValue->getValue();
         outs() << "      Var value: " << *varValue << "\n";
-        DIVariable* var = dbgValue->getVariable();
+        DIVariable *var = dbgValue->getVariable();
         outs() << "      Var name: " << var->getName() << "\n";
       }
-
     }
     outs() << "\n";
   }

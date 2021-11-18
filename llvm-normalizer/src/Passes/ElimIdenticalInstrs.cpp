@@ -10,9 +10,9 @@
 using namespace discover;
 using namespace llvm;
 
-using InstList = std::vector<Instruction*>;
-using InstSet = std::set<Instruction*>;
-using IdentInsts = std::pair<Instruction*, std::vector<Instruction*>>;
+using InstList = std::vector<Instruction *>;
+using InstSet = std::set<Instruction *>;
+using IdentInsts = std::pair<Instruction *, std::vector<Instruction *>>;
 using IdentInstsList = std::vector<IdentInsts>;
 
 /*
@@ -43,8 +43,8 @@ IdentInstsList findGEPOfSameElemPtr(Function &F) {
   InstSet visitedInsts;
   IdentInstsList identInstsList;
 
-  for (BasicBlock &B: F.getBasicBlockList()) {
-    for (Instruction &I: B) {
+  for (BasicBlock &B : F.getBasicBlockList()) {
+    for (Instruction &I : B) {
       if (!isa<GetElementPtrInst>(I))
         continue;
 
@@ -60,7 +60,7 @@ IdentInstsList findGEPOfSameElemPtr(Function &F) {
 
       InstList otherIdentInsts;
 
-      for (User *user: gepSrc->users()) {
+      for (User *user : gepSrc->users()) {
         if (!isa<GetElementPtrInst>(user) || user == gepInst)
           continue;
 
@@ -71,7 +71,7 @@ IdentInstsList findGEPOfSameElemPtr(Function &F) {
 
         bool hasSameIdxs = true;
         for (int i = 0; i < numIdxs; i++)
-          if (otherGep->getOperand(i+1) != gepInst->getOperand(i+1)) {
+          if (otherGep->getOperand(i + 1) != gepInst->getOperand(i + 1)) {
             hasSameIdxs = false;
             break;
           }
@@ -97,8 +97,8 @@ IdentInstsList findPHINodeOfSameIncoming(Function &F) {
   InstSet visitedInsts;
   IdentInstsList identInstsList;
 
-  for (BasicBlock &B: F.getBasicBlockList()) {
-    for (Instruction &I: B) {
+  for (BasicBlock &B : F.getBasicBlockList()) {
+    for (Instruction &I : B) {
       if (!isa<PHINode>(I))
         continue;
 
@@ -108,12 +108,12 @@ IdentInstsList findPHINodeOfSameIncoming(Function &F) {
       PHINode *phiNode = dyn_cast<PHINode>(&I);
 
       int numIncoming = phiNode->getNumIncomingValues();
-      Value* firstIncoming = phiNode->getIncomingValue(0);
+      Value *firstIncoming = phiNode->getIncomingValue(0);
       if (isa<UndefValue>(firstIncoming) || isa<GlobalValue>(firstIncoming))
         continue;
 
       InstList otherIdentInsts;
-      for (User *user: firstIncoming->users()) {
+      for (User *user : firstIncoming->users()) {
         if (!isa<PHINode>(user) || user == phiNode)
           continue;
 
@@ -143,7 +143,6 @@ IdentInstsList findPHINodeOfSameIncoming(Function &F) {
   return identInstsList;
 }
 
-
 /*
  * Find CastInst of the same source and destination type
  */
@@ -151,8 +150,8 @@ IdentInstsList findCastInstsOfSameSourceAndType(Function &F) {
   InstSet visitedInsts;
   IdentInstsList identInstsList;
 
-  for (BasicBlock &B: F.getBasicBlockList()) {
-    for (Instruction &I: B) {
+  for (BasicBlock &B : F.getBasicBlockList()) {
+    for (Instruction &I : B) {
       if (!isa<CastInst>(I))
         continue;
 
@@ -166,7 +165,7 @@ IdentInstsList findCastInstsOfSameSourceAndType(Function &F) {
         continue;
 
       InstList otherIdentInsts;
-      for (User *user: castSrc->users()) {
+      for (User *user : castSrc->users()) {
         if (!isa<CastInst>(user) || user == castInst)
           continue;
 
@@ -189,7 +188,8 @@ IdentInstsList findCastInstsOfSameSourceAndType(Function &F) {
 /*
  * Eliminate identical instructions
  */
-void eliminateIdenticalInstrs(Function &F, DominatorTree &DT, IdentInstsList identInstsList) {
+void eliminateIdenticalInstrs(Function &F, DominatorTree &DT,
+                              IdentInstsList identInstsList) {
   for (auto it = identInstsList.begin(); it != identInstsList.end(); it++) {
     IdentInsts identInsts = *it;
     Instruction *keepInst = identInsts.first;
@@ -198,10 +198,10 @@ void eliminateIdenticalInstrs(Function &F, DominatorTree &DT, IdentInstsList ide
     for (auto it2 = otherInsts.begin(); it2 != otherInsts.end(); it2++) {
       Instruction *otherInst = *it2;
       if (DT.dominates(keepInst, otherInst)) {
-        debug() << " replace: " << *otherInst
-                << " in " << otherInst->getFunction()->getName() << "\n"
-                << "      by: " << *keepInst
-                << " in " << keepInst->getFunction()->getName() << "\n";
+        debug() << " replace: " << *otherInst << " in "
+                << otherInst->getFunction()->getName() << "\n"
+                << "      by: " << *keepInst << " in "
+                << keepInst->getFunction()->getName() << "\n";
         llvm::replaceOperand(&F, otherInst, keepInst);
         otherInst->removeFromParent();
         otherInst->deleteValue();
@@ -216,8 +216,8 @@ void eliminateIdenticalInstrs(Function &F, DominatorTree &DT, IdentInstsList ide
 bool ElimIdenticalInstrs::runOnFunction(Function &F) {
   StringRef passName = this->getPassName();
   debug() << "=========================================\n"
-          << "Running Function Pass <" << passName << "> on: "
-          << F.getName() << "\n";
+          << "Running Function Pass <" << passName << "> on: " << F.getName()
+          << "\n";
 
   DominatorTree &DT = getAnalysis<DominatorTreeWrapperPass>().getDomTree();
 
@@ -239,11 +239,12 @@ bool ElimIdenticalInstrs::runOnFunction(Function &F) {
 }
 
 static RegisterPass<ElimIdenticalInstrs> X("ElimIdenticalInstrs",
-    "ElimIdenticalInstrs",
-    false /* Only looks at CFG */,
-    true /* Analysis Pass */);
+                                           "ElimIdenticalInstrs",
+                                           false /* Only looks at CFG */,
+                                           true /* Analysis Pass */);
 
 static RegisterStandardPasses Y(PassManagerBuilder::EP_EarlyAsPossible,
-    [](const PassManagerBuilder &Builder, legacy::PassManagerBase &PM) {
-      PM.add(new ElimIdenticalInstrs());
-    });
+                                [](const PassManagerBuilder &Builder,
+                                   legacy::PassManagerBase &PM) {
+                                  PM.add(new ElimIdenticalInstrs());
+                                });

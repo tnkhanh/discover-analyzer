@@ -31,7 +31,6 @@ logs
 
 # configuration files
 _tags
-dune-project
 configure
 myocamlbuild.ml
 setup.ml

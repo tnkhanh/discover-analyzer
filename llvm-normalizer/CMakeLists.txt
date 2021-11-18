@@ -99,3 +99,6 @@ include_directories(include)
 
 # Now adding source code
 add_subdirectory(src)
+
+# Add clang-format support
+include("${CMAKE_DIR}/ClangFormat.cmake")

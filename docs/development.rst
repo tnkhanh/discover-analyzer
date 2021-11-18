@@ -59,7 +59,7 @@ Autoformat project using Dune
 - Require ``ocamlformat`` to be installed and the configuration file
   ``.ocamlformat`` at the project's root directory.
 
-- Formatting the project by two commands:
+- Formatting the project by running ``dune``:
 
   .. code-block:: sh
 
@@ -69,6 +69,10 @@ Autoformat project using Dune
      # Replace the source files by the corrected versions.
      dune promote
 
+  or just run ``make format``:
+
+  .. code-block:: sh
+     make format
 
 - Read more at this `formatting project tutorial
   <https://dune.readthedocs.io/en/stable/formatting.html>.`_

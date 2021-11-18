@@ -99,7 +99,7 @@ let sprint_string_list_itemized
   else (
     let indent = String.length bullet + 1 in
     let sprint x =
-      let res = String.indent_line ~skipfirst:true indent x in
+      let res = String.indent ~skipfirst:true indent x in
       bullet ^ " " ^ res in
     "\n" ^ sprint_list ~sep:"\n" ~obrace ~cbrace ~extra ~f:sprint xs)
 ;;
@@ -196,13 +196,13 @@ let print_core
                    && String.is_suffix ~suffix:"\n" prefix)
         then (
           let indent = String.count_indent prefix + 2 + indent in
-          prefix ^ String.indent_line indent msg)
+          prefix ^ String.indent indent msg)
         else if String.length prefix > 12
                 && String.exists ~f:(fun c -> c == '\n') msg
         then (
           let indent = String.count_indent prefix + 2 + indent in
-          prefix ^ "\n" ^ String.indent_line indent msg)
-        else String.indent_line indent (String.align_line prefix msg) in
+          prefix ^ "\n" ^ String.indent indent msg)
+        else String.indent indent (String.align_line prefix msg) in
     print_endline ("[info] " ^ msg))
   else ()
 ;;
@@ -333,4 +333,13 @@ let errors ?(log = "") (msgs : string list) =
 let herror msg f x =
   let msg = msg ^ f x in
   error msg
+;;
+
+(*******************************************************************
+ ** Warning and error
+ *******************************************************************)
+
+let print_endline (str : string) : unit =
+  let _ = print_endline str in
+  ()
 ;;

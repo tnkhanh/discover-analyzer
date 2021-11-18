@@ -64,7 +64,7 @@ module String = struct
 
   (** format a message by insert an indentation to each line *)
 
-  let indent_line ?(skipfirst = false) (indent : int) (msg : string) : string =
+  let indent ?(skipfirst = false) (indent : int) (msg : string) : string =
     let sindent = mk_indent indent in
     msg
     |> String.split ~on:'\n'
@@ -73,18 +73,18 @@ module String = struct
   ;;
 
   (** high-order insert an indentation to each line of a message *)
-  let hindent_line ?(skipfirst = false) (i : int) (f : 'a -> string) (v : 'a)
+  let hindent ?(skipfirst = false) (i : int) (f : 'a -> string) (v : 'a)
       : string
     =
-    indent_line ~skipfirst i (f v)
+    indent ~skipfirst i (f v)
   ;;
 
   (** auto-insert indentation to align_line with the prefix string *)
   let align_line (prefix : string) (msg : string) : string =
     let prefix = String.strip ~drop:(fun c -> c == '\n') prefix in
-    let indent = String.length prefix in
+    let indentation = String.length prefix in
     let skipfirst = not (String.is_suffix ~suffix:"\n" prefix) in
-    prefix ^ indent_line ~skipfirst indent msg
+    prefix ^ indent ~skipfirst indentation msg
   ;;
 
   (** high-order auto-insert indentation to align_line with the prefix string *)

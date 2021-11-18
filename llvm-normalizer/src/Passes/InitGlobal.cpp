@@ -12,7 +12,8 @@ using namespace llvm;
 
 char InitGlobal::ID = 0;
 
-void InitGlobal::uninlineConstantExpr(IRBuilder<> *builder, Instruction *instr) {
+void InitGlobal::uninlineConstantExpr(IRBuilder<> *builder,
+                                      Instruction *instr) {
   // transform ConstantExpr in operands into new instructions
   for (int i = 0; i < instr->getNumOperands(); i++) {
     Value *operand = instr->getOperand(i);
@@ -25,12 +26,11 @@ void InitGlobal::uninlineConstantExpr(IRBuilder<> *builder, Instruction *instr) 
   }
 }
 
-
 void InitGlobal::uninlinePointerInitValue(LLVMContext &ctx,
                                           IRBuilder<> *builder,
                                           GlobalVariable *global,
-                                          Constant* initValue,
-                                          PointerType* initType) {
+                                          Constant *initValue,
+                                          PointerType *initType) {
   debug() << "++ Processing Pointer Global: " << *global << "\n";
   debug() << "   Init value: " << *initValue << "\n";
   debug() << "   Init value type: " << *(initValue->getType()) << "\n";
@@ -48,7 +48,7 @@ void InitGlobal::uninlinePointerInitValue(LLVMContext &ctx,
     builder->Insert(exprInstr);
     global->setOperand(0, ConstantPointerNull::get(initType));
     // debug() << "      New init value: " << *initValue << "\n";
-    Instruction* storeInst = new StoreInst(exprInstr, global, false, align);
+    Instruction *storeInst = new StoreInst(exprInstr, global, false, align);
     builder->Insert(storeInst);
   }
 }
@@ -56,8 +56,8 @@ void InitGlobal::uninlinePointerInitValue(LLVMContext &ctx,
 void InitGlobal::uninlineAggregateInitValue(LLVMContext &ctx,
                                             IRBuilder<> *builder,
                                             GlobalVariable *global,
-                                            std::vector<Value*> gepIdxs,
-                                            Constant* initValue) {
+                                            std::vector<Value *> gepIdxs,
+                                            Constant *initValue) {
   // debug() << "++ Processing Aggregate Global: " << *global << "\n"
   //         << "   Current indices: ";
   // for (Value* idx: gepIdxs) {
@@ -82,43 +82,44 @@ void InitGlobal::uninlineAggregateInitValue(LLVMContext &ctx,
     Instruction *exprInstr = exprInit->getAsInstruction();
     uninlineConstantExpr(builder, exprInstr);
     builder->Insert(exprInstr);
-    ArrayRef<Value*> idxs = (ArrayRef<Value*>)gepIdxs;
-    Instruction* gepInst = GetElementPtrInst::CreateInBounds(global, idxs, "gep");
+    ArrayRef<Value *> idxs = (ArrayRef<Value *>)gepIdxs;
+    Instruction *gepInst =
+        GetElementPtrInst::CreateInBounds(global, idxs, "gep");
     // debug() << "   New GepInst1: " << *gepInst << "\n";
     builder->Insert(gepInst);
-    Instruction* storeInst = new StoreInst(exprInstr, gepInst, false, align);
+    Instruction *storeInst = new StoreInst(exprInstr, gepInst, false, align);
     builder->Insert(storeInst);
   }
 
   // Constant Integer
-  else if (isa<ConstantInt>(initValue) ||
-           isa<Function>(initValue) ||
+  else if (isa<ConstantInt>(initValue) || isa<Function>(initValue) ||
            isa<GlobalVariable>(initValue)) {
-    ArrayRef<Value*> idxs = (ArrayRef<Value*>)gepIdxs;
-    Instruction* gepInst = GetElementPtrInst::CreateInBounds(global, idxs, "gep");
+    ArrayRef<Value *> idxs = (ArrayRef<Value *>)gepIdxs;
+    Instruction *gepInst =
+        GetElementPtrInst::CreateInBounds(global, idxs, "gep");
     // debug() << "   New GepInst2: " << *gepInst << "\n";
     builder->Insert(gepInst);
-    Instruction* storeInst = new StoreInst(initValue, gepInst, false, align);
+    Instruction *storeInst = new StoreInst(initValue, gepInst, false, align);
     builder->Insert(storeInst);
   }
 
   // Constant Struct
-  else if (ConstantStruct * structInit = dyn_cast<ConstantStruct>(initValue)) {
+  else if (ConstantStruct *structInit = dyn_cast<ConstantStruct>(initValue)) {
     for (int i = 0; i < structInit->getNumOperands(); i++) {
       Constant *fieldInit = structInit->getOperand(i);
 
       if (fieldInit->isNullValue() || fieldInit->isZeroValue())
         continue;
 
-      Value* fieldIdx = ConstantInt::get(IntegerType::get(ctx, 32), i);
-      std::vector<Value*> currentIdxs(gepIdxs);
+      Value *fieldIdx = ConstantInt::get(IntegerType::get(ctx, 32), i);
+      std::vector<Value *> currentIdxs(gepIdxs);
       currentIdxs.push_back(fieldIdx);
 
-      Type* fieldTyp = fieldInit->getType();
+      Type *fieldTyp = fieldInit->getType();
 
-      if (PointerType* ptrTyp = dyn_cast<PointerType>(fieldTyp))
+      if (PointerType *ptrTyp = dyn_cast<PointerType>(fieldTyp))
         structInit->setOperand(i, ConstantPointerNull::get(ptrTyp));
-      else if (IntegerType* intTyp = dyn_cast<IntegerType>(fieldTyp))
+      else if (IntegerType *intTyp = dyn_cast<IntegerType>(fieldTyp))
         structInit->setOperand(i, ConstantInt::get(intTyp, 0));
 
       uninlineAggregateInitValue(ctx, builder, global, currentIdxs, fieldInit);
@@ -126,22 +127,22 @@ void InitGlobal::uninlineAggregateInitValue(LLVMContext &ctx,
   }
 
   // unline a struct
-  else if (ConstantArray * arrayInit = dyn_cast<ConstantArray>(initValue)) {
+  else if (ConstantArray *arrayInit = dyn_cast<ConstantArray>(initValue)) {
     for (int i = 0; i < arrayInit->getNumOperands(); i++) {
       Constant *elemInit = arrayInit->getOperand(i);
 
       if (elemInit->isNullValue() || elemInit->isZeroValue())
         continue;
 
-      Value* elemIdx = ConstantInt::get(IntegerType::get(ctx, 32), i);
-      std::vector<Value*> currentIdxs(gepIdxs);
+      Value *elemIdx = ConstantInt::get(IntegerType::get(ctx, 32), i);
+      std::vector<Value *> currentIdxs(gepIdxs);
       currentIdxs.push_back(elemIdx);
 
       Type *elemInitTyp = elemInit->getType();
 
-      if (PointerType* ptrTyp = dyn_cast<PointerType>(elemInitTyp))
+      if (PointerType *ptrTyp = dyn_cast<PointerType>(elemInitTyp))
         arrayInit->setOperand(i, ConstantPointerNull::get(ptrTyp));
-      else if (IntegerType* intTyp = dyn_cast<IntegerType>(elemInitTyp))
+      else if (IntegerType *intTyp = dyn_cast<IntegerType>(elemInitTyp))
         arrayInit->setOperand(i, ConstantInt::get(intTyp, 0));
 
       uninlineAggregateInitValue(ctx, builder, global, currentIdxs, elemInit);
@@ -155,17 +156,17 @@ void InitGlobal::uninlineAggregateInitValue(LLVMContext &ctx,
  */
 void InitGlobal::invokeGlobalInitFunctions(IRBuilder<> *builder,
                                            GlobalVariable *global,
-                                           Constant* initValue) {
-  vector<pair<int, Function*>> prioFuncs;
+                                           Constant *initValue) {
+  vector<pair<int, Function *>> prioFuncs;
 
   for (int i = 0; i < initValue->getNumOperands(); i++) {
     Value *operand = initValue->getOperand(i);
     if (ConstantStruct *st = dyn_cast<ConstantStruct>(operand)) {
       if (st->getNumOperands() == 3) {
-        pair<int, Function*> prioFunc;
-        if (ConstantInt* p = dyn_cast<ConstantInt>(st->getOperand(0)))
+        pair<int, Function *> prioFunc;
+        if (ConstantInt *p = dyn_cast<ConstantInt>(st->getOperand(0)))
           prioFunc.first = p->getValue().getSExtValue();
-        if (Function* f = dyn_cast<Function>(st->getOperand(1)))
+        if (Function *f = dyn_cast<Function>(st->getOperand(1)))
           prioFunc.second = f;
         prioFuncs.push_back(prioFunc);
       }
@@ -173,12 +174,13 @@ void InitGlobal::invokeGlobalInitFunctions(IRBuilder<> *builder,
   }
 
   std::sort(prioFuncs.begin(), prioFuncs.end(),
-            [](pair<int, Function*> fp1, pair<int, Function*> fp2) {
-              return (fp1.first < fp2.first);});
+            [](pair<int, Function *> fp1, pair<int, Function *> fp2) {
+              return (fp1.first < fp2.first);
+            });
 
-  for (pair<int, Function*> fp : prioFuncs) {
+  for (pair<int, Function *> fp : prioFuncs) {
     Function *func = fp.second;
-    Instruction* callInst = CallInst::Create(func);
+    Instruction *callInst = CallInst::Create(func);
     builder->Insert(callInst);
   }
 
@@ -194,11 +196,11 @@ bool InitGlobal::runOnModule(Module &M) {
   LLVMContext &ctx = M.getContext();
 
   // create a function to initialize global variables
-  Type* retType = Type::getVoidTy(ctx);
-  vector<Type*> argTypes;
+  Type *retType = Type::getVoidTy(ctx);
+  vector<Type *> argTypes;
   FunctionType *funcType = FunctionType::get(retType, argTypes, false);
-  Function* funcInit = Function::Create(funcType, Function::ExternalLinkage,
-                                        0, "__init_globals", nullptr);
+  Function *funcInit = Function::Create(funcType, Function::ExternalLinkage, 0,
+                                        "__init_globals", nullptr);
   funcInit->setDSOLocal(true);
 
   BasicBlock *blkInit = BasicBlock::Create(ctx, "", funcInit);
@@ -212,8 +214,8 @@ bool InitGlobal::runOnModule(Module &M) {
       continue;
 
     StringRef globalName = global->getName();
-    Constant* initValue = global->getInitializer();
-    Type* initType = initValue->getType();
+    Constant *initValue = global->getInitializer();
+    Type *initType = initValue->getType();
 
     // call global vars constructors
     if (globalName.equals(LLVM_GLOBAL_CTORS)) {
@@ -221,18 +223,17 @@ bool InitGlobal::runOnModule(Module &M) {
     }
     // uninline init values of globals
     else if (initType->isAggregateType()) {
-      std::vector<Value*> gepIdxs;
+      std::vector<Value *> gepIdxs;
       gepIdxs.push_back(ConstantInt::get(IntegerType::get(ctx, 32), 0));
       uninlineAggregateInitValue(ctx, &builder, global, gepIdxs, initValue);
-    }
-    else if (PointerType* pInitType = dyn_cast<PointerType>(initType)) {
+    } else if (PointerType *pInitType = dyn_cast<PointerType>(initType)) {
       uninlinePointerInitValue(ctx, &builder, global, initValue, pInitType);
     }
   }
 
   // delete the initialization function when it is not needed
   if (blkInit->size() != 0) {
-    Instruction* returnInst = ReturnInst::Create(ctx);
+    Instruction *returnInst = ReturnInst::Create(ctx);
     builder.Insert(returnInst);
 
     // insert the function to the beginning of the list

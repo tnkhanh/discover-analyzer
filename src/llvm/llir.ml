@@ -3108,7 +3108,7 @@ let sprint_block (blk : block) : string =
   let blkname = block_name blk in
   let sinstrs =
     blk
-    |> map_instrs ~f:(String.hindent_line 2 sprint_instr)
+    |> map_instrs ~f:(String.hindent 2 sprint_instr)
     |> String.concat ~sep:"\n" in
   (" " ^ blkname ^ ":\n")
   ^ String.replace_if_empty sinstrs ~replacer:"{Empty block}"
@@ -3134,7 +3134,7 @@ let sprint_module (m : llmodule) : string = LL.string_of_llmodule m
 let sprint_program (prog : program) : string =
   let sglobals =
     prog.prog_globals
-    |> List.map ~f:(String.hindent_line 2 (sprint_global ~detailed:true))
+    |> List.map ~f:(String.hindent 2 (sprint_global ~detailed:true))
     |> String.concat ~sep:"\n"
     |> String.prefix_if_not_empty ~prefix:"Globals:\n" in
   let sstructs =
