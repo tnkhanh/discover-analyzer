@@ -1,0 +1,11 @@
+# Configuration file for automatic testing
+
+# TODO: need to specify parameter for testing
+
+Test 1
+    Clang-option: -I ../../../lib/discover
+    Discover-option: --dfa-inter --dfa-pointer
+    Filter: *.cpp, *.c
+
+Test 2
+    Argument: --clang-option "-I ../../../lib/discover" --dfa-intra --dfa-pointer
