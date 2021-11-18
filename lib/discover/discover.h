@@ -151,11 +151,6 @@ void __assert_range_full(int x, int lb, int ub) {
  * assertions for integer bug
  *******************************************************************/
 
-// Check if the integer stored in `ptr` of size `num_bytes` is overflow
-void __assert_integer_overflow(void* ptr, int num_bytes){}
-void __assert_no_integer_overflow(void* ptr, int num_bytes){}
-
-void __assert_bug_integer_overflow_i32(void* ptr) {}
-void __assert_bug_integer_overflow_i64(void* ptr) {}
-void __refute_bug_integer_overflow_i32(void* ptr) {}
-void __refute_bug_integer_overflow_i64(void* ptr) {}
+// Check if the integer stored in `ptr` is overflow
+void __assert_bug_integer_overflow(void* ptr, int bitwidth) {}
+void __refute_bug_integer_overflow(void* ptr, int bitwidth) {}
