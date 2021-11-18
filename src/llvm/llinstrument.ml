@@ -184,19 +184,11 @@ let rec update (ins : instr_with_tag) anns =
           let old_start, old_end = get_coverage old_ins.ins in
           let cstart, cend = get_coverage ins.ins in
           let start_comp = lc_comp old_start cstart in
-          if start_comp < 0
-          then old_ins
-          else if start_comp > 0
-          then ins
-          else (
-            let end_comp = lc_comp old_end cend in
-            if end_comp > 0
-            then old_ins
-            else if end_comp < 0
-            then ins
-            else if old_ins.tag < ins.tag
-            then old_ins
-            else ins) in
+          let end_comp = lc_comp old_end cend in
+          if (start_comp < 0 )
+          || (start_comp = 0 && end_comp > 0)
+          || (start_comp = 0 && end_comp = 0 && old_ins.tag < ins.tag) then old_ins
+          else ins in
         (ann, Some choose_ins) :: update ins tl))
 ;;
 
