@@ -115,37 +115,45 @@ let extract_ann_marks (filename : string) =
   List.rev rev_mark_list
 ;;
 
-let get_func_name anntyp (bug : Ann.bug_group) =
-  match anntyp with
-  | Bug ->
-    (match bug with
-    | MemoryLeak -> "__assert_memory_leak"
-    | NullPointerDeref -> "__assert_null_pointer_deref"
-    | BufferOverflow -> "__assert_buffer_overflow"
-    | IntegerOverflow -> "__assert_bug_integer_overflow"
-    | IntegerUnderflow -> "__assert_integer_underflow"
-    | DivisionByZero -> "__assert_division_by_zero"
-    | NewType t -> "__assert_unnamed_bug")
-  | Safe ->
-    (match bug with
-    | MemoryLeak -> "__refute_memory_leak"
-    | NullPointerDeref -> "__refute_null_pointer_deref"
-    | BufferOverflow -> "__refute_buffer_overflow"
-    | IntegerOverflow -> "__refute_bug_integer_overflow"
-    | IntegerUnderflow -> "__refute_integer_underflow"
-    | DivisionByZero -> "__refute_division_by_zero"
-    | NewType t -> "__refute_unnamed_bug")
+let get_func_name anntyp (bug : Ann.bug_group) ins_type =
+  let base_name =
+    match anntyp with
+    | Bug ->
+      (match bug with
+      | MemoryLeak -> "__assert_memory_leak"
+      | NullPointerDeref -> "__assert_null_pointer_deref"
+      | BufferOverflow -> "__assert_buffer_overflow"
+      | IntegerOverflow -> "__assert_bug_integer_overflow"
+      | IntegerUnderflow -> "__assert_integer_underflow"
+      | DivisionByZero -> "__assert_division_by_zero"
+      | NewType t -> "__assert_unnamed_bug")
+    | Safe ->
+      (match bug with
+      | MemoryLeak -> "__refute_memory_leak"
+      | NullPointerDeref -> "__refute_null_pointer_deref"
+      | BufferOverflow -> "__refute_buffer_overflow"
+      | IntegerOverflow -> "__refute_bug_integer_overflow"
+      | IntegerUnderflow -> "__refute_integer_underflow"
+      | DivisionByZero -> "__refute_division_by_zero"
+      | NewType t -> "__refute_unnamed_bug") in
+  let tail = LL.string_of_lltype ins_type in
+  base_name ^ "_" ^ tail
 ;;
 
 let get_func_args (bug : Ann.bug_group) ins llctx =
   match bug with
-  | IntegerOverflow ->
+  (*  | IntegerOverflow ->
     let width = LL.integer_bitwidth (LL.type_of ins) in
-    [| ins; LL.const_int (LL.i32_type llctx) width |]
+    [| ins; LL.const_int (LL.i32_type llctx) width |] *)
   | _ -> [| ins |]
 ;;
 
-let apply_annotation anntyp instr bugs modul =
+let apply_annotation
+    (anntyp : ann_type)
+    (instr : instr_with_tag)
+    (bugs : Ann.bug_group list)
+    (modul : llmodule)
+  =
   match instr.ins with
   | Instr inx ->
     (* if ins is store and first operand is trunc *)
@@ -160,15 +168,21 @@ let apply_annotation anntyp instr bugs modul =
     let insert_pos = LL.instr_succ actual_ins in
     let llctx = LL.module_context modul in
     let builder = LL.builder_at llctx insert_pos in
+    let ins_type = LL.type_of actual_ins in
     List.iter bugs ~f:(fun bug ->
-        let assert_func_opt =
-          LL.lookup_function (get_func_name anntyp bug) modul in
-        match assert_func_opt with
-        | None -> ()
-        | Some assert_func ->
-          let args = get_func_args bug actual_ins llctx in
-          let _ = LL.build_call assert_func args "" builder in
-          ())
+        let func_name = get_func_name anntyp bug ins_type in
+        let assert_func_opt = LL.lookup_function func_name modul in
+        let assert_func =
+          match assert_func_opt with
+          | None ->
+            let func_type =
+              LL.function_type (LL.void_type llctx) [| ins_type |] in
+            let func = LL.declare_function func_name func_type modul in
+            func
+          | Some func -> func in
+        let args = get_func_args bug actual_ins llctx in
+        let _ = LL.build_call assert_func args "" builder in
+        ())
 ;;
 
 let rec update (ins : instr_with_tag) anns =
@@ -185,9 +199,10 @@ let rec update (ins : instr_with_tag) anns =
           let cstart, cend = get_coverage ins.ins in
           let start_comp = lc_comp old_start cstart in
           let end_comp = lc_comp old_end cend in
-          if (start_comp < 0 )
-          || (start_comp = 0 && end_comp > 0)
-          || (start_comp = 0 && end_comp = 0 && old_ins.tag < ins.tag) then old_ins
+          if start_comp < 0
+             || (start_comp = 0 && end_comp > 0)
+             || (start_comp = 0 && end_comp = 0 && old_ins.tag < ins.tag)
+          then old_ins
           else ins in
         (ann, Some choose_ins) :: update ins tl))
 ;;
@@ -322,29 +337,13 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
     let p1 = ins1.pos.pos_line_end, ins1.pos.pos_col_end in
     let p2 = ins2.pos.pos_line_end, ins2.pos.pos_col_end in
     if Poly.(p1 > p2) then 1 else if Poly.(p1 < p2) then -1 else 0 in
-  let _ = debug ~ruler:`Medium "Tags" in
   let sorted_ins = List.stable_sort ~compare tagged_ins in
-  let llctx = LL.global_context () in
-  let _ =
-    List.iter
-      ~f:(fun tin ->
-        match tin.ins with
-        | Instr inx ->
-          let dbg = LL.metadata inx (LL.mdkind_id llctx "dbg") in
-          let dbg_str =
-            match dbg with
-            | None -> "None.."
-            | Some d -> LL.string_of_llvalue d in
-          debug2
-            ~ruler:`Short
-            "Instruction: "
-            (LL.string_of_llvalue inx ^ " " ^ dbg_str))
-      (List.rev tagged_ins) in
   let _ = resolve ann_marks sorted_ins [] modul in
-  (* Code to debug instructions
-  let _ = debug ~ruler:`Short "Sorted_ins" in
+  (* Code to debug instructions *)
+  (* let _ = debug ~ruler:`Short "Sorted_ins" in
+  let tagnew = deep_fold_module ~finstr [] modul in
   let _ =
-    List.iter tagged_ins ~f:(fun ins ->
+    List.iter tagnew ~f:(fun ins ->
         let ins_str =
           match ins.ins with
           | Instr inx -> LL.string_of_llvalue inx in
@@ -357,18 +356,19 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
             ^ (sprint_int lc_end.line ^ " ")
             ^ sprint_int lc_end.col in
         let llins = llvalue_of_instr ins.ins in
-        let args =
+        (*      let args =
           let num_args = LL.num_operands llins in
           let rec fold_oprs acc idx =
             if idx >= num_args
             then acc ^ "\n"
             else (
-              let opr = LL.operand llins idx in
-              fold_oprs (acc ^ "." ^ LL.string_of_llvalue opr) (idx + 1)) in
-          fold_oprs "" 0 in
-        debug2 "Ins: " (ins_str ^ "..Args: " ^ args ^ ".." ^ cover)) in *)
-  (*  Code to debug coverage
-    let strhash = Hashtbl.fold coverage ~init:"" ~f:(fun ~key ~data acc ->
+              let opr = LL.string_of_llvalue (LL.operand llins idx in)
+              fold_oprs (acc ^ "." ^ opr ) (idx + 1)) in
+          fold_oprs "" 0 in *)
+        let instype = LL.string_of_lltype (LL.type_of llins) in
+        debug2 "Ins: " (ins_str ^ "..Type: " ^ instype ^ ".." ^ cover)) in *)
+  (*  Code to debug coverage *)
+  (* let strhash = Hashtbl.fold coverage ~init:"" ~f:(fun ~key ~data acc ->
     let findx = Hashtbl.find coverage key in
     let findstr = match findx with
     | None -> "None"
