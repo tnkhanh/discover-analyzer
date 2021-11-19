@@ -304,8 +304,6 @@ type program =
     (*-----------------------------------------
      * information of functions
      *-----------------------------------------*)
-    (* main function *)
-
     (* mapping each user function to its used global variables *)
     prog_func_return_instr : (func, instr) Hashtbl.t;
     (* mapping a function to its callers, callees, reachable functions, loops *)

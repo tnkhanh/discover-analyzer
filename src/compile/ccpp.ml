@@ -55,5 +55,5 @@ let compile_c_cpp (filename : string) : LI.program =
     let instrued_file = open_out instrued_filename in
     let _ = Llvm_bitwriter.output_bitcode instrued_file modul in
     close_out instrued_file in
-  BC.compile_bitcode ann_marks filename instrued_filename
+  BC.process_bitcode ann_marks filename instrued_filename
 ;;

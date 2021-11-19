@@ -56,5 +56,5 @@ let compile_solidity (filename : string) : LI.program =
   | Some deploy_file ->
     let output_file = output_dir ^ FN.dir_sep ^ deploy_file in
     let _ = print2 "Output file: " output_file in
-    BC.compile_bitcode [] filename output_file
+    BC.process_bitcode [] filename output_file
 ;;

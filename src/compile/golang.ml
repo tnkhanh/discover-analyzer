@@ -81,7 +81,7 @@ let compile_golang (filename : string) : LI.program =
         hd :: newtl in
     let cmd_to_run = modify_output_file cmd_replaced_work in
     let _ = PS.run_command cmd_to_run in
-    compile_bitcode bitcode_filename
+    process_bitcode bitcode_filename
   | PError go_build_output_str ->
     error ("go build failed:\n" ^ go_build_output_str)
 
@@ -96,5 +96,5 @@ let compile_golang (filename : string) : LI.program =
         !gollvm_path ^ "go";
         go_build_output
       ] in
-  BC.compile_bitcode [] "" bitcode_filename
+  BC.process_bitcode [] "" bitcode_filename
 ;;

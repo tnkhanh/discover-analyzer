@@ -75,44 +75,53 @@ let disassemble_bitcode (filename : string) : unit =
   PS.run_command [ !llvm_dis_exe; filename ]
 ;;
 
-let optimize_bitcode (filename : string) : string =
-  (* run mem2reg optimization to promote memory to registers *)
-  let _ = print2 "Optimize bitcode: " filename in
-  let basename = Filename.chop_extension (Filename.basename filename) in
-  let dirname = Filename.dirname filename in
+let optimize_bitcode (input_file : string) : string =
+  let _ = print2 "Optimize bitcode file: " input_file in
+  let basename = Filename.chop_extension (Filename.basename input_file) in
+  let dirname = Filename.dirname input_file in
   let _ = Sys.make_dir dirname in
-  let optimized_file = dirname ^ Filename.dir_sep ^ basename ^ ".opt.bc" in
+  let output_file = dirname ^ Filename.dir_sep ^ basename ^ ".opt.bc" in
   let _ =
-    let _ = Sys.remove_file optimized_file in
-    let user_options =
-      if String.is_empty !opt_user_options
-      then []
-      else String.split ~on:' ' !opt_user_options in
-    let cmd =
-      [ !opt_exe; filename; "-o"; optimized_file ]
-      @ [ "-mem2reg"; "--disable-verify" ]
-      @ user_options in
-    (* let _ = debug ("Running llvm-opt:\n" ^ String.concat ~sep:" " cmd) in *)
-    PS.run_command cmd in
-  let _ = if is_debug_mode () then disassemble_bitcode optimized_file in
-  let output_file = dirname ^ Filename.dir_sep ^ basename ^ ".core.bc" in
-  let _ =
-    if !llvm_normalize
+    let _ = Sys.remove_file output_file in
+    if !llvm_optimize
     then (
-      let _ = Sys.remove_file output_file in
-      let cmd = [ !normalizer_exe; optimized_file; "-o"; output_file ] in
-      let _ =
-        debug ("Running llvm-normalizer:\n" ^ String.concat ~sep:" " cmd) in
+      let user_options =
+        if String.is_empty !opt_user_options
+        then []
+        else String.split ~on:' ' !opt_user_options in
+      let cmd =
+        [ !opt_exe; input_file; "-o"; output_file ]
+        @ [ "-mem2reg" ] (* promote pointer variables to registers *)
+        @ [ "--disable-verify" ]
+        @ user_options in
       PS.run_command cmd)
-    else PS.run_command [ "cp"; optimized_file; output_file ] in
+    else PS.run_command [ "cp"; input_file; output_file ] in
+  let _ = if is_debug_mode () then disassemble_bitcode output_file in
   output_file
 ;;
 
-let compile_bitcode ann_marks source_name (filename : string) : LI.program =
-  let _ = print_module_stats filename in
-  let _ = if is_debug_mode () then disassemble_bitcode filename in
-  let output_file = optimize_bitcode filename in
+let normalize_bitcode (input_file : string) : string =
+  let _ = print2 "Normalize bitcode file: " input_file in
+  let basename = Filename.chop_extension (Filename.basename input_file) in
+  let dirname = Filename.dirname input_file in
+  let _ = Sys.make_dir dirname in
+  let output_file = dirname ^ Filename.dir_sep ^ basename ^ ".norm.bc" in
+  let _ =
+    let _ = Sys.remove_file output_file in
+    if !llvm_normalize
+    then (
+      let cmd = [ !normalizer_exe; input_file; "-o"; output_file ] in
+      PS.run_command cmd)
+    else PS.run_command [ "cp"; input_file; output_file ] in
   let _ = if is_debug_mode () then disassemble_bitcode output_file in
+  output_file
+;;
+
+let process_bitcode ann_marks source_name (input_file : string) : LI.program =
+  let _ = print_module_stats input_file in
+  let _ = if is_debug_mode () then disassemble_bitcode input_file in
+  let optimized_file = optimize_bitcode input_file in
+  let output_file = normalize_bitcode optimized_file in
   let llcontext = LL.create_context () in
   let llmem = LL.MemoryBuffer.of_file output_file in
   let modul = Llvm_bitreader.parse_bitcode llcontext llmem in
