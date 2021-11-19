@@ -21,19 +21,19 @@ let sprint_file_excerpt
       let nl = lcur + 1 in
       if lcur < lstart - 1 || lcur >= lend
       then (
-        let marked_line = Printf.sprintf "%6d" nl ^ ".  " ^ line ^ "\n" in
+        let marked_line = Printf.sprintf "%6d" nl ^ "|  " ^ line ^ "\n" in
         pr_excerpt nlines (lcur + 1) (marked_line :: acc))
       else (
-        let marked_line = Printf.sprintf "%6d" nl ^ ".> " ^ line ^ "\n" in
+        let marked_line = Printf.sprintf "%6d" nl ^ "|> " ^ line ^ "\n" in
         let marked_col =
           if lcur = lstart - 1
           then (
             let nc = if cstart > 2 then cstart - 2 else 0 in
-            "       > " ^ String.make nc ' ' ^ "^^^\n")
+            "      |> " ^ String.make nc ' ' ^ "^^^\n")
           else if lcur = lend - 1
           then (
             let nc = if cend > 2 then cend - 2 else 0 in
-            "       > " ^ String.make nc ' ' ^ "^^^\n")
+            "      |> " ^ String.make nc ' ' ^ "^^^\n")
           else "" in
         pr_excerpt nlines (lcur + 1) (marked_col :: marked_line :: acc)) in
   let excerpt_lines = List.slice file_lines (lstart - 3) (lend + 2) in

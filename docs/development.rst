@@ -37,7 +37,7 @@ Coding convention
 
   + To disable ocamlformat for certain code, use ``[@ocamlformat "disable"]``:
 
-    .. code-block:: ocaml
+    .. code-block:: ml
 
        let do_not_touch (x : t) (y : t) (z : t) = [
          x; y; z
@@ -50,6 +50,8 @@ Coding convention
 
   + Use 2-white-space indentation style.
 
+  + No trailing whitespaces at the end of every lines.
+
   + Each code line is at most 80 column.
 
   + Function and variable names follow: ``snake_case_naming_style``.
@@ -58,7 +60,7 @@ Coding convention
 
   + Comment a region: always comment each line separately.
 
-    .. code-block:: ocaml
+    .. code-block:: ml
 
        (* let list_head (lst: 'a list) : 'a option = *)
        (*   match lst with *)

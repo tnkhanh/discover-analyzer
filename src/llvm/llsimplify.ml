@@ -184,19 +184,10 @@ let elim_instr_sext_integer (modul : LL.llmodule) : unit =
 
 let simplify_module (filename : string) (modul : LL.llmodule) : unit =
   let _ = debug ("Simplifying module: " ^ filename) in
-  let _ =
-    (* let _ = debug " - Eliminate intrinsic lifetime instructions..." in *)
-    elim_instr_intrinsic_lifetime modul in
-  let _ =
-    (* let _ = debug " - Eliminate unused instructions..." in *)
-    elim_unused_instructions modul in
+  let _ = elim_instr_intrinsic_lifetime modul in
+  let _ = elim_unused_instructions modul in
   (* let _ = elim_unused_functions modul in *)
-  let _ =
-    (* let _ = debug " - Eliminate load_of_const instructions..." in *)
-    elim_instr_load_of_const modul in
-  let _ =
-    (* let _ = debug " - Eliminate sext integer instructions..." in *)
-    elim_instr_sext_integer modul in
-  (* let _ = debug " - Finish simplifying!" in *)
+  let _ = elim_instr_load_of_const modul in
+  let _ = elim_instr_sext_integer modul in
   ()
 ;;

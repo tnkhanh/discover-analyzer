@@ -373,9 +373,9 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
     let findstr = match findx with
     | None -> "None"
     | Some _ -> "Some" in
-    acc ^ (LL.string_of_llvalue (llvalue_of_instr key)) ^ " " ^ 
+    acc ^ (LL.string_of_llvalue (llvalue_of_instr key)) ^ " " ^
       (match data with
-      | (st, fn) -> 
+      | (st, fn) ->
         sprint_int st.line ^ " " ^ sprint_int st.col ^ " " ^
         sprint_int fn.line ^ " " ^ sprint_int fn.col
     ) ^ " " ^ findstr ^ "\n"
