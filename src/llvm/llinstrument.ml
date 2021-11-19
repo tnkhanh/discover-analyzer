@@ -173,8 +173,7 @@ let apply_annotation anntyp instr bugs modul =
           match assert_func_opt with
           | None ->
             let func_type = LL.function_type (LL.void_type llctx) [|ins_type|] in
-            let func = LL.define_function func_name func_type modul in
-            let _ = LL.delete_block (LL.entry_block func) in
+            let func = LL.declare_function func_name func_type modul in
             func
           | Some func -> func in
         let args = get_func_args bug actual_ins llctx in
