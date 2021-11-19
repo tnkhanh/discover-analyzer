@@ -142,9 +142,9 @@ let get_func_name anntyp (bug : Ann.bug_group) ins_type =
 
 let get_func_args (bug : Ann.bug_group) ins llctx =
   match bug with
-  (*  | IntegerOverflow ->
-    let width = LL.integer_bitwidth (LL.type_of ins) in
-    [| ins; LL.const_int (LL.i32_type llctx) width |] *)
+  (*  | IntegerOverflow -> *)
+  (*  let width = LL.integer_bitwidth (LL.type_of ins) in*)
+  (*  [| ins; LL.const_int (LL.i32_type llctx) width |] *)
   | _ -> [| ins |]
 ;;
 
@@ -340,48 +340,48 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
   let sorted_ins = List.stable_sort ~compare tagged_ins in
   let _ = resolve ann_marks sorted_ins [] modul in
   (* Code to debug instructions *)
-  (* let _ = debug ~ruler:`Short "Sorted_ins" in
-  let tagnew = deep_fold_module ~finstr [] modul in
-  let _ =
-    List.iter tagnew ~f:(fun ins ->
-        let ins_str =
-          match ins.ins with
-          | Instr inx -> LL.string_of_llvalue inx in
-        let cover =
-          match Hashtbl.find coverage ins.ins with
-          | None -> "None"
-          | Some (lc_start, lc_end) ->
-            (sprint_int lc_start.line ^ " ")
-            ^ (sprint_int lc_start.col ^ " ")
-            ^ (sprint_int lc_end.line ^ " ")
-            ^ sprint_int lc_end.col in
-        let llins = llvalue_of_instr ins.ins in
-        (*      let args =
-          let num_args = LL.num_operands llins in
-          let rec fold_oprs acc idx =
-            if idx >= num_args
-            then acc ^ "\n"
-            else (
-              let opr = LL.string_of_llvalue (LL.operand llins idx in)
-              fold_oprs (acc ^ "." ^ opr ) (idx + 1)) in
-          fold_oprs "" 0 in *)
-        let instype = LL.string_of_lltype (LL.type_of llins) in
-        debug2 "Ins: " (ins_str ^ "..Type: " ^ instype ^ ".." ^ cover)) in *)
+  (* let _ = debug ~ruler:`Short "Sorted_ins" in *)
+  (*let tagnew = deep_fold_module ~finstr [] modul in *)
+  (*let _ = *)
+  (*  List.iter tagnew ~f:(fun ins -> *)
+  (*      let ins_str = *)
+  (*        match ins.ins with *)
+  (*        | Instr inx -> LL.string_of_llvalue inx in *)
+  (*      let cover = *)
+  (*        match Hashtbl.find coverage ins.ins with *)
+  (*        | None -> "None" *)
+  (*        | Some (lc_start, lc_end) -> *)
+  (*          (sprint_int lc_start.line ^ " ") *)
+  (*          ^ (sprint_int lc_start.col ^ " ") *)
+  (*          ^ (sprint_int lc_end.line ^ " ") *)
+  (*          ^ sprint_int lc_end.col in *)
+  (*      let llins = llvalue_of_instr ins.ins in *)
+  (*            let args = *)
+  (*        let num_args = LL.num_operands llins in *)
+  (*        let rec fold_oprs acc idx = *)
+  (*          if idx >= num_args *)
+  (*          then acc ^ "\n" *)
+  (*          else ( *)
+  (*            let opr = LL.string_of_llvalue (LL.operand llins idx in) *)
+  (*            fold_oprs (acc ^ "." ^ opr ) (idx + 1)) in *)
+  (*        fold_oprs "" 0 in *)
+  (*      let instype = LL.string_of_lltype (LL.type_of llins) in *)
+  (*      debug2 "Ins: " (ins_str ^ "..Type: " ^ instype ^ ".." ^ cover)) in *)
   (*  Code to debug coverage *)
-  (* let strhash = Hashtbl.fold coverage ~init:"" ~f:(fun ~key ~data acc ->
-    let findx = Hashtbl.find coverage key in
-    let findstr = match findx with
-    | None -> "None"
-    | Some _ -> "Some" in
-    acc ^ (LL.string_of_llvalue (llvalue_of_instr key)) ^ " " ^
-      (match data with
-      | (st, fn) ->
-        sprint_int st.line ^ " " ^ sprint_int st.col ^ " " ^
-        sprint_int fn.line ^ " " ^ sprint_int fn.col
-    ) ^ " " ^ findstr ^ "\n"
-  ) in
-  let _ = debug2 ~ruler:`Long "Hashtbl" strhash in *)
-  debug2 ~ruler:`Long "Instrumented" (LL.string_of_llmodule modul)
+  (* let strhash = Hashtbl.fold coverage ~init:"" ~f:(fun ~key ~data acc -> *)
+  (*   let findx = Hashtbl.find coverage key in *)
+  (*   let findstr = match findx with *)
+  (*   | None -> "None" *)
+  (*   | Some _ -> "Some" in *)
+  (*   acc ^ (LL.string_of_llvalue (llvalue_of_instr key)) ^ " " ^ *)
+  (*     (match data with *)
+  (*     | (st, fn) -> *)
+  (*       sprint_int st.line ^ " " ^ sprint_int st.col ^ " " ^ *)
+  (*       sprint_int fn.line ^ " " ^ sprint_int fn.col *)
+  (*   ) ^ " " ^ findstr ^ "\n" *)
+  (* ) in *)
+  (* let _ = debug2 ~ruler:`Long "Hashtbl" strhash in *)
+   debug2 ~ruler:`Long "Instrumented" (LL.string_of_llmodule modul)
 ;;
 
 (*we need source_name to ignore instructions with location outside the source file *)
