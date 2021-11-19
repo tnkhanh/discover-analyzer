@@ -341,10 +341,11 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
             (LL.string_of_llvalue inx ^ " " ^ dbg_str))
       (List.rev tagged_ins) in
   let _ = resolve ann_marks sorted_ins [] modul in
-  (* Code to debug instructions
+  (* Code to debug instructions *)
   let _ = debug ~ruler:`Short "Sorted_ins" in
+  let tagnew = deep_fold_module ~finstr [] modul in
   let _ =
-    List.iter tagged_ins ~f:(fun ins ->
+    List.iter tagnew ~f:(fun ins ->
         let ins_str =
           match ins.ins with
           | Instr inx -> LL.string_of_llvalue inx in
@@ -357,16 +358,17 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
             ^ (sprint_int lc_end.line ^ " ")
             ^ sprint_int lc_end.col in
         let llins = llvalue_of_instr ins.ins in
-        let args =
+(*      let args =
           let num_args = LL.num_operands llins in
           let rec fold_oprs acc idx =
             if idx >= num_args
             then acc ^ "\n"
             else (
-              let opr = LL.operand llins idx in
-              fold_oprs (acc ^ "." ^ LL.string_of_llvalue opr) (idx + 1)) in
-          fold_oprs "" 0 in
-        debug2 "Ins: " (ins_str ^ "..Args: " ^ args ^ ".." ^ cover)) in *)
+              let opr = LL.string_of_llvalue (LL.operand llins idx in)
+              fold_oprs (acc ^ "." ^ opr ) (idx + 1)) in
+          fold_oprs "" 0 in *)
+        let instype = LL.string_of_lltype (LL.type_of llins) in
+        debug2 "Ins: " (ins_str ^ "..Type: " ^ instype ^ ".." ^ cover)) in
   (*  Code to debug coverage
     let strhash = Hashtbl.fold coverage ~init:"" ~f:(fun ~key ~data acc ->
     let findx = Hashtbl.find coverage key in
