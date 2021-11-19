@@ -37,7 +37,7 @@ Coding convention
 
   + To disable ocamlformat for certain code, use ``[@ocamlformat "disable"]``:
 
-    .. code-block:: ml
+    .. code-block:: ocaml
 
        let do_not_touch (x : t) (y : t) (z : t) = [
          x; y; z
@@ -60,7 +60,7 @@ Coding convention
 
   + Comment a region: always comment each line separately.
 
-    .. code-block:: ml
+    .. code-block:: ocaml
 
        (* let list_head (lst: 'a list) : 'a option = *)
        (*   match lst with *)

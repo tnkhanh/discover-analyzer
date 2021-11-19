@@ -184,7 +184,8 @@ let print_core
     let msg =
       match ruler with
       | `Header ->
-        ruler_long ^ if String.is_empty msg then msg else msg ^ "\n\n"
+        let msg = if String.is_empty msg then msg else "\n\n" ^ msg ^ "\n" in
+        ruler_long ^ prefix ^ msg
       | `Long -> ruler_long ^ prefix ^ msg
       | `Medium -> ruler_medium ^ prefix ^ msg
       | `Short -> ruler_short ^ prefix ^ msg

@@ -110,7 +110,6 @@ let process_bitcode (input_file : string) : LI.program =
   let llcontext = LL.create_context () in
   let llmem = LL.MemoryBuffer.of_file output_file in
   let modul = Llvm_bitreader.parse_bitcode llcontext llmem in
-  let _ = debug2 ~ruler:`Long "Opted" (LL.string_of_llmodule modul) in
   let _ = LL.MemoryBuffer.dispose llmem in
   let _ =
     if !print_input_prog
