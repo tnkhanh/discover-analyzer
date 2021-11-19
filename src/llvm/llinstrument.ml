@@ -115,33 +115,36 @@ let extract_ann_marks (filename : string) =
   List.rev rev_mark_list
 ;;
 
-let get_func_name anntyp (bug : Ann.bug_group) =
-  match anntyp with
-  | Bug ->
-    (match bug with
-    | MemoryLeak -> "__assert_memory_leak"
-    | NullPointerDeref -> "__assert_null_pointer_deref"
-    | BufferOverflow -> "__assert_buffer_overflow"
-    | IntegerOverflow -> "__assert_bug_integer_overflow"
-    | IntegerUnderflow -> "__assert_integer_underflow"
-    | DivisionByZero -> "__assert_division_by_zero"
-    | NewType t -> "__assert_unnamed_bug")
-  | Safe ->
-    (match bug with
-    | MemoryLeak -> "__refute_memory_leak"
-    | NullPointerDeref -> "__refute_null_pointer_deref"
-    | BufferOverflow -> "__refute_buffer_overflow"
-    | IntegerOverflow -> "__refute_bug_integer_overflow"
-    | IntegerUnderflow -> "__refute_integer_underflow"
-    | DivisionByZero -> "__refute_division_by_zero"
-    | NewType t -> "__refute_unnamed_bug")
+let get_func_name anntyp (bug : Ann.bug_group) ins_type =
+  let base_name =
+    match anntyp with
+    | Bug ->
+      (match bug with
+      | MemoryLeak -> "__assert_memory_leak"
+      | NullPointerDeref -> "__assert_null_pointer_deref"
+      | BufferOverflow -> "__assert_buffer_overflow"
+      | IntegerOverflow -> "__assert_bug_integer_overflow"
+      | IntegerUnderflow -> "__assert_integer_underflow"
+      | DivisionByZero -> "__assert_division_by_zero"
+      | NewType t -> "__assert_unnamed_bug")
+    | Safe ->
+      (match bug with
+      | MemoryLeak -> "__refute_memory_leak"
+      | NullPointerDeref -> "__refute_null_pointer_deref"
+      | BufferOverflow -> "__refute_buffer_overflow"
+      | IntegerOverflow -> "__refute_bug_integer_overflow"
+      | IntegerUnderflow -> "__refute_integer_underflow"
+      | DivisionByZero -> "__refute_division_by_zero"
+      | NewType t -> "__refute_unnamed_bug") in
+  let tail = LL.string_of_lltype ins_type in
+  base_name ^ "_" ^ tail
 ;;
 
 let get_func_args (bug : Ann.bug_group) ins llctx =
   match bug with
-  | IntegerOverflow ->
+(*  | IntegerOverflow ->
     let width = LL.integer_bitwidth (LL.type_of ins) in
-    [| ins; LL.const_int (LL.i32_type llctx) width |]
+    [| ins; LL.const_int (LL.i32_type llctx) width |] *)
   | _ -> [| ins |]
 ;;
 
@@ -160,15 +163,23 @@ let apply_annotation anntyp instr bugs modul =
     let insert_pos = LL.instr_succ actual_ins in
     let llctx = LL.module_context modul in
     let builder = LL.builder_at llctx insert_pos in
+    let ins_type = LL.type_of actual_ins in
+
     List.iter bugs ~f:(fun bug ->
+        let func_name = get_func_name anntyp bug ins_type in
         let assert_func_opt =
-          LL.lookup_function (get_func_name anntyp bug) modul in
-        match assert_func_opt with
-        | None -> ()
-        | Some assert_func ->
-          let args = get_func_args bug actual_ins llctx in
-          let _ = LL.build_call assert_func args "" builder in
-          ())
+          LL.lookup_function func_name modul in
+        let assert_func =
+          match assert_func_opt with
+          | None ->
+            let func_type = LL.function_type (LL.void_type llctx) [|ins_type|] in
+            let func = LL.define_function func_name func_type modul in
+            let _ = LL.delete_block (LL.entry_block func) in
+            func
+          | Some func -> func in
+        let args = get_func_args bug actual_ins llctx in
+        let _ = LL.build_call assert_func args "" builder in
+        ())
 ;;
 
 let rec update (ins : instr_with_tag) anns =
