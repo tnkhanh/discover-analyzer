@@ -3203,14 +3203,12 @@ struct
   ;;
 
   let initialize_candidate_sparse_instrs penv : unit =
-    let finstr =
-      Some
-        (fun i ->
-          let vi = llvalue_of_instr i in
-          if is_candidate_sparse_instr penv i
-          then Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:true
-          else Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:false) in
-    deep_iter_program ~finstr penv.penv_prog
+    let visit_instr i =
+      let vi = llvalue_of_instr i in
+      if is_candidate_sparse_instr penv i
+      then Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:true
+      else Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:false in
+    deep_iter_program ~finstr:(Some visit_instr) penv.penv_prog
   ;;
 
   let refine_candidate_sparse_instrs penv : bool =
@@ -3218,82 +3216,79 @@ struct
     let rec refine_func f : unit =
       (* let _ = hdebug "Refining sparse function: " func_name f in *)
       let continue = ref false in
-      let finstr =
-        Some
-          (fun i ->
-            if is_sparse_instr penv i
-            then (
-              let vi, oprs = llvalue_of_instr i, operands i in
-              let num_using_sparse_instrs (v : llvalue) : int =
-                LL.fold_left_uses
-                  (fun acc u ->
-                    let vu = LL.user u in
-                    if is_llvalue_instr vu && is_sparse_llvalue penv vu
-                    then acc + 1
-                    else acc)
-                  0
-                  v in
-              let is_value_used_only_as_dst_of_instr_store v =
-                try
-                  let _ =
-                    LL.iter_uses
-                      (fun u ->
-                        let vu = LL.user u in
-                        match LL.classify_value vu with
-                        | LV.Instruction LO.Store ->
-                          if not (is_sparse_llvalue penv vu)
-                          then ()
-                          else if equal_value
-                                    (dst_of_instr_store (mk_instr vu))
-                                    v
-                          then ()
-                          else raise (EBool false)
-                        | _ -> raise (EBool false))
-                      v in
-                  true
-                with EBool res -> res in
-              let has_operand_of_non_sparse_global (oprs : llvalue list) =
-                List.exists
-                  ~f:(fun opr ->
-                    is_llvalue_global opr && not (is_sparse_llvalue penv opr))
-                  oprs in
-              let has_operand_of_non_sparse_instr (oprs : llvalue list) =
-                List.exists
-                  ~f:(fun opr ->
-                    is_llvalue_instr opr && not (is_sparse_llvalue penv opr))
-                  oprs in
-              let can_mark_non_sparse_instr =
-                match instr_opcode i with
-                | LO.Alloca ->
-                  num_using_sparse_instrs vi = 0
-                  || is_value_used_only_as_dst_of_instr_store vi
-                | LO.Load | LO.GetElementPtr | LO.BitCast ->
-                  has_operand_of_non_sparse_global oprs
-                  || num_using_sparse_instrs vi = 0
-                | LO.Store ->
-                  let src = src_of_instr_store i in
-                  let dst = dst_of_instr_store i in
-                  has_operand_of_non_sparse_instr oprs
-                  || (is_llvalue_global src
-                     && is_llvalue_instr src
-                     && not (is_sparse_llvalue penv src))
-                  || (is_llvalue_global dst
-                     && is_llvalue_instr dst
-                     && not (is_sparse_llvalue penv dst))
-                (* || has_operand_of_non_sparse_global oprs *)
-                (* not (used_by_other_sparse_instrs (dst_of_instr_store i)) *)
-                | _ -> false in
-              if can_mark_non_sparse_instr
-              then (
-                let _ = continue := true in
-                let _ = updated := true in
-                Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:false)
-              else ())
-            else ()) in
-      let _ = deep_iter_func ~finstr f in
+      let visit_instr i =
+        if is_sparse_instr penv i
+        then (
+          let vi, oprs = llvalue_of_instr i, operands i in
+          let num_using_sparse_instrs (v : llvalue) : int =
+            LL.fold_left_uses
+              (fun acc u ->
+                let vu = LL.user u in
+                if is_llvalue_instr vu && is_sparse_llvalue penv vu
+                then acc + 1
+                else acc)
+              0
+              v in
+          let is_value_used_only_as_dst_of_instr_store v =
+            try
+              LL.iter_uses
+                (fun u ->
+                  let vu = LL.user u in
+                  match LL.classify_value vu with
+                  | LV.Instruction LO.Store ->
+                    if not (is_sparse_llvalue penv vu)
+                    then ()
+                    else if equal_value (dst_of_instr_store (mk_instr vu)) v
+                    then ()
+                    else raise (EBool false)
+                  | _ -> raise (EBool false))
+                v;
+              true
+            with EBool res -> res in
+          let has_operand_of_non_sparse_global (oprs : llvalue list) =
+            List.exists
+              ~f:(fun opr ->
+                is_llvalue_global opr && not (is_sparse_llvalue penv opr))
+              oprs in
+          let has_operand_of_non_sparse_instr (oprs : llvalue list) =
+            List.exists
+              ~f:(fun opr ->
+                is_llvalue_instr opr && not (is_sparse_llvalue penv opr))
+              oprs in
+          let can_mark_non_sparse_instr =
+            match instr_opcode i with
+            | LO.Alloca ->
+              num_using_sparse_instrs vi = 0
+              || is_value_used_only_as_dst_of_instr_store vi
+            | LO.Load | LO.GetElementPtr | LO.BitCast ->
+              has_operand_of_non_sparse_global oprs
+              || num_using_sparse_instrs vi = 0
+            | LO.Store ->
+              let src = src_of_instr_store i in
+              let dst = dst_of_instr_store i in
+              has_operand_of_non_sparse_instr oprs
+              || (is_llvalue_global src
+                 && is_llvalue_instr src
+                 && not (is_sparse_llvalue penv src))
+              || (is_llvalue_global dst
+                 && is_llvalue_instr dst
+                 && not (is_sparse_llvalue penv dst))
+            (* || has_operand_of_non_sparse_global oprs *)
+            (* not (used_by_other_sparse_instrs (dst_of_instr_store i)) *)
+            | _ -> false in
+          if can_mark_non_sparse_instr
+          then (
+            let _ = continue := true in
+            let _ = updated := true in
+            Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:false)
+          else ())
+        else () in
+      let _ = deep_iter_func ~finstr:(Some visit_instr) f in
       if !continue then refine_func f else () in
-    let ffunc = Some (fun f -> refine_func f; Some ()) in
-    let _ = deep_iter_program ~ffunc penv.penv_prog in
+    let visit_func f =
+      let _ = refine_func f in
+      Some () in
+    let _ = deep_iter_program ~ffunc:(Some visit_func) penv.penv_prog in
     !updated
   ;;
 

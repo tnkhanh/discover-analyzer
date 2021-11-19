@@ -277,17 +277,16 @@ module MakeDefaultEnv (M : Data) = struct
   (* default pre- and post-analysis functions *)
 
   let init_sparse_globals_instrs penv : unit =
-    let fglobal =
-      Some
-        (fun g ->
-          let vg = llvalue_of_global g in
-          Hashtbl.set penv.penv_sparse_llvalue ~key:vg ~data:true) in
-    let finstr =
-      Some
-        (fun i ->
-          let vi = llvalue_of_instr i in
-          Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:true) in
-    deep_iter_program ~fglobal ~finstr penv.penv_prog
+    let visit_global g =
+      let vg = llvalue_of_global g in
+      Hashtbl.set penv.penv_sparse_llvalue ~key:vg ~data:true in
+    let visit_instr i =
+      let vi = llvalue_of_instr i in
+      Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:true in
+    deep_iter_program
+      ~fglobal:(Some visit_global)
+      ~finstr:(Some visit_instr)
+      penv.penv_prog
   ;;
 
   let refine_sparse_globals_instrs penv : bool = false
@@ -976,81 +975,64 @@ functor
             then incr num_array_vars
             else () in
           incr num_pointer_vars) in
-      let fglobal =
-        Some
-          (fun global ->
-            if is_sparse_global penv global
-            then (
-              let t = LL.element_type (type_of_global global) in
-              let users = get_users (llvalue_of_global global) in
-              let _ = if is_type_array t then incr num_array_vars in
-              let _ = if is_type_struct t then incr num_struct_vars in
-              if is_type_pointer t
-              then (
-                let elem_typ = LL.element_type t in
-                let _ =
-                  if is_type_struct elem_typ
-                  then incr num_struct_vars
-                  else if is_type_array elem_typ
-                  then incr num_array_vars
-                  else if List.exists ~f:is_llvalue_instr_gep users
-                  then incr num_array_vars
-                  else () in
-                incr num_pointer_vars)
-              else ())
-            else ()) in
-      let fparam =
-        Some
-          (fun param ->
-            let vparam = llvalue_of_param param in
-            update_stats_of_llvalue vparam) in
-      let finstr =
-        Some
-          (fun instr ->
-            if is_sparse_instr penv instr
-            then (
-              let vinstr = llvalue_of_instr instr in
-              let _ = update_stats_of_llvalue vinstr in
-              let _ = if is_instr_call_invoke instr then incr num_func_calls in
-              incr num_instrs)
-            else ()) in
-      let fblock =
-        Some
-          (fun blk ->
-            let _ = incr num_blks in
-            None) in
-      let ffunc =
-        Some
-          (fun f ->
-            if is_sparse_func penv f
-            then (
-              let _ = incr num_user_funcs in
-              None)
-            else Some ()) in
-      let _ = deep_iter_program ~fglobal ~ffunc ~fparam ~fblock ~finstr prog in
+      let visit_global g =
+        if is_sparse_global penv g
+        then (
+          let t = LL.element_type (type_of_global g) in
+          let users = get_users (llvalue_of_global g) in
+          let _ = if is_type_array t then incr num_array_vars in
+          let _ = if is_type_struct t then incr num_struct_vars in
+          if is_type_pointer t
+          then (
+            let elem_typ = LL.element_type t in
+            let _ =
+              if is_type_struct elem_typ
+              then incr num_struct_vars
+              else if is_type_array elem_typ
+              then incr num_array_vars
+              else if List.exists ~f:is_llvalue_instr_gep users
+              then incr num_array_vars
+              else () in
+            incr num_pointer_vars)
+          else ())
+        else () in
+      let visit_param p =
+        let vp = llvalue_of_param p in
+        update_stats_of_llvalue vp in
+      let visit_instr i =
+        if is_sparse_instr penv i
+        then (
+          let vi = llvalue_of_instr i in
+          let _ = update_stats_of_llvalue vi in
+          let _ = if is_instr_call_invoke i then incr num_func_calls in
+          incr num_instrs)
+        else () in
+      let visit_block blk =
+        let _ = incr num_blks in
+        None in
+      let visit_func f =
+        if is_sparse_func penv f
+        then (
+          let _ = incr num_user_funcs in
+          None)
+        else Some () in
+      let _ =
+        deep_iter_program
+          ~fglobal:(Some visit_global)
+          ~ffunc:(Some visit_func)
+          ~fparam:(Some visit_param)
+          ~fblock:(Some visit_block)
+          ~finstr:(Some visit_instr)
+          prog in
       let stats =
         "\nSparse Pointer Statistics:\n"
-        ^ "  #Sparse User funcs: "
-        ^ sprint_int !num_user_funcs
-        ^ "\n"
-        ^ "  #Sparse Blocks: "
-        ^ sprint_int !num_blks
-        ^ "\n"
-        ^ "  #Sparse Instrs: "
-        ^ sprint_int !num_instrs
-        ^ "\n"
-        ^ "  #Sparse Func calls: "
-        ^ sprint_int !num_func_calls
-        ^ "\n"
-        ^ "  #Sparse Pointer Vars: "
-        ^ sprint_int !num_pointer_vars
-        ^ "\n"
-        ^ "  #Sparse Struct Vars: "
-        ^ sprint_int !num_struct_vars
-        ^ "\n"
-        ^ "  #Sparse Array Vars: "
-        ^ sprint_int !num_array_vars
-        ^ "\n" in
+        ^ sprintf "  #Sparse User funcs: %d\n" !num_user_funcs
+        ^ sprintf "  #Sparse Blocks: %d\n" !num_blks
+        ^ sprintf "  #Sparse Instrs: %d\n" !num_instrs
+        ^ sprintf "  #Sparse Func calls: %d\n" !num_func_calls
+        ^ sprintf "  #Sparse Pointer Vars: %d\n" !num_pointer_vars
+        ^ sprintf "  #Sparse Struct Vars: %d\n" !num_struct_vars
+        ^ sprintf "  #Sparse Array Vars: %d\n" !num_array_vars in
       print ~format:false ~always:true stats
     ;;
 
@@ -1465,23 +1447,21 @@ functor
       let _ = hdebug " - Output: " sprint_data_opt fenv.fenv_output in
       let env_completed =
         try
-          let fblock =
-            Some
-              (fun blk -> if is_sparse_block penv blk then None else Some ())
-          in
-          let finstr =
-            Some
-              (fun instr ->
-                if T.is_sparse_instr penv instr
-                   && not (is_instr_unreachable instr)
-                then (
-                  match T.get_instr_output fenv instr with
-                  | None ->
-                    (* let _ = hdebug ~always:true "Env incompleted at: " sprint_instr instr in *)
-                    let _ = hdebug "Env incompleted at: " sprint_instr instr in
-                    raise (EBool false)
-                  | Some _ -> ())) in
-          let _ = deep_iter_func ~fblock ~finstr func in
+          let visit_block blk =
+            if is_sparse_block penv blk then None else Some () in
+          let visit_instr instr =
+            if T.is_sparse_instr penv instr && not (is_instr_unreachable instr)
+            then (
+              match T.get_instr_output fenv instr with
+              | None ->
+                let _ = hdebug "Env incompleted at: " sprint_instr instr in
+                raise (EBool false)
+              | Some _ -> ()) in
+          let _ =
+            deep_iter_func
+              ~fblock:(Some visit_block)
+              ~finstr:(Some visit_instr)
+              func in
           true
         with EBool res -> res in
       let _ =
@@ -2392,45 +2372,26 @@ functor
     let rec analyze_blocks ?(widen = true) ?(fixpoint = true) penv fenv wblks
         : unit
       =
-      let working_block, time =
-        Sys.track_runtime (fun () -> choose_working_block penv wblks) in
-      (* let _ = hprint "  Time choosing working block: " (sprintf "%.3fs") time in *)
+      let working_block = choose_working_block penv wblks in
       match working_block with
       | None -> ()
       | Some (wblk, nwblks) ->
-        let (changed, continue), time =
-          Sys.track_runtime (fun () -> analyze_block ~widen penv fenv wblk)
-        in
-        (* let _ = hprint " - Time analyzing block: " (sprintf "%.3fs") time in *)
+        let changed, continue = analyze_block ~widen penv fenv wblk in
         let nwblks =
           if changed && continue && fixpoint
           then (
-            (* let sblks = get_succeeding_blocks prog wblk.wb_block |>
-             *             List.map ~f:(fun sb -> sb.sblk_block) in *)
-            let sblks, time =
-              Sys.track_runtime (fun () ->
-                  get_sparse_succeeding_blocks penv wblk.wb_block) in
-            (* let _ = hprint " - Time getting sparse succeeding blocks: "
-             *           (sprintf "%.3fs") time in *)
-            let res, time =
-              Sys.track_runtime (fun () ->
-                  List.fold_left
-                    ~f:(fun acc sb ->
-                      match first_instr_of_block sb with
-                      | None -> acc
-                      | Some instr ->
-                        let input, time =
-                          Sys.track_runtime (fun () ->
-                              compute_block_input penv fenv sb) in
-                        (* let _ = hprint ("- Time computing input of block : " ^ (block_name sb))
-                         *           (sprintf "%.3fs") time in *)
-                        let wb = mk_working_block sb instr input in
-                        let _ = hdebug "--> Enqueue block: " block_name sb in
-                        List.insert_dedup acc wb ~equal:equal_working_block)
-                    ~init:nwblks
-                    sblks) in
-            (* let _ = hprint " - Time enqueue sparse blocks: " (sprintf "%.3fs") time in *)
-            res)
+            let sblks = get_sparse_succeeding_blocks penv wblk.wb_block in
+            List.fold_left
+              ~f:(fun acc sb ->
+                match first_instr_of_block sb with
+                | None -> acc
+                | Some instr ->
+                  let input = compute_block_input penv fenv sb in
+                  let wb = mk_working_block sb instr input in
+                  let _ = hdebug "--> Enqueue block: " block_name sb in
+                  List.insert_dedup acc wb ~equal:equal_working_block)
+              ~init:nwblks
+              sblks)
           else nwblks in
         analyze_blocks ~widen ~fixpoint penv fenv nwblks
     ;;
@@ -2486,12 +2447,10 @@ functor
               let input = compute_block_input penv fenv entry in
               [ mk_working_block entry instr input ])
           | wbs -> wbs in
-        (* let _ = hprint "  Time choosing blocks to start analyze: " (sprintf "%.3fs") time in *)
         let _ = fenv.fenv_working_blocks <- [] in
         analyze_blocks ~widen:false ~fixpoint:true penv fenv blocks in
       let _ = debug ~ruler:`Short "Do simple fixpoint..." in
       let _ = do_fixpoint () in
-      (* let _ = hprint "  Time running simple fixpoint: " (sprintf "%.3fs") time in *)
       hdebug ~ruler:`Short "After fixpoint:\n\n" (sprint_func_env penv) fenv
     ;;
 
@@ -2569,9 +2528,7 @@ functor
       let _ =
         if (not (is_func_main func)) && fenv.fenv_output != None
         then (
-          let fsum, time =
-            Sys.track_runtime (fun () -> mk_func_summary penv fenv input) in
-          (* let _ = hprint "  Time creating func_summary: " (sprintf "%.3fs") time in *)
+          let fsum = mk_func_summary penv fenv input in
           let _ =
             hdebug
               ~ruler:`Short
@@ -2938,22 +2895,19 @@ functor
             let num_sparse_instrs = ref 0 in
             let has_return_or_unreachable = ref false in
             let has_return_of_non_pointer = ref false in
-            let finstr =
-              Some
-                (fun instr ->
-                  if is_sparse_instr penv instr
-                  then (
-                    match instr_opcode instr with
-                    | LO.Br | LO.IndirectBr | LO.Switch -> ()
-                    | LO.Unreachable | LO.Ret ->
-                      let _ = num_sparse_instrs := !num_sparse_instrs + 1 in
-                      let _ = has_return_or_unreachable := true in
-                      if is_instr_return instr
-                         && not
-                              (is_llvalue_pointer (src_of_instr_return instr))
-                      then has_return_of_non_pointer := true
-                    | _ -> num_sparse_instrs := !num_sparse_instrs + 1)) in
-            let _ = deep_iter_func ~finstr f in
+            let visit_instr instr =
+              if is_sparse_instr penv instr
+              then (
+                match instr_opcode instr with
+                | LO.Br | LO.IndirectBr | LO.Switch -> ()
+                | LO.Unreachable | LO.Ret ->
+                  let _ = num_sparse_instrs := !num_sparse_instrs + 1 in
+                  let _ = has_return_or_unreachable := true in
+                  if is_instr_return instr
+                     && not (is_llvalue_pointer (src_of_instr_return instr))
+                  then has_return_of_non_pointer := true
+                | _ -> num_sparse_instrs := !num_sparse_instrs + 1) in
+            let _ = deep_iter_func ~finstr:(Some visit_instr) f in
             if !num_sparse_instrs == 0
                || (not !has_return_or_unreachable)
                || (!num_sparse_instrs == 1 && !has_return_of_non_pointer)
@@ -2978,29 +2932,25 @@ functor
         let _ =
           List.iter
             ~f:(fun f ->
-              (* let _ = hprint "Refine function : " func_name f in *)
               if is_sparse_func penv f
               then (
                 let has_pointer_related_instr = ref false in
-                let finstr =
-                  Some
-                    (fun instr ->
-                      if is_sparse_instr penv instr
-                      then (
-                        match instr_opcode instr with
-                        | LO.Br | LO.IndirectBr | LO.Switch | LO.Unreachable ->
-                          ()
-                        | LO.Ret ->
-                          if is_llvalue_pointer (src_of_instr_return instr)
-                          then has_pointer_related_instr := true
-                        | LO.Call | LO.Invoke ->
-                          let callee = callee_of_instr_func_call instr in
-                          if (not (is_func_pointer callee))
-                             && not (is_sparse_func penv callee)
-                          then ()
-                          else has_pointer_related_instr := true
-                        | _ -> has_pointer_related_instr := true)) in
-                let _ = deep_iter_func ~finstr f in
+                let visit_instr instr =
+                  if is_sparse_instr penv instr
+                  then (
+                    match instr_opcode instr with
+                    | LO.Br | LO.IndirectBr | LO.Switch | LO.Unreachable -> ()
+                    | LO.Ret ->
+                      if is_llvalue_pointer (src_of_instr_return instr)
+                      then has_pointer_related_instr := true
+                    | LO.Call | LO.Invoke ->
+                      let callee = callee_of_instr_func_call instr in
+                      if (not (is_func_pointer callee))
+                         && not (is_sparse_func penv callee)
+                      then ()
+                      else has_pointer_related_instr := true
+                    | _ -> has_pointer_related_instr := true) in
+                let _ = deep_iter_func ~finstr:(Some visit_instr) f in
                 if not !has_pointer_related_instr
                 then (
                   (* let _ = hprint "Set function to non-sparse: " func_name f in *)
@@ -3011,7 +2961,6 @@ functor
                   let vf = llvalue_of_func f in
                   LL.iter_uses
                     (fun u ->
-                      (* let _ = hprint "  User: " sprint_value_detail (LL.user u) in *)
                       Hashtbl.set
                         penv.penv_sparse_llvalue
                         ~key:(LL.user u)
@@ -3040,23 +2989,21 @@ functor
         List.iter
           ~f:(fun func ->
             let gs = ref [] in
-            let finstr =
-              Some
-                (fun instr ->
-                  if is_sparse_instr penv instr
-                  then
-                    for i = 0 to num_operands instr - 1 do
-                      let opr = operand instr i in
-                      match LL.classify_value opr with
-                      | LV.GlobalVariable ->
-                        gs
-                          := List.insert_sorti_dedup
-                               !gs
-                               (mk_global opr)
-                               ~compare:Poly.compare
-                      | _ -> ()
-                    done) in
-            let _ = deep_iter_func ~finstr func in
+            let visit_instr instr =
+              if is_sparse_instr penv instr
+              then
+                for i = 0 to num_operands instr - 1 do
+                  let opr = operand instr i in
+                  match LL.classify_value opr with
+                  | LV.GlobalVariable ->
+                    gs
+                      := List.insert_sorti_dedup
+                           !gs
+                           (mk_global opr)
+                           ~compare:Poly.compare
+                  | _ -> ()
+                done in
+            let _ = deep_iter_func ~finstr:(Some visit_instr) func in
             Hashtbl.set tbl_used_globals ~key:func ~data:!gs)
           prog.prog_user_funcs in
       let update_globals_of_all_funcs () =
@@ -3256,9 +3203,7 @@ functor
       (* if not !print_concise_output || !print_concise_debug then *)
       println
         ~format:false (* ~always:true *)
-        ("\nStatistics of "
-        ^ name_of_dfa analysis
-        ^ ": \n"
+        (("\nStatistics of " ^ name_of_dfa analysis ^ ": \n")
         ^ pr_analysis_stats penv)
     ;;
   end

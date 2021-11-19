@@ -31,36 +31,21 @@ let print_module_stats filename =
   else ()
 ;;
 
-let process_module
-    ann_marks
-    source_name
-    (filename : string)
-    (modul : LL.llmodule)
-    : LI.program
-  =
-  let _ = print2 "Simplifying bitcode: " filename in
+let export_bitcode_to_file (input_file : string) (modul : LL.llmodule) =
+  let basename = Filename.chop_extension (Filename.basename input_file) in
+  let dirname = Filename.dirname input_file in
+  let output_file = dirname ^ Filename.dir_sep ^ basename ^ ".ll" in
+  let _ = LL.print_module output_file modul in
+  debug ("Export LLVM IR to: " ^ output_file)
+;;
+
+let process_module (input_file : string) (modul : LL.llmodule) : LI.program =
+  let _ = print2 "Simplifying bitcode: " input_file in
   let _ = LN.rename_vars_and_params modul in
-  let _ =
-    if !llvm_simplify
-    then (
-      let _ =
-        Sys.report_runtime ~task:"Time simplifying bitcode" (fun () ->
-            LS.simplify_module filename modul) in
-      (*      let _ =
-        Sys.report_runtime ~task:"Time instrumenting bitcode" (fun () ->
-            LT.instrument_bitcode ann_marks source_name modul) in *)
-      (* (fun () -> LT.instrument_bitcode filename modul) in *)
-      if !export_bitcode
-      then (
-        let basename = Filename.chop_extension (Filename.basename filename) in
-        let dirname = Filename.dirname filename in
-        let fname_ir = dirname ^ Filename.dir_sep ^ basename ^ ".ll" in
-        let _ = LL.print_module fname_ir modul in
-        debug ("Export LLVM IR to: " ^ fname_ir))) in
-  let prog =
-    Sys.report_runtime ~task:"Time preparing core program" (fun () ->
-        let _ = LN.check_normalization modul in
-        LI.mk_program filename modul) in
+  let _ = if !llvm_simplify then LS.simplify_module input_file modul in
+  let _ = if !export_bitcode then export_bitcode_to_file input_file modul in
+  let _ = LN.check_normalization modul in
+  let prog = LI.mk_program input_file modul in
   let _ = LP.update_program_info prog in
   let _ =
     if (not !print_concise_output) && !print_core_prog
@@ -117,7 +102,7 @@ let normalize_bitcode (input_file : string) : string =
   output_file
 ;;
 
-let process_bitcode ann_marks source_name (input_file : string) : LI.program =
+let process_bitcode (input_file : string) : LI.program =
   let _ = print_module_stats input_file in
   let _ = if is_debug_mode () then disassemble_bitcode input_file in
   let optimized_file = optimize_bitcode input_file in
@@ -131,12 +116,12 @@ let process_bitcode ann_marks source_name (input_file : string) : LI.program =
     if !print_input_prog
     then hprint ~ruler:`Long "ORIGINAL BITCODE MODULE" LI.sprint_module modul
   in
-  process_module ann_marks source_name output_file modul
+  process_module output_file modul
 ;;
 
-let compile_llir (filename : string) : LI.program =
+let compile_llir (input_file : string) : LI.program =
   let llcontext = LL.create_context () in
-  let llmem = LL.MemoryBuffer.of_file filename in
+  let llmem = LL.MemoryBuffer.of_file input_file in
   let modul = Llvm_irreader.parse_ir llcontext llmem in
-  process_module [] "" filename modul
+  process_module input_file modul
 ;;

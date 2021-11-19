@@ -27,52 +27,43 @@ let rename_vars_and_params (modul : LL.llmodule) : unit =
   let compute_index index =
     index := !index + 1;
     sprint_int !index in
-  let finstr =
-    Some
-      (fun instr ->
-        let vinstr = llvalue_of_instr instr in
-        match LL.instr_opcode vinstr with
-        | LO.Br _
-        | LO.IndirectBr
-        | LO.Resume
-        | LO.Store
-        | LO.Ret
-        | LO.Unreachable -> ()
-        | LO.Call when is_type_void (type_of_instr instr) -> ()
-        | LO.Invoke when is_type_void (type_of_instr instr) -> ()
-        | _ ->
-          if (not !llvm_orig_source_name) || is_llvalue_empty_name vinstr
-          then (
-            let instr_name = "v" ^ compute_index index_value in
-            LL.set_value_name instr_name vinstr)) in
-  let fparam =
-    Some
-      (fun param ->
-        let vparam = llvalue_of_param param in
-        let param_name = "arg" ^ compute_index index_value in
-        LL.set_value_name param_name vparam) in
-  let fglobal =
-    Some
-      (fun global ->
-        let vglobal = llvalue_of_global global in
-        if (not !llvm_orig_source_name) || is_llvalue_empty_name vglobal
-        then (
-          let global_name = "g" ^ compute_index index_value in
-          LL.set_value_name global_name vglobal)) in
-  let fblock =
-    Some
-      (fun blk ->
-        let blk_name = "bb" ^ compute_index index_blk in
-        LL.set_value_name blk_name (LL.value_of_block blk);
-        None) in
-  let ffunc =
-    Some
-      (fun func ->
-        (* reset index for each function *)
-        (* index_blk := -1; index_instr := -1; index_param := -1; *)
-        index_blk := -1;
-        None) in
-  deep_iter_module ~fglobal ~ffunc ~fparam ~fblock ~finstr modul
+  let visit_instr i =
+    let vi = llvalue_of_instr i in
+    match LL.instr_opcode vi with
+    | LO.Br _ | LO.IndirectBr | LO.Resume | LO.Store | LO.Ret | LO.Unreachable
+      -> ()
+    | LO.Call when is_type_void (type_of_instr i) -> ()
+    | LO.Invoke when is_type_void (type_of_instr i) -> ()
+    | _ ->
+      if (not !llvm_orig_source_name) || is_llvalue_empty_name vi
+      then (
+        let instr_name = "v" ^ compute_index index_value in
+        LL.set_value_name instr_name vi) in
+  let visit_param p =
+    let vp = llvalue_of_param p in
+    let param_name = "arg" ^ compute_index index_value in
+    LL.set_value_name param_name vp in
+  let visit_global g =
+    let vg = llvalue_of_global g in
+    if (not !llvm_orig_source_name) || is_llvalue_empty_name vg
+    then (
+      let global_name = "g" ^ compute_index index_value in
+      LL.set_value_name global_name vg) in
+  let visit_block blk =
+    let blk_name = "bb" ^ compute_index index_blk in
+    LL.set_value_name blk_name (LL.value_of_block blk);
+    None in
+  let visit_func f =
+    (* reset index for each function *)
+    let _ = index_blk := -1 in
+    None in
+  deep_iter_module
+    ~fglobal:(Some visit_global)
+    ~ffunc:(Some visit_func)
+    ~fparam:(Some visit_param)
+    ~fblock:(Some visit_block)
+    ~finstr:(Some visit_instr)
+    modul
 ;;
 
 (*******************************************************************
@@ -81,31 +72,26 @@ let rename_vars_and_params (modul : LL.llmodule) : unit =
 
 let check_normalization (modul : LL.llmodule) : unit =
   let _ = debug "Checking normalized module..." in
-  let fblock =
-    Some
-      (fun blk ->
-        let _ =
-          match last_instr_of_block blk with
-          | None -> ()
-          | Some instr ->
-            (match instr_opcode instr with
-            | LO.Ret
-            | LO.Br
-            | LO.IndirectBr
-            | LO.Switch
-            | LO.Call
-            | LO.Invoke
-            | LO.Resume
-            | LO.Unreachable -> ()
-            | _ ->
-              error
-                ("The last instruction of block '"
-                ^ block_name blk
-                ^ "' is: "
-                ^ sprint_instr instr
-                ^ "\n"
-                ^ "Only Ret, Br, IndirectBr, Switch, Call, Invoke, Resume, "
-                ^ "or Unreachable is allowed!")) in
-        None) in
-  deep_iter_module ~fblock modul
+  let fblock blk =
+    let _ =
+      match last_instr_of_block blk with
+      | None -> ()
+      | Some instr ->
+        (match instr_opcode instr with
+        | LO.Ret
+        | LO.Br
+        | LO.IndirectBr
+        | LO.Switch
+        | LO.Call
+        | LO.Invoke
+        | LO.Resume
+        | LO.Unreachable -> ()
+        | _ ->
+          error
+            (("The last instruction of block '" ^ block_name blk ^ "' is: ")
+            ^ (sprint_instr instr ^ "\n")
+            ^ "Only Ret, Br, IndirectBr, Switch, Call, Invoke, Resume, "
+            ^ "or Unreachable is allowed!")) in
+    None in
+  deep_iter_module ~fblock:(Some fblock) modul
 ;;

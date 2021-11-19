@@ -71,38 +71,36 @@ let elim_instr_load_of_const (modul : LL.llmodule) : unit =
   let find_instr_load_and_replacer (func : func) : (instr * llvalue) list =
     let loads_replacers = ref [] in
     let tbl_stored_values = Hashtbl.create (module Instr) in
-    let finstr =
-      Some
-        (fun instr ->
-          match instr_opcode instr with
-          | LO.Store ->
-            let src = src_of_instr_store instr in
-            let dst = dst_of_instr_store instr in
-            if is_llvalue_instr dst && is_llvalue_integer_constant src
-            then Hashtbl.set ~key:(mk_instr dst) ~data:src tbl_stored_values
-          | LO.Load ->
-            let src = src_of_instr_load instr in
-            if is_llvalue_instr src
-            then (
-              let instr_src = mk_instr src in
-              match Hashtbl.find tbl_stored_values instr_src with
-              | Some v ->
-                if is_instr_same_block instr instr_src
-                then loads_replacers := !loads_replacers @ [ instr, v ]
-              | None -> ())
-            else ()
-          | LO.Call | LO.CallBr | LO.Invoke ->
-            (* If a register is passed as an argument of a function call,
+    let visit_instr instr =
+      match instr_opcode instr with
+      | LO.Store ->
+        let src = src_of_instr_store instr in
+        let dst = dst_of_instr_store instr in
+        if is_llvalue_instr dst && is_llvalue_integer_constant src
+        then Hashtbl.set ~key:(mk_instr dst) ~data:src tbl_stored_values
+      | LO.Load ->
+        let src = src_of_instr_load instr in
+        if is_llvalue_instr src
+        then (
+          let instr_src = mk_instr src in
+          match Hashtbl.find tbl_stored_values instr_src with
+          | Some v ->
+            if is_instr_same_block instr instr_src
+            then loads_replacers := !loads_replacers @ [ instr, v ]
+          | None -> ())
+        else ()
+      | LO.Call | LO.CallBr | LO.Invoke ->
+        (* If a register is passed as an argument of a function call,
            then clear its stored constant, if any *)
-            let args = args_of_instr_func_app instr in
-            List.iter
-              ~f:(fun arg ->
-                if is_llvalue_instr arg
-                then Hashtbl.remove tbl_stored_values (mk_instr arg)
-                else ())
-              args
-          | _ -> ()) in
-    let _ = deep_iter_func ~finstr func in
+        let args = args_of_instr_func_app instr in
+        List.iter
+          ~f:(fun arg ->
+            if is_llvalue_instr arg
+            then Hashtbl.remove tbl_stored_values (mk_instr arg)
+            else ())
+          args
+      | _ -> () in
+    let _ = deep_iter_func ~finstr:(Some visit_instr) func in
     !loads_replacers in
   let elim_instr_load (func : func) : unit =
     (* let _ = hdebugc "elim_instr_load: " func_name func in *)
@@ -115,14 +113,12 @@ let elim_instr_load_of_const (modul : LL.llmodule) : unit =
         List.iter
           ~f:(fun (instr_load, replacer) ->
             let vload = llvalue_of_instr instr_load in
-            let finstr =
-              Some
-                (fun instr ->
-                  for i = 0 to num_operands instr do
-                    if equal_llvalue vload (operand instr i)
-                    then set_operand instr i replacer
-                  done) in
-            let _ = deep_iter_func ~finstr func in
+            let visit_instr instr =
+              for i = 0 to num_operands instr do
+                if equal_llvalue vload (operand instr i)
+                then set_operand instr i replacer
+              done in
+            let _ = deep_iter_func ~finstr:(Some visit_instr) func in
             let _ = delete_instruction instr_load in
             continue := true)
           load_replacers
@@ -135,23 +131,21 @@ let elim_instr_load_of_const (modul : LL.llmodule) : unit =
 let elim_instr_sext_integer (modul : LL.llmodule) : unit =
   let find_instr_sext_and_replacer (func : func) : (instr * llvalue) list =
     let sext_replacers = ref [] in
-    let finstr =
-      Some
-        (fun instr ->
-          match instr_opcode instr with
-          | LO.SExt ->
-            let src = src_of_instr_sext instr in
-            if is_llvalue_integer_constant src
-            then (
-              let dst_typ = LL.type_of (llvalue_of_instr instr) in
-              match LL.int64_of_const src with
-              | Some i ->
-                let replacer = LL.const_of_int64 dst_typ i true in
-                sext_replacers := !sext_replacers @ [ instr, replacer ]
-              | None -> ())
-            else ()
-          | _ -> ()) in
-    let _ = deep_iter_func ~finstr func in
+    let visit_instr instr =
+      match instr_opcode instr with
+      | LO.SExt ->
+        let src = src_of_instr_sext instr in
+        if is_llvalue_integer_constant src
+        then (
+          let dst_typ = LL.type_of (llvalue_of_instr instr) in
+          match LL.int64_of_const src with
+          | Some i ->
+            let replacer = LL.const_of_int64 dst_typ i true in
+            sext_replacers := !sext_replacers @ [ instr, replacer ]
+          | None -> ())
+        else ()
+      | _ -> () in
+    let _ = deep_iter_func ~finstr:(Some visit_instr) func in
     !sext_replacers in
   let elim_instr_sext (func : func) : unit =
     let continue = ref true in
@@ -163,14 +157,12 @@ let elim_instr_sext_integer (modul : LL.llmodule) : unit =
         List.iter
           ~f:(fun (instr_sext, replacer) ->
             let vsext = llvalue_of_instr instr_sext in
-            let finstr =
-              Some
-                (fun instr ->
-                  for i = 0 to num_operands instr do
-                    if equal_llvalue vsext (operand instr i)
-                    then set_operand instr i replacer
-                  done) in
-            let _ = deep_iter_func ~finstr func in
+            let visit_instr instr =
+              for i = 0 to num_operands instr do
+                if equal_llvalue vsext (operand instr i)
+                then set_operand instr i replacer
+              done in
+            let _ = deep_iter_func ~finstr:(Some visit_instr) func in
             let _ = delete_instruction instr_sext in
             continue := true)
           sext_replacers

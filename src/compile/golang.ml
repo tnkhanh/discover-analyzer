@@ -96,5 +96,5 @@ let compile_golang (filename : string) : LI.program =
         !gollvm_path ^ "go";
         go_build_output
       ] in
-  BC.process_bitcode [] "" bitcode_filename
+  BC.process_bitcode bitcode_filename
 ;;

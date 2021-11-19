@@ -22,10 +22,10 @@ module LT = Llinstrument
 module LU = Llutils
 module PS = Process
 
-let compile_c_cpp (filename : string) : LI.program =
-  let _ = debug ("Compiling file: " ^ filename) in
-  let basename = Filename.chop_extension (Filename.basename filename) in
-  let dirname = Filename.dirname filename ^ Filename.dir_sep ^ "logs" in
+let compile_c_cpp (input_file : string) : LI.program =
+  let _ = debug ("Compiling file: " ^ input_file) in
+  let basename = Filename.chop_extension (Filename.basename input_file) in
+  let dirname = Filename.dirname input_file ^ Filename.dir_sep ^ "logs" in
   let _ = Sys.make_dir dirname in
   let output_filename = dirname ^ Filename.dir_sep ^ basename ^ ".raw.bc" in
   let _ =
@@ -37,17 +37,17 @@ let compile_c_cpp (filename : string) : LI.program =
       @ [ "-Xclang"; "-disable-llvm-passes" ]
       @ [ "-Xclang"; "-disable-O0-optnone" ]
       @ [ "-Werror=implicit-function-declaration" ]
-      @ [ "-emit-llvm"; "-c"; filename ]
+      @ [ "-emit-llvm"; "-c"; input_file ]
       @ [ "-o"; output_filename ]
       @ (if !llvm_orig_source_name then [ "-g" ] else [])
       @ String.split ~on:' ' !clang_user_options in
     let _ = debug (String.concat ~sep:" " cmd) in
     PS.run_command cmd in
-  let ann_marks = LT.extract_ann_marks filename in
+  let ann_marks = LT.extract_ann_marks input_file in
   let llcontext = LL.create_context () in
   let llmem = LL.MemoryBuffer.of_file output_filename in
   let modul = Llvm_bitreader.parse_bitcode llcontext llmem in
-  let _ = LT.instrument_bitcode ann_marks filename modul in
+  let _ = LT.instrument_bitcode ann_marks input_file modul in
   let instrued_filename = dirname ^ Filename.dir_sep ^ basename ^ ".ins.bc" in
   let _ = LL.set_module_identifer modul instrued_filename in
   let _ = debug2 ~ruler:`Long "Changed name: " (LL.string_of_llmodule modul) in
@@ -55,5 +55,5 @@ let compile_c_cpp (filename : string) : LI.program =
     let instrued_file = open_out instrued_filename in
     let _ = Llvm_bitwriter.output_bitcode instrued_file modul in
     close_out instrued_file in
-  BC.process_bitcode ann_marks filename instrued_filename
+  BC.process_bitcode instrued_filename
 ;;

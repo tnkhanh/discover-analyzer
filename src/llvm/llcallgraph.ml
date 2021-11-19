@@ -69,52 +69,51 @@ let build_reachability_graph (prog : program) : IG.t =
   let _ =
     if IG.is_empty rg
     then (
-      let ffunc =
-        Some
-          (fun f ->
-            let src = llvalue_of_func f in
-            match first_instr_of_func f with
-            | None -> None
-            | Some i ->
-              let dst = llvalue_of_instr i in
-              let _ = IG.add_edge_e rg (IG.E.create src IG.NextInstr dst) in
-              None) in
-      let finstr =
-        Some
-          (fun instr ->
-            let src = llvalue_of_instr instr in
-            let next_instrs =
-              match instr_succ instr with
-              | Some instr' -> [ instr' ]
-              | None ->
-                (match instr_opcode instr with
-                | LO.Br | LO.IndirectBr ->
-                  let next_blocks =
-                    match branch_of_instr_br instr with
-                    | None -> []
-                    | Some (`Conditional (_, b1, b2)) -> [ b1; b2 ]
-                    | Some (`Unconditional b) -> [ b ] in
-                  List.fold_left
-                    ~f:(fun acc b ->
-                      match first_instr_of_block b with
-                      | None -> acc
-                      | Some i' -> acc @ [ i' ])
-                    ~init:[]
-                    next_blocks
-                | _ -> []) in
-            let _ =
-              List.iter
-                ~f:(fun instr' ->
-                  let dst = llvalue_of_instr instr' in
-                  IG.add_edge_e rg (IG.E.create src IG.NextInstr dst))
-                next_instrs in
-            match instr_opcode instr with
-            | LO.Call | LO.Invoke ->
-              let callee = callee_of_instr_func_call instr in
-              let dst = llvalue_of_func callee in
-              IG.add_edge_e rg (IG.E.create src IG.Callee dst)
-            | _ -> ()) in
-      deep_iter_program ~ffunc ~finstr prog) in
+      let visit_func f =
+        let src = llvalue_of_func f in
+        match first_instr_of_func f with
+        | None -> None
+        | Some i ->
+          let dst = llvalue_of_instr i in
+          let _ = IG.add_edge_e rg (IG.E.create src IG.NextInstr dst) in
+          None in
+      let visit_instr instr =
+        let src = llvalue_of_instr instr in
+        let next_instrs =
+          match instr_succ instr with
+          | Some instr' -> [ instr' ]
+          | None ->
+            (match instr_opcode instr with
+            | LO.Br | LO.IndirectBr ->
+              let next_blocks =
+                match branch_of_instr_br instr with
+                | None -> []
+                | Some (`Conditional (_, b1, b2)) -> [ b1; b2 ]
+                | Some (`Unconditional b) -> [ b ] in
+              List.fold_left
+                ~f:(fun acc b ->
+                  match first_instr_of_block b with
+                  | None -> acc
+                  | Some i' -> acc @ [ i' ])
+                ~init:[]
+                next_blocks
+            | _ -> []) in
+        let _ =
+          List.iter
+            ~f:(fun instr' ->
+              let dst = llvalue_of_instr instr' in
+              IG.add_edge_e rg (IG.E.create src IG.NextInstr dst))
+            next_instrs in
+        match instr_opcode instr with
+        | LO.Call | LO.Invoke ->
+          let callee = callee_of_instr_func_call instr in
+          let dst = llvalue_of_func callee in
+          IG.add_edge_e rg (IG.E.create src IG.Callee dst)
+        | _ -> () in
+      deep_iter_program
+        ~ffunc:(Some visit_func)
+        ~finstr:(Some visit_instr)
+        prog) in
   rg
 ;;
 

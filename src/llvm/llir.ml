@@ -2249,15 +2249,11 @@ let get_struct_types (m : llmodule) : lltype list =
     else (
       let subtypes = typ |> LL.subtypes |> Array.to_list in
       List.iter ~f:collect_struct_type subtypes) in
-  let fglobal =
-    Some
-      (fun glob -> collect_struct_type (LL.type_of (llvalue_of_global glob)))
+  let visit_global g = collect_struct_type (LL.type_of (llvalue_of_global g)) in
+  let visit_instr i = collect_struct_type (LL.type_of (llvalue_of_instr i)) in
+  let _ =
+    deep_iter_module ~finstr:(Some visit_instr) ~fglobal:(Some visit_global) m
   in
-  let finstr =
-    Some
-      (fun instr -> collect_struct_type (LL.type_of (llvalue_of_instr instr)))
-  in
-  let _ = deep_iter_module ~finstr ~fglobal m in
   Set.to_list !all_stypes
 ;;
 
