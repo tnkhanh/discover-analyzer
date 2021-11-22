@@ -363,19 +363,11 @@ type program =
      *-----------------------------------------*)
     prog_llvalue_innermost_loop : (llvalue, loop option) Hashtbl.t;
     prog_block_innermost_loop : (block, loop option) Hashtbl.t;
-    (*-----------------------------------------
-     * result of analysis passes
-     *-----------------------------------------*)
-    (* mapping each instruction to the undefined llvalues at its program point *)
-    prog_undef_values : (instr, llvalues) Hashtbl.t;
     (* hash-table mapping each pointer to its associcated functions *)
     prog_pointer_funcs : (llvalue, funcs) Hashtbl.t;
-    (*-----------------------------------------
-     * source code and compilation data
-     *-----------------------------------------*)
     prog_func_data : program_func_data;
     prog_meta_data : program_meta_data;
-    prog_llvm_module : llmodule
+    prog_module_data : llmodule;
   }
 
 exception Llvm_invalid_instr of string
@@ -2090,12 +2082,6 @@ let rec subst_expr
  ** operations with llvalue
  *******************************************************************)
 
-let get_undef_values_at_instr (prog : program) (instr : instr) : llvalues =
-  match Hashtbl.find prog.prog_undef_values instr with
-  | Some undefs -> undefs
-  | None -> []
-;;
-
 let collect_llvalue_of_expr (e : expr) : llvalues =
   let rec collect e acc =
     match e with
@@ -3134,11 +3120,10 @@ let mk_program (filename : string) (m : llmodule) : program =
     prog_llvalue_innermost_loop = Hashtbl.create (module Llvalue);
     prog_block_innermost_loop = Hashtbl.create (module Block);
     (* analysis results *)
-    prog_undef_values = Hashtbl.create (module Instr);
     prog_pointer_funcs = Hashtbl.create (module Llvalue);
     prog_meta_data = mk_program_meta_data filename m;
     prog_func_data = mk_program_func_data m;
-    prog_llvm_module = m
+    prog_module_data = m
   }
 ;;
 
