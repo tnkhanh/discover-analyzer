@@ -2541,39 +2541,6 @@ functor
       fenv, input_updated, output_updated, env_updated, need_reanalyze
     ;;
 
-    let compare_func_callee_distance
-        penv
-        (wf1 : working_func)
-        (wf2 : working_func)
-        : int
-      =
-      let prog = penv.penv_prog in
-      let ig = prog.prog_instr_graph in
-      let f1, f2 = wf1.wf_func, wf2.wf_func in
-      let callers1 = get_pfd_callers prog f1 in
-      let callers2 = get_pfd_callers prog f2 in
-      let callers =
-        List.filter ~f:(List.mem callers2 ~equal:equal_func) callers1 in
-      let is_func_called_ealier g1 g2 =
-        List.exists
-          ~f:(fun caller ->
-            let distance1 = LG.shortest_callee_distance ig caller g1 in
-            let distance2 = LG.shortest_callee_distance ig caller g2 in
-            match distance1, distance2 with
-            | None, None -> false
-            | Some _, None -> true
-            | None, Some _ -> false
-            | Some i1, Some i2 -> i1 <= i2)
-          callers in
-      let is_f1_called_ealier = is_func_called_ealier f1 f2 in
-      let is_f2_called_ealier = is_func_called_ealier f2 f1 in
-      if is_f1_called_ealier && not is_f2_called_ealier
-      then -1
-      else if (not is_f1_called_ealier) && is_f2_called_ealier
-      then 1
-      else 0
-    ;;
-
     let compare_func_analyzed_times
         penv
         (wf1 : working_func)
@@ -2662,13 +2629,10 @@ functor
                   let n1 = compare_func_main penv wf1 wf2 in
                   let n2 = compare_func_call_order penv wf1 wf2 in
                   let n3 = compare_func_call_stack penv wf1 wf2 in
-                  (* let n4 = compare_func_callee_distance penv wf1 wf2 in *)
-                  (* let n5 = compare_func_analyzed_times penv wf1 wf2 in *)
                   n1 <= 0
                   && n2 <= 0
                   && n3 <= 0
-                  && (* n4 <= 0 && n5 <= 0 && *)
-                  n1 + n2 + n3 (* + n4 + n5 *) < 0)
+                  && n1 + n2 + n3 < 0)
                 else true)
               wfuncs)
           wfuncs in
@@ -2693,8 +2657,6 @@ functor
           let _ =
             compare_func_call_stack penv wf1 wf2
             |> fun res -> if res != 0 then raise_int res in
-          (* let _ = compare_func_callee_distance penv wf1 wf2 |>
-           *         (fun res -> if res != 0 then raise_int res) in *)
           let _ =
             compare_func_analyzed_times penv wf1 wf2
             |> fun res -> if res != 0 then raise_int res in

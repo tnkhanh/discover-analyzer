@@ -351,13 +351,8 @@ type program =
     prog_user_funcs : func list;
     (* user functions, will be analyzed *)
     prog_main_func : func option;
-    (* reachability graphs *)
-    prog_instr_graph : InstrGraph.t;
-    (*-----------------------------------------
-     * information of instruction
-     *-----------------------------------------*)
-    (* hash-table mapping each pointer to its associcated functions *)
     prog_pointer_funcs : (llvalue, funcs) Hashtbl.t;
+    (* program data *)
     prog_block_data : program_block_data;
     prog_loop_data : program_loop_data;
     prog_func_data : program_func_data;
@@ -3115,8 +3110,6 @@ let mk_program (filename : string) (m : llmodule) : program =
     prog_testing_funcs = get_auxiliary_funcs m;
     prog_init_funcs = get_initilization_funcs m;
     prog_main_func = get_main_function m;
-    (* functions info *)
-    prog_instr_graph = IG.create ();
     prog_pointer_funcs = Hashtbl.create (module Llvalue);
     prog_meta_data = mk_program_meta_data filename m;
     prog_func_data = mk_program_func_data m;

@@ -189,6 +189,5 @@ let update_program_info (prog : program) : unit =
   let _ = compute_func_call_info prog in
   let _ = compute_func_used_globals prog in
   let _ = construct_func_call_graph prog in
-  let _ = LG.build_reachability_graph prog in
   ()
 ;;
