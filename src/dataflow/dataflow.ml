@@ -3027,8 +3027,9 @@ functor
                 else
                   List.fold_left
                     ~f:(fun acc pc ->
+                      let pfd = prog.prog_func_data in
                       let ftyp = LL.type_of pc in
-                      match Hashtbl.find prog.prog_funcs_in_pointers ftyp with
+                      match Hashtbl.find pfd.pfd_func_types ftyp with
                       | None -> acc
                       | Some fs -> List.concat_dedup acc fs ~equal:equal_func)
                     ptr_callees

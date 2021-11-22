@@ -121,8 +121,10 @@ let find_innermost_loop_of_block (prog : program) blk : loop option =
     match loop_opt with
     | None -> None
     | Some loop -> Some (find_innermost_loop loop blk) in
-  Hashtbl.find_or_compute prog.prog_block_innermost_loop ~key:blk ~f:(fun () ->
-      find_loop blk)
+  Hashtbl.find_or_compute
+    prog.prog_loop_data.pld_innermost_loop_containing_block
+    ~f:(fun () -> find_loop blk)
+    ~key:blk
 ;;
 
 let find_innermost_loop_of_llvalue (prog : program) (v : llvalue) : loop option
@@ -133,8 +135,10 @@ let find_innermost_loop_of_llvalue (prog : program) (v : llvalue) : loop option
       let blk = block_of_instr (mk_instr v) in
       find_innermost_loop_of_block prog blk)
     else None in
-  Hashtbl.find_or_compute prog.prog_llvalue_innermost_loop ~key:v ~f:(fun () ->
-      find_loop v)
+  Hashtbl.find_or_compute
+    prog.prog_loop_data.pld_innermost_loop_containing_value
+    ~f:(fun () -> find_loop v)
+    ~key:v
 ;;
 
 let is_loop_updated_instr prog instr : bool =
@@ -145,8 +149,10 @@ let is_loop_updated_instr prog instr : bool =
       ~f:(fun lp ->
         List.exists ~f:(equal_block blk) (lp.loop_head :: lp.loop_body))
       loops in
-  Hashtbl.find_or_compute prog.prog_loop_updated_instr ~key:instr ~f:(fun () ->
-      check_instr instr)
+  Hashtbl.find_or_compute
+    prog.prog_loop_data.pld_loop_updated_instr
+    ~f:(fun () -> check_instr instr)
+    ~key:instr
 ;;
 
 let is_loop_head_instr prog instr : bool =
@@ -154,8 +160,10 @@ let is_loop_head_instr prog instr : bool =
     let func, blk = func_of_instr instr, block_of_instr instr in
     let loops = get_loops_of_func prog func in
     List.exists ~f:(fun lp -> equal_block blk lp.loop_head) loops in
-  Hashtbl.find_or_compute prog.prog_loop_head_instr ~key:instr ~f:(fun () ->
-      check_instr instr)
+  Hashtbl.find_or_compute
+    prog.prog_loop_data.pld_loop_head_instr
+    ~f:(fun () -> check_instr instr)
+    ~key:instr
 ;;
 
 let is_loop_updated_llvalue prog v : bool =

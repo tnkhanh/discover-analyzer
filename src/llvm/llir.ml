@@ -301,13 +301,18 @@ module IG = InstrGraph
  ** Finally a data structure representing program
  *******************************************************************)
 
-type program_meta_data =
-  { pmd_bitcode_filename : string;
-    pmd_source_filename : string;
-    pmd_llvalue_original_name : (string, string) Hashtbl.t;
-    pmd_module_id : string;
-    pmd_data_layout : string;
-    pmd_target_platform : string
+type program_block_data =
+  { pbd_preceding_blocks : (block, prec_blocks) Hashtbl.t;
+    pbd_succeeding_blocks : (block, succ_blocks) Hashtbl.t;
+    pbd_incoming_pathcond : (block, predicate list) Hashtbl.t;
+    pbd_reachable_blocks : (block, block list) Hashtbl.t
+  }
+
+type program_loop_data =
+  { pld_loop_updated_instr : (instr, bool) Hashtbl.t;
+    pld_loop_head_instr : (instr, bool) Hashtbl.t;
+    pld_innermost_loop_containing_block : (block, loop option) Hashtbl.t;
+    pld_innermost_loop_containing_value : (llvalue, loop option) Hashtbl.t;
   }
 
 type program_func_data =
@@ -318,7 +323,17 @@ type program_func_data =
     pfd_loops : (func, loops) Hashtbl.t;
     pfd_used_globals : (func, globals) Hashtbl.t;
     pfd_func_call_graph : CallGraph.t;
-    pfd_block_graph : (func, BlockGraph.t) Hashtbl.t
+    pfd_block_graph : (func, BlockGraph.t) Hashtbl.t;
+    mutable pfd_func_types : (lltype, funcs) Hashtbl.t
+  }
+
+type program_meta_data =
+  { pmd_bitcode_filename : string;
+    pmd_source_filename : string;
+    pmd_llvalue_original_name : (string, string) Hashtbl.t;
+    pmd_module_id : string;
+    pmd_data_layout : string;
+    pmd_target_platform : string
   }
 
 type program =
@@ -336,38 +351,18 @@ type program =
     prog_user_funcs : func list;
     (* user functions, will be analyzed *)
     prog_main_func : func option;
-    (*-----------------------------------------
-     * information of functions
-     *-----------------------------------------*)
-    (* mapping each user function to its used global variables *)
-    mutable prog_funcs_in_pointers : (lltype, funcs) Hashtbl.t;
     (* reachability graphs *)
     prog_instr_graph : InstrGraph.t;
     (*-----------------------------------------
-     * information of blocks
-     *-----------------------------------------*)
-    (* mapping a block to its preceding and succeeding blocks *)
-    prog_block_precedings : (block, prec_blocks) Hashtbl.t;
-    prog_block_succeedings : (block, succ_blocks) Hashtbl.t;
-    (* mapping a block to its path conditions *)
-    prog_block_incoming_pathcond : (block, predicate list) Hashtbl.t;
-    (* mapping a block to its reachable blocks *)
-    prog_block_reachables : (block, block list) Hashtbl.t;
-    (*-----------------------------------------
      * information of instruction
      *-----------------------------------------*)
-    prog_loop_updated_instr : (instr, bool) Hashtbl.t;
-    prog_loop_head_instr : (instr, bool) Hashtbl.t;
-    (*-----------------------------------------
-     * information of llvalue
-     *-----------------------------------------*)
-    prog_llvalue_innermost_loop : (llvalue, loop option) Hashtbl.t;
-    prog_block_innermost_loop : (block, loop option) Hashtbl.t;
     (* hash-table mapping each pointer to its associcated functions *)
     prog_pointer_funcs : (llvalue, funcs) Hashtbl.t;
+    prog_block_data : program_block_data;
+    prog_loop_data : program_loop_data;
     prog_func_data : program_func_data;
     prog_meta_data : program_meta_data;
-    prog_module_data : llmodule;
+    prog_module_data : llmodule
   }
 
 exception Llvm_invalid_instr of string
@@ -1925,11 +1920,8 @@ let callable_name (c : callable) : string =
   | ClFPtr fp -> value_name fp
 ;;
 
-let callable_of_func (f: func) : callable =
-  ClFunc f
-
-let callable_of_func_pointer (fp: llvalue) : callable =
-  ClFPtr fp
+let callable_of_func (f : func) : callable = ClFunc f
+let callable_of_func_pointer (fp : llvalue) : callable = ClFPtr fp
 
 (*-----------------------------------------
  * block
@@ -2796,8 +2788,10 @@ let get_preceding_blocks (prog : program) (blk : block) : prec_blocks =
           blk1)
       ~init:[]
       func in
-  Hashtbl.find_or_compute prog.prog_block_precedings ~key:blk ~f:(fun () ->
-      compute_blocks blk)
+  Hashtbl.find_or_compute
+    prog.prog_block_data.pbd_preceding_blocks
+    ~f:(fun () -> compute_blocks blk)
+    ~key:blk
 ;;
 
 let get_succeeding_blocks (prog : program) (blk : block) : succ_blocks =
@@ -2833,8 +2827,10 @@ let get_succeeding_blocks (prog : program) (blk : block) : succ_blocks =
         | _ -> acc)
       ~init:[]
       blk in
-  Hashtbl.find_or_compute prog.prog_block_succeedings ~key:blk ~f:(fun () ->
-      compute_blocks blk)
+  Hashtbl.find_or_compute
+    prog.prog_block_data.pbd_succeeding_blocks
+    ~f:(fun () -> compute_blocks blk)
+    ~key:blk
 ;;
 
 let has_unique_path_between_blocks prog (src : block) (dst : block) : bool =
@@ -2984,7 +2980,10 @@ let get_reachable_blocks (prog : program) (blk : block) : blocks =
       |> get_succeeding_blocks prog
       |> List.map ~f:(fun sb -> sb.sblk_block) in
     compute_reachables sblks [] in
-  Hashtbl.find_or_compute prog.prog_block_reachables ~key:blk ~f:compute
+  Hashtbl.find_or_compute
+    prog.prog_block_data.pbd_reachable_blocks
+    ~f:compute
+    ~key:blk
 ;;
 
 (* TODO: can be optimized by compute for all functions at once *)
@@ -3084,19 +3083,30 @@ let mk_program_func_data (modul : llmodule) : program_func_data =
     pfd_loops = Hashtbl.create (module Func);
     pfd_used_globals = Hashtbl.create (module Func);
     pfd_func_call_graph = CG.create ();
-    pfd_block_graph = Hashtbl.create (module Func)
+    pfd_block_graph = Hashtbl.create (module Func);
+    pfd_func_types = Hashtbl.create (module Lltype)
+  }
+;;
+
+let mk_program_loop_data (modul: llmodule) : program_loop_data =
+  {
+    pld_loop_updated_instr = Hashtbl.create (module Instr);
+    pld_loop_head_instr = Hashtbl.create (module Instr);
+    pld_innermost_loop_containing_block = Hashtbl.create (module Block);
+    pld_innermost_loop_containing_value = Hashtbl.create (module Llvalue);
+  }
+
+let mk_program_block_data (modul : llmodule) : program_block_data =
+  { pbd_preceding_blocks = Hashtbl.create (module Block);
+    pbd_succeeding_blocks = Hashtbl.create (module Block);
+    pbd_incoming_pathcond = Hashtbl.create (module Block);
+    pbd_reachable_blocks = Hashtbl.create (module Block)
   }
 ;;
 
 let mk_program (filename : string) (m : llmodule) : program =
   let globals =
     LL.fold_left_globals (fun acc g -> acc @ [ mk_global g ]) [] m in
-  (* let module_id, source_filename =
-   *   let str = LL.string_of_llmodule m in
-   *   let re = Str.regexp ".*ModuleID.*'\\(.*\\\)'\nsource_filename.=.\"\\(.*\\\)\"" in
-   *   if Str.string_match re str 0 then
-   *     (Str.matched_group 1 str, Str.matched_group 2 str)
-   *   else ("unknown", "unknown") in *)
   { prog_globals = globals;
     prog_struct_types = [];
     (* get_struct_types m; *)
@@ -3106,23 +3116,12 @@ let mk_program (filename : string) (m : llmodule) : program =
     prog_init_funcs = get_initilization_funcs m;
     prog_main_func = get_main_function m;
     (* functions info *)
-    prog_funcs_in_pointers = Hashtbl.create (module Lltype);
     prog_instr_graph = IG.create ();
-    (* blocks info *)
-    prog_block_precedings = Hashtbl.create (module Block);
-    prog_block_succeedings = Hashtbl.create (module Block);
-    prog_block_incoming_pathcond = Hashtbl.create (module Block);
-    prog_block_reachables = Hashtbl.create (module Block);
-    (* instruction info *)
-    prog_loop_updated_instr = Hashtbl.create (module Instr);
-    prog_loop_head_instr = Hashtbl.create (module Instr);
-    (* llvalue info *)
-    prog_llvalue_innermost_loop = Hashtbl.create (module Llvalue);
-    prog_block_innermost_loop = Hashtbl.create (module Block);
-    (* analysis results *)
     prog_pointer_funcs = Hashtbl.create (module Llvalue);
     prog_meta_data = mk_program_meta_data filename m;
     prog_func_data = mk_program_func_data m;
+    prog_loop_data = mk_program_loop_data m;
+    prog_block_data = mk_program_block_data m;
     prog_module_data = m
   }
 ;;
