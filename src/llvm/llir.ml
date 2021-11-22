@@ -324,7 +324,8 @@ type program_func_data =
     pfd_used_globals : (func, globals) Hashtbl.t;
     pfd_func_call_graph : CallGraph.t;
     pfd_block_graph : (func, BlockGraph.t) Hashtbl.t;
-    mutable pfd_func_types : (lltype, funcs) Hashtbl.t
+    pfd_funcs_of_pointer : (llvalue, funcs) Hashtbl.t;
+    mutable pfd_funcs_of_type : (lltype, funcs) Hashtbl.t
   }
 
 type program_meta_data =
@@ -351,7 +352,6 @@ type program =
     prog_user_funcs : func list;
     (* user functions, will be analyzed *)
     prog_main_func : func option;
-    prog_pointer_funcs : (llvalue, funcs) Hashtbl.t;
     (* program data *)
     prog_block_data : program_block_data;
     prog_loop_data : program_loop_data;
@@ -3041,7 +3041,7 @@ let find_user_func (prog : program) (fname : string) : func option =
 ;;
 
 let get_current_funcs_of_pointer (prog : program) (v : llvalue) : funcs =
-  match Hashtbl.find prog.prog_pointer_funcs v with
+  match Hashtbl.find prog.prog_func_data.pfd_funcs_of_pointer v with
   | None -> []
   | Some funcs -> funcs
 ;;
@@ -3051,7 +3051,7 @@ let update_funcs_of_pointer (prog : program) (v : llvalue) (funcs : funcs) =
   let new_funcs = List.concat_dedup curr_funcs funcs ~equal:equal_func in
   let _ = hdebug "update func pointer of: " sprint_value v in
   let _ = hdebug "   new funcs: " func_names new_funcs in
-  Hashtbl.set prog.prog_pointer_funcs ~key:v ~data:new_funcs
+  Hashtbl.set prog.prog_func_data.pfd_funcs_of_pointer ~key:v ~data:new_funcs
 ;;
 
 (*******************************************************************
@@ -3079,7 +3079,8 @@ let mk_program_func_data (modul : llmodule) : program_func_data =
     pfd_used_globals = Hashtbl.create (module Func);
     pfd_func_call_graph = CG.create ();
     pfd_block_graph = Hashtbl.create (module Func);
-    pfd_func_types = Hashtbl.create (module Lltype)
+    pfd_funcs_of_pointer = Hashtbl.create (module Llvalue);
+    pfd_funcs_of_type = Hashtbl.create (module Lltype)
   }
 ;;
 
@@ -3104,13 +3105,11 @@ let mk_program (filename : string) (m : llmodule) : program =
     LL.fold_left_globals (fun acc g -> acc @ [ mk_global g ]) [] m in
   { prog_globals = globals;
     prog_struct_types = [];
-    (* get_struct_types m; *)
     prog_lib_funcs = get_library_functions m;
     prog_user_funcs = get_user_functions m;
     prog_testing_funcs = get_auxiliary_funcs m;
     prog_init_funcs = get_initilization_funcs m;
     prog_main_func = get_main_function m;
-    prog_pointer_funcs = Hashtbl.create (module Llvalue);
     prog_meta_data = mk_program_meta_data filename m;
     prog_func_data = mk_program_func_data m;
     prog_loop_data = mk_program_loop_data m;

@@ -297,7 +297,8 @@ let eprintf = Printf.eprintf
 
 (** print formatting *)
 
-let printf = Printf.printf
+let printf =
+  Printf.printf
 
 (*******************************************************************
  ** Warning and error
@@ -340,7 +341,7 @@ let herror msg f x =
  ** Warning and error
  *******************************************************************)
 
-let print_endline (str : string) : unit =
-  let _ = print_endline str in
-  ()
-;;
+(* let print_endline (str : string) : unit = *)
+(*   let _ = print_endline str in *)
+(*   () *)
+(* ;; *)

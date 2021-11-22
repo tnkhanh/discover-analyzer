@@ -99,11 +99,11 @@ let compute_funcs_in_pointers (prog : program) : unit =
       let pfd = prog.prog_func_data in
       let ftyp = type_of_func f in
       let curr_funcs =
-        match Hashtbl.find pfd.pfd_func_types ftyp with
+        match Hashtbl.find pfd.pfd_funcs_of_type ftyp with
         | None -> []
         | Some fs -> fs in
       let nfuncs = List.insert_dedup curr_funcs f ~equal:equal_func in
-      Hashtbl.set pfd.pfd_func_types ~key:ftyp ~data:nfuncs in
+      Hashtbl.set pfd.pfd_funcs_of_type ~key:ftyp ~data:nfuncs in
   deep_iter_program ~finstr:(Some visit_instr) prog
 ;;
 
@@ -156,7 +156,7 @@ let compute_func_used_globals (prog : program) : unit =
                 ~f:(fun acc pc ->
                   let pfd = prog.prog_func_data in
                   let ftyp = LL.type_of pc in
-                  match Hashtbl.find pfd.pfd_func_types ftyp with
+                  match Hashtbl.find pfd.pfd_funcs_of_type ftyp with
                   | None -> acc
                   | Some fs -> List.concat_dedup acc fs ~equal:equal_func)
                 ptr_callees

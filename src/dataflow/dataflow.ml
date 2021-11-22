@@ -607,7 +607,7 @@ functor
       | Some d -> sprint_data d
     ;;
 
-    let pr_prog_globals (penv : T.prog_env) : string =
+    let sprint_prog_globals (penv : T.prog_env) : string =
       let prog = penv.penv_prog in
       let genv = penv.penv_global_env in
       if List.is_empty prog.prog_globals
@@ -617,14 +617,11 @@ functor
         let globals =
           List.fold_left
             ~f:(fun acc global ->
+              let gdata = T.get_global_output genv global in
               acc
-              ^ "\n  "
-              ^ sprint_global global
+              ^ ("\n  " ^ sprint_global global)
               ^ "\n"
-              ^ String.hindent
-                  4
-                  sprint_data_opt
-                  (T.get_global_output genv global))
+              ^ String.hindent 4 sprint_data_opt gdata)
             prog.prog_globals
             ~init:ginput in
         "\n\nGlobals:\n\n" ^ globals)
@@ -884,7 +881,7 @@ functor
           analyzed_funcs in
       "Input program: "
       ^ prog.prog_meta_data.pmd_source_filename
-      ^ pr_prog_globals penv
+      ^ sprint_prog_globals penv
       ^ sfuncs
     ;;
 
@@ -1038,7 +1035,8 @@ functor
 
     let export_debugging_info_to_file (penv : T.prog_env) : unit =
       let prog = penv.penv_prog in
-      let basefilename = Filename.chop_extension prog.prog_meta_data.pmd_bitcode_filename in
+      let basefilename =
+        Filename.chop_extension prog.prog_meta_data.pmd_bitcode_filename in
       let pr_pretty_list printer items : string =
         let res =
           items
@@ -1242,7 +1240,7 @@ functor
 
     let mk_func_env
         (prog : program)
-        func
+        (func : func)
         (input : T.t)
         ~(callsites : callsite list)
         : T.func_env
@@ -1419,15 +1417,6 @@ functor
         List.find ~f:(fun fenv -> T.equal_data fenv.fenv_input input) fenvs
     ;;
 
-    (* let remove_fenv_of_callsites penv (f: func) callsites : unit =
-     *   match Hashtbl.find penv.penv_func_envs f with
-     *   | None -> None
-     *   | Some fenvs ->
-     *     let nfenvs = List.fold_left ~f:(fun acc fenv ->
-     *       fenv.
-     *     ) ~init:[] fenvs
-     *     List.find ~f:(fun fenv -> T.equal_data fenv.fenv_input input) fenvs *)
-
     let is_fenv_updated (oldfe : func_env) (newfe : func_env) : bool =
       match oldfe.fenv_output, newfe.fenv_output with
       | Some d1, Some d2 -> not (T.equal_data d1 d2)
@@ -1557,17 +1546,6 @@ functor
       ()
     ;;
 
-    (* if List.not_empty fenv.fenv_working_blocks then (
-     *   let init_blks = List.map ~f:(fun wb -> wb.wb_block) fenv.fenv_working_blocks in
-     *   let blks = List.fold_left ~f:(fun acc wb ->
-     *     let blk = wb.wb_block in
-     *     List.concat_dedup ~equal:equal_block acc (get_reachable_blocks prog blk)
-     *   ) ~init:fenv.fenv_working_blocks fenv.fenv_working_blocks in
-     *   let _ = List.iter ~f:(fun blk ->
-     *     iter_instrs ~f:(fun instr ->
-     *       Hashtbl.remove fenv.fenv_instr_output instr) blk) blks in
-     *   fenv.fenv_output <- None) *)
-
     (* utilities *)
 
     let is_intra_proc_dfa_mode () = !dfa_mode == DfaIntraProc
@@ -1648,9 +1626,7 @@ functor
                     wf.wf_callsites
                     wf2.wf_callsites
                     ~equal:equal_callsite in
-                let nwf = { wf2 with wf_callsites = callsites } in
-                (* let _ = hprint "Update callsistes of working function: " pr_working_func nwf in *)
-                nwf)
+                { wf2 with wf_callsites = callsites })
               else if List.for_all
                         ~f:(fun cs1 ->
                           List.exists
@@ -1659,15 +1635,8 @@ functor
                             wf2.wf_callsites)
                         wf.wf_callsites
               then (
-                (* let callsites = List.concat_dedup wf.wf_callsites wf2.wf_callsites
-                 *                   ~equal:equal_callsite in *)
                 let _ = new_wf := false in
-                (* let _ = print ("Replace working function:\n" ^
-                 *                "     - " ^ (pr_working_func wf2) ^ "\n" ^
-                 *                " by: - " ^ (pr_working_func wf)) in *)
-                (* let nwf = {wf with wf_callsites = callsites} in *)
-                let nwf = wf in
-                nwf)
+                wf)
               else wf2
             else wf2)
           penv.penv_working_funcs in
@@ -1732,8 +1701,6 @@ functor
                  && not has_earlier_working_func_of_same_context
               then record_working_func ~msg penv wf
               else debug ~always:true ("-> SKIP enqueuing: " ^ fname)) in
-      (* let _ = hprint (" - Time enqueue function: " ^ fname ^ ": ")
-       *           (sprintf "%.3fs") time in *)
       res
     ;;
 
@@ -2218,9 +2185,6 @@ functor
                       let outputs, continues = List.unzip outputs_continues in
                       ( merge_datas outputs,
                         List.fold_left ~f:( || ) ~init:false continues )) in
-                (* let _ = hprint ("  Time analyzing instr_func_call:\n   " ^
-                 *                 (sprint_instr instr) ^ ":\n     ")
-                 *           (sprintf "%.3fs") time in *)
                 res))
             else T.analyze_instr ~widen penv fenv instr input, true
           | LO.Ret ->
@@ -2232,7 +2196,6 @@ functor
             (* (output, true) *)
             output, false
           | _ -> T.analyze_instr ~widen penv fenv instr input, true in
-        (* let _ = hdebugc " Old out:" sprint_data_opt old_output in *)
         let changed =
           match old_output with
           | None -> true
@@ -2240,12 +2203,8 @@ functor
         let _ = if continue then T.set_instr_output fenv instr new_output in
         let _ = hdebug "    Out: " T.sprint_data new_output in
         let _ =
-          ndebug
-            ("    Changed: "
-            ^ sprint_bool changed
-            ^ "\n"
-            ^ "    Continue: "
-            ^ sprint_bool continue) in
+          ndebug (sprintf "    Changed: %B\n    Continue: %B" changed continue)
+        in
         if not continue
         then changed, false
         else if not changed
@@ -2629,10 +2588,7 @@ functor
                   let n1 = compare_func_main penv wf1 wf2 in
                   let n2 = compare_func_call_order penv wf1 wf2 in
                   let n3 = compare_func_call_stack penv wf1 wf2 in
-                  n1 <= 0
-                  && n2 <= 0
-                  && n3 <= 0
-                  && n1 + n2 + n3 < 0)
+                  n1 <= 0 && n2 <= 0 && n3 <= 0 && n1 + n2 + n3 < 0)
                 else true)
               wfuncs)
           wfuncs in
@@ -2683,9 +2639,6 @@ functor
             "\nWorking functions (after sorting): "
             pr_working_funcs
             wfuncs in
-        (* let _ = hprint "\n#Working functions: " sprint_int (List.length wfuncs) in *)
-        (* let _ = hdebug ~always:true "Working functions (after sorting): " pr_working_funcs wfuncs  in *)
-        (* choose_best_working_func penv wfuncs *)
         List.extract_nth 0 wfuncs
     ;;
 
@@ -2991,7 +2944,7 @@ functor
                     ~f:(fun acc pc ->
                       let pfd = prog.prog_func_data in
                       let ftyp = LL.type_of pc in
-                      match Hashtbl.find pfd.pfd_func_types ftyp with
+                      match Hashtbl.find pfd.pfd_funcs_of_type ftyp with
                       | None -> acc
                       | Some fs -> List.concat_dedup acc fs ~equal:equal_func)
                     ptr_callees
@@ -3147,19 +3100,18 @@ functor
           ~init:0
           funcs in
       let num_skipped = num_total - num_checked in
-      if num_total = 0
-      then print "No assertion is found!"
-      else (
-        let msg =
-          let info =
-            sprint_int num_checked
-            ^ "/"
-            ^ sprint_int num_total
-            ^ " assertion(s) are checked" in
-          if num_skipped == 0
-          then info ^ "!"
-          else info ^ ", " ^ sprint_int num_skipped ^ " are skipped!" in
-        println msg)
+      let msg =
+        if num_total = 0
+        then "No assertion is found!"
+        else if num_skipped == 0
+        then sprintf "%d/%d assertion(s) are checked!\n" num_checked num_total
+        else
+          sprintf
+            "%d/%d assertion(s) are checked, %d are skipped!\n"
+            num_checked
+            num_total
+            num_skipped in
+      println msg
     ;;
 
     let report_analysis_stats (penv : T.prog_env) : unit =
