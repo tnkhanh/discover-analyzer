@@ -45,7 +45,7 @@ let get_block_graph (prog : program) (f : func) : BG.t =
   let compute () : BG.t =
     let blks = blocks_of_func f in
     build_block_graph prog blks in
-  Hashtbl.find_or_compute prog.prog_func_block_graph ~key:f ~f:compute
+  Hashtbl.find_or_compute prog.prog_func_data.pfd_block_graph ~key:f ~f:compute
 ;;
 
 let get_strongly_connected_blocks (prog : program) (blks : blocks) : scblockss =

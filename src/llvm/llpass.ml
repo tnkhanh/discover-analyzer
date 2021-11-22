@@ -30,7 +30,7 @@ let construct_map_llvalue_to_source_name (prog : program) : unit =
         (* let v0, v1 = operand instr 0, operand instr 1 in *)
         let vname = sprint_value (operand instr 0) in
         let sname = LD.extract_name_from_metadata (operand instr 1) in
-        Hashtbl.set prog.prog_llvalue_original_name ~key:vname ~data:sname)
+        Hashtbl.set prog.prog_meta_data.pmd_llvalue_original_name ~key:vname ~data:sname)
       else ()
     | _ -> () in
   deep_iter_program ~finstr:(Some visit_instr) prog
@@ -45,28 +45,30 @@ let compute_func_call_info (prog : program) : unit =
       let callee = callee_of_instr_func_call instr in
       let vcallee = llvalue_of_func callee in
       let caller = func_of_instr instr in
+      let pfd = prog.prog_func_data in
       if is_llvalue_function vcallee
       then (
         let callers =
           List.insert_dedup (get_func_callers prog callee) caller ~equal in
-        let _ = Hashtbl.set prog.prog_func_callers ~key:callee ~data:callers in
+        let _ = Hashtbl.set pfd.pfd_callers ~key:callee ~data:callers in
         let callees =
           List.insert_dedup (get_func_callees prog caller) callee ~equal in
-        Hashtbl.set prog.prog_func_callees ~key:caller ~data:callees)
+        Hashtbl.set pfd.pfd_callees ~key:caller ~data:callees)
       else (
         let pcallees = get_func_ptr_callees prog caller in
         let pcallees =
           List.insert_dedup pcallees vcallee ~equal:equal_llvalue in
-        Hashtbl.set prog.prog_func_ptr_callees ~key:caller ~data:pcallees)
+        Hashtbl.set pfd.pfd_func_ptr_callees ~key:caller ~data:pcallees)
     | _ -> () in
   deep_iter_program ~finstr:(Some visit_instr) prog
 ;;
 
 let construct_func_call_graph (prog : program) : unit =
+  let pfd = prog.prog_func_data in
   Hashtbl.iteri
     ~f:(fun ~key:func ~data:callees ->
-      List.iter ~f:(CG.add_edge prog.prog_func_call_graph func) callees)
-    prog.prog_func_callees
+      List.iter ~f:(CG.add_edge pfd.pfd_func_call_graph func) callees)
+    pfd.pfd_callees
 ;;
 
 let compute_funcs_in_pointers (prog : program) : unit =
@@ -94,9 +96,10 @@ let compute_funcs_in_pointers (prog : program) : unit =
   deep_iter_program ~finstr:(Some visit_instr) prog
 ;;
 
-let compute_func_used_globals prog : unit =
+let compute_func_used_globals (prog: program) : unit =
   let _ = print "Compute used globals in each functions" in
-  let tbl_used_globals = prog.prog_func_used_globals in
+  let pfd = prog.prog_func_data in
+  let tbl_used_globals = pfd.pfd_used_globals in
   let init_globals_of_all_funcs () =
     let _ =
       List.iter

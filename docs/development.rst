@@ -35,7 +35,7 @@ Coding convention
   + Use ``janestreet`` style and additional settings in
     ``discover/.ocamlformat`` and ``discover/.ocamlformat-ignore``.
 
-  + To disable ocamlformat for certain code, use ``[@ocamlformat "disable"]``:
+  + To disable ocamlformat for certain code, use ``[@@ocamlformat "disable"]``:
 
     .. code-block:: ocaml
 

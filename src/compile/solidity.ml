@@ -23,6 +23,10 @@ module LU = Llutils
 module PS = Process
 module FN = Filename
 
+let mark_solidity_user_funcs (prog: LI.program) : LI.program =
+  prog
+
+
 let compile_solidity (filename : string) : LI.program =
   let _ = debug ("Compiling file: " ^ filename) in
   let contract_name = FN.basename filename in

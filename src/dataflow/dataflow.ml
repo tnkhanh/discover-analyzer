@@ -883,7 +883,7 @@ functor
           ~init:""
           analyzed_funcs in
       "Input program: "
-      ^ prog.prog_source_filename
+      ^ prog.prog_meta_data.pmd_source_filename
       ^ pr_prog_globals penv
       ^ sfuncs
     ;;
@@ -1038,7 +1038,7 @@ functor
 
     let export_debugging_info_to_file (penv : T.prog_env) : unit =
       let prog = penv.penv_prog in
-      let basefilename = Filename.chop_extension prog.prog_bitcode_filename in
+      let basefilename = Filename.chop_extension prog.prog_meta_data.pmd_bitcode_filename in
       let pr_pretty_list printer items : string =
         let res =
           items
@@ -1149,7 +1149,7 @@ functor
       =
       let prog = penv.penv_prog in
       let filename =
-        Filename.chop_extension prog.prog_bitcode_filename
+        Filename.chop_extension prog.prog_meta_data.pmd_bitcode_filename
         ^ if sparse then ".sparse.ll" else ".ll" in
       let _ =
         printf

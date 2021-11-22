@@ -286,6 +286,29 @@ module IG = InstrGraph
  ** Finally a data structure representing program
  *******************************************************************)
 
+type program_metadata =
+  { pmd_bitcode_filename : string;
+    pmd_source_filename : string;
+    pmd_llvalue_original_name : (string, string) Hashtbl.t;
+    pmd_module_id : string;
+    pmd_data_layout : string;
+    pmd_target_platform : string
+  }
+
+type program_func_data =
+  { prog_func_return_instr : (func, instr) Hashtbl.t;
+    (* mapping a function to its callers, callees, reachable functions, loops *)
+    pfd_callers : (func, funcs) Hashtbl.t;
+    (* TODO: merge callees and function ptr callees *)
+    pfd_callees : (func, funcs) Hashtbl.t;
+    pfd_func_ptr_callees : (func, llvalues) Hashtbl.t;
+    pfd_reachable_funcs : (func, funcs) Hashtbl.t;
+    pfd_loops : (func, loops) Hashtbl.t;
+    pfd_used_globals : (func, globals) Hashtbl.t;
+    pfd_func_call_graph : CallGraph.t;
+    pfd_block_graph : (func, BlockGraph.t) Hashtbl.t
+  }
+
 type program =
   { (*-----------------------------------------
      * core components of program
@@ -305,18 +328,8 @@ type program =
      * information of functions
      *-----------------------------------------*)
     (* mapping each user function to its used global variables *)
-    prog_func_return_instr : (func, instr) Hashtbl.t;
-    (* mapping a function to its callers, callees, reachable functions, loops *)
-    prog_func_callers : (func, funcs) Hashtbl.t;
-    prog_func_callees : (func, funcs) Hashtbl.t;
-    prog_func_ptr_callees : (func, llvalues) Hashtbl.t;
-    prog_func_reachables : (func, funcs) Hashtbl.t;
-    prog_func_loops : (func, loops) Hashtbl.t;
-    prog_func_used_globals : (func, globals) Hashtbl.t;
     mutable prog_funcs_in_pointers : (lltype, funcs) Hashtbl.t;
     (* reachability graphs *)
-    prog_func_call_graph : CallGraph.t;
-    prog_func_block_graph : (func, BlockGraph.t) Hashtbl.t;
     prog_instr_graph : InstrGraph.t;
     (*-----------------------------------------
      * information of blocks
@@ -348,13 +361,9 @@ type program =
     (*-----------------------------------------
      * source code and compilation data
      *-----------------------------------------*)
-    prog_bitcode_filename : string;
-    prog_source_filename : string;
-    prog_llvalue_original_name : (string, string) Hashtbl.t;
-    prog_module_id : string;
-    prog_data_layout : string;
-    prog_target_platform : string;
-    prog_llmodule : llmodule
+    prog_func_data : program_func_data;
+    prog_meta_data : program_metadata;
+    prog_llvm_module : llmodule
   }
 
 exception Llvm_invalid_instr of string
@@ -2886,27 +2895,27 @@ let first_instr_of_func (f : func) : instr option =
 ;;
 
 let get_func_callees (prog : program) (f : func) : funcs =
-  match Hashtbl.find prog.prog_func_callees f with
+  match Hashtbl.find prog.prog_func_data.pfd_callees f with
   | None -> []
   | Some fns -> fns
 ;;
 
 let get_func_ptr_callees (prog : program) (f : func) : llvalues =
-  match Hashtbl.find prog.prog_func_ptr_callees f with
+  match Hashtbl.find prog.prog_func_data.pfd_func_ptr_callees f with
   | None -> []
   | Some vs -> vs
 ;;
 
 let get_func_callers (prog : program) (f : func) : funcs =
-  match Hashtbl.find prog.prog_func_callers f with
+  match Hashtbl.find prog.prog_func_data.pfd_callers f with
   | None -> []
   | Some fns -> fns
 ;;
 
-let get_func_used_globals prog (f : func) : globals =
+let get_func_used_globals (prog : program) (f : func) : globals =
   if is_user_func f || is_init_func f
   then (
-    match Hashtbl.find prog.prog_func_used_globals f with
+    match Hashtbl.find prog.prog_func_data.pfd_used_globals f with
     | None -> herror "get_func_used_globals: no infor of: " func_name f
     | Some gs -> gs)
   else []
@@ -2964,7 +2973,10 @@ let get_reachable_funcs (prog : program) (f : func) : funcs =
   let compute () =
     let callees = get_func_callees prog f in
     compute_reachables callees [] in
-  Hashtbl.find_or_compute prog.prog_func_reachables ~key:f ~f:compute
+  Hashtbl.find_or_compute
+    prog.prog_func_data.pfd_reachable_funcs
+    ~key:f
+    ~f:compute
 ;;
 
 let is_reachable_func prog (src : func) (dst : func) : bool =
@@ -3023,9 +3035,32 @@ let update_funcs_of_pointer (prog : program) (v : llvalue) (funcs : funcs) =
  ** constructors of program
  *******************************************************************)
 
+let mk_program_meta_data (filename : string) (modul : llmodule)
+    : program_metadata
+  =
+  { pmd_bitcode_filename = filename;
+    pmd_source_filename = "<unknown>";
+    pmd_llvalue_original_name = Hashtbl.create (module String);
+    pmd_module_id = "<unknown>";
+    pmd_data_layout = LL.data_layout modul;
+    pmd_target_platform = LL.target_triple modul
+  }
+;;
+
+let mk_program_func_data (modul : llmodule) : program_func_data =
+  { prog_func_return_instr = Hashtbl.create (module Func);
+    pfd_callees = Hashtbl.create (module Func);
+    pfd_func_ptr_callees = Hashtbl.create (module Func);
+    pfd_callers = Hashtbl.create (module Func);
+    pfd_reachable_funcs = Hashtbl.create (module Func);
+    pfd_loops = Hashtbl.create (module Func);
+    pfd_used_globals = Hashtbl.create (module Func);
+    pfd_func_call_graph = CG.create ();
+    pfd_block_graph = Hashtbl.create (module Func)
+  }
+;;
+
 let mk_program (filename : string) (m : llmodule) : program =
-  let compiled_target = LL.target_triple m in
-  let data_layout = LL.data_layout m in
   let globals =
     LL.fold_left_globals (fun acc g -> acc @ [ mk_global g ]) [] m in
   (* let module_id, source_filename =
@@ -3043,16 +3078,7 @@ let mk_program (filename : string) (m : llmodule) : program =
     prog_init_funcs = get_initilization_funcs m;
     prog_main_func = get_main_function m;
     (* functions info *)
-    prog_func_return_instr = Hashtbl.create (module Func);
-    prog_func_callees = Hashtbl.create (module Func);
-    prog_func_ptr_callees = Hashtbl.create (module Func);
-    prog_func_callers = Hashtbl.create (module Func);
-    prog_func_reachables = Hashtbl.create (module Func);
-    prog_func_loops = Hashtbl.create (module Func);
-    prog_func_used_globals = Hashtbl.create (module Func);
     prog_funcs_in_pointers = Hashtbl.create (module Lltype);
-    prog_func_call_graph = CG.create ();
-    prog_func_block_graph = Hashtbl.create (module Func);
     prog_instr_graph = IG.create ();
     (* blocks info *)
     prog_block_precedings = Hashtbl.create (module Block);
@@ -3068,16 +3094,9 @@ let mk_program (filename : string) (m : llmodule) : program =
     (* analysis results *)
     prog_undef_values = Hashtbl.create (module Instr);
     prog_pointer_funcs = Hashtbl.create (module Llvalue);
-    (* compilation info *)
-    prog_bitcode_filename = filename;
-    prog_source_filename = "<unknown>";
-    (* source_filename; *)
-    prog_llvalue_original_name = Hashtbl.create (module String);
-    prog_module_id = "<unknown>";
-    (* module_id; *)
-    prog_data_layout = data_layout;
-    prog_target_platform = compiled_target;
-    prog_llmodule = m
+    prog_meta_data = mk_program_meta_data filename m;
+    prog_func_data = mk_program_func_data m;
+    prog_llvm_module = m
   }
 ;;
 
@@ -3151,7 +3170,7 @@ let sprint_caller_info (prog : program) : string =
         callers |> List.map ~f:func_name |> String.concat ~sep:", " in
       acc ^ "\n  " ^ fname ^ " <-- [" ^ caller_names ^ "]")
     ~init:"Caller graph:"
-    prog.prog_func_callers
+    prog.prog_func_data.pfd_callers
 ;;
 
 let sprint_callee_info (prog : program) : string =
@@ -3162,10 +3181,11 @@ let sprint_callee_info (prog : program) : string =
         callees |> List.map ~f:func_name |> String.concat ~sep:", " in
       acc ^ "\n  " ^ fname ^ " --> [" ^ callee_names ^ "]")
     ~init:"Callee graph:"
-    prog.prog_func_callees
+    prog.prog_func_data.pfd_callees
 ;;
 
-let print_program_analysis_info prog =
+let print_program_analysis_info (prog : program) =
+  let pfd = prog.prog_func_data in
   let callees_info =
     "====================================\n"
     ^ "* Information of function callees:\n"
@@ -3174,13 +3194,10 @@ let print_program_analysis_info prog =
           if List.is_empty callees
           then acc
           else
-            acc
-            ^ "\n - "
-            ^ func_name f
-            ^ ":"
+            (acc ^ "\n - " ^ func_name f ^ ":")
             ^ hsprint_list_itemized ~bullet:"    ->" ~f:func_name callees)
         ~init:""
-        prog.prog_func_callees in
+        pfd.pfd_callees in
   let _ = debug callees_info in
   let callers_info =
     "====================================\n"
@@ -3190,12 +3207,9 @@ let print_program_analysis_info prog =
           if List.is_empty callers
           then acc
           else
-            acc
-            ^ "\n - "
-            ^ func_name f
-            ^ ":"
+            (acc ^ "\n - " ^ func_name f ^ ":")
             ^ hsprint_list_itemized ~bullet:"    <-" ~f:func_name callers)
         ~init:""
-        prog.prog_func_callers in
+        pfd.pfd_callers in
   debug callers_info
 ;;

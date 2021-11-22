@@ -98,7 +98,7 @@ let find_loop_in_func (prog : program) (func : func) : loops =
 ;;
 
 let get_loops_of_func (prog : program) (func : func) : loops =
-  Hashtbl.find_or_compute prog.prog_func_loops ~key:func ~f:(fun () ->
+  Hashtbl.find_or_compute prog.prog_func_data.pfd_loops ~key:func ~f:(fun () ->
       find_loop_in_func prog func)
 ;;
 

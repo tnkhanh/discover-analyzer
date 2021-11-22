@@ -156,7 +156,7 @@ let get_original_freed_pointers pstate ptrs : exp list =
  ** checking bugs
  *******************************************************************)
 
-let sprint_buggy_exps prog exps : string =
+let sprint_buggy_exps (prog: LI.program) exps : string =
   let cur_exps = sprint_list ~sep:", " ~f:sprint_exp exps in
   match !llvm_orig_source_name with
   | false -> cur_exps
@@ -169,7 +169,7 @@ let sprint_buggy_exps prog exps : string =
              | Var v ->
                (match
                   Hashtbl.find
-                    prog.LI.prog_llvalue_original_name
+                    prog.prog_meta_data.pmd_llvalue_original_name
                     (sprint_var v)
                 with
                | None -> acc
@@ -182,7 +182,7 @@ let sprint_buggy_exps prog exps : string =
     else cur_exps ^ " (llvm) ~~ " ^ source_exps ^ " (source)"
 ;;
 
-let report_bug prog bug exps (instr : LI.instr) : bool =
+let report_bug (prog: LI.program) bug exps (instr : LI.instr) : bool =
   let location =
     match !llvm_orig_source_name, LD.position_of_instr instr with
     | false, _ | _, None -> ""
@@ -964,7 +964,7 @@ let symexec_program vstate (prog : LI.program) : entailment list =
  *******************************************************************)
 
 let verify_program (prog : LI.program) =
-  let _ = data_layout := prog.prog_data_layout in
+  let _ = data_layout := prog.prog_meta_data.pmd_data_layout in
   (* let vstate = mk_verifier_state prog in *)
   (* let ents = symexec_program vstate prog in *)
   ()

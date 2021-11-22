@@ -25,4 +25,4 @@
           num))
 
 ;; Generate interface
-;; (executables_implicit_empty_intf true)        ;; must use dune >= 3.0
+(executables_implicit_empty_intf true)        ;; must use dune >= 3.0
