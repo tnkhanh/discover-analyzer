@@ -21,26 +21,25 @@ let print_error msg =
 let rec print_usage () =
   let arguments = if !release_mode then arguments_release else arguments_raw in
   let welcome_msg =
+    let prog_exe = Sys.argv.(0) in
     if !release_mode
-    then "\nUsage: " ^ Sys.argv.(0) ^ " [options] <input file>\n\n"
+    then sprintf "Usage: %s [options] <input file>\n\n" prog_exe
     else
-      "\nDiscover - a tool that discovers software bugs.\n\n"
-      ^ "Usage: "
-      ^ Sys.argv.(0)
-      ^ " [options] <input file>\n\n" in
+      "Discover - a tool that finds bugs in programs and smart contracts.\n\n"
+      ^ sprintf "Usage: %s [options] <input file>\n\n" prog_exe in
   let args_msg =
-    arguments
-    |> List.fold_left
-         ~f:(fun acc (flags, doc, _) ->
-           let opt = Printf.sprintf "  %-20s" (String.concat ~sep:", " flags) in
-           let opt =
-             if String.length opt > 22
-             then opt ^ Printf.sprintf "\n  %-20s" ""
-             else opt in
-           let opt = opt ^ Printf.sprintf "  %s\n" (String.strip_newline doc) in
-           acc ^ opt)
-         ~init:"" in
-  let usage_msg = welcome_msg ^ args_msg in
+    List.fold_left
+      ~f:(fun acc (flags, doc, _) ->
+        let opt = Printf.sprintf "  %-20s" (String.concat ~sep:", " flags) in
+        let opt =
+          if String.length opt > 22
+          then opt ^ Printf.sprintf "\n  %-20s" ""
+          else opt in
+        let opt = opt ^ Printf.sprintf "  %s\n" (String.strip_newline doc) in
+        acc ^ opt)
+      ~init:""
+      arguments in
+  let usage_msg = "\n" ^ welcome_msg ^ args_msg in
   let _ = print_endline usage_msg in
   exit 0
 
@@ -54,12 +53,19 @@ and arguments_raw =
   [ (*--------------------------------------------------------
      * printing
      *--------------------------------------------------------*)
-    [ "--pip" ], "Print input programs", Arg.Set print_input_prog;
+    ( [ "--pip"; "--print-input-program" ],
+      "Print input program",
+      Arg.Set print_input_prog );
+    ( [ "--pcp"; "--print-core-program" ],
+      "Print core program",
+      Arg.Set print_core_prog );
+    ( [ "--dis-pcp"; "--dis-print-core-program" ],
+      "Disable printing core program",
+      Arg.Clear print_core_prog );
+    [ "--pap" ], "Print analyzed program", Arg.Set print_analyzed_prog;
+    [ "--psp" ], "Print statistics of program", Arg.Set print_stats_prog;
     [ "--type" ], "Print type information of variables", Arg.Set print_type;
-    [ "--pcp" ], "Print core programs", Arg.Set print_core_prog;
-    [ "--pap" ], "Print analyzed programs", Arg.Set print_analyzed_prog;
-    [ "--psp" ], "Print statistics of programs", Arg.Set print_stats_prog;
-    ( [ "--pap-off" ],
+    ( [ "--dis-pap" ],
       "Turn off printing analyzed programs",
       Arg.Clear print_analyzed_prog );
     [ "--pco" ], "Print concise output", Arg.Set print_concise_output;
@@ -97,7 +103,7 @@ and arguments_raw =
     (*--------------------------------------------------------
      * analysis
      *--------------------------------------------------------*)
-    [ "--analysis-off" ], "Disable all analysis passes", Arg.Set skip_analysis;
+    [ "--dis-analysis" ], "Disable all analysis passes", Arg.Set skip_analysis;
     ( [ "--symexec" ],
       "Symbolic execution",
       Arg.Unit (fun () -> work_mode := WkmSymExec) );

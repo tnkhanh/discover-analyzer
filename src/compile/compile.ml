@@ -14,7 +14,6 @@ module OC = Llvm.Opcode
 module LI = Llir
 module LU = Llutils
 module LN = Llnormalize
-module LS = Llsimplify
 module LT = Llinstrument
 module LP = Llpass
 module PS = Process

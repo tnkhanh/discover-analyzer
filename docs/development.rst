@@ -89,5 +89,13 @@ Autoformat project using Dune
 
      make format
 
+  and
+
+  .. code-block:: ocaml
+
+     let x = 1 in
+     let b = 2 in
+     let x = 1 in
+
 - Read more at this `formatting project tutorial
   <https://dune.readthedocs.io/en/stable/formatting.html>.`_
