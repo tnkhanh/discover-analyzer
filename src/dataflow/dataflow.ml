@@ -1096,7 +1096,7 @@ functor
           List.iter
             ~f:(fun f ->
               let fs =
-                f |> get_func_callees prog |> List.filter ~f:is_user_func in
+                f |> get_pfd_callees prog |> List.filter ~f:is_user_func in
               fprintf
                 file
                 "- %s:%s\n\n"
@@ -1114,7 +1114,7 @@ functor
           List.iter
             ~f:(fun f ->
               let fs =
-                f |> get_func_callers prog |> List.filter ~f:is_user_func in
+                f |> get_pfd_callers prog |> List.filter ~f:is_user_func in
               fprintf
                 file
                 "- %s:%s\n\n"
@@ -2550,8 +2550,8 @@ functor
       let prog = penv.penv_prog in
       let ig = prog.prog_instr_graph in
       let f1, f2 = wf1.wf_func, wf2.wf_func in
-      let callers1 = get_func_callers prog f1 in
-      let callers2 = get_func_callers prog f2 in
+      let callers1 = get_pfd_callers prog f1 in
+      let callers2 = get_pfd_callers prog f2 in
       let callers =
         List.filter ~f:(List.mem callers2 ~equal:equal_func) callers1 in
       let is_func_called_ealier g1 g2 =
@@ -2606,8 +2606,8 @@ functor
       =
       let prog = penv.penv_prog in
       let f1, f2 = wf1.wf_func, wf2.wf_func in
-      let callers1 = get_func_callers prog f1 in
-      let callers2 = get_func_callers prog f2 in
+      let callers1 = get_pfd_callers prog f1 in
+      let callers2 = get_pfd_callers prog f2 in
       let is_f1_caller_f2 = List.mem ~equal:equal_func callers2 f1 in
       let is_f2_caller_f1 = List.mem ~equal:equal_func callers1 f2 in
       if (not is_f1_caller_f2) && is_f2_caller_f1
@@ -2625,7 +2625,7 @@ functor
       match Stack.top penv.penv_func_analysis_stack with
       | None -> 0
       | Some f ->
-        let callees = get_func_callees prog f in
+        let callees = get_pfd_callees prog f in
         let is_f1_callee = List.mem callees f1 ~equal:equal_func in
         let is_f2_callee = List.mem callees f2 ~equal:equal_func in
         if is_f1_callee && not is_f2_callee
@@ -3017,7 +3017,7 @@ functor
             let gs = Hashtbl.find_default tbl_used_globals f ~default:[] in
             let ngs = ref gs in
             let callees =
-              let callees = get_func_callees prog f in
+              let callees = get_pfd_callees prog f in
               if not !dfa_used_globals_in_func_ptrs
               then callees
               else (

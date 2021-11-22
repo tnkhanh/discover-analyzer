@@ -34,8 +34,13 @@ type llmodules = llmodule list
  ** structured types to wrap the default LLVM data structure
  *******************************************************************)
 
-(* function or function pointer *)
+(* function *)
 type func = Func of llvalue
+
+(* callable: function or function pointer *)
+type callable =
+  | ClFunc of func
+  | ClFPtr of llvalue
 
 (* basic block *)
 type block = llblock
@@ -67,6 +72,7 @@ type expr =
   | Exn of expr
 
 type funcs = func list
+type callables = callable list
 type blocks = block list
 type params = param list
 type instrs = instr list
@@ -158,6 +164,15 @@ module Func = struct
   let to_string _ = "(func)"
   let hash = Hashtbl.hash
   let sexp_of_t _ = Sexp.of_string "(func)"
+  let compare = Poly.compare
+end
+
+module Callable = struct
+  type t = func
+
+  let to_string _ = "(callable)"
+  let hash = Hashtbl.hash
+  let sexp_of_t _ = Sexp.of_string "(callable)"
   let compare = Poly.compare
 end
 
@@ -286,7 +301,7 @@ module IG = InstrGraph
  ** Finally a data structure representing program
  *******************************************************************)
 
-type program_metadata =
+type program_meta_data =
   { pmd_bitcode_filename : string;
     pmd_source_filename : string;
     pmd_llvalue_original_name : (string, string) Hashtbl.t;
@@ -296,12 +311,9 @@ type program_metadata =
   }
 
 type program_func_data =
-  { prog_func_return_instr : (func, instr) Hashtbl.t;
-    (* mapping a function to its callers, callees, reachable functions, loops *)
+  { pfd_return_instr : (func, instr) Hashtbl.t;
     pfd_callers : (func, funcs) Hashtbl.t;
-    (* TODO: merge callees and function ptr callees *)
-    pfd_callees : (func, funcs) Hashtbl.t;
-    pfd_func_ptr_callees : (func, llvalues) Hashtbl.t;
+    pfd_callees : (func, callables) Hashtbl.t;
     pfd_reachable_funcs : (func, funcs) Hashtbl.t;
     pfd_loops : (func, loops) Hashtbl.t;
     pfd_used_globals : (func, globals) Hashtbl.t;
@@ -362,7 +374,7 @@ type program =
      * source code and compilation data
      *-----------------------------------------*)
     prog_func_data : program_func_data;
-    prog_meta_data : program_metadata;
+    prog_meta_data : program_meta_data;
     prog_llvm_module : llmodule
   }
 
@@ -552,8 +564,9 @@ let sprint_value (v : llvalue) : string =
   else vname
 ;;
 
-let sprint_values = sprint_list ~f:sprint_value
-let value_names (vs : llvalue list) : string = sprint_list ~f:sprint_value vs
+let sprint_values (vs : llvalues) : string = sprint_list ~f:sprint_value vs
+let value_name (v : llvalue) : string = sprint_value v
+let value_names (vs : llvalues) : string = sprint_list ~f:sprint_value vs
 
 let sprint_value_detail (v : llvalue) : string =
   v
@@ -1911,6 +1924,22 @@ let get_main_function (m : llmodule) : func option =
 ;;
 
 (*-----------------------------------------
+ * callable
+ *-----------------------------------------*)
+
+let callable_name (c : callable) : string =
+  match c with
+  | ClFunc f -> func_name f
+  | ClFPtr fp -> value_name fp
+;;
+
+let callable_of_func (f: func) : callable =
+  ClFunc f
+
+let callable_of_func_pointer (fp: llvalue) : callable =
+  ClFPtr fp
+
+(*-----------------------------------------
  * block
  *-----------------------------------------*)
 
@@ -2894,19 +2923,33 @@ let first_instr_of_func (f : func) : instr option =
   | Some b -> first_instr_of_block b
 ;;
 
-let get_func_callees (prog : program) (f : func) : funcs =
+let get_pfd_callees (prog : program) (f : func) : funcs =
   match Hashtbl.find prog.prog_func_data.pfd_callees f with
   | None -> []
-  | Some fns -> fns
+  | Some callables ->
+    List.fold_right
+      ~f:(fun cl acc ->
+        match cl with
+        | ClFunc f -> f :: acc
+        | _ -> acc)
+      ~init:[]
+      callables
 ;;
 
 let get_func_ptr_callees (prog : program) (f : func) : llvalues =
-  match Hashtbl.find prog.prog_func_data.pfd_func_ptr_callees f with
+  match Hashtbl.find prog.prog_func_data.pfd_callees f with
   | None -> []
-  | Some vs -> vs
+  | Some callables ->
+    List.fold_right
+      ~f:(fun cl acc ->
+        match cl with
+        | ClFPtr vfp -> vfp :: acc
+        | _ -> acc)
+      ~init:[]
+      callables
 ;;
 
-let get_func_callers (prog : program) (f : func) : funcs =
+let get_pfd_callers (prog : program) (f : func) : funcs =
   match Hashtbl.find prog.prog_func_data.pfd_callers f with
   | None -> []
   | Some fns -> fns
@@ -2922,7 +2965,7 @@ let get_func_used_globals (prog : program) (f : func) : globals =
 ;;
 
 let has_call_to_user_funcs prog (f : func) : bool =
-  let callees = get_func_callees prog f in
+  let callees = get_pfd_callees prog f in
   List.exists ~f:(fun f -> is_user_func f || is_func_pointer f) callees
 ;;
 
@@ -2965,13 +3008,13 @@ let get_reachable_funcs (prog : program) (f : func) : funcs =
     match queue with
     | [] -> visited
     | f :: nqueue ->
-      let callees = get_func_callees prog f in
+      let callees = get_pfd_callees prog f in
       let nfs = List.diff callees (nqueue @ visited) ~equal in
       let nqueue = List.concat_dedup nqueue nfs ~equal in
       let nvisited = List.insert_dedup visited f ~equal in
       compute_reachables nqueue nvisited in
   let compute () =
-    let callees = get_func_callees prog f in
+    let callees = get_pfd_callees prog f in
     compute_reachables callees [] in
   Hashtbl.find_or_compute
     prog.prog_func_data.pfd_reachable_funcs
@@ -3036,7 +3079,7 @@ let update_funcs_of_pointer (prog : program) (v : llvalue) (funcs : funcs) =
  *******************************************************************)
 
 let mk_program_meta_data (filename : string) (modul : llmodule)
-    : program_metadata
+    : program_meta_data
   =
   { pmd_bitcode_filename = filename;
     pmd_source_filename = "<unknown>";
@@ -3048,10 +3091,9 @@ let mk_program_meta_data (filename : string) (modul : llmodule)
 ;;
 
 let mk_program_func_data (modul : llmodule) : program_func_data =
-  { prog_func_return_instr = Hashtbl.create (module Func);
-    pfd_callees = Hashtbl.create (module Func);
-    pfd_func_ptr_callees = Hashtbl.create (module Func);
+  { pfd_return_instr = Hashtbl.create (module Func);
     pfd_callers = Hashtbl.create (module Func);
+    pfd_callees = Hashtbl.create (module Callable);
     pfd_reachable_funcs = Hashtbl.create (module Func);
     pfd_loops = Hashtbl.create (module Func);
     pfd_used_globals = Hashtbl.create (module Func);
@@ -3178,7 +3220,7 @@ let sprint_callee_info (prog : program) : string =
     ~f:(fun ~key:func ~data:callees acc ->
       let fname = func_name func in
       let callee_names =
-        callees |> List.map ~f:func_name |> String.concat ~sep:", " in
+        callees |> List.map ~f:callable_name |> String.concat ~sep:", " in
       acc ^ "\n  " ^ fname ^ " --> [" ^ callee_names ^ "]")
     ~init:"Callee graph:"
     prog.prog_func_data.pfd_callees
@@ -3195,7 +3237,7 @@ let print_program_analysis_info (prog : program) =
           then acc
           else
             (acc ^ "\n - " ^ func_name f ^ ":")
-            ^ hsprint_list_itemized ~bullet:"    ->" ~f:func_name callees)
+            ^ hsprint_list_itemized ~bullet:"    ->" ~f:callable_name callees)
         ~init:""
         pfd.pfd_callees in
   let _ = debug callees_info in

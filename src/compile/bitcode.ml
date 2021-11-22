@@ -55,10 +55,12 @@ let process_module (input_file : string) (modul : LL.llmodule) : LI.program =
   prog
 ;;
 
+(** Disassemble LLVM bitcode (.bc files) to IR (.ll files) *)
 let disassemble_bitcode (filename : string) : unit =
   PS.run_command [ !llvm_dis_exe; filename ]
 ;;
 
+(** Optimize LLVM bitcode by running the LLVM's opt tool *)
 let optimize_bitcode (input_file : string) : string =
   let _ = print2 "Optimize bitcode file: " input_file in
   let basename = Filename.chop_extension (Filename.basename input_file) in
@@ -84,6 +86,7 @@ let optimize_bitcode (input_file : string) : string =
   output_file
 ;;
 
+(** Normalize LLVM bitcode by running the Discover's llvm-normalizer tool *)
 let normalize_bitcode (input_file : string) : string =
   let _ = print2 "Normalize bitcode file: " input_file in
   let basename = Filename.chop_extension (Filename.basename input_file) in
