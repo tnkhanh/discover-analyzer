@@ -4,7 +4,7 @@
 // We assume sizeof(int)=4.
 
 #include <stdio.h>
-#include "discover.h"
+//#include "discover.h"
 
 int main() {
 	int x = 2147483647;

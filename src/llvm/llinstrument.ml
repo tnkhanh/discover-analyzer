@@ -381,7 +381,7 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
   (*   ) ^ " " ^ findstr ^ "\n" *)
   (* ) in *)
   (* let _ = debug2 ~ruler:`Long "Hashtbl" strhash in *)
-   debug2 ~ruler:`Long "Instrumented" (LL.string_of_llmodule modul)
+  debug2 ~ruler:`Long "Instrumented" (LL.string_of_llmodule modul)
 ;;
 
 (*we need source_name to ignore instructions with location outside the source file *)
