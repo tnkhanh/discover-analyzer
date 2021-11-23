@@ -148,7 +148,6 @@ let beautiful_format_on_char ~(sep : char) ?(column = 80) (str : string) =
  *******************************************************************)
 
 (** core printing function *)
-
 let print_core
     ?(ruler = `None)
     ?(header = false)
@@ -191,7 +190,6 @@ let print_core
 ;;
 
 (** print a message *)
-
 let print
     ?(header = false)
     ?(ruler = `None)
@@ -205,7 +203,6 @@ let print
 ;;
 
 (** print 2 messages *)
-
 let print2
     ?(header = false)
     ?(ruler = `None)
@@ -220,7 +217,6 @@ let print2
 ;;
 
 (** print a list of messages *)
-
 let printl
     ?(header = false)
     ?(ruler = `None)
@@ -246,7 +242,6 @@ let println
 ;;
 
 (** high-order print a message *)
-
 let hprint
     ?(ruler = `None)
     ?(header = false)
@@ -275,44 +270,40 @@ let eprintf = Printf.eprintf
  ** Warning and error
  *******************************************************************)
 
+(** report a warning message *)
 let warning msg =
   let msg = "[warning] " ^ msg in
   if not !print_concise_output then prerr_endline msg
 ;;
 
-let hwarning msg f x =
-  let msg = msg ^ ": " ^ f x in
-  warning msg
+(** report 2 warning messages *)
+let warning2 (msg1 : string) (msg2 : string) = warning (msg1 ^ msg2)
+
+(** report a list of warning messages *)
+let warningl (msgs : string list) = warning (String.concat ~sep:"" msgs)
+
+(** high-order report a warning message *)
+let hwarning (msg : string) (f : 'a -> string) (x : 'a) =
+  warning (msg ^ ": " ^ f x)
 ;;
 
 (** report an error message *)
-
 let error ?(log = "") (msg : string) = raise (EError (msg, log))
 
 (** report 2 error messages *)
-
 let error2 ?(log = "") (msg1 : string) (msg2 : string) =
   let msg = msg1 ^ msg2 in
   error ~log msg
 ;;
 
 (** report a list of error messages *)
-
-let errors ?(log = "") (msgs : string list) =
+let errorl ?(log = "") (msgs : string list) =
   let msg = String.concat ~sep:"" msgs in
   error ~log msg
 ;;
 
-let herror msg f x =
+(** high-order report an error message *)
+let herror (msg : string) (f : 'a -> string) (x : 'a) =
   let msg = msg ^ f x in
   error msg
 ;;
-
-(*******************************************************************
- ** Warning and error
- *******************************************************************)
-
-(* let print_endline (str : string) : unit = *)
-(*   let _ = print_endline str in *)
-(*   () *)
-(* ;; *)

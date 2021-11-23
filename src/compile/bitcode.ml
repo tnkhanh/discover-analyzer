@@ -39,9 +39,9 @@ let export_bitcode_to_file (input_file : string) (modul : LL.llmodule) =
 ;;
 
 let process_module (input_file : string) (modul : LL.llmodule) : LI.program =
-  let _ = print2 "Simplifying bitcode: " input_file in
+  let _ = print2 "Normalize bitcode: " input_file in
   let _ = LN.rename_vars_and_params modul in
-  let _ = if !llvm_simplify then LN.simplify_module input_file modul in
+  let _ = if !llvm_simplify then LN.normalize_module input_file modul in
   let _ = if !export_bitcode then export_bitcode_to_file input_file modul in
   let _ = LN.check_normalization modul in
   let prog = LI.mk_program input_file modul in

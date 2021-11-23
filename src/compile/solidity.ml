@@ -23,7 +23,13 @@ module LU = Llutils
 module PS = Process
 module FN = Filename
 
-let mark_solidity_user_funcs (prog : LI.program) : LI.program = prog
+let mark_solidity_user_funcs (prog : LI.program) : LI.program =
+  let _ =
+    List.iter
+      ~f:(fun f -> hdebug "- Function: " LI.func_name f)
+      prog.prog_user_funcs in
+  prog
+;;
 
 let compile_solidity (filename : string) : LI.program =
   let _ = debug ("Compiling file: " ^ filename) in

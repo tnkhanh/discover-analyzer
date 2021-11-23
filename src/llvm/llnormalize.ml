@@ -219,11 +219,11 @@ let elim_instr_sext_integer (modul : LL.llmodule) : unit =
 ;;
 
 (*******************************************************************
- ** finally simplify and normalize all
+ ** finally normalize all
  *******************************************************************)
 
-let simplify_module (filename : string) (modul : LL.llmodule) : unit =
-  let _ = debug ("Simplifying module: " ^ filename) in
+let normalize_module (filename : string) (modul : LL.llmodule) : unit =
+  let _ = debug ("Normalize module: " ^ filename) in
   let _ = elim_instr_intrinsic_lifetime modul in
   let _ = elim_unused_instructions modul in
   (* let _ = elim_unused_functions modul in *)

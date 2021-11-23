@@ -82,7 +82,6 @@ let restore_mode_debug () : unit =
  *---------------------*)
 
 (** core mode_debug function *)
-
 let debug_core
     ?(header = false)
     ?(ruler = `None)
@@ -121,7 +120,6 @@ let debug_core
 ;;
 
 (** print a message *)
-
 let debug
     ?(header = false)
     ?(ruler = `None)
@@ -140,7 +138,6 @@ let debug
 ;;
 
 (** print 2 messages *)
-
 let debug2
     ?(header = false)
     ?(ruler = `None)
@@ -156,7 +153,6 @@ let debug2
 ;;
 
 (** print a list of messages *)
-
 let debugl
     ?(ruler = `None)
     ?(indent = 0)
@@ -170,7 +166,6 @@ let debugl
 ;;
 
 (** print a deep mode_debug message *)
-
 let ddebug
     ?(header = false)
     ?(ruler = `None)

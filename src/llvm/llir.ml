@@ -338,10 +338,7 @@ type program_meta_data =
   }
 
 type program =
-  { (*-----------------------------------------
-     * core components of program
-     *-----------------------------------------*)
-    prog_globals : global list;
+  { prog_globals : global list;
     prog_struct_types : lltype list;
     prog_lib_funcs : func list;
     (* lib function, won't be analyzed *)
