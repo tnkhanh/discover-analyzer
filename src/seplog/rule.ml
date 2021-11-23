@@ -548,7 +548,7 @@ let pr_rule_result ?(print = true) pstate rule encs =
       encs
       |> List.map ~f:(fun c -> "  " ^ pr_enc ~id:true c)
       |> String.concat ~sep:"\n  ==>\n" in
-    debugc ("@ " ^ action ^ ":\n" ^ sencs))
+    debug ~compact:true ("@ " ^ action ^ ":\n" ^ sencs))
   else ()
 ;;
 

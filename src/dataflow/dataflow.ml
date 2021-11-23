@@ -1649,7 +1649,7 @@ functor
     (** compute input of block *)
     let compute_block_input penv ?(widen = false) (fenv : func_env) blk : t =
       let _ = hdebug "Compute input of block: " block_name blk in
-      (* let _ = hdebugc "  pathcond: " pr_pathcond pcond in *)
+      (* let _ = hdebug ~compact:true "  pathcond: " pr_pathcond pcond in *)
       (* let pblks = get_preceding_blocks prog blk |>
        *             List.map ~f:(fun pb -> pb.pblk_block) in *)
       let pblks = get_sparse_preceding_blocks penv blk in
@@ -2522,10 +2522,10 @@ functor
             then input
             else (
               let _ = hdebug "  " pr_global global in
-              let _ = hdebugc "    In:  " T.pr_data input in
+              let _ = hdebug ~compact:true "    In:  " T.pr_data input in
               let output = T.analyze_global global input in
               let _ = set_global_output genv global output in
-              let _ = hdebugc "    Out: " T.pr_data output in
+              let _ = hdebug ~compact:true "    Out: " T.pr_data output in
               output))
           globals ~init:input in
       let output =

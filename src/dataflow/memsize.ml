@@ -224,13 +224,13 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
       (* TODO: need alias analysis to clear off some variables
          overshadowing by PHI node *)
       let ns = ref (get_size (operand instr 0) input) in
-      let _ = hdebugc " PHI original: " SD.pr_size !ns in
+      let _ = hdebug ~compact:true " PHI original: " SD.pr_size !ns in
       for i = 1 to num_operands instr - 1 do
         let cs = get_size (operand instr i) input in
-        let _ = hdebugc " PHI current range: " SD.pr_size cs in
+        let _ = hdebug ~compact:true " PHI current range: " SD.pr_size cs in
         ns := combine_size !ns cs
       done;
-      let _ = hdebugc " PHI final: " SD.pr_size !ns in
+      let _ = hdebug ~compact:true " PHI final: " SD.pr_size !ns in
       update_size vinstr !ns input
     | _ -> input
   ;;

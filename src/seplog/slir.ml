@@ -1438,7 +1438,7 @@ let rec translate_lltyp (typ : LL.lltype) : typ =
   | LL.TypeKind.Pointer -> TPointer (translate_lltyp (LL.element_type typ))
   | LL.TypeKind.Array -> TArray
   | LL.TypeKind.Struct ->
-    let _ = debugc "TRANSLATE TYPE STRUCT" in
+    let _ = debug "TRANSLATE TYPE STRUCT" in
     TStruct (Option.value (LL.struct_name typ) ~default:"unknown")
   | LL.TypeKind.Function | LL.TypeKind.Vector | LL.TypeKind.X86_mmx -> TUnk
   | LL.TypeKind.Metadata -> error "translate_lltyp: do not expect Metadata"

@@ -39,7 +39,7 @@ let annotate_potential_bugs (pdata : program_data) : program_data =
   let _ = ddebug "Annotating Potential Bug..." in
   let prog = pdata.pdata_program in
   let bugs = BG.annotate_potential_bugs prog in
-  let _ = hddebugc "Potential Bugs:" BG.pr_potential_bugs bugs in
+  let _ = hddebug ~compact:true "Potential Bugs:" BG.pr_potential_bugs bugs in
   { pdata with pdata_potential_bugs = bugs }
 ;;
 
@@ -106,11 +106,8 @@ let perform_pointer_analysis (pdata : program_data) : program_data =
 ;;
 
 let perform_main_analysis_passes (pdata : program_data) : program_data =
-  pdata
-  |> perform_undef_analysis
-  |> perform_pointer_analysis
-  |> perform_memsize_analysis
-  |> perform_range_analysis
+  pdata |> perform_undef_analysis |> perform_pointer_analysis
+  |> perform_memsize_analysis |> perform_range_analysis
 ;;
 
 (*******************************************************************
@@ -134,9 +131,7 @@ let report_analysis_stats (pdata : program_data) : unit =
 let analyze_program_llvm (prog : LI.program) : unit =
   let _ = hprint ~ruler:`Long "Analyze program by " pr_dfa_mode !dfa_mode in
   let pdata =
-    prog
-    |> mk_program_data
-    |> perform_pre_analysis_passes
+    prog |> mk_program_data |> perform_pre_analysis_passes
     |> perform_main_analysis_passes in
   let _ = report_analysis_stats pdata in
   let _ = check_assertions pdata in

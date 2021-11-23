@@ -42,7 +42,7 @@ let stop_solver () =
 ;;
 
 let restart_solver () =
-  debugc "Restarting Z3 ...";
+  debug "Restarting Z3 ...";
   let _ = stop_solver () in
   let _ = Unix.nanosleep 0.005 in
   start_solver ()
@@ -72,7 +72,7 @@ let read_all_output proc : string =
   let rec read acc =
     try
       let line = String.strip (input_line proc.PS.proc_in_channel) in
-      let () = debugc ("line: " ^ line) in
+      let () = debug ("line: " ^ line) in
       let nacc = acc @ [ line ] in
       read nacc
     with End_of_file -> acc in
@@ -334,7 +334,7 @@ module Z3SL = struct
           (String.align_line "  - z3 input:\n" z3_input)
           (String.align_line "  - z3 output:\n" z3_output)
           ("  - error: " ^ msg) in
-      let _ = debugc msg in
+      let _ = debug ~compact:true msg in
       None, []
     | _ ->
       let res, model = get_result ~mvars output in

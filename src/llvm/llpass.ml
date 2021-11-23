@@ -20,7 +20,7 @@ module LP = Llloop
 module LG = Llcallgraph
 
 let construct_map_llvalue_to_source_name (prog : program) : unit =
-  let _ = ddebugc "Construct mapping llvalue to source name" in
+  let _ = ddebug ~compact:true "Construct mapping llvalue to source name" in
   let visit_instr instr =
     match instr_opcode instr with
     | LO.Call | LO.Invoke ->
