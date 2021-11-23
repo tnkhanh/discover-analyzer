@@ -358,8 +358,8 @@ module type ForwardDataTransfer = sig
    * Handling abstract data
    *-----------------------------------------*)
 
-  val sprint_data : t -> string
-  val sprint_data_checksum : t -> string
+  val pr_data : t -> string
+  val pr_data_checksum : t -> string
   val least_data : t
   val equal_data : t -> t -> bool
   val lequal_data : t -> t -> bool
@@ -571,52 +571,52 @@ functor
 
     (* printing *)
 
-    let sprint_data_with_checksum d =
-      sprint_data_checksum d ^ "\n" ^ sprint_data d
+    let pr_data_with_checksum d =
+      pr_data_checksum d ^ "\n" ^ pr_data d
     ;;
 
-    let sprint_data d =
+    let pr_data d =
       if !print_concise_output && not (is_debug_mode ())
-      then sprint_data_checksum d
-      else sprint_data d
+      then pr_data_checksum d
+      else pr_data d
     ;;
 
-    (* (sprint_data_checksum d) ^ "\n" ^
-     * (sprint_data d) *)
+    (* (pr_data_checksum d) ^ "\n" ^
+     * (pr_data d) *)
 
-    let sprint_datas ?(bullet = "-") (ds : t list) : string =
-      hsprint_list_itemized ~bullet ~f:sprint_data ds
+    let pr_datas ?(bullet = "-") (ds : t list) : string =
+      hpr_list_itemized ~bullet ~f:pr_data ds
     ;;
 
-    let sprint_data_opt (d : t option) : string =
+    let pr_data_opt (d : t option) : string =
       match d with
       | None -> "{No data}"
-      | Some d -> sprint_data d
+      | Some d -> pr_data d
     ;;
 
-    let sprint_prog_globals (penv : T.prog_env) : string =
+    let pr_prog_globals (penv : T.prog_env) : string =
       let prog = penv.penv_prog in
       let genv = penv.penv_global_env in
       if List.is_empty prog.prog_globals
       then ""
       else (
-        let ginput = String.hindent 4 T.sprint_data T.least_data in
+        let ginput = String.hindent 4 T.pr_data T.least_data in
         let globals =
           List.fold_left
             ~f:(fun acc global ->
               let gdata = T.get_global_output genv global in
               acc ^ "\n"
-              ^ ("  " ^ sprint_global global ^ "\n")
-              ^ String.hindent 4 sprint_data_opt gdata)
+              ^ ("  " ^ pr_global global ^ "\n")
+              ^ String.hindent 4 pr_data_opt gdata)
             prog.prog_globals ~init:ginput in
         "\n\nGlobals:\n\n" ^ globals)
     ;;
 
-    let sprint_func_output (output : T.t * blocks) : string =
-      sprint_data (fst output)
+    let pr_func_output (output : T.t * blocks) : string =
+      pr_data (fst output)
     ;;
 
-    let sprint_callsite (cs : callsite) : string =
+    let pr_callsite (cs : callsite) : string =
       let caller, instr = cs.cs_caller, cs.cs_instr_call in
       let blk = block_of_instr instr in
       let index =
@@ -628,32 +628,32 @@ functor
               ~init:1 blk in
           -1
         with EInt res -> res in
-      func_name caller ^ ":" ^ block_name blk ^ ":" ^ sprint_int index
+      func_name caller ^ ":" ^ block_name blk ^ ":" ^ pr_int index
     ;;
 
-    let sprint_callsites (css : callsite list) : string =
-      sprint_list ~sep:",\n" ~f:sprint_callsite css
+    let pr_callsites (css : callsite list) : string =
+      pr_list ~sep:",\n" ~f:pr_callsite css
     ;;
 
-    let sprint_exn (exn : exn) : string =
+    let pr_exn (exn : exn) : string =
       "Exception:\n" ^ "  Pointer: "
-      ^ sprint_expr exn.exn_orig_expr
-      ^ "\n" ^ "  Data: " ^ sprint_data exn.exn_data ^ "\n" ^ "  Type info: "
-      ^ sprint_value exn.exn_type_info
+      ^ pr_expr exn.exn_orig_expr
+      ^ "\n" ^ "  Data: " ^ pr_data exn.exn_data ^ "\n" ^ "  Type info: "
+      ^ pr_value exn.exn_type_info
     ;;
 
-    let sprint_exns (exns : exn list) : string =
-      hsprint_list_itemized ~f:sprint_exn exns
+    let pr_exns (exns : exn list) : string =
+      hpr_list_itemized ~f:pr_exn exns
     ;;
 
     let pr_working_block (wb : working_block) : string =
-      block_name wb.wb_block ^ " @ " ^ sprint_instr wb.wb_instr ^ " @ {"
-      ^ sprint_data wb.wb_instr_input
+      block_name wb.wb_block ^ " @ " ^ pr_instr wb.wb_instr ^ " @ {"
+      ^ pr_data wb.wb_instr_input
       ^ " }"
     ;;
 
     let pr_working_blocks (wbs : working_block list) : string =
-      hsprint_list_itemized ~bullet:" +" ~f:pr_working_block wbs
+      hpr_list_itemized ~bullet:" +" ~f:pr_working_block wbs
     ;;
 
     let pr_working_func (wf : working_func) : string =
@@ -666,7 +666,7 @@ functor
             let _ = save_mode_debug () in
             enable_mode_debug ())) in
       let input =
-        let str = sprint_data wf.wf_input in
+        let str = pr_data wf.wf_input in
         if String.is_substring str ~substring:"\n"
         then
           str |> String.split_lines
@@ -675,14 +675,14 @@ functor
         else str in
       let res =
         func_name wf.wf_func ^ " @ "
-        ^ sprint_list ~f:sprint_callsite wf.wf_callsites
+        ^ pr_list ~f:pr_callsite wf.wf_callsites
         ^ " @ {" ^ input ^ "}" in
       let _ = if !mode_debug_working_function then restore_mode_debug () in
       res
     ;;
 
     let pr_working_funcs (wfs : working_func list) : string =
-      hsprint_list_itemized ~f:pr_working_func wfs
+      hpr_list_itemized ~f:pr_working_func wfs
     ;;
 
     let pr_analyzed_func_input penv : string =
@@ -692,23 +692,23 @@ functor
             let sfuncs =
               List.map
                 ~f:(fun input ->
-                  func_name f ^ " @ {" ^ sprint_data input ^ "}")
+                  func_name f ^ " @ {" ^ pr_data input ^ "}")
                 inputs in
             acc @ sfuncs)
           ~init:[] penv.penv_func_analyzed_inputs in
-      sprint_string_list_itemized ~bullet:"+" func_inputs
+      pr_list_itemized ~bullet:"+" func_inputs
     ;;
 
-    let sprint_func_summary (fsum : T.func_summary) : string =
+    let pr_func_summary (fsum : T.func_summary) : string =
       let fname_params = func_name_and_params fsum.fsum_func in
       let deref_params_globals =
         let vs =
           (fsum.fsum_deref_params |> llvalues_of_params)
           @ (fsum.fsum_deref_globals |> llvalues_of_globals) in
-        sprint_list ~f:sprint_value vs in
+        pr_list ~f:pr_value vs in
       ("Function summary: " ^ fname_params ^ "\n")
-      ^ (String.halign_line "- Input:  " sprint_data fsum.fsum_input ^ "\n")
-      ^ (String.halign_line "- Output: " sprint_data fsum.fsum_output ^ "\n")
+      ^ (String.halign_line "- Input:  " pr_data fsum.fsum_input ^ "\n")
+      ^ (String.halign_line "- Output: " pr_data fsum.fsum_output ^ "\n")
       ^ String.align_line "- Deref params and globals: " deref_params_globals
     ;;
 
@@ -725,8 +725,8 @@ functor
                 Hashtbl.find_default tbl_func_inputs func ~default:[] in
               List.length inputs in
             let func_stat =
-              "  " ^ func_name func ^ ": " ^ sprint_int ftimes ^ " times on "
-              ^ sprint_int num_inputs ^ " inputs" in
+              "  " ^ func_name func ^ ": " ^ pr_int ftimes ^ " times on "
+              ^ pr_int num_inputs ^ " inputs" in
             if ftimes = 0
             then func_stat
             else (
@@ -737,7 +737,7 @@ functor
                       let btimes =
                         Hashtbl.find_default tbl_block_stats blk ~default:0
                       in
-                      block_name blk ^ ": " ^ sprint_int btimes)
+                      block_name blk ^ ": " ^ pr_int btimes)
                     func in
                 beautiful_concat ~column:75 ~sep:", " stats in
               func_stat ^ "\n" ^ String.indent 4 blk_stats))
@@ -752,7 +752,7 @@ functor
       "- Analyzed times of functions and blocks:\n" ^ func_stats ^ "\n"
       ^ "- Function analysis stack:\n" ^ func_sequence ^ "\n"
       ^ "- Total functions analyzed times: "
-      ^ sprint_int total_func_analyzed_times
+      ^ pr_int total_func_analyzed_times
     ;;
 
     let pr_sparse_instr penv instr =
@@ -763,13 +763,13 @@ functor
         | LO.IndirectBr | LO.Br | LO.Switch ->
           "jump<sparse> " ^ block_names (get_sparse_succeeding_blocks penv blk)
         | LO.Invoke ->
-          sprint_instr instr ^ ", jump<sparse> "
+          pr_instr instr ^ ", jump<sparse> "
           ^ block_names (get_sparse_succeeding_blocks penv blk)
-        | _ -> sprint_instr instr)
-      else sprint_instr instr
+        | _ -> pr_instr instr)
+      else pr_instr instr
     ;;
 
-    let sprint_func_env ?(id = "") ?(sparse = true) penv (fenv : T.func_env)
+    let pr_func_env ?(id = "") ?(sparse = true) penv (fenv : T.func_env)
         : string
       =
       let prog, func = fenv.fenv_prog, fenv.fenv_func in
@@ -781,7 +781,7 @@ functor
             then (
               let bname = block_name blk in
               let binput =
-                String.hindent 4 sprint_data_opt (T.get_block_input fenv blk)
+                String.hindent 4 pr_data_opt (T.get_block_input fenv blk)
               in
               let instrs_output =
                 fold_left_instrs
@@ -792,7 +792,7 @@ functor
                       ^
                       match T.get_instr_output fenv instr with
                       | None -> String.indent 4 "{No data}"
-                      | Some output -> String.hindent 4 sprint_data output
+                      | Some output -> String.hindent 4 pr_data output
                     else acc2)
                   ~init:"" blk in
               acc1 ^ "\n\n " ^ bname ^ ":\n\n" ^ binput ^ instrs_output
@@ -801,12 +801,12 @@ functor
           ~init:"" func in
       let id = if String.is_empty id then id else " ~~ (" ^ id ^ ")" in
       "Function env: " ^ fname_params ^ id ^ "\n\n"
-      ^ (" Callsite: " ^ sprint_callsites fenv.fenv_callsites ^ "\n\n")
-      ^ String.halign_line " Input: " sprint_data fenv.fenv_input
+      ^ (" Callsite: " ^ pr_callsites fenv.fenv_callsites ^ "\n\n")
+      ^ String.halign_line " Input: " pr_data fenv.fenv_input
       ^ sblocks
     ;;
 
-    let sprint_prog_env (penv : T.prog_env) : string =
+    let pr_prog_env (penv : T.prog_env) : string =
       let prog = penv.penv_prog in
       let analyzed_funcs = penv.penv_goal_funcs in
       let sfuncs =
@@ -814,22 +814,22 @@ functor
           ~f:(fun acc func ->
             match Hashtbl.find penv.penv_func_envs func with
             | Some fenvs ->
-              let num_fenvs = sprint_int (List.length fenvs) in
+              let num_fenvs = pr_int (List.length fenvs) in
               let sfenvs =
                 fenvs
                 |> List.map ~f:(fun fenv ->
                        let id = fenv.fenv_id ^ "/" ^ num_fenvs in
-                       "=============\n\n " ^ sprint_func_env ~id penv fenv)
+                       "=============\n\n " ^ pr_func_env ~id penv fenv)
                 |> String.concat ~sep:"\n\n" in
               acc ^ "\n\n" ^ sfenvs
             | None -> acc)
           ~init:"" analyzed_funcs in
       "Input program: " ^ prog.prog_meta_data.pmd_source_filename
-      ^ sprint_prog_globals penv ^ sfuncs
+      ^ pr_prog_globals penv ^ sfuncs
     ;;
 
     let pr_sparse_prog (penv : T.prog_env) : string =
-      let sprint_block (blk : block) : string =
+      let pr_block (blk : block) : string =
         let blkname = block_name blk in
         let sinstrs =
           blk
@@ -847,14 +847,14 @@ functor
           |> String.concat ~sep:"\n" in
         sprintf " %s:\n%s" blkname
           (String.replace_if_empty sinstrs ~replacer:"  {Empty block}") in
-      let sprint_func (f : func) : string =
+      let pr_func (f : func) : string =
         let fname =
           sprintf "Function: %s %s(%s)"
-            (sprint_type (func_return_type f))
+            (pr_type (func_return_type f))
             (func_name f)
-            (sprint_args ~f:sprint_param (func_params f)) in
+            (pr_args ~f:pr_param (func_params f)) in
         let sblks =
-          f |> map_blocks ~f:sprint_block |> String.concat ~sep:"\n\n"
+          f |> map_blocks ~f:pr_block |> String.concat ~sep:"\n\n"
           |> String.replace_if_empty ~replacer:" {Empty function}" in
         fname ^ "\n" ^ sblks in
       let prog = penv.penv_prog in
@@ -863,18 +863,18 @@ functor
         |> List.fold_left
              ~f:(fun acc g ->
                if is_sparse_global penv g
-               then acc @ [ String.hindent 2 (sprint_global ~detailed:true) g ]
+               then acc @ [ String.hindent 2 (pr_global ~detailed:true) g ]
                else acc)
              ~init:[]
         |> String.concat ~sep:"\n"
         |> String.prefix_if_not_empty ~prefix:"Globals:\n" in
       let sstructs =
         prog.prog_struct_types
-        |> List.map ~f:(fun t -> "  " ^ sprint_type t)
+        |> List.map ~f:(fun t -> "  " ^ pr_type t)
         |> String.concat ~sep:"\n"
         |> String.prefix_if_not_empty ~prefix:"Struct types:\n" in
       let sfuncs =
-        penv.penv_goal_funcs |> List.map ~f:sprint_func
+        penv.penv_goal_funcs |> List.map ~f:pr_func
         |> String.concat ~sep:"\n\n" in
       String.suffix_if_not_empty sglobals ~suffix:"\n\n"
       ^ String.suffix_if_not_empty sstructs ~suffix:"\n\n"
@@ -986,7 +986,7 @@ functor
                 f |> get_func_used_globals prog
                 |> List.sorti ~compare:compare_global_by_name in
               fprintf file "- %s: %s\n\n" (func_name f)
-                (pr_pretty_list sprint_global gs))
+                (pr_pretty_list pr_global gs))
             penv.penv_goal_funcs in
         close_out file in
       let _ =
@@ -1003,7 +1003,7 @@ functor
                 |> get_sparse_used_globals penv
                 |> List.sorti ~compare:compare_global_by_name in
               fprintf file "- %s: %s\n\n" (func_name f)
-                (pr_pretty_list sprint_global gs))
+                (pr_pretty_list pr_global gs))
             penv.penv_goal_funcs in
         close_out file in
       let _ =
@@ -1074,7 +1074,7 @@ functor
             if (not sparse) || is_sparse_global penv g
             then
               fprintf file "%s\n"
-                (String.hindent 2 (sprint_global ~detailed:true) g))
+                (String.hindent 2 (pr_global ~detailed:true) g))
           prog.prog_globals in
       let _ =
         let funcs = penv.penv_goal_funcs in
@@ -1083,9 +1083,9 @@ functor
             let params = func_params f in
             let fname =
               sprintf "Function: %s %s(%s)"
-                (sprint_type (func_return_type f))
+                (pr_type (func_return_type f))
                 (func_name f)
-                (sprint_args ~f:sprint_typed_param params) in
+                (pr_args ~f:pr_typed_param params) in
             let _ = fprintf file "\n\n%s\n" fname in
             iter_blocks
               ~f:(fun blk ->
@@ -1097,7 +1097,7 @@ functor
                       if not sparse
                       then
                         fprintf file "%s\n"
-                          (String.hindent 2 sprint_instr instr)
+                          (String.hindent 2 pr_instr instr)
                       else if is_sparse_instr penv instr
                       then fprintf file "  %s\n" (pr_sparse_instr penv instr))
                     blk))
@@ -1249,21 +1249,21 @@ functor
       let _ =
         hdebug ~always:true ~indent:4 "Get suitable func summary: " func_name
           func in
-      let _ = hdebug ~always:true ~indent:4 "  Input: " sprint_data input in
+      let _ = hdebug ~always:true ~indent:4 "  Input: " pr_data input in
       let fsums = get_func_summaries penv func in
       let res =
         List.find
           ~f:(fun fs ->
             let _ =
-              hdebug ~indent:4 "  Fsum input: " sprint_data fs.fsum_input in
+              hdebug ~indent:4 "  Fsum input: " pr_data fs.fsum_input in
             let res = T.equal_data fs.fsum_input input in
-            let _ = hdebug ~indent:4 "    equal? " sprint_bool res in
+            let _ = hdebug ~indent:4 "    equal? " pr_bool res in
             res)
           fsums in
       (* let res = List.find ~f:(fun fs ->
-       *   let _ = hdebug ~indent:4 "  Fsum input: " sprint_data fs.fsum_input in
+       *   let _ = hdebug ~indent:4 "  Fsum input: " pr_data fs.fsum_input in
        *   let res = T.lequal_data input fs.fsum_input in
-       *   let _ = hdebug ~indent:4 "    lequal? " sprint_bool res in
+       *   let _ = hdebug ~indent:4 "    lequal? " pr_bool res in
        *   res) fsums in *)
       let _ =
         match res with
@@ -1272,18 +1272,18 @@ functor
             func
         | Some fsum ->
           hdebug ~always:true ~indent:4 "Found func summary:\n"
-            sprint_func_summary fsum in
+            pr_func_summary fsum in
       res
     ;;
 
     let record_func_summary (penv : T.prog_env) fsum : unit =
       let func = fsum.fsum_func in
       let _ = hdebug "Record current function summary: " func_name func in
-      let _ = hdebug "  input: " sprint_data fsum.fsum_input in
+      let _ = hdebug "  input: " pr_data fsum.fsum_input in
       let _ =
         debug ~always:true
           ("Record current func summary: " ^ func_name func ^ " @ {"
-          ^ sprint_data fsum.fsum_input
+          ^ pr_data fsum.fsum_input
           ^ "}") in
       match Hashtbl.find penv.penv_func_summaries func with
       | None -> Hashtbl.set penv.penv_func_summaries ~key:func ~data:[ fsum ]
@@ -1322,9 +1322,9 @@ functor
       let func = fenv.fenv_func in
       let _ = hdebug ~always:true "Record new function env: " func_name func in
       let _ =
-        hdebug ~always:true " - Callsites: " sprint_callsites fenv.fenv_callsites
+        hdebug ~always:true " - Callsites: " pr_callsites fenv.fenv_callsites
       in
-      let _ = hdebug " - Output: " sprint_data_opt fenv.fenv_output in
+      let _ = hdebug " - Output: " pr_data_opt fenv.fenv_output in
       let env_completed =
         try
           let visit_block blk =
@@ -1334,7 +1334,7 @@ functor
             then (
               match T.get_instr_output fenv instr with
               | None ->
-                let _ = hdebug "Env incompleted at: " sprint_instr instr in
+                let _ = hdebug "Env incompleted at: " pr_instr instr in
                 raise (EBool false)
               | Some _ -> ()) in
           let _ =
@@ -1343,7 +1343,7 @@ functor
           true
         with EBool res -> res in
       let _ =
-        hdebug ~always:true " - Env completed: " sprint_bool env_completed
+        hdebug ~always:true " - Env completed: " pr_bool env_completed
       in
       match Hashtbl.find penv.penv_func_envs func with
       | None ->
@@ -1372,18 +1372,18 @@ functor
           if input_updated
           then (
             let fenv =
-              { fenv with fenv_id = sprint_int (List.length fenvs + 1) } in
+              { fenv with fenv_id = pr_int (List.length fenvs + 1) } in
             fenvs @ [ fenv ])
           else fenvs in
         let _ = Hashtbl.set penv.penv_func_envs ~key:func ~data:nfenvs in
         let _ =
-          hdebug ~always:true " - Input updated: " sprint_bool input_updated
+          hdebug ~always:true " - Input updated: " pr_bool input_updated
         in
         let _ =
-          hdebug ~always:true " - Output updated: " sprint_bool output_updated
+          hdebug ~always:true " - Output updated: " pr_bool output_updated
         in
         let _ =
-          hdebug ~always:true " - Env updated: " sprint_bool env_updated in
+          hdebug ~always:true " - Env updated: " pr_bool env_updated in
         input_updated, output_updated, env_updated, env_completed
     ;;
 
@@ -1405,13 +1405,13 @@ functor
         hdebug ~always:true "Record analyzed input of func: " func_name func
       in
       let _ =
-        hdebug ~always:true " - Callsites: " sprint_callsites fenv.fenv_callsites
+        hdebug ~always:true " - Callsites: " pr_callsites fenv.fenv_callsites
       in
-      let _ = hdebug " - Input: " sprint_data input in
+      let _ = hdebug " - Input: " pr_data input in
       let _ =
         print
           ("Record analyzed input: " ^ func_name func ^ " @ {"
-         ^ sprint_data input ^ "}") in
+         ^ pr_data input ^ "}") in
       match Hashtbl.find penv.penv_func_analyzed_inputs func with
       | Some inputs ->
         let inputs = List.insert_dedup ~equal:T.equal_data inputs input in
@@ -1449,7 +1449,7 @@ functor
 
     let mk_func_summary penv (fenv : T.func_env) input : T.func_summary =
       let prog, func = fenv.fenv_prog, fenv.fenv_func in
-      let _ = hdebug "fenv_output: " sprint_data_opt fenv.fenv_output in
+      let _ = hdebug "fenv_output: " pr_data_opt fenv.fenv_output in
       let output =
         match fenv.fenv_output with
         | None -> herror "mk_func_summary: output not found: " func_name func
@@ -1486,12 +1486,12 @@ functor
       let _ =
         debug ~indent:4 ("Compare args' input data and summary of: " ^ fname)
       in
-      let _ = hdebug " - input: " sprint_data core_input in
+      let _ = hdebug " - input: " pr_data core_input in
       let _ =
         hdebug " - analyzed inputs: "
-          (sprint_datas ~bullet:"  +")
+          (pr_datas ~bullet:"  +")
           analyzed_inputs in
-      let _ = hdebug " - res (<=): " sprint_bool res in
+      let _ = hdebug " - res (<=): " pr_bool res in
       res
     ;;
 
@@ -1532,7 +1532,7 @@ functor
           let _ =
             hdebug
               ("-> ENQUEUE function: " ^ fname ^ ", with input: ")
-              sprint_data input in
+              pr_data input in
           wfuncs @ [ wf ])
         else wfuncs in
       let _ = penv.penv_working_funcs <- nwfuncs in
@@ -1551,7 +1551,7 @@ functor
               record_working_func ~msg penv wf
             | _ ->
               let _ =
-                hdebug ~always:true "   at call site: " sprint_callsites callsites
+                hdebug ~always:true "   at call site: " pr_callsites callsites
               in
               let wfuncs = penv.penv_working_funcs in
               let has_earlier_working_func_of_same_context =
@@ -1682,7 +1682,7 @@ functor
                   | None -> output
                   | Some pred ->
                     let _ =
-                      hdebug "Preceding block's current output: " T.sprint_data
+                      hdebug "Preceding block's current output: " T.pr_data
                         output in
                     let new_output =
                       match get_block_input fenv blk with
@@ -1692,7 +1692,7 @@ functor
                         then output
                         else old_output in
                     let _ =
-                      hdebug "Preceding block's refined output: " T.sprint_data
+                      hdebug "Preceding block's refined output: " T.pr_data
                         new_output in
                     new_output in
                 (* let changed = not (T.lequal_data new_output output) in *)
@@ -1729,7 +1729,7 @@ functor
           if !dfa_context_split_phi
           then (
             let _ =
-              hdebug "Do context splitting PHI for the call: " sprint_instr
+              hdebug "Do context splitting PHI for the call: " pr_instr
                 instr in
             let phi_incoming_blks =
               List.fold_left
@@ -1766,8 +1766,8 @@ functor
           refined_argss
           |> List.map ~f:(fun args ->
                  let _ = hdebug ~always:true "Calling to: " func_name callee in
-                 let _ = hdebug "   with args: " sprint_values origin_args in
-                 let _ = hdebug "   refined args: " sprint_values args in
+                 let _ = hdebug "   with args: " pr_values origin_args in
+                 let _ = hdebug "   refined args: " pr_values args in
                  let callee_input =
                    if !dfa_context_split_phi
                    then (
@@ -1815,7 +1815,7 @@ functor
                          ~equal:equal_working_block in
                      fenv.fenv_working_blocks <- working_blks)
                    else hdebug "Not enqueue: " func_name callee in
-                 let _ = hdebug "callee input: " sprint_data callee_input in
+                 let _ = hdebug "callee input: " pr_data callee_input in
                  match get_suitable_func_summary penv callee callee_input with
                  | None -> T.least_data, false
                  (* FIXME: check if need to use the current data or the least data? *)
@@ -1865,7 +1865,7 @@ functor
           let nexn = { exn with exn_data = ndata } in
           Hashtbl.set fenv.fenv_thrown_exn ~key:tinfo ~data:nexn)
       else
-        herror "analyze_throw_exception: expect >=2 params: " sprint_instr
+        herror "analyze_throw_exception: expect >=2 params: " pr_instr
           instr
     ;;
 
@@ -1877,7 +1877,7 @@ functor
         let _ =
           for i = 0 to num_catches - 1 do
             let exn_tinfo = get_root_src_of_bitcast (operand instr i) in
-            let _ = hdebug "landingpad: " sprint_value exn_tinfo in
+            let _ = hdebug "landingpad: " pr_value exn_tinfo in
             match Hashtbl.find fenv.fenv_thrown_exn exn_tinfo with
             | None -> ()
             | Some exn ->
@@ -1886,10 +1886,10 @@ functor
               landing_exns := !landing_exns @ [ exn ]
           done in
         let landing_ptr = llvalue_of_instr instr in
-        let _ = hdebug "landing exns: " sprint_exns !landing_exns in
+        let _ = hdebug "landing exns: " pr_exns !landing_exns in
         Hashtbl.set fenv.fenv_landing_exns ~key:landing_ptr ~data:!landing_exns
       | _ ->
-        herror "analyze_instr_landingpad: not a landingpad: " sprint_instr
+        herror "analyze_instr_landingpad: not a landingpad: " pr_instr
           instr
     ;;
 
@@ -1944,7 +1944,7 @@ functor
               let output =
                 T.compute_catch_exception_data penv instr catched_ptr input exn
               in
-              let _ = hdebug "output after catch exn: " sprint_data output in
+              let _ = hdebug "output after catch exn: " pr_data output in
               output, true in
           res
         | _ -> input, true)
@@ -1957,8 +1957,8 @@ functor
       match instrs with
       | [] -> true, true
       | instr :: ninstrs ->
-        let _ = hdebug ">> " sprint_instr instr in
-        let _ = hdebug "    In:  " T.sprint_data input in
+        let _ = hdebug ">> " pr_instr instr in
+        let _ = hdebug "    In:  " T.pr_data input in
         let old_output = T.get_instr_output fenv instr in
         let new_output, continue =
           match instr_opcode instr with
@@ -1997,7 +1997,7 @@ functor
               let callees =
                 ptr |> get_current_funcs_of_pointer penv.penv_prog in
               let _ =
-                hdebug ~always:true "Function pointer: " sprint_value ptr in
+                hdebug ~always:true "Function pointer: " pr_value ptr in
               let _ = hdebug ~always:true "Callees: " func_names callees in
               if List.is_empty callees
               then (* (input, false) *)
@@ -2032,7 +2032,7 @@ functor
           | None -> true
           | Some old_output -> not (T.lequal_data new_output old_output) in
         let _ = if continue then T.set_instr_output fenv instr new_output in
-        let _ = hdebug "    Out: " T.sprint_data new_output in
+        let _ = hdebug "    Out: " T.pr_data new_output in
         let _ =
           ndebug (sprintf "    Changed: %B\n    Continue: %B" changed continue)
         in
@@ -2058,8 +2058,8 @@ functor
           let binput = wb.wb_instr_input in
           let _ = T.set_block_input fenv blk binput in
           let _ = debug " - Starting from the entry of the block. " in
-          hdebug "    Block input: " T.sprint_data binput)
-        else hdebug " - Continuing from instruction: " sprint_instr wb.wb_instr
+          hdebug "    Block input: " T.pr_data binput)
+        else hdebug " - Continuing from instruction: " pr_instr wb.wb_instr
       in
       let _ = update_block_analyzed_stats penv func blk in
       let instrs, _ =
@@ -2212,12 +2212,12 @@ functor
       let _ =
         let _ = debug ~ruler:`Short "Do widening..." in
         let _ = do_widening () in
-        hdebug ~ruler:`Short "After widening:\n" (sprint_func_env penv) fenv
+        hdebug ~ruler:`Short "After widening:\n" (pr_func_env penv) fenv
       in
       let _ =
         let _ = debug ~ruler:`Short "Do narrowing..." in
         (* let _ = do_narrowing () in *)
-        hdebug ~ruler:`Short "After narrowing:\n" (sprint_func_env penv) fenv
+        hdebug ~ruler:`Short "After narrowing:\n" (pr_func_env penv) fenv
       in
       ()
     ;;
@@ -2238,7 +2238,7 @@ functor
         analyze_blocks ~widen:false ~fixpoint:true penv fenv blocks in
       let _ = debug ~ruler:`Short "Do simple fixpoint..." in
       let _ = do_fixpoint () in
-      hdebug ~ruler:`Short "After fixpoint:\n\n" (sprint_func_env penv) fenv
+      hdebug ~ruler:`Short "After fixpoint:\n\n" (pr_func_env penv) fenv
     ;;
 
     (** analyze one function *)
@@ -2261,7 +2261,7 @@ functor
         (* if not !print_concise_output then *)
         let msg =
           "Analyzing function: " ^ fname_params ^ " ~ ("
-          ^ sprint_int (get_func_analyzed_times penv func)
+          ^ pr_int (get_func_analyzed_times penv func)
           ^ ")" in
         print ~ruler:`Medium msg in
       let _ =
@@ -2278,16 +2278,16 @@ functor
             then (
               let _ = save_mode_debug () in
               enable_mode_debug ()))) in
-      (* let _ = hdebug ~always:true " - Callsites: " (sprint_list sprint_callsite) callsites in *)
-      let _ = hprint " - Callsites: " (sprint_list ~f:sprint_callsite) callsites in
-      (* let _ = hdebug ~always:true " - Input: " sprint_data input in *)
-      let _ = hprint " - Input: " sprint_data input in
-      (* let _ = hprint " - Input: " sprint_data_with_checksum input in *)
+      (* let _ = hdebug ~always:true " - Callsites: " (pr_list pr_callsite) callsites in *)
+      let _ = hprint " - Callsites: " (pr_list ~f:pr_callsite) callsites in
+      (* let _ = hdebug ~always:true " - Input: " pr_data input in *)
+      let _ = hprint " - Input: " pr_data input in
+      (* let _ = hprint " - Input: " pr_data_with_checksum input in *)
       (* let _ =
        *   if String.equal (func_name func) "free_a_tree" then
-       *     hprint " - Input: " sprint_data_with_checksum input
+       *     hprint " - Input: " pr_data_with_checksum input
        *   else
-       *     hprint " - Input: " sprint_data input in *)
+       *     hprint " - Input: " pr_data input in *)
       let _ =
         hdebug ~always:true " - Re-analyzing from working blocks: "
           pr_working_blocks fenv.fenv_working_blocks in
@@ -2314,7 +2314,7 @@ functor
           let _ =
             hdebug ~ruler:`Short
               ("Analysis output: " ^ fname_params ^ ":\n\n")
-              sprint_func_summary fsum in
+              pr_func_summary fsum in
           record_func_summary penv fsum) in
       let _ = if !mode_debug_function then restore_mode_debug () in
       let _ = post_analyze_func penv fenv in
@@ -2478,8 +2478,8 @@ functor
             (" - Time analyzing function: " ^ fname ^ ": ")
             (sprintf "%.3fs") time in
         (* let _ = if Float.(>) time 15. then
-         *     hprint "TOO SLOW... Func env: " (sprint_func_env penv) fenv in *)
-        let _ = hdebug "Analysis output updated: " sprint_bool env_updated in
+         *     hprint "TOO SLOW... Func env: " (pr_func_env penv) fenv in *)
+        let _ = hdebug "Analysis output updated: " pr_bool env_updated in
         let _ =
           if need_reanalyze
           then (
@@ -2521,11 +2521,11 @@ functor
             if not (is_sparse_global penv global)
             then input
             else (
-              let _ = hdebug "  " sprint_global global in
-              let _ = hdebugc "    In:  " T.sprint_data input in
+              let _ = hdebug "  " pr_global global in
+              let _ = hdebugc "    In:  " T.pr_data input in
               let output = T.analyze_global global input in
               let _ = set_global_output genv global output in
-              let _ = hdebugc "    Out: " T.sprint_data output in
+              let _ = hdebugc "    Out: " T.pr_data output in
               output))
           globals ~init:input in
       let output =
@@ -2817,7 +2817,7 @@ functor
       let _ = if !print_stats_prog then print_stats_sparse_prog penv in
       let _ =
         hprint "Goal functions: "
-          (hsprint_list_itemized ~f:func_name)
+          (hpr_list_itemized ~f:func_name)
           penv.penv_goal_funcs in
       (* let prog = update_program_info prog in *)
       let _ =

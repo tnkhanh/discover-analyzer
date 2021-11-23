@@ -13,21 +13,21 @@ module SI = Slir
 module LI = Llir
 
 module Entails = struct
-  let dump_data_defn (d : SI.data_defn) : string = SI.sprint_data_defn d
-  let dump_view_defn (v : SI.view_defn) : string = SI.sprint_view_defn v
-  let dump_func_defn (f : SI.func_defn) : string = SI.sprint_func_defn f
-  let dump_reln_defn (r : SI.reln_defn) : string = SI.sprint_reln_defn r
+  let dump_data_defn (d : SI.data_defn) : string = SI.pr_data_defn d
+  let dump_view_defn (v : SI.view_defn) : string = SI.pr_view_defn v
+  let dump_func_defn (f : SI.func_defn) : string = SI.pr_func_defn f
+  let dump_reln_defn (r : SI.reln_defn) : string = SI.pr_reln_defn r
 
   let dump_command (c : SI.command) : string =
     match c with
-    | SI.CheckSat f -> "CheckSat: " ^ SI.sprint_formula f ^ ";"
+    | SI.CheckSat f -> "CheckSat: " ^ SI.pr_formula f ^ ";"
     | SI.ProveEntails ents ->
       let sents =
         ents
-        |> List.map ~f:(fun ent -> "  " ^ SI.sprint_ent ent)
+        |> List.map ~f:(fun ent -> "  " ^ SI.pr_ent ent)
         |> String.concat ~sep:"\n" in
       "ProveEntails:\n" ^ sents ^ ";"
-    | SI.InferFrame ent -> "InferFrame: " ^ SI.sprint_ent ent ^ ";"
+    | SI.InferFrame ent -> "InferFrame: " ^ SI.pr_ent ent ^ ";"
   ;;
 
   let dump_program (p : SI.program) : string =

@@ -166,12 +166,6 @@ let debugc ?(ruler = `None) ?(indent = 0) ?(always = false) msg : unit =
   debug_core ~ruler ~indent ~enable (fun () -> msg)
 ;;
 
-(** print a mode_debug message and a new line *)
-
-let debugln ?(ruler = `None) ?(indent = 0) ?(always = false) msg : unit =
-  debug ~ruler ~indent ~always (msg ^ "\n")
-;;
-
 (** print a deep mode_debug message *)
 
 let ddebug ?(ruler = `None) ?(indent = 0) ?(always = false) msg : unit =
@@ -184,12 +178,6 @@ let ddebug ?(ruler = `None) ?(indent = 0) ?(always = false) msg : unit =
 let ddebugc ?(ruler = `None) ?(indent = 0) ?(always = false) msg : unit =
   let enable = (not !no_debug) && (!mode_deep_debug || always) in
   debug_core ~ruler ~indent ~enable (fun () -> msg)
-;;
-
-(** print a mode_debug message and a new line*)
-
-let ddebugln ?(ruler = `None) ?(indent = 0) ?(always = false) msg : unit =
-  ddebug ~ruler ~indent ~always (msg ^ "\n")
 ;;
 
 (* a *)
@@ -228,21 +216,6 @@ let hdebugc
   debug_core ~ruler ~indent ~enable ~prefix (fun () -> pr data)
 ;;
 
-(** high-order print a mode_debug message and a new line *)
-
-let hdebugln
-    ?(ruler = `None)
-    ?(indent = 0)
-    ?(always = false)
-    msg
-    (pr : 'a -> string)
-    (data : 'a)
-  =
-  let enable = (not !no_debug) && (!mode_debug || !mode_deep_debug || always) in
-  let prefix = "\n" ^ msg in
-  debug_core ~ruler ~indent ~enable ~prefix (fun () -> pr data ^ "\n")
-;;
-
 (** high-order print a deep mode_debug message *)
 
 let hddebug
@@ -271,21 +244,6 @@ let hddebugc
   let enable = (not !no_debug) && (!mode_deep_debug || always) in
   let prefix = msg in
   debug_core ~ruler ~indent ~enable ~prefix (fun () -> pr data)
-;;
-
-(** high-order print a deep mode_debug message *)
-
-let hddebugln
-    ?(ruler = `None)
-    ?(indent = 0)
-    ?(always = false)
-    msg
-    (pr : 'a -> string)
-    (data : 'a)
-  =
-  let enable = (not !no_debug) && (!mode_deep_debug || always) in
-  let prefix = "\n" ^ msg in
-  debug_core ~ruler ~indent ~enable ~prefix (fun () -> pr data ^ "\n")
 ;;
 
 (*******************************************************************

@@ -29,14 +29,14 @@ type z3_res =
  *******************************************************************)
 
 let pr_z3_val = function
-  | Int i -> sprint_int i
-  | Frac (f1, f2) -> sprint_float f1 ^ "/" ^ sprint_float f2
+  | Int i -> pr_int i
+  | Frac (f1, f2) -> pr_float f1 ^ "/" ^ pr_float f2
 ;;
 
 let pr_z3_res = function
   | Unsat -> "unsat"
   | Sat m ->
-    "sat: " ^ sprint_list ~f:(sprint_pair ~f1:(fun s -> s) ~f2:pr_z3_val) m
+    "sat: " ^ pr_list ~f:(pr_pair ~f1:(fun s -> s) ~f2:pr_z3_val) m
   | Unk -> "unknown"
   | Error s -> "error: " ^ s
 ;;

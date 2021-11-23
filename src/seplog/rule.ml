@@ -540,7 +540,7 @@ let choose_rule_empty_array_right prog goal : rule list =
  ** process rules
  *******************************************************************)
 
-let sprint_rule_result ?(print = true) pstate rule encs =
+let pr_rule_result ?(print = true) pstate rule encs =
   let action = pr_rule rule in
   if pstate.prs_interact && print
   then (
@@ -631,7 +631,7 @@ let process_rule_elim_bvar pstate goal r : derivation =
             eqs in
         let lhs = enc.enc_lhs |> elim_f sst |> simplify_tauto_contra_f |> fst in
         let nenc = update_entail_core enc ~lhs:[ lhs ] in
-        sprint_rule_result pstate rule [ enc; nenc ];
+        pr_rule_result pstate rule [ enc; nenc ];
         nenc)
       r.reb_entails_eqss in
   let sub_goal = update_goal_entcores goal nencs in
@@ -652,7 +652,7 @@ let process_rule_equal_left pstate goal r : derivation =
           |> fst in
         let rhs = enc.enc_rhs |> substitute_formula ssts in
         let nenc = update_entail_core enc ~lhs:[ lhs ] ~rhs:[ rhs ] in
-        sprint_rule_result pstate rule [ enc; nenc ];
+        pr_rule_result pstate rule [ enc; nenc ];
         nenc)
       r.reql_entails_eqss in
   let sub_goal = update_goal_entcores goal nencs in
@@ -666,7 +666,7 @@ let process_rule_exists_left pstate goal r : derivation =
       ~f:(fun enc ->
         let lhs = eliminate_exists_var_by_equality_f enc.enc_lhs in
         let nenc = update_entail_core enc ~lhs:[ lhs ] in
-        sprint_rule_result pstate rule [ enc; nenc ];
+        pr_rule_result pstate rule [ enc; nenc ];
         nenc)
       r.rexl_entails in
   let sub_goal = update_goal_entcores goal encs in
@@ -680,7 +680,7 @@ let process_rule_exists_right pstate goal r : derivation =
       ~f:(fun enc ->
         let rhs = eliminate_exists_var_by_equality_f enc.enc_rhs in
         let nenc = update_entail_core enc ~rhs:[ rhs ] in
-        sprint_rule_result pstate rule [ enc; nenc ];
+        pr_rule_result pstate rule [ enc; nenc ];
         nenc)
       r.rexr_entails in
   let sub_goal = update_goal_entcores goal encs in
@@ -775,7 +775,7 @@ let process_rule_wand_inner pstate goal r : derivation =
       ~f:(fun (enc, fs) ->
         let lhs = eliminate enc.enc_lhs in
         let nenc = update_entail_core enc ~lhs:[ lhs ] in
-        sprint_rule_result pstate rule [ enc; nenc ];
+        pr_rule_result pstate rule [ enc; nenc ];
         nenc)
       r.rwi_entails in
   let sub_goal = update_goal_entcores goal encs in
@@ -814,7 +814,7 @@ let process_rule_wand_outer pstate goal r : derivation =
       ~f:(fun (enc, _) ->
         let lhs = eliminate enc.enc_lhs in
         let nenc = update_entail_core enc ~lhs:[ lhs ] in
-        sprint_rule_result pstate rule [ enc; nenc ];
+        pr_rule_result pstate rule [ enc; nenc ];
         nenc)
       r.rwo_entails in
   let sub_goal = update_goal_entcores goal encs in
@@ -850,7 +850,7 @@ let process_rule_wand_data pstate goal r : derivation =
       ~f:(fun (enc, _) ->
         let lhs = eliminate enc.enc_lhs in
         let nenc = update_entail_core enc ~lhs:[ lhs ] in
-        sprint_rule_result pstate rule [ enc; nenc ];
+        pr_rule_result pstate rule [ enc; nenc ];
         nenc)
       r.rwd_entails in
   let sub_goal = update_goal_entcores goal encs in
@@ -919,10 +919,10 @@ let process_rule_unfold_head pstate goal r : derivation =
             if not (SP.mem rnames rn)
             then enc.enc_lhs, false
             else replace_reln_form_f rf p enc.enc_lhs, true
-          | f -> herror "rule_unfold_head: not pure reln body" sprint_f f)
+          | f -> herror "rule_unfold_head: not pure reln body" pr_f f)
         | _ -> renc.enc_lhs, false in
       let nenc = update_entail_core enc ~lhs:[ lhs ] in
-      sprint_rule_result ~print:changed pstate rule [ renc; enc; nenc ];
+      pr_rule_result ~print:changed pstate rule [ renc; enc; nenc ];
       process nencs (acc @ [ nenc ]) in
   let encs = process goal.gl_entail_cores [] in
   let sub_goal = { goal with gl_entail_cores = encs } in

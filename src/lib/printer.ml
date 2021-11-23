@@ -26,10 +26,10 @@ let no_print = ref false
  * Basic printing functions
  *--------------------------*)
 
-let sprint_bool : bool -> string = string_of_bool
-let sprint_float : float -> string = string_of_float
-let sprint_int : int -> string = string_of_int
-let sprint_int64 = Int64.to_string
+let pr_bool : bool -> string = string_of_bool
+let pr_float : float -> string = string_of_float
+let pr_int : int -> string = string_of_int
+let pr_int64 = Int64.to_string
 
 (*------------------
  * Print to string
@@ -38,7 +38,7 @@ let sprint_int64 = Int64.to_string
 let sprintf = Printf.sprintf
 
 (** print a list of string to string *)
-let sprint_string_list
+let pr_string_list
     ?(sep = ", ")
     ?(obrace = "[")
     ?(cbrace = "]")
@@ -68,7 +68,7 @@ let sprint_string_list
 ;;
 
 (** higher-order function to print a list to string *)
-let sprint_list
+let pr_list
     ?(sep = ", ")
     ?(obrace = "[")
     ?(cbrace = "]")
@@ -78,16 +78,16 @@ let sprint_list
     (xs : 'a list)
   =
   let sxs = List.map ~f xs in
-  sprint_string_list ~sep ~obrace ~cbrace ~indent ~extra sxs
+  pr_string_list ~sep ~obrace ~cbrace ~indent ~extra sxs
 ;;
 
-let sprint_list_square = sprint_list ~obrace:"[" ~cbrace:"]"
-let sprint_list_curly = sprint_list ~obrace:"{" ~cbrace:"}"
-let sprint_list_paren = sprint_list ~obrace:"(" ~cbrace:")"
-let sprint_list_plain = sprint_list ~obrace:"" ~cbrace:""
+let pr_list_square = pr_list ~obrace:"[" ~cbrace:"]"
+let pr_list_curly = pr_list ~obrace:"{" ~cbrace:"}"
+let pr_list_paren = pr_list ~obrace:"(" ~cbrace:")"
+let pr_list_plain = pr_list ~obrace:"" ~cbrace:""
 
 (** print a list of string to string in itemized format *)
-let sprint_string_list_itemized
+let pr_list_itemized
     ?(bullet = "-")
     ?(obrace = "")
     ?(cbrace = "")
@@ -101,11 +101,11 @@ let sprint_string_list_itemized
     let sprint x =
       let res = String.indent ~skipfirst:true indent x in
       bullet ^ " " ^ res in
-    "\n" ^ sprint_list ~sep:"\n" ~obrace ~cbrace ~extra ~f:sprint xs)
+    "\n" ^ pr_list ~sep:"\n" ~obrace ~cbrace ~extra ~f:sprint xs)
 ;;
 
 (** higher-order function to print a list to string in itemized format *)
-let hsprint_list_itemized
+let hpr_list_itemized
     ?(bullet = "-")
     ?(obrace = "")
     ?(cbrace = "")
@@ -114,14 +114,14 @@ let hsprint_list_itemized
     (xs : 'a list)
   =
   let sxs = List.map ~f xs in
-  sprint_string_list_itemized ~bullet ~obrace ~cbrace ~extra sxs
+  pr_list_itemized ~bullet ~obrace ~cbrace ~extra sxs
 ;;
 
-let sprint_args ~(f : 'a -> string) (args : 'a list) : string =
-  sprint_list ~sep:", " ~obrace:"" ~cbrace:"" ~f args
+let pr_args ~(f : 'a -> string) (args : 'a list) : string =
+  pr_list ~sep:", " ~obrace:"" ~cbrace:"" ~f args
 ;;
 
-let sprint_pair ~(f1 : 'a -> string) ~(f2 : 'b -> string) (p : 'a * 'b)
+let pr_pair ~(f1 : 'a -> string) ~(f2 : 'b -> string) (p : 'a * 'b)
     : string
   =
   let x, y = p in

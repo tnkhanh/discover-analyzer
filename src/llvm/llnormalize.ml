@@ -26,7 +26,7 @@ let rename_vars_and_params (modul : LL.llmodule) : unit =
    * let index_instr = ref (-1) in *)
   let compute_index index =
     index := !index + 1;
-    sprint_int !index in
+    pr_int !index in
   let visit_instr i =
     let vi = llvalue_of_instr i in
     match LL.instr_opcode vi with
@@ -260,7 +260,7 @@ let check_normalization (modul : LL.llmodule) : unit =
         | _ ->
           error
             (("The last instruction of block '" ^ block_name blk ^ "' is: ")
-            ^ (sprint_instr instr ^ "\n")
+            ^ (pr_instr instr ^ "\n")
             ^ "Only Ret, Br, IndirectBr, Switch, Call, Invoke, Resume, "
             ^ "or Unreachable is allowed!")) in
     None in

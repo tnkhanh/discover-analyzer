@@ -24,7 +24,7 @@ let extract_name_from_metadata (md : LL.llvalue) : string =
 ;;
 
 let get_original_name_of_llvalue (v : LL.llvalue) : string option =
-  (* let _ = hprint "get_original_name_of_llvalue: " LI.sprint_value v in *)
+  (* let _ = hprint "get_original_name_of_llvalue: " LI.pr_value v in *)
   match LL.classify_value v with
   | LV.Instruction _ ->
     let func = LI.func_of_instr (LI.mk_instr v) in
@@ -38,7 +38,7 @@ let get_original_name_of_llvalue (v : LL.llvalue) : string option =
                 let callee = LI.callee_of_instr_func_call instr in
                 if LI.is_func_llvm_debug_declare callee
                    || LI.is_func_llvm_debug_value callee
-                then () (* hprint "Instr: " LI.sprint_instr instr *)
+                then () (* hprint "Instr: " LI.pr_instr instr *)
                 else ()))
             blk)
         func in
@@ -57,12 +57,12 @@ let position_of_instr (instr : LI.instr) : position option =
     let line = LD.di_location_get_line ~location:instr_md in
     let column = LD.di_location_get_column ~location:instr_md in
     let scope_md = LD.di_location_get_scope ~location:instr_md in
-    (* let _ = hprint "Line: " sprint_int line in *)
-    (* let _ = hprint "Column: " sprint_int column in *)
+    (* let _ = hprint "Line: " pr_int line in *)
+    (* let _ = hprint "Column: " pr_int column in *)
     let filename =
       match LD.di_scope_get_file ~scope:scope_md with
       | None -> ""
       | Some file_md -> LD.di_file_get_filename ~file:file_md in
-    (* let _ = hprint "Filename: " sprint_id filename in *)
+    (* let _ = hprint "Filename: " pr_id filename in *)
     Some (mk_position filename line line column column)
 ;;

@@ -29,7 +29,7 @@ type os_type =
   | Cygwin
   | UnkownOS
 
-let sprint_os_type (os : os_type) =
+let pr_os_type (os : os_type) =
   match os with
   | Linux -> "Linux"
   | MacOS -> "MacOS"

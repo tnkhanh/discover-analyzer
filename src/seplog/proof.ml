@@ -293,13 +293,13 @@ let index_entail_core = ref 0
  *******************************************************************)
 
 let pr_enc ?(id = false) enc =
-  let res = sprint_f enc.enc_lhs ^ " |- " ^ sprint_f enc.enc_rhs in
+  let res = pr_f enc.enc_lhs ^ " |- " ^ pr_f enc.enc_rhs in
   if (not id) || enc.enc_id < 1
   then "# " ^ res
-  else "#" ^ sprint_int enc.enc_id ^ ". " ^ res
+  else "#" ^ pr_int enc.enc_id ^ ". " ^ res
 ;;
 
-let pr_enc_id (enc : entail_core) : string = "#" ^ sprint_int enc.enc_id
+let pr_enc_id (enc : entail_core) : string = "#" ^ pr_int enc.enc_id
 
 let pr_enc_ids (encs : entail_cores) : string =
   encs |> List.map ~f:pr_enc_id |> String.concat ~sep:", "
@@ -349,7 +349,7 @@ let pr_rwi r =
     List.fold_left
       ~f:(fun acc (enc, fs) ->
         let acc = if String.equal acc "" then acc else acc ^ ", " in
-        acc ^ pr_enc_id enc ^ ": " ^ sprint_fs fs)
+        acc ^ pr_enc_id enc ^ ": " ^ pr_fs fs)
       ~init:""
       r.rwi_entails in
   "Wand Inner {" ^ encs ^ "}"
@@ -360,7 +360,7 @@ let pr_rwo r =
     List.fold_left
       ~f:(fun acc (enc, fs) ->
         let acc = if String.equal acc "" then acc else acc ^ ", " in
-        acc ^ pr_enc_id enc ^ ": " ^ sprint_fs fs)
+        acc ^ pr_enc_id enc ^ ": " ^ pr_fs fs)
       ~init:""
       r.rwo_entails in
   "Wand Outer {" ^ encs ^ "}"
@@ -371,7 +371,7 @@ let pr_rwd r =
     List.fold_left
       ~f:(fun acc (enc, fs) ->
         let acc = if String.equal acc "" then acc else acc ^ ", " in
-        acc ^ pr_enc_id enc ^ ": " ^ sprint_fs fs)
+        acc ^ pr_enc_id enc ^ ": " ^ pr_fs fs)
       ~init:""
       r.rwd_entails in
   "Wand Data {" ^ encs ^ "}"
@@ -383,14 +383,14 @@ let pr_rwr r = "Wand Right {" ^ pr_enc_id r.rwr_entail ^ "}"
 
 let pr_ruh r =
   let enc = r.ruh_entail in
-  "Unfold Head {" ^ pr_enc_id enc ^ ": " ^ sprint_f enc.enc_rhs ^ "}"
+  "Unfold Head {" ^ pr_enc_id enc ^ ": " ^ pr_f enc.enc_rhs ^ "}"
 ;;
 
 let pr_ruvl r =
   "Unfold View Left {"
   ^ pr_enc_id r.ruvl_entail
   ^ ": "
-  ^ sprint_view_form r.ruvl_lhs_view
+  ^ pr_view_form r.ruvl_lhs_view
   ^ "}"
 ;;
 
@@ -398,7 +398,7 @@ let pr_ruvr r =
   "Unfold View Right {"
   ^ pr_enc_id r.ruvr_entail
   ^ ": "
-  ^ sprint_view_form r.ruvr_rhs_view
+  ^ pr_view_form r.ruvr_rhs_view
   ^ "}"
 ;;
 
@@ -406,7 +406,7 @@ let pr_rear r =
   "Unfold Array Right {"
   ^ pr_enc_id r.rear_entail
   ^ ": "
-  ^ sprint_array_form r.rear_rhs_array
+  ^ pr_array_form r.rear_rhs_array
   ^ "}"
 ;;
 
@@ -414,11 +414,11 @@ let pr_rmd r =
   "Match Data {"
   ^ pr_enc_id r.rmd_entail
   ^ ": "
-  ^ sprint_df r.rmd_lhs_data
+  ^ pr_df r.rmd_lhs_data
   ^ " vs. "
-  ^ sprint_df r.rmd_rhs_data
+  ^ pr_df r.rmd_rhs_data
   ^ ", early: "
-  ^ sprint_bool r.rmd_apply_early
+  ^ pr_bool r.rmd_apply_early
   ^ "}"
 ;;
 
@@ -426,11 +426,11 @@ let pr_rmv r =
   "Match View {"
   ^ pr_enc_id r.rmv_entail
   ^ ": "
-  ^ sprint_vf r.rmv_lhs_view
+  ^ pr_vf r.rmv_lhs_view
   ^ " vs. "
-  ^ sprint_vf r.rmv_rhs_view
+  ^ pr_vf r.rmv_rhs_view
   ^ ", early: "
-  ^ sprint_bool r.rmv_apply_early
+  ^ pr_bool r.rmv_apply_early
   ^ "}"
 ;;
 
@@ -438,11 +438,11 @@ let pr_rma r =
   "Match Array {"
   ^ pr_enc_id r.rma_entail
   ^ ": "
-  ^ sprint_af r.rma_lhs_array
+  ^ pr_af r.rma_lhs_array
   ^ " vs. "
-  ^ sprint_af r.rma_rhs_array
+  ^ pr_af r.rma_rhs_array
   ^ ", early: "
-  ^ sprint_bool r.rma_apply_early
+  ^ pr_bool r.rma_apply_early
   ^ "}"
 ;;
 
@@ -450,9 +450,9 @@ let pr_rsd r =
   "Subtract Data {"
   ^ pr_enc_id r.rsd_entail
   ^ ": "
-  ^ sprint_af r.rsd_lhs_array
+  ^ pr_af r.rsd_lhs_array
   ^ " vs. "
-  ^ sprint_df r.rsd_rhs_data
+  ^ pr_df r.rsd_rhs_data
 ;;
 
 let pr_rule rule =
@@ -494,7 +494,7 @@ let pr_rules rules =
   "[" ^ res ^ "]"
 ;;
 
-let pr_enc_id (enc : entail_core) : string = "#" ^ sprint_int enc.enc_id
+let pr_enc_id (enc : entail_core) : string = "#" ^ pr_int enc.enc_id
 
 let pr_goal goal =
   let encs =
@@ -502,11 +502,11 @@ let pr_goal goal =
       ~f:(fun acc enc ->
         acc
         ^ "   #"
-        ^ sprint_int enc.enc_id
+        ^ pr_int enc.enc_id
         ^ ". "
-        ^ sprint_f enc.enc_lhs
+        ^ pr_f enc.enc_lhs
         ^ " |- "
-        ^ sprint_f enc.enc_rhs
+        ^ pr_f enc.enc_rhs
         ^ "\n")
       ~init:""
       goal.gl_entail_cores in
@@ -932,13 +932,13 @@ let update_entail_core ?(lhs = []) ?(rhs = []) enc =
     match lhs with
     | [] -> enc
     | [ lhs ] -> { enc with enc_lhs = lhs; enc_lst = mk_formula_stats lhs }
-    | _ -> herror "update_entail_core: expect 1 lhs but found: " sprint_fs lhs
+    | _ -> herror "update_entail_core: expect 1 lhs but found: " pr_fs lhs
   in
   let enc =
     match rhs with
     | [] -> enc
     | [ rhs ] -> { enc with enc_rhs = rhs; enc_rst = mk_formula_stats rhs }
-    | _ -> herror "update_entail_core: expect 1 rhs but found: " sprint_fs rhs
+    | _ -> herror "update_entail_core: expect 1 rhs but found: " pr_fs rhs
   in
   enc
 ;;

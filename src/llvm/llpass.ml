@@ -26,9 +26,9 @@ let construct_map_llvalue_to_source_name (prog : program) : unit =
     | LO.Call | LO.Invoke ->
       if is_func_llvm_debug (callee_of_instr_func_call instr)
       then (
-        let _ = hprint "instr: " sprint_instr instr in
+        let _ = hprint "instr: " pr_instr instr in
         (* let v0, v1 = operand instr 0, operand instr 1 in *)
-        let vname = sprint_value (operand instr 0) in
+        let vname = pr_value (operand instr 0) in
         let sname = LD.extract_name_from_metadata (operand instr 1) in
         Hashtbl.set
           prog.prog_meta_data.pmd_llvalue_original_name

@@ -260,7 +260,7 @@ let merge_precision (p1 : precision) (p2 : precision) : precision =
   if equal_precision p1 p2 then p1 else May
 ;;
 
-let sprint_dfa_mode (dfa : dfa_mode) : string =
+let pr_dfa_mode (dfa : dfa_mode) : string =
   match dfa with
   | DfaIntraProc -> "Intra-procedural Data-flow Analysis"
   | DfaInterProc -> "Inter-procedural Data-flow Analysis"

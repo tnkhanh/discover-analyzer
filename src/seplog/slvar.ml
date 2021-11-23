@@ -37,40 +37,40 @@ let index_var = ref 0
  ** Printing
  *******************************************************************)
 
-let sprint_id (vn : identifier) : string =
+let pr_id (vn : identifier) : string =
   let base, index = vn in
   match index with
   | None -> base
-  | Some i -> base ^ sprint_int i
+  | Some i -> base ^ pr_int i
 ;;
 
-let rec sprint_type (t : typ) : string =
+let rec pr_type (t : typ) : string =
   match t with
   | TVoid -> "void"
   | TBool -> "bool"
-  | TInt i -> "i" ^ sprint_int i
+  | TInt i -> "i" ^ pr_int i
   | TFloat -> "float"
   | TString -> "string"
   | TStruct n -> n
-  | TPointer t -> sprint_type t ^ "*"
+  | TPointer t -> pr_type t ^ "*"
   | TArray -> "array"
-  | TFunc (ts, t) -> sprint_types ts ^ " -> " ^ sprint_type t
-  | TVar i -> "tvar" ^ sprint_int i
+  | TFunc (ts, t) -> pr_types ts ^ " -> " ^ pr_type t
+  | TVar i -> "tvar" ^ pr_int i
   | TUnk -> "unk"
 
-and sprint_types (ts : typ list) : string =
-  sprint_list ~sep:" * " ~f:sprint_type ts
+and pr_types (ts : typ list) : string =
+  pr_list ~sep:" * " ~f:pr_type ts
 ;;
 
-let sprint_var (v : var) : string =
+let pr_var (v : var) : string =
   let id, typ = v in
   if not !print_type
-  then sprint_id id
-  else "(" ^ sprint_id id ^ ":" ^ sprint_type typ ^ ")"
+  then pr_id id
+  else "(" ^ pr_id id ^ ":" ^ pr_type typ ^ ")"
 ;;
 
-let sprint_vars (vs : var list) : string =
-  sprint_list ~sep:"," ~f:sprint_var vs
+let pr_vars (vs : var list) : string =
+  pr_list ~sep:"," ~f:pr_var vs
 ;;
 
 (*******************************************************************

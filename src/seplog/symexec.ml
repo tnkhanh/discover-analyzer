@@ -26,16 +26,16 @@ module TF = Transform
 module TI = Typeinfer
 
 let parse_program_seplog (filename : string) : SA.program =
-  let sprint_position fname lexbuf =
+  let pr_position fname lexbuf =
     let pos = lexbuf.Lexing.lex_curr_p in
     let line = pos.Lexing.pos_lnum in
     let col = pos.Lexing.pos_cnum - pos.Lexing.pos_bol + 1 in
     "filename: "
     ^ fname
     ^ ", line: "
-    ^ sprint_int line
+    ^ pr_int line
     ^ ", col: "
-    ^ sprint_int col in
+    ^ pr_int col in
   let inchan =
     try open_in filename
     with e -> error ("Unable to open file:\n " ^ filename) in
@@ -46,13 +46,13 @@ let parse_program_seplog (filename : string) : SA.program =
       error
         (("Syntax error: " ^ msg ^ "\n")
         ^ "Location: "
-        ^ sprint_position filename lexbuf
+        ^ pr_position filename lexbuf
         ^ "\n")
     | Parser.Error ->
       error
         ("Syntax error!\n"
         ^ "Location: "
-        ^ sprint_position filename lexbuf
+        ^ pr_position filename lexbuf
         ^ "\n")
     | End_of_file -> error ("Unable to parse filename: " ^ filename) in
   let _ = close_in inchan in
@@ -62,18 +62,18 @@ let parse_program_seplog (filename : string) : SA.program =
 let process_command (prog : SI.program) (cmd : SI.command) : unit =
   match cmd with
   | SI.CheckSat f ->
-    print_endline ("\n[+] CheckSat: " ^ SI.sprint_f f);
+    print_endline ("\n[+] CheckSat: " ^ SI.pr_f f);
     (* let res = check_sat prog [f] in *)
     print_endline ("\n ==> Result: need to implement" ^ "\n")
   | SI.ProveEntails ents ->
-    print_endline ("\n[+] ProveEntails:\n" ^ SI.sprint_ents ents);
+    print_endline ("\n[+] ProveEntails:\n" ^ SI.pr_ents ents);
     let res = PV.prove_entailments prog ents in
-    print_endline ("\n ==> Result: " ^ sprint_bresult res ^ "\n")
+    print_endline ("\n ==> Result: " ^ pr_bresult res ^ "\n")
   | SI.InferFrame ent ->
-    print_endline ("\n[+] InferFrame: " ^ SI.sprint_ent ent);
+    print_endline ("\n[+] InferFrame: " ^ SI.pr_ent ent);
     let res, frame = PV.infer_entailment_frame prog ent in
-    print_endline ("\n ==> Result: " ^ sprint_bresult res);
-    print_endline ("\n ==> Frame: " ^ SI.sprint_fs frame ^ "\n")
+    print_endline ("\n ==> Result: " ^ pr_bresult res);
+    print_endline ("\n ==> Frame: " ^ SI.pr_fs frame ^ "\n")
 ;;
 
 let compile_lib_seplog () =
@@ -84,7 +84,7 @@ let compile_lib_seplog () =
       debugc
         ("=====================================\n"
         ^ "INPUT LIBS:\n\n"
-        ^ SA.sprint_program ilib
+        ^ SA.pr_program ilib
         ^ "\n\n") in
   let ilib = TI.infer_typ_program ilib in
   let _ =
@@ -93,7 +93,7 @@ let compile_lib_seplog () =
       debugc
         ("=====================================\n"
         ^ "TYPED LIBS:\n\n"
-        ^ SA.sprint_program ilib
+        ^ SA.pr_program ilib
         ^ "\n\n") in
   let clib = TF.transform_program ilib in
   let _ =
@@ -102,7 +102,7 @@ let compile_lib_seplog () =
       debugc
         ("=====================================\n"
         ^ "CORE LIBS:\n\n"
-        ^ SI.sprint_program clib
+        ^ SI.pr_program clib
         ^ "\n\n") in
   clib
 ;;
@@ -115,7 +115,7 @@ let compile_sep_logic (filename : string) : SI.program =
       debugc
         ("=====================================\n"
         ^ "INPUT PROGRAMS:\n\n"
-        ^ SA.sprint_program iprog
+        ^ SA.pr_program iprog
         ^ "\n\n") in
   let iprog = TI.infer_typ_program iprog in
   let _ =
@@ -124,7 +124,7 @@ let compile_sep_logic (filename : string) : SI.program =
       debugc
         ("=====================================\n"
         ^ "TYPED PROGRAMS:\n\n"
-        ^ SA.sprint_program iprog
+        ^ SA.pr_program iprog
         ^ "\n\n") in
   let cprog = TF.transform_program iprog in
   let _ =
@@ -133,13 +133,13 @@ let compile_sep_logic (filename : string) : SI.program =
       debugc
         ("=====================================\n"
         ^ "CORE PROGRAMS:\n\n"
-        ^ SI.sprint_program cprog
+        ^ SI.pr_program cprog
         ^ "\n\n") in
   cprog
 ;;
 
 let analyze_program_seplog (prog : SI.program) : unit =
-  debugc (SI.sprint_program prog ^ "\n\n===================================\n");
+  debugc (SI.pr_program prog ^ "\n\n===================================\n");
   List.iter ~f:(process_command prog) prog.prog_commands
 ;;
 
