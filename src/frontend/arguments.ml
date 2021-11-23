@@ -102,6 +102,9 @@ and arguments_raw =
     ( [ "--opt-option" ],
       "Command options for LLVM-Opt",
       Arg.Set_string opt_user_options );
+    ( [ "--enable-instrument" ],
+      "Instrument bug annotations from source code",
+      Arg.Set enable_instrument );
     (*--------------------------------------------------------
      * analysis
      *--------------------------------------------------------*)
