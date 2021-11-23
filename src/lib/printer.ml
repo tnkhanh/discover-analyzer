@@ -29,7 +29,8 @@ let no_print = ref false
 let pr_bool : bool -> string = string_of_bool
 let pr_float : float -> string = string_of_float
 let pr_int : int -> string = string_of_int
-let pr_int64 = Int64.to_string
+let pr_int64 : int64 -> string = Int64.to_string
+let pr_str : string -> string = fun s -> s
 
 (*------------------
  * Print to string
@@ -37,15 +38,17 @@ let pr_int64 = Int64.to_string
 
 let sprintf = Printf.sprintf
 
-(** print a list of string to string *)
-let pr_string_list
+(** print a list to string *)
+let pr_list
     ?(sep = ", ")
     ?(obrace = "[")
     ?(cbrace = "]")
     ?(indent = "")
     ?(extra = "")
-    (xs : string list)
+    ~(f : 'a -> string)
+    (xs : 'a list)
   =
+  let xs = List.map ~f xs in
   let extra =
     if String.equal obrace ""
     then extra
@@ -57,8 +60,8 @@ let pr_string_list
     | [] -> ""
     | [ x ] -> x
     | x :: nxs ->
-      let sxs = x :: List.map ~f:(fun u -> indent ^ extra ^ u) nxs in
-      String.concat ~sep sxs in
+      let xs = x :: List.map ~f:(fun u -> indent ^ extra ^ u) nxs in
+      String.concat ~sep xs in
   let obrace, cbrace =
     if (not (String.is_substring content ~substring:"\n"))
        || String.equal obrace ""
@@ -67,45 +70,13 @@ let pr_string_list
   obrace ^ content ^ cbrace
 ;;
 
-(** higher-order function to print a list to string *)
-let pr_list
-    ?(sep = ", ")
-    ?(obrace = "[")
-    ?(cbrace = "]")
-    ?(indent = "")
-    ?(extra = "")
-    ~(f : 'a -> string)
-    (xs : 'a list)
-  =
-  let sxs = List.map ~f xs in
-  pr_string_list ~sep ~obrace ~cbrace ~indent ~extra sxs
-;;
-
 let pr_list_square = pr_list ~obrace:"[" ~cbrace:"]"
 let pr_list_curly = pr_list ~obrace:"{" ~cbrace:"}"
 let pr_list_paren = pr_list ~obrace:"(" ~cbrace:")"
 let pr_list_plain = pr_list ~obrace:"" ~cbrace:""
 
-(** print a list of string to string in itemized format *)
-let pr_list_itemized
-    ?(bullet = "-")
-    ?(obrace = "")
-    ?(cbrace = "")
-    ?(extra = "")
-    (xs : string list)
-  =
-  if List.is_empty xs
-  then "[]"
-  else (
-    let indent = String.length bullet + 1 in
-    let sprint x =
-      let res = String.indent ~skipfirst:true indent x in
-      bullet ^ " " ^ res in
-    "\n" ^ pr_list ~sep:"\n" ~obrace ~cbrace ~extra ~f:sprint xs)
-;;
-
-(** higher-order function to print a list to string in itemized format *)
-let hpr_list_itemized
+(** print a list of items to string in itemized format *)
+let pr_items
     ?(bullet = "-")
     ?(obrace = "")
     ?(cbrace = "")
@@ -113,8 +84,15 @@ let hpr_list_itemized
     ~(f : 'a -> string)
     (xs : 'a list)
   =
-  let sxs = List.map ~f xs in
-  pr_list_itemized ~bullet ~obrace ~cbrace ~extra sxs
+  let xs = List.map ~f xs in
+  if List.is_empty xs
+  then "[]"
+  else (
+    let indent = String.length bullet + 1 in
+    let pr s =
+      let res = String.indent ~skipfirst:true indent s in
+      bullet ^ " " ^ res in
+    "\n" ^ pr_list ~sep:"\n" ~obrace ~cbrace ~extra ~f:pr xs)
 ;;
 
 let pr_args ~(f : 'a -> string) (args : 'a list) : string =

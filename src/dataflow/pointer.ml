@@ -289,7 +289,7 @@ module PointerGraph = struct
   ;;
 
   let pr_paths (paths : path list) : string =
-    hpr_list_itemized ~f:pr_path paths
+    pr_items ~f:pr_path paths
   ;;
 
   let is_alias_edge (e : edge) : bool =
@@ -3543,7 +3543,7 @@ struct
          * let edges = create_memcpy_edges output instr sexp dexp in
          * let _ = List.iter ~f:(PG.add_edge_e output) edges in *)
         (* let _ = hdebug "   handle Memcpy: " pr_expr sexp in
-         * let _ = hdebug "   New Edges: " (pr_list_itemized PG.pr_edge) edges in *)
+         * let _ = hdebug "   New Edges: " (pr_items PG.pr_edge) edges in *)
         output)
       else if is_func_dynamic_cast callee
       then (

@@ -254,8 +254,7 @@ let pr_ent (ent : entailment) : string =
 ;;
 
 let pr_ents (ents : entailment list) : string =
-  let sents = List.map ~f:pr_ent ents in
-  pr_list_itemized ~bullet:"  # " sents
+  pr_items ~bullet:"  # " ~f:pr_ent ents
 ;;
 
 (*** print declarations ***)

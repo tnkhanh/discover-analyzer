@@ -149,7 +149,7 @@ let count_all_assertions (prog : LI.program) : int =
       ~f:(fun acc func -> acc @ find_all_assertions func)
       ~init:[] prog.prog_user_funcs in
   let _ =
-    hprint "All assertions: " (hpr_list_itemized ~f:pr_assertion) assertions
+    hprint "All assertions: " (pr_items ~f:pr_assertion) assertions
   in
   List.length assertions
 ;;

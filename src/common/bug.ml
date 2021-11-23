@@ -154,7 +154,7 @@ let pr_potential_bug (bug : bug) : string =
 ;;
 
 let pr_potential_bugs (bugs : bug list) : string =
-  hpr_list_itemized ~f:pr_potential_bug bugs
+  pr_items ~f:pr_potential_bug bugs
 ;;
 
 let pr_bug ?(detailed = true) (bug : bug) : string =
@@ -173,7 +173,7 @@ let pr_bug ?(detailed = true) (bug : bug) : string =
 ;;
 
 let pr_bug_name (bug : bug) : string = pr_bug_type ~detailed:false bug.bug_type
-let pr_bugs (bugs : bug list) : string = hpr_list_itemized ~f:pr_bug bugs
+let pr_bugs (bugs : bug list) : string = pr_items ~f:pr_bug bugs
 
 (*******************************************************************
  ** constructors

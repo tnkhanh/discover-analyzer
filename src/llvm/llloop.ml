@@ -65,7 +65,7 @@ let update_loop_info (prog : program) loop : loop =
 
 let find_loop_in_blocks (prog : program) (blks : blocks) : loops =
   let scbs = LG.get_strongly_connected_blocks prog blks in
-  (* let _ = hdebugc "SCC blocks: " (pr_list_itemized LG.pr_scblocks) scbs in *)
+  (* let _ = hdebugc "SCC blocks: " (pr_items LG.pr_scblocks) scbs in *)
   let loops =
     List.fold_left
       ~f:(fun acc scb ->
@@ -81,7 +81,7 @@ let find_loop_in_blocks (prog : program) (blks : blocks) : loops =
             let loop = update_loop_info prog loop in
             acc @ [ loop ]))
       ~init:[] scbs in
-  (* let _ = hdebugc "All loops: " (pr_list_itemized pr_loop) loops in *)
+  (* let _ = hdebugc "All loops: " (pr_items pr_loop) loops in *)
   loops
 ;;
 

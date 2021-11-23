@@ -819,7 +819,7 @@ let pr_prec_block (pblk : prec_block) : string =
 ;;
 
 let pr_prec_blocks (pblks : prec_block list) : string =
-  hpr_list_itemized ~f:pr_prec_block pblks
+  pr_items ~f:pr_prec_block pblks
 ;;
 
 let pr_succ_block (sblk : succ_block) : string =
@@ -3085,7 +3085,7 @@ let pr_loop (l : loop) : string =
   String.concat ~sep:"; " loop_info
 ;;
 
-let pr_loops (ls : loop list) : string = hpr_list_itemized ~f:pr_loop ls
+let pr_loops (ls : loop list) : string = pr_items ~f:pr_loop ls
 
 let pr_block (blk : block) : string =
   let blkname = block_name blk in
@@ -3159,7 +3159,7 @@ let print_program_analysis_info (prog : program) =
           then acc
           else
             (acc ^ "\n - " ^ func_name f ^ ":")
-            ^ hpr_list_itemized ~bullet:"    ->" ~f:callable_name callees)
+            ^ pr_items ~bullet:"    ->" ~f:callable_name callees)
         ~init:"" pfd.pfd_callees in
   let _ = debug callees_info in
   let callers_info =
@@ -3171,7 +3171,7 @@ let print_program_analysis_info (prog : program) =
           then acc
           else
             (acc ^ "\n - " ^ func_name f ^ ":")
-            ^ hpr_list_itemized ~bullet:"    <-" ~f:func_name callers)
+            ^ pr_items ~bullet:"    <-" ~f:func_name callers)
         ~init:"" pfd.pfd_callers in
   debug callers_info
 ;;

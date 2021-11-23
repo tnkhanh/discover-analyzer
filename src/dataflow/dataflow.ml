@@ -583,7 +583,7 @@ functor
      * (pr_data d) *)
 
     let pr_datas ?(bullet = "-") (ds : t list) : string =
-      hpr_list_itemized ~bullet ~f:pr_data ds
+      pr_items ~bullet ~f:pr_data ds
     ;;
 
     let pr_data_opt (d : t option) : string =
@@ -637,7 +637,7 @@ functor
       ^ pr_value exn.exn_type_info
     ;;
 
-    let pr_exns (exns : exn list) : string = hpr_list_itemized ~f:pr_exn exns
+    let pr_exns (exns : exn list) : string = pr_items ~f:pr_exn exns
 
     let pr_working_block (wb : working_block) : string =
       block_name wb.wb_block ^ " @ " ^ pr_instr wb.wb_instr ^ " @ {"
@@ -645,7 +645,7 @@ functor
     ;;
 
     let pr_working_blocks (wbs : working_block list) : string =
-      hpr_list_itemized ~bullet:" +" ~f:pr_working_block wbs
+      pr_items ~bullet:" +" ~f:pr_working_block wbs
     ;;
 
     let pr_working_func (wf : working_func) : string =
@@ -674,7 +674,7 @@ functor
     ;;
 
     let pr_working_funcs (wfs : working_func list) : string =
-      hpr_list_itemized ~f:pr_working_func wfs
+      pr_items ~f:pr_working_func wfs
     ;;
 
     let pr_analyzed_func_input penv : string =
@@ -687,7 +687,7 @@ functor
                 inputs in
             acc @ sfuncs)
           ~init:[] penv.penv_func_analyzed_inputs in
-      pr_list_itemized ~bullet:"+" func_inputs
+      pr_items ~bullet:"+" ~f:pr_str func_inputs
     ;;
 
     let pr_func_summary (fsum : T.func_summary) : string =
@@ -2792,7 +2792,7 @@ functor
       let _ = if !print_stats_prog then print_stats_sparse_prog penv in
       let _ =
         hprint "Goal functions: "
-          (hpr_list_itemized ~f:func_name)
+          (pr_items ~f:func_name)
           penv.penv_goal_funcs in
       (* let prog = update_program_info prog in *)
       let _ =

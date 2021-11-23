@@ -347,7 +347,7 @@ let pr_ent ?(id = false) ent =
 ;;
 
 let pr_ents (ents : entailments) : string =
-  hpr_list_itemized ~bullet:"  " ~f:(pr_ent ~id:true) ents
+  pr_items ~bullet:"  " ~f:(pr_ent ~id:true) ents
 ;;
 
 let pr_ent_id (ent : entailment) : string = "#" ^ pr_int ent.ent_id
