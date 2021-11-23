@@ -4,7 +4,7 @@
 // We assume sizeof(int)=4 and sizeof(long)>4.
 
 #include <stdio.h>
-#include "discover.h"
+//#include "discover.h"
 
 int main() {
 	// The operand 1LL has type long long. Due to the usual arithmetic conversions, 

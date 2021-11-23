@@ -2,7 +2,7 @@
 // Date: 2015-09-01
 
 #include <stdio.h>
-#include "discover.h"
+//#include "discover.h"
 
 int main() {
 	// we assume sizeof(short)=2 and sizeof(int)=4

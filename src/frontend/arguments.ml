@@ -62,6 +62,7 @@ and arguments_raw =
     ( [ "--dis-pcp"; "--dis-print-core-program" ],
       "Disable printing core program",
       Arg.Clear print_core_prog );
+    [ "--print-instrumented" ], "Print instrumented bitcode", Arg.Set print_instrumented;
     [ "--pap" ], "Print analyzed program", Arg.Set print_analyzed_prog;
     [ "--psp" ], "Print statistics of program", Arg.Set print_stats_prog;
     [ "--type" ], "Print type information of variables", Arg.Set print_type;

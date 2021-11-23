@@ -108,9 +108,12 @@ let extract_ann_marks (filename : string) =
       in
       [] in
   (*print all marks*)
-  let _ = debug ~ruler:`Short "Annotations" in
+  let _ = 
+    if !print_instrumented
+    then debug ~ruler:`Short "Annotations" in
   let _ =
-    List.iter (List.rev (List.map rev_mark_list ~f:Ann.str_of_mark)) ~f:debug
+    if !print_instrumented
+    then List.iter (List.rev (List.map rev_mark_list ~f:Ann.str_of_mark)) ~f:debug
   in
   List.rev rev_mark_list
 ;;
@@ -318,7 +321,8 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
      See module llsimp.ml, function elim_instr_intrinsic_lifetime ...
      for how to manipulating LLVM bitcode *)
   let _ =
-    debug2 ~ruler:`Long "Uninstrumented: " (LL.string_of_llmodule modul) in
+    if !print_instrumented 
+    then debug2 ~ruler:`Long "Uninstrumented: " (LL.string_of_llmodule modul) in
   let finstr =
     Some
       (fun acc instr ->
@@ -381,7 +385,8 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
   (*   ) ^ " " ^ findstr ^ "\n" *)
   (* ) in *)
   (* let _ = debug2 ~ruler:`Long "Hashtbl" strhash in *)
-   debug2 ~ruler:`Long "Instrumented" (LL.string_of_llmodule modul)
+  if !print_instrumented
+  then debug2 ~ruler:`Long "Instrumented" (LL.string_of_llmodule modul)
 ;;
 
 (*we need source_name to ignore instructions with location outside the source file *)

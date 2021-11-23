@@ -4,7 +4,7 @@
 // We assume sizeof(int)=4 and sizeof(long)>4.
 
 #include <stdio.h>
-#include "discover.h"
+//#include "discover.h"
 
 int main() {
 	// The literal of type long on the right-hand side is exactly INT_MAX+1 and will 
