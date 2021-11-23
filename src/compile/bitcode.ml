@@ -15,7 +15,6 @@ module OC = Llvm.Opcode
 module LI = Llir
 module LU = Llutils
 module LN = Llnormalize
-module LS = Llsimplify
 module LT = Llinstrument
 module LP = Llpass
 module PS = Process
@@ -42,24 +41,26 @@ let export_bitcode_to_file (input_file : string) (modul : LL.llmodule) =
 let process_module (input_file : string) (modul : LL.llmodule) : LI.program =
   let _ = print2 "Simplifying bitcode: " input_file in
   let _ = LN.rename_vars_and_params modul in
-  let _ = if !llvm_simplify then LS.simplify_module input_file modul in
+  let _ = if !llvm_simplify then LN.simplify_module input_file modul in
   let _ = if !export_bitcode then export_bitcode_to_file input_file modul in
   let _ = LN.check_normalization modul in
   let prog = LI.mk_program input_file modul in
   let _ = LP.update_program_info prog in
   let _ =
     if (not !print_concise_output) && !print_core_prog
-    then hprint ~ruler:`Header "CORE BITCODE PROGRAM" LI.sprint_program prog
+    then hprint ~ruler:`Header "CORE BITCODE PROGRAM" LI.pr_program prog
   in
-  (* let _ = hdebug "Call Graph: " LI.sprint_callee_info prog in *)
+  (* let _ = hdebug "Call Graph: " LI.pr_callee_info prog in *)
   let _ = if !llvm_print_prog_info then LI.print_program_analysis_info prog in
   prog
 ;;
 
+(** Disassemble LLVM bitcode (.bc files) to IR (.ll files) *)
 let disassemble_bitcode (filename : string) : unit =
   PS.run_command [ !llvm_dis_exe; filename ]
 ;;
 
+(** Optimize LLVM bitcode by running the LLVM's opt tool *)
 let optimize_bitcode (input_file : string) : string =
   let _ = print2 "Optimize bitcode file: " input_file in
   let basename = Filename.chop_extension (Filename.basename input_file) in
@@ -85,6 +86,7 @@ let optimize_bitcode (input_file : string) : string =
   output_file
 ;;
 
+(** Normalize LLVM bitcode by running the Discover's llvm-normalizer tool *)
 let normalize_bitcode (input_file : string) : string =
   let _ = print2 "Normalize bitcode file: " input_file in
   let basename = Filename.chop_extension (Filename.basename input_file) in
@@ -113,7 +115,7 @@ let process_bitcode (input_file : string) : LI.program =
   let _ = LL.MemoryBuffer.dispose llmem in
   let _ =
     if !print_input_prog
-    then hprint ~ruler:`Long "ORIGINAL BITCODE MODULE" LI.sprint_module modul
+    then hprint ~ruler:`Long "ORIGINAL BITCODE MODULE" LI.pr_module modul
   in
   process_module output_file modul
 ;;

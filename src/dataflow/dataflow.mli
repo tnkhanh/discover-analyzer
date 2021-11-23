@@ -153,8 +153,8 @@ module type ForwardDataTransfer = sig
   include Env
 
   val analysis : dfa_analysis
-  val sprint_data : t -> string
-  val sprint_data_checksum : t -> string
+  val pr_data : t -> string
+  val pr_data_checksum : t -> string
   val least_data : t
   val equal_data : t -> t -> bool
   val lequal_data : t -> t -> bool
@@ -209,7 +209,7 @@ end
  *******************************************************************)
 
 module ForwardDataFlow : functor (T : ForwardDataTransfer) -> sig
-  val sprint_prog_env : T.prog_env -> string
+  val pr_prog_env : T.prog_env -> string
   val is_intra_proc_dfa_mode : unit -> bool
   val get_func_analyzed_times : T.prog_env -> func -> int
   val is_call_to_user_function : instr -> bool

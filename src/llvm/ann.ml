@@ -26,9 +26,9 @@ let pos_of_ann (ann : mark) =
   | Skip -> -1, -1
 ;;
 
-let sprint_pos_ann ann =
+let pr_pos_ann ann =
   let line, col = pos_of_ann ann in
-  sprint_int line ^ " " ^ sprint_int col
+  pr_int line ^ " " ^ pr_int col
 ;;
 
 type program = mark list
@@ -51,11 +51,11 @@ let str_of_bg_list l =
 let str_of_mark m =
   match m with
   | Bug_start ((x, y), bl) ->
-    "Bug_start " ^ sprint_int x ^ " " ^ sprint_int y ^ " " ^ str_of_bg_list bl
-  | Bug_end (x, y) -> "Bug_end " ^ sprint_int x ^ " " ^ sprint_int y
+    "Bug_start " ^ pr_int x ^ " " ^ pr_int y ^ " " ^ str_of_bg_list bl
+  | Bug_end (x, y) -> "Bug_end " ^ pr_int x ^ " " ^ pr_int y
   | Safe_start ((x, y), bl) ->
-    "Safe_start " ^ sprint_int x ^ " " ^ sprint_int y ^ " " ^ str_of_bg_list bl
-  | Safe_end (x, y) -> "Safe_end " ^ sprint_int x ^ " " ^ sprint_int y
+    "Safe_start " ^ pr_int x ^ " " ^ pr_int y ^ " " ^ str_of_bg_list bl
+  | Safe_end (x, y) -> "Safe_end " ^ pr_int x ^ " " ^ pr_int y
   | Skip -> "Skip_"
 ;;
 

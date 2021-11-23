@@ -91,7 +91,7 @@ let debug_core
     ?(ruler = `None)
     ?(prefix = "")
     ?(indent = 0)
-    ~enable
+    ~(enable : bool)
     (printer : unit -> string)
   =
   if enable
@@ -122,11 +122,19 @@ let debug_core
 
 (** print a message *)
 
-let debug ?(ruler = `None) ?(indent = 0) ?(always = false) (msg : string)
+let debug
+    ?(ruler = `None)
+    ?(indent = 0)
+    ?(always = false)
+    ?(compact = false)
+    ?(enable = true)
+    (msg : string)
     : unit
   =
-  let enable = (not !no_debug) && (!mode_debug || !mode_deep_debug || always) in
-  let prefix = if ruler == `None then "\n" else "" in
+  let enable =
+    enable && (not !no_debug) && (!mode_debug || !mode_deep_debug || always)
+  in
+  let prefix = if ruler != `None then "" else if compact then "" else "\n" in
   debug_core ~ruler ~indent ~enable ~prefix (fun () -> msg)
 ;;
 
@@ -136,13 +144,13 @@ let debug2
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
+    ?(compact = false)
+    ?(enable = true)
     (msg1 : string)
     (msg2 : string)
     : unit
   =
-  let enable = (not !no_debug) && (!mode_debug || !mode_deep_debug || always) in
-  let prefix = if ruler == `None then "\n" else "" in
-  debug_core ~ruler ~indent ~enable ~prefix (fun () -> msg1 ^ msg2)
+  debug ~ruler ~indent ~always ~compact ~enable (msg1 ^ msg2)
 ;;
 
 (** print a list of messages *)
@@ -151,50 +159,59 @@ let debugs
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
+    ?(compact = false)
+    ?(enable = true)
     (msgs : string list)
     : unit
   =
-  let enable = (not !no_debug) && (!mode_debug || !mode_deep_debug || always) in
-  let prefix = if ruler == `None then "\n" else "" in
-  debug_core ~ruler ~indent ~enable ~prefix (fun () -> String.concat msgs)
-;;
-
-(** print a concise mode_debug message *)
-
-let debugc ?(ruler = `None) ?(indent = 0) ?(always = false) msg : unit =
-  let enable = (not !no_debug) && (!mode_debug || !mode_deep_debug || always) in
-  debug_core ~ruler ~indent ~enable (fun () -> msg)
-;;
-
-(** print a mode_debug message and a new line *)
-
-let debugln ?(ruler = `None) ?(indent = 0) ?(always = false) msg : unit =
-  debug ~ruler ~indent ~always (msg ^ "\n")
+  debug ~ruler ~indent ~always ~compact ~enable (String.concat msgs)
 ;;
 
 (** print a deep mode_debug message *)
 
-let ddebug ?(ruler = `None) ?(indent = 0) ?(always = false) msg : unit =
-  let enable = (not !no_debug) && (!mode_deep_debug || always) in
-  debug_core ~ruler ~indent ~enable ~prefix:"\n" (fun () -> msg)
+let ddebug
+    ?(ruler = `None)
+    ?(indent = 0)
+    ?(always = false)
+    ?(compact = false)
+    ?(enable = true)
+    (msg : string)
+    : unit
+  =
+  let enable = enable && (not !no_debug) && (!mode_deep_debug || always) in
+  let prefix = if ruler != `None then "" else if compact then "" else "\n" in
+  debug_core ~ruler ~indent ~enable ~prefix (fun () -> msg)
 ;;
 
-(** print a concise deep mode_debug message *)
-
-let ddebugc ?(ruler = `None) ?(indent = 0) ?(always = false) msg : unit =
-  let enable = (not !no_debug) && (!mode_deep_debug || always) in
-  debug_core ~ruler ~indent ~enable (fun () -> msg)
+let ddebug2
+    ?(ruler = `None)
+    ?(indent = 0)
+    ?(always = false)
+    ?(compact = false)
+    ?(enable = true)
+    (msg1 : string)
+    (msg2 : string)
+    : unit
+  =
+  ddebug ~ruler ~indent ~always ~compact ~enable (msg1 ^ msg2)
 ;;
 
-(** print a mode_debug message and a new line*)
-
-let ddebugln ?(ruler = `None) ?(indent = 0) ?(always = false) msg : unit =
-  ddebug ~ruler ~indent ~always (msg ^ "\n")
+let ddebugs
+    ?(ruler = `None)
+    ?(indent = 0)
+    ?(always = false)
+    ?(compact = false)
+    ?(enable = true)
+    (msgs : string list)
+    : unit
+  =
+  ddebug ~ruler ~indent ~always ~compact ~enable (String.concat msgs)
 ;;
 
-(* a *)
-
+(* disable printing *)
 let ndebug _ = ()
+let ndebug2 _ = ()
+let ndebugs _ = ()
 
 (*** higher order printers ***)
 
@@ -204,43 +221,17 @@ let hdebug
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
-    msg
+    ?(compact = false)
+    ?(enable = true)
+    (msg : string)
     (pr : 'a -> string)
     (data : 'a)
   =
-  let enable = (not !no_debug) && (!mode_debug || !mode_deep_debug || always) in
-  let prefix = "\n" ^ msg in
+  let enable =
+    enable && (not !no_debug) && (!mode_debug || !mode_deep_debug || always)
+  in
+  let prefix = if compact then msg else "\n" ^ msg in
   debug_core ~ruler ~indent ~enable ~prefix (fun () -> pr data)
-;;
-
-(** high-order print a concise mode_debug message *)
-
-let hdebugc
-    ?(ruler = `None)
-    ?(indent = 0)
-    ?(always = false)
-    msg
-    (pr : 'a -> string)
-    (data : 'a)
-  =
-  let enable = (not !no_debug) && (!mode_debug || !mode_deep_debug || always) in
-  let prefix = msg in
-  debug_core ~ruler ~indent ~enable ~prefix (fun () -> pr data)
-;;
-
-(** high-order print a mode_debug message and a new line *)
-
-let hdebugln
-    ?(ruler = `None)
-    ?(indent = 0)
-    ?(always = false)
-    msg
-    (pr : 'a -> string)
-    (data : 'a)
-  =
-  let enable = (not !no_debug) && (!mode_debug || !mode_deep_debug || always) in
-  let prefix = "\n" ^ msg in
-  debug_core ~ruler ~indent ~enable ~prefix (fun () -> pr data ^ "\n")
 ;;
 
 (** high-order print a deep mode_debug message *)
@@ -249,44 +240,20 @@ let hddebug
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
-    msg
+    ?(compact = false)
+    ?(enable = true)
+    (msg : string)
     (pr : 'a -> string)
     (data : 'a)
   =
-  let enable = (not !no_debug) && (!mode_deep_debug || always) in
-  let prefix = "\n" ^ msg in
+  let enable = enable && (not !no_debug) && (!mode_deep_debug || always) in
+  let prefix = if compact then msg else "\n" ^ msg in
   debug_core ~ruler ~indent ~enable ~prefix (fun () -> pr data)
 ;;
 
-(** high-order print a deep concise mode_debug message *)
-
-let hddebugc
-    ?(ruler = `None)
-    ?(indent = 0)
-    ?(always = false)
-    msg
-    (pr : 'a -> string)
-    (data : 'a)
-  =
-  let enable = (not !no_debug) && (!mode_deep_debug || always) in
-  let prefix = msg in
-  debug_core ~ruler ~indent ~enable ~prefix (fun () -> pr data)
-;;
-
-(** high-order print a deep mode_debug message *)
-
-let hddebugln
-    ?(ruler = `None)
-    ?(indent = 0)
-    ?(always = false)
-    msg
-    (pr : 'a -> string)
-    (data : 'a)
-  =
-  let enable = (not !no_debug) && (!mode_deep_debug || always) in
-  let prefix = "\n" ^ msg in
-  debug_core ~ruler ~indent ~enable ~prefix (fun () -> pr data ^ "\n")
-;;
+(* disable printing *)
+let nhdebug _ = ()
+let nhddebug _ = ()
 
 (*******************************************************************
  ** Interactive

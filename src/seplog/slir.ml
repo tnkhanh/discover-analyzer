@@ -208,151 +208,151 @@ type program =
  ** printing
  *******************************************************************)
 
-let rec sprint_exp (e : exp) : string =
+let rec pr_exp (e : exp) : string =
   match e with
   | Void -> "void"
   | Null -> "null"
-  | Int i -> sprint_int i
-  | Float f -> sprint_float f
+  | Int i -> pr_int i
+  | Float f -> pr_float f
   | String s -> "\"" ^ s ^ "\""
-  | Var v -> sprint_var v
+  | Var v -> pr_var v
   | Cast (e, t1, t2) ->
-    "cast(" ^ sprint_exp e ^ "," ^ sprint_type t1 ^ "," ^ sprint_type t2 ^ ")"
-  | Func (Add, [ e1; e2 ], _) -> sprint_exp e1 ^ "+" ^ sprint_exp e2
-  | Func (Sub, [ e1; e2 ], _) -> sprint_exp e1 ^ "-" ^ sprint_exp e2
-  | Func (Mul, [ e1; e2 ], _) -> sprint_exp e1 ^ "*" ^ sprint_exp e2
-  | Func (Div, [ e1; e2 ], _) -> sprint_exp e1 ^ "/" ^ sprint_exp e2
-  | Func (FName n, es, _) -> n ^ "(" ^ sprint_exps es ^ ")"
-  | Func _ -> error "sprint_exp: unexpected exp: (need details)"
+    "cast(" ^ pr_exp e ^ "," ^ pr_type t1 ^ "," ^ pr_type t2 ^ ")"
+  | Func (Add, [ e1; e2 ], _) -> pr_exp e1 ^ "+" ^ pr_exp e2
+  | Func (Sub, [ e1; e2 ], _) -> pr_exp e1 ^ "-" ^ pr_exp e2
+  | Func (Mul, [ e1; e2 ], _) -> pr_exp e1 ^ "*" ^ pr_exp e2
+  | Func (Div, [ e1; e2 ], _) -> pr_exp e1 ^ "/" ^ pr_exp e2
+  | Func (FName n, es, _) -> n ^ "(" ^ pr_exps es ^ ")"
+  | Func _ -> error "pr_exp: unexpected exp: (need details)"
 
-and sprint_exps (es : exp list) : string =
-  sprint_list ~sep:"," ~f:sprint_exp es
+and pr_exps (es : exp list) : string =
+  pr_list ~sep:"," ~f:pr_exp es
 ;;
 
-let sprint_reln_form (rf : reln_form) : string =
+let pr_reln_form (rf : reln_form) : string =
   match rf with
-  | Eq, [ e1; e2 ] -> sprint_exp e1 ^ "=" ^ sprint_exp e2
-  | Ne, [ e1; e2 ] -> sprint_exp e1 ^ "!=" ^ sprint_exp e2
-  | Lt, [ e1; e2 ] -> sprint_exp e1 ^ "<" ^ sprint_exp e2
-  | Gt, [ e1; e2 ] -> sprint_exp e1 ^ ">" ^ sprint_exp e2
-  | Le, [ e1; e2 ] -> sprint_exp e1 ^ "<=" ^ sprint_exp e2
-  | Ge, [ e1; e2 ] -> sprint_exp e1 ^ ">=" ^ sprint_exp e2
-  | RName n, es -> n ^ "(" ^ sprint_exps es ^ ")"
-  | _ -> error "sprint_reln_form: unexpected relation: (need details)"
+  | Eq, [ e1; e2 ] -> pr_exp e1 ^ "=" ^ pr_exp e2
+  | Ne, [ e1; e2 ] -> pr_exp e1 ^ "!=" ^ pr_exp e2
+  | Lt, [ e1; e2 ] -> pr_exp e1 ^ "<" ^ pr_exp e2
+  | Gt, [ e1; e2 ] -> pr_exp e1 ^ ">" ^ pr_exp e2
+  | Le, [ e1; e2 ] -> pr_exp e1 ^ "<=" ^ pr_exp e2
+  | Ge, [ e1; e2 ] -> pr_exp e1 ^ ">=" ^ pr_exp e2
+  | RName n, es -> n ^ "(" ^ pr_exps es ^ ")"
+  | _ -> error "pr_reln_form: unexpected relation: (need details)"
 ;;
 
-let rec sprint_pure_form (f : pure_form) : string =
+let rec pr_pure_form (f : pure_form) : string =
   let pr_aux f =
     match f with
-    | PConj _ | PDisj _ -> "(" ^ sprint_pure_form f ^ ")"
-    | _ -> sprint_pure_form f in
+    | PConj _ | PDisj _ -> "(" ^ pr_pure_form f ^ ")"
+    | _ -> pr_pure_form f in
   match f with
-  | Bool b -> sprint_bool b
-  | BExp e -> sprint_exp e
-  | Reln rf -> sprint_reln_form rf
-  | PNeg f -> "!" ^ "(" ^ sprint_pure_form f ^ ")"
-  | BEq (e, p) -> sprint_exp e ^ "=" ^ "(" ^ sprint_pure_form p ^ ")"
-  | PConj fs -> sprint_list ~sep:" & " ~f:pr_aux fs
-  | PDisj fs -> sprint_list ~sep:" | " ~f:pr_aux fs
+  | Bool b -> pr_bool b
+  | BExp e -> pr_exp e
+  | Reln rf -> pr_reln_form rf
+  | PNeg f -> "!" ^ "(" ^ pr_pure_form f ^ ")"
+  | BEq (e, p) -> pr_exp e ^ "=" ^ "(" ^ pr_pure_form p ^ ")"
+  | PConj fs -> pr_list ~sep:" & " ~f:pr_aux fs
+  | PDisj fs -> pr_list ~sep:" | " ~f:pr_aux fs
   | PForall (vs, f) ->
-    "(forall " ^ sprint_vars vs ^ ". " ^ sprint_pure_form f ^ ")"
+    "(forall " ^ pr_vars vs ^ ". " ^ pr_pure_form f ^ ")"
   | PExists (vs, f) ->
-    "(exists " ^ sprint_vars vs ^ ". " ^ sprint_pure_form f ^ ")"
+    "(exists " ^ pr_vars vs ^ ". " ^ pr_pure_form f ^ ")"
 
-and sprint_pf (f : pure_form) = sprint_pure_form f
+and pr_pf (f : pure_form) = pr_pure_form f
 
-and sprint_pfs (fs : pure_forms) : string =
-  sprint_list ~sep:"\n" ~f:sprint_pf fs
+and pr_pfs (fs : pure_forms) : string =
+  pr_list ~sep:"\n" ~f:pr_pf fs
 ;;
 
-let sprint_addr_form a =
-  "(" ^ sprint_exp a.addr_base ^ "," ^ sprint_exp a.addr_elem ^ ")"
+let pr_addr_form a =
+  "(" ^ pr_exp a.addr_base ^ "," ^ pr_exp a.addr_elem ^ ")"
 ;;
 
-let sprint_data_form (d : data_form) : string =
+let pr_data_form (d : data_form) : string =
   let addr =
     match d.data_addr with
     | None -> ""
-    | Some addr -> "@" ^ sprint_addr_form addr in
-  sprint_exp d.data_root
+    | Some addr -> "@" ^ pr_addr_form addr in
+  pr_exp d.data_root
   ^ "->"
-  ^ sprint_type d.data_typ
+  ^ pr_type d.data_typ
   ^ "{"
-  ^ sprint_exps d.data_args
+  ^ pr_exps d.data_args
   ^ "}"
   ^ addr
 ;;
 
-let sprint_df (s : data_form) = sprint_data_form s
+let pr_df (s : data_form) = pr_data_form s
 
-let sprint_dfs sfs : string =
-  sprint_list ~obrace:"[" ~cbrace:"]" ~sep:", " ~f:sprint_df sfs
+let pr_dfs sfs : string =
+  pr_list ~obrace:"[" ~cbrace:"]" ~sep:", " ~f:pr_df sfs
 ;;
 
-let sprint_view_form (v : view_form) : string =
-  v.view_name ^ "(" ^ sprint_exps v.view_args ^ ")"
+let pr_view_form (v : view_form) : string =
+  v.view_name ^ "(" ^ pr_exps v.view_args ^ ")"
 ;;
 
-let sprint_vf (v : view_form) = sprint_view_form v
+let pr_vf (v : view_form) = pr_view_form v
 
-let sprint_vfs vfs : string =
-  sprint_list ~obrace:"[" ~cbrace:"]" ~sep:", " ~f:sprint_vf vfs
+let pr_vfs vfs : string =
+  pr_list ~obrace:"[" ~cbrace:"]" ~sep:", " ~f:pr_vf vfs
 ;;
 
-let sprint_iter_form (i : iter_form) =
+let pr_iter_form (i : iter_form) =
   "aiter("
-  ^ sprint_exp i.iter_base
+  ^ pr_exp i.iter_base
   ^ ","
-  ^ sprint_exp i.iter_element_index
+  ^ pr_exp i.iter_element_index
   ^ ")"
   ^ "{"
-  ^ sprint_var i.iter_running_index
+  ^ pr_var i.iter_running_index
   ^ ","
-  ^ sprint_exp i.iter_begin
+  ^ pr_exp i.iter_begin
   ^ ","
-  ^ sprint_exp i.iter_end
+  ^ pr_exp i.iter_end
   ^ "}"
 ;;
 
-let sprint_if (i : iter_form) = sprint_iter_form i
+let pr_if (i : iter_form) = pr_iter_form i
 
-let sprint_array_form (a : array_form) =
+let pr_array_form (a : array_form) =
   let res =
     "array("
-    ^ sprint_exp a.array_root
+    ^ pr_exp a.array_root
     ^ ","
-    ^ sprint_exp a.array_size
+    ^ pr_exp a.array_size
     ^ ","
-    ^ sprint_type a.array_typ
+    ^ pr_type a.array_typ
     ^ ")" in
   let res =
     List.fold_left
-      ~f:(fun acc d -> "(" ^ acc ^ " *+ " ^ sprint_df d ^ ")")
+      ~f:(fun acc d -> "(" ^ acc ^ " *+ " ^ pr_df d ^ ")")
       ~init:res
       a.array_update in
   let res =
     List.fold_left
-      ~f:(fun acc d -> "(" ^ acc ^ " *- " ^ sprint_df d ^ ")")
+      ~f:(fun acc d -> "(" ^ acc ^ " *- " ^ pr_df d ^ ")")
       ~init:res
       a.array_subtract in
   res
 ;;
 
-let sprint_af (a : array_form) = sprint_array_form a
+let pr_af (a : array_form) = pr_array_form a
 
-let sprint_formula (r : formula) : string =
+let pr_formula (r : formula) : string =
   let rec pr_core r =
     match r with
     | Emp -> "emp"
-    | Pure p -> sprint_pf p
-    | Data s -> sprint_df s
-    | View v -> sprint_vf v
-    | Iter i -> sprint_if i
-    | Array a -> sprint_af a
+    | Pure p -> pr_pf p
+    | Data s -> pr_df s
+    | View v -> pr_vf v
+    | Iter i -> pr_if i
+    | Array a -> pr_af a
     | Star fs -> fs |> List.map ~f:pr_core |> String.concat ~sep:" * "
     | Wand (f1, f2) -> pr_core f1 ^ " --* " ^ pr_aux f2
     | Septract (f1, f2) -> pr_aux f1 ^ " *- " ^ pr_aux f2
-    | Exists (vs, g) -> "(exists " ^ sprint_vars vs ^ ". " ^ pr_core g ^ ")"
+    | Exists (vs, g) -> "(exists " ^ pr_vars vs ^ ". " ^ pr_core g ^ ")"
   and pr_aux f =
     match f with
     | Emp | Data _ | View _ | Array _ | Iter _ -> pr_core f
@@ -361,86 +361,86 @@ let sprint_formula (r : formula) : string =
   pr_core r
 ;;
 
-let sprint_f (f : formula) = sprint_formula f
+let pr_f (f : formula) = pr_formula f
 
-let sprint_fs ?(sep = ", ") (fs : formulas) : string =
-  sprint_list ~obrace:"[" ~cbrace:"]" ~sep ~f:sprint_f fs
+let pr_fs ?(sep = ", ") (fs : formulas) : string =
+  pr_list ~obrace:"[" ~cbrace:"]" ~sep ~f:pr_f fs
 ;;
 
-let sprint_ent ?(id = false) ent =
-  let res = sprint_f ent.ent_lhs ^ " |- " ^ sprint_f ent.ent_rhs in
+let pr_ent ?(id = false) ent =
+  let res = pr_f ent.ent_lhs ^ " |- " ^ pr_f ent.ent_rhs in
   if (not id) || ent.ent_id < 1
   then "# " ^ res
-  else "#" ^ sprint_int ent.ent_id ^ ". " ^ res
+  else "#" ^ pr_int ent.ent_id ^ ". " ^ res
 ;;
 
-let sprint_ents (ents : entailments) : string =
-  hsprint_list_itemized ~bullet:"  " ~f:(sprint_ent ~id:true) ents
+let pr_ents (ents : entailments) : string =
+  hpr_list_itemized ~bullet:"  " ~f:(pr_ent ~id:true) ents
 ;;
 
-let sprint_ent_id (ent : entailment) : string = "#" ^ sprint_int ent.ent_id
+let pr_ent_id (ent : entailment) : string = "#" ^ pr_int ent.ent_id
 
-let sprint_ents_ids (ents : entailments) : string =
-  ents |> List.map ~f:sprint_ent_id |> String.concat ~sep:", "
+let pr_ents_ids (ents : entailments) : string =
+  ents |> List.map ~f:pr_ent_id |> String.concat ~sep:", "
 ;;
 
 (*** print declarations ***)
 
-let sprint_func_defn (f : func_defn) : string =
+let pr_func_defn (f : func_defn) : string =
   let header =
-    "func " ^ f.funcd_name ^ "(" ^ sprint_vars f.funcd_params ^ ") := " in
+    "func " ^ f.funcd_name ^ "(" ^ pr_vars f.funcd_params ^ ") := " in
   let body =
     match f.funcd_body with
     | None -> "?"
-    | Some e -> sprint_exp e in
+    | Some e -> pr_exp e in
   header ^ body ^ ";"
 ;;
 
-let sprint_reln_defn (r : reln_defn) : string =
+let pr_reln_defn (r : reln_defn) : string =
   let header =
-    "rel " ^ r.relnd_name ^ "(" ^ sprint_vars r.relnd_params ^ ") := " in
+    "rel " ^ r.relnd_name ^ "(" ^ pr_vars r.relnd_params ^ ") := " in
   let body =
     match r.relnd_body with
     | None -> "?"
-    | Some f -> sprint_pf f in
+    | Some f -> pr_pf f in
   header ^ body ^ ";"
 ;;
 
-let sprint_data_defn (d : data_defn) : string =
+let pr_data_defn (d : data_defn) : string =
   let fields =
     d.datad_fields
-    |> List.map ~f:(fun (t, n) -> "  " ^ sprint_type t ^ " " ^ n ^ ";")
+    |> List.map ~f:(fun (t, n) -> "  " ^ pr_type t ^ " " ^ n ^ ";")
     |> String.concat ~sep:"\n" in
-  "data " ^ sprint_type d.datad_typ ^ "{\n" ^ fields ^ "\n};"
+  "data " ^ pr_type d.datad_typ ^ "{\n" ^ fields ^ "\n};"
 ;;
 
-let sprint_view_defn_case (vdc : view_defn_case) : string =
-  sprint_f vdc.vdc_form
+let pr_view_defn_case (vdc : view_defn_case) : string =
+  pr_f vdc.vdc_form
 ;;
 
-let sprint_view_defn (v : view_defn) : string =
+let pr_view_defn (v : view_defn) : string =
   let header =
-    "view " ^ v.viewd_name ^ "(" ^ sprint_vars v.viewd_params ^ ") := " in
+    "view " ^ v.viewd_name ^ "(" ^ pr_vars v.viewd_params ^ ") := " in
   let body =
     match v.viewd_body with
     | [] -> "?"
-    | fs -> sprint_list ~sep:"\n    \\/ " ~f:sprint_view_defn_case fs in
+    | fs -> pr_list ~sep:"\n    \\/ " ~f:pr_view_defn_case fs in
   header ^ body ^ ";"
 ;;
 
-let sprint_command (c : command) =
+let pr_command (c : command) =
   match c with
-  | CheckSat f -> "CheckSat: " ^ sprint_f f ^ ";"
-  | ProveEntails ents -> "ProveEntails:\n" ^ sprint_ents ents ^ ";"
-  | InferFrame ent -> "InferFrame: " ^ sprint_ent ent ^ ";"
+  | CheckSat f -> "CheckSat: " ^ pr_f f ^ ";"
+  | ProveEntails ents -> "ProveEntails:\n" ^ pr_ents ents ^ ";"
+  | InferFrame ent -> "InferFrame: " ^ pr_ent ent ^ ";"
 ;;
 
-let sprint_program (p : program) : string =
-  let datas = p.prog_data_defns |> List.map ~f:sprint_data_defn in
-  let relns = p.prog_reln_defns |> List.map ~f:sprint_reln_defn in
-  let views = p.prog_view_defns |> List.map ~f:sprint_view_defn in
-  let funcs = p.prog_func_defns |> List.map ~f:sprint_func_defn in
-  let cmds = p.prog_commands |> List.map ~f:sprint_command in
+let pr_program (p : program) : string =
+  let datas = p.prog_data_defns |> List.map ~f:pr_data_defn in
+  let relns = p.prog_reln_defns |> List.map ~f:pr_reln_defn in
+  let views = p.prog_view_defns |> List.map ~f:pr_view_defn in
+  let funcs = p.prog_func_defns |> List.map ~f:pr_func_defn in
+  let cmds = p.prog_commands |> List.map ~f:pr_command in
   String.concat ~sep:"\n\n" (funcs @ datas @ relns @ views @ funcs @ cmds)
 ;;
 
@@ -449,8 +449,8 @@ let sprint_program (p : program) : string =
  *******************************************************************)
 
 let mem_exp e es = List.exists ~f:(equal_exp e) es
-let equal_df d1 d2 = String.equal (sprint_df d1) (sprint_df d2)
-let equal_vf v1 v2 = String.equal (sprint_vf v1) (sprint_vf v2)
+let equal_df d1 d2 = String.equal (pr_df d1) (pr_df d2)
+let equal_vf v1 v2 = String.equal (pr_vf v1) (pr_vf v2)
 
 let equal_df_form f1 f2 =
   match f1, f2 with
@@ -481,7 +481,7 @@ let compare_f f1 f2 =
     | Array _ -> 4
     | _ -> 5 in
   let cmp = encode f1 - encode f2 in
-  if cmp != 0 then cmp else String.compare (sprint_f f1) (sprint_f f2)
+  if cmp != 0 then cmp else String.compare (pr_f f1) (pr_f f2)
 ;;
 
 (*******************************************************************
@@ -503,7 +503,7 @@ let typ_of_exp e =
 let get_pointer_elem_typ t =
   match t with
   | TPointer elem_typ -> elem_typ
-  | _ -> herror "get_elem_typ: not a pointer type" sprint_type t
+  | _ -> herror "get_elem_typ: not a pointer type" pr_type t
 ;;
 
 (*******************************************************************
@@ -757,9 +757,9 @@ let mk_sub e1 e2 =
     | _ ->
       error
         ("mk_sub "
-        ^ sprint_exp e1
+        ^ pr_exp e1
         ^ " and "
-        ^ sprint_exp e2
+        ^ pr_exp e2
         ^ ": expect int or float but found") in
   Func (Sub, [ e1; e2 ], typ)
 ;;
@@ -1023,8 +1023,8 @@ type equalities = equality list
 
 let pr_equality (eq : equality) : string =
   match eq with
-  | EqExp (v, e) -> sprint_var v ^ "=" ^ sprint_exp e
-  | EqPure (v, p) -> sprint_var v ^ "=(" ^ sprint_pf p ^ ")"
+  | EqExp (v, e) -> pr_var v ^ "=" ^ pr_exp e
+  | EqPure (v, p) -> pr_var v ^ "=(" ^ pr_pf p ^ ")"
 ;;
 
 let pr_equalities (eqs : equalities) : string =
@@ -1438,7 +1438,7 @@ let rec translate_lltyp (typ : LL.lltype) : typ =
   | LL.TypeKind.Pointer -> TPointer (translate_lltyp (LL.element_type typ))
   | LL.TypeKind.Array -> TArray
   | LL.TypeKind.Struct ->
-    let _ = debugc "TRANSLATE TYPE STRUCT" in
+    let _ = debug "TRANSLATE TYPE STRUCT" in
     TStruct (Option.value (LL.struct_name typ) ~default:"unknown")
   | LL.TypeKind.Function | LL.TypeKind.Vector | LL.TypeKind.X86_mmx -> TUnk
   | LL.TypeKind.Metadata -> error "translate_lltyp: do not expect Metadata"
@@ -1467,8 +1467,8 @@ let translate_llvalue (v : LL.llvalue) : exp =
         | Some i -> mk_exp_string i)
       | TStruct _ | TPointer _ -> mk_exp_var_typ vname typ
       | TVoid -> mk_void ()
-      | TUnk -> herror "translate_llvalue: unknown type of: " LI.sprint_value v
-      | _ -> herror "translate_llvalue: unhandled typ of" LI.sprint_value v
+      | TUnk -> herror "translate_llvalue: unknown type of: " LI.pr_value v
+      | _ -> herror "translate_llvalue: unhandled typ of" LI.pr_value v
     in
     res)
 ;;
@@ -1503,7 +1503,7 @@ let extract_pure_form (f : formula) : pure_form =
     | Pure p -> p
     | Emp -> mk_pf_true ()
     | Data _ | View _ | Iter _ | Array _ | Star _ | Wand _ | Septract _ ->
-      herror "extract_pure_form: not a pure formula" sprint_f f
+      herror "extract_pure_form: not a pure formula" pr_f f
     | Exists (vs, g) -> mk_pexists vs (extract g) in
   extract f
 ;;
@@ -1675,7 +1675,7 @@ let find_reln_defn rdefns (pname : string) : reln_defn option =
 ;;
 
 let find_data_defn ddefns (dname : string) : data_defn option =
-  List.find ~f:(fun d -> String.equal (sprint_type d.datad_typ) dname) ddefns
+  List.find ~f:(fun d -> String.equal (pr_type d.datad_typ) dname) ddefns
 ;;
 
 let find_view_defn vdefns (vname : string) : view_defn option =

@@ -63,7 +63,7 @@ let rec transform_formula (prog : SA.program) (f : SA.formula) : SI.formula =
     let p =
       match transform_formula prog f0 with
       | Pure p -> p
-      | _ -> herror "transform_formula: BEq: not a pure" SA.sprint_formula f
+      | _ -> herror "transform_formula: BEq: not a pure" SA.pr_formula f
     in
     SI.mk_f_pure (SI.mk_beq (transform_exp e) p)
   | SA.Emp l -> SI.mk_emp ()
@@ -89,21 +89,21 @@ let rec transform_formula (prog : SA.program) (f : SA.formula) : SI.formula =
     let p =
       match transform_formula prog f0 with
       | SI.Pure p -> p
-      | _ -> herror "transform_formula: Neg: not a pure" SA.sprint_formula f
+      | _ -> herror "transform_formula: Neg: not a pure" SA.pr_formula f
     in
     SI.mk_f_pure (SI.mk_pneg p)
   | SA.Conj (f1, f2) ->
     let p1, p2 =
       match transform_formula prog f1, transform_formula prog f2 with
       | SI.Pure p1, SI.Pure p2 -> p1, p2
-      | _ -> herror "transform_formula: Conj: not a pure" SA.sprint_formula f
+      | _ -> herror "transform_formula: Conj: not a pure" SA.pr_formula f
     in
     SI.mk_f_pure (SI.mk_pconj [ p1; p2 ])
   | SA.Disj (f1, f2) ->
     let p1, p2 =
       match transform_formula prog f1, transform_formula prog f2 with
       | SI.Pure p1, SI.Pure p2 -> p1, p2
-      | _ -> herror "transform_formula: Disj: not a pure" SA.sprint_formula f
+      | _ -> herror "transform_formula: Disj: not a pure" SA.pr_formula f
     in
     SI.mk_f_pure (SI.mk_pdisj [ p1; p2 ])
   | SA.Star (f1, f2) ->
@@ -124,7 +124,7 @@ let rec transform_formula (prog : SA.program) (f : SA.formula) : SI.formula =
     (match transform_formula prog f0 with
     | SI.Pure p -> Pure (SI.mk_pforall vs p)
     | g ->
-      herror "transform_formula: Forall: expect pure: " SA.sprint_formula f)
+      herror "transform_formula: Forall: expect pure: " SA.pr_formula f)
   | SA.Exists (vs, f0) ->
     (match transform_formula prog f0 with
     | SI.Pure p -> Pure (SI.mk_pforall vs p)
@@ -162,7 +162,7 @@ let transform_pred_defn prog (pd : SA.pred_defn) =
     let body =
       match f with
       | SI.Pure p -> Some p
-      | _ -> herror "transform_pred_reln: not a pure body" SI.sprint_formula f
+      | _ -> herror "transform_pred_reln: not a pure body" SI.pr_formula f
     in
     PReln (SI.mk_reln_defn name params body)
   | SA.PtReln, _ -> error ("transform_pred_reln: expect 1 body form: " ^ name)

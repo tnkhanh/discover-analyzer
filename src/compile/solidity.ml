@@ -23,6 +23,10 @@ module LU = Llutils
 module PS = Process
 module FN = Filename
 
+let mark_solidity_user_funcs (prog: LI.program) : LI.program =
+  prog
+
+
 let compile_solidity (filename : string) : LI.program =
   let _ = debug ("Compiling file: " ^ filename) in
   let contract_name = FN.basename filename in
@@ -48,7 +52,7 @@ let compile_solidity (filename : string) : LI.program =
     let _ = debugs [ "COMMAND: '"; String.concat ~sep:" " cmd; "'" ] in
     PS.run_command cmd in
   let generated_files = Sys.ls_dir output_dir in
-  let _ = hdebug "Generated files: " sprint_string_list generated_files in
+  let _ = hdebug "Generated files: " pr_string_list generated_files in
   let deploy_file =
     List.find ~f:(String.is_suffix ~suffix:"_deploy.bc") generated_files in
   match deploy_file with

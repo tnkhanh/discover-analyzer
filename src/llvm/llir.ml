@@ -34,8 +34,13 @@ type llmodules = llmodule list
  ** structured types to wrap the default LLVM data structure
  *******************************************************************)
 
-(* function or function pointer *)
+(* function *)
 type func = Func of llvalue
+
+(* callable: function or function pointer *)
+type callable =
+  | ClFunc of func
+  | ClFPtr of llvalue
 
 (* basic block *)
 type block = llblock
@@ -67,6 +72,7 @@ type expr =
   | Exn of expr
 
 type funcs = func list
+type callables = callable list
 type blocks = block list
 type params = param list
 type instrs = instr list
@@ -158,6 +164,15 @@ module Func = struct
   let to_string _ = "(func)"
   let hash = Hashtbl.hash
   let sexp_of_t _ = Sexp.of_string "(func)"
+  let compare = Poly.compare
+end
+
+module Callable = struct
+  type t = func
+
+  let to_string _ = "(callable)"
+  let hash = Hashtbl.hash
+  let sexp_of_t _ = Sexp.of_string "(callable)"
   let compare = Poly.compare
 end
 
@@ -286,6 +301,42 @@ module IG = InstrGraph
  ** Finally a data structure representing program
  *******************************************************************)
 
+type program_block_data =
+  { pbd_preceding_blocks : (block, prec_blocks) Hashtbl.t;
+    pbd_succeeding_blocks : (block, succ_blocks) Hashtbl.t;
+    pbd_incoming_pathcond : (block, predicate list) Hashtbl.t;
+    pbd_reachable_blocks : (block, block list) Hashtbl.t
+  }
+
+type program_loop_data =
+  { pld_loop_updated_instr : (instr, bool) Hashtbl.t;
+    pld_loop_head_instr : (instr, bool) Hashtbl.t;
+    pld_innermost_loop_containing_block : (block, loop option) Hashtbl.t;
+    pld_innermost_loop_containing_value : (llvalue, loop option) Hashtbl.t;
+  }
+
+type program_func_data =
+  { pfd_return_instr : (func, instr) Hashtbl.t;
+    pfd_callers : (func, funcs) Hashtbl.t;
+    pfd_callees : (func, callables) Hashtbl.t;
+    pfd_reachable_funcs : (func, funcs) Hashtbl.t;
+    pfd_loops : (func, loops) Hashtbl.t;
+    pfd_used_globals : (func, globals) Hashtbl.t;
+    pfd_func_call_graph : CallGraph.t;
+    pfd_block_graph : (func, BlockGraph.t) Hashtbl.t;
+    pfd_funcs_of_pointer : (llvalue, funcs) Hashtbl.t;
+    mutable pfd_funcs_of_type : (lltype, funcs) Hashtbl.t
+  }
+
+type program_meta_data =
+  { pmd_bitcode_filename : string;
+    pmd_source_filename : string;
+    pmd_llvalue_original_name : (string, string) Hashtbl.t;
+    pmd_module_id : string;
+    pmd_data_layout : string;
+    pmd_target_platform : string
+  }
+
 type program =
   { (*-----------------------------------------
      * core components of program
@@ -301,60 +352,12 @@ type program =
     prog_user_funcs : func list;
     (* user functions, will be analyzed *)
     prog_main_func : func option;
-    (*-----------------------------------------
-     * information of functions
-     *-----------------------------------------*)
-    (* mapping each user function to its used global variables *)
-    prog_func_return_instr : (func, instr) Hashtbl.t;
-    (* mapping a function to its callers, callees, reachable functions, loops *)
-    prog_func_callers : (func, funcs) Hashtbl.t;
-    prog_func_callees : (func, funcs) Hashtbl.t;
-    prog_func_ptr_callees : (func, llvalues) Hashtbl.t;
-    prog_func_reachables : (func, funcs) Hashtbl.t;
-    prog_func_loops : (func, loops) Hashtbl.t;
-    prog_func_used_globals : (func, globals) Hashtbl.t;
-    mutable prog_funcs_in_pointers : (lltype, funcs) Hashtbl.t;
-    (* reachability graphs *)
-    prog_func_call_graph : CallGraph.t;
-    prog_func_block_graph : (func, BlockGraph.t) Hashtbl.t;
-    prog_instr_graph : InstrGraph.t;
-    (*-----------------------------------------
-     * information of blocks
-     *-----------------------------------------*)
-    (* mapping a block to its preceding and succeeding blocks *)
-    prog_block_precedings : (block, prec_blocks) Hashtbl.t;
-    prog_block_succeedings : (block, succ_blocks) Hashtbl.t;
-    (* mapping a block to its path conditions *)
-    prog_block_incoming_pathcond : (block, predicate list) Hashtbl.t;
-    (* mapping a block to its reachable blocks *)
-    prog_block_reachables : (block, block list) Hashtbl.t;
-    (*-----------------------------------------
-     * information of instruction
-     *-----------------------------------------*)
-    prog_loop_updated_instr : (instr, bool) Hashtbl.t;
-    prog_loop_head_instr : (instr, bool) Hashtbl.t;
-    (*-----------------------------------------
-     * information of llvalue
-     *-----------------------------------------*)
-    prog_llvalue_innermost_loop : (llvalue, loop option) Hashtbl.t;
-    prog_block_innermost_loop : (block, loop option) Hashtbl.t;
-    (*-----------------------------------------
-     * result of analysis passes
-     *-----------------------------------------*)
-    (* mapping each instruction to the undefined llvalues at its program point *)
-    prog_undef_values : (instr, llvalues) Hashtbl.t;
-    (* hash-table mapping each pointer to its associcated functions *)
-    prog_pointer_funcs : (llvalue, funcs) Hashtbl.t;
-    (*-----------------------------------------
-     * source code and compilation data
-     *-----------------------------------------*)
-    prog_bitcode_filename : string;
-    prog_source_filename : string;
-    prog_llvalue_original_name : (string, string) Hashtbl.t;
-    prog_module_id : string;
-    prog_data_layout : string;
-    prog_target_platform : string;
-    prog_llmodule : llmodule
+    (* program data *)
+    prog_block_data : program_block_data;
+    prog_loop_data : program_loop_data;
+    prog_func_data : program_func_data;
+    prog_meta_data : program_meta_data;
+    prog_module_data : llmodule
   }
 
 exception Llvm_invalid_instr of string
@@ -369,7 +372,7 @@ let memseg_name_index : int ref = ref (-1)
  ** primitive printers of LLVM data structures
  *******************************************************************)
 
-let sprint_opcode (op : LL.Opcode.t) =
+let pr_opcode (op : LL.Opcode.t) =
   match op with
   | LO.Invalid -> "Invalid"
   | LO.Ret -> "Ret"
@@ -434,7 +437,7 @@ let sprint_opcode (op : LL.Opcode.t) =
   | _ -> "UnknownOpcode"
 ;;
 
-let sprint_valuekind (k : LV.t) : string =
+let pr_valuekind (k : LV.t) : string =
   match k with
   | LV.NullValue -> "NullValue"
   | LV.Argument -> "Argument"
@@ -462,7 +465,7 @@ let sprint_valuekind (k : LV.t) : string =
   | LV.Instruction _ -> "Instruction"
 ;;
 
-let sprint_typekind (k : LT.t) : string =
+let pr_typekind (k : LT.t) : string =
   match k with
   | LT.Void -> "Void"
   | LT.Half -> "Half"
@@ -486,7 +489,7 @@ let sprint_typekind (k : LT.t) : string =
   | LT.X86_amx -> "X86_amx"
 ;;
 
-let sprint_icmp (cmp : LL.Icmp.t) : string =
+let pr_icmp (cmp : LL.Icmp.t) : string =
   match cmp with
   | LL.Icmp.Eq -> "="
   | LL.Icmp.Ne -> "!="
@@ -500,7 +503,7 @@ let sprint_icmp (cmp : LL.Icmp.t) : string =
   | LL.Icmp.Sle -> "<="
 ;;
 
-let sprint_fcmp (cmp : LL.Fcmp.t) : string =
+let pr_fcmp (cmp : LL.Fcmp.t) : string =
   match cmp with
   | LL.Fcmp.False -> "False"
   | LL.Fcmp.Oeq -> "=="
@@ -520,7 +523,7 @@ let sprint_fcmp (cmp : LL.Fcmp.t) : string =
   | LL.Fcmp.True -> "True"
 ;;
 
-let sprint_value (v : llvalue) : string =
+let pr_value (v : llvalue) : string =
   let vtyp = LL.type_of v in
   let vname =
     if LL.is_undef v
@@ -533,7 +536,7 @@ let sprint_value (v : llvalue) : string =
         | None -> LL.value_name v)
       | LT.Float ->
         (match LL.float_of_const v with
-        | Some a -> sprint_float a
+        | Some a -> pr_float a
         | None -> LL.value_name v)
       | LT.Pointer -> if LL.is_null v then "null" else LL.value_name v
       | LT.Metadata -> LL.string_of_llvalue v
@@ -543,10 +546,11 @@ let sprint_value (v : llvalue) : string =
   else vname
 ;;
 
-let sprint_values = sprint_list ~f:sprint_value
-let value_names (vs : llvalue list) : string = sprint_list ~f:sprint_value vs
+let pr_values (vs : llvalues) : string = pr_list ~f:pr_value vs
+let value_name (v : llvalue) : string = pr_value v
+let value_names (vs : llvalues) : string = pr_list ~f:pr_value vs
 
-let sprint_value_detail (v : llvalue) : string =
+let pr_value_detail (v : llvalue) : string =
   v
   |> LL.string_of_llvalue
   |> String.split_lines
@@ -554,11 +558,11 @@ let sprint_value_detail (v : llvalue) : string =
   |> String.concat ~sep:" "
 ;;
 
-let sprint_values_detail (vs : llvalues) : string =
-  sprint_list ~f:sprint_value_detail vs
+let pr_values_detail (vs : llvalues) : string =
+  pr_list ~f:pr_value_detail vs
 ;;
 
-let sprint_type (t : lltype) : string = String.strip (Llvm.string_of_lltype t)
+let pr_type (t : lltype) : string = String.strip (Llvm.string_of_lltype t)
 
 (*******************************************************************
  ** Constructors and Conversions of LLIR data structures
@@ -574,30 +578,30 @@ let mk_func (v : llvalue) : func =
   | _ -> Func v
 ;;
 
-(* herror "mk_func: not a function or func pointer: " sprint_value_detail v *)
+(* herror "mk_func: not a function or func pointer: " pr_value_detail v *)
 
 let mk_param (v : llvalue) : param =
   match LL.classify_value v with
   | LV.Argument -> Param v
-  | _ -> herror "mk_param: not a formal parameter: " sprint_value_detail v
+  | _ -> herror "mk_param: not a formal parameter: " pr_value_detail v
 ;;
 
 let mk_instr (v : llvalue) : instr =
   match LL.classify_value v with
   | LV.Instruction _ -> Instr v
-  | _ -> herror "mk_instr: not an instruction: " sprint_value_detail v
+  | _ -> herror "mk_instr: not an instruction: " pr_value_detail v
 ;;
 
 let mk_global (v : llvalue) : global =
   match LL.classify_value v with
   | LV.GlobalVariable -> Global v
-  | _ -> herror "mk_global: not a global variable: " sprint_value_detail v
+  | _ -> herror "mk_global: not a global variable: " pr_value_detail v
 ;;
 
 let mk_const (v : llvalue) : const =
   match LL.classify_value v with
   | LV.ConstantExpr -> Constant v
-  | _ -> herror "mk_const: not a constant: " sprint_value_detail v
+  | _ -> herror "mk_const: not a constant: " pr_value_detail v
 ;;
 
 (* conversions *)
@@ -761,74 +765,74 @@ let equal_loop (lp1 : loop) (lp2 : loop) : bool =
  ** printing of new structured types
  *******************************************************************)
 
-let sprint_instr (i : instr) : string =
+let pr_instr (i : instr) : string =
   match i with
-  | Instr v -> sprint_value_detail v
+  | Instr v -> pr_value_detail v
 ;;
 
-let sprint_param ?(detailed = false) (p : param) : string =
+let pr_param ?(detailed = false) (p : param) : string =
   match p with
-  | Param v -> if detailed then sprint_value_detail v else sprint_value v
+  | Param v -> if detailed then pr_value_detail v else pr_value v
 ;;
 
-let sprint_typed_param (p : param) : string =
+let pr_typed_param (p : param) : string =
   match p with
-  | Param v -> sprint_type (LL.type_of v) ^ " " ^ sprint_value v
+  | Param v -> pr_type (LL.type_of v) ^ " " ^ pr_value v
 ;;
 
-let sprint_global ?(detailed = false) (g : global) : string =
+let pr_global ?(detailed = false) (g : global) : string =
   match g with
-  | Global v -> if detailed then sprint_value_detail v else sprint_value v
+  | Global v -> if detailed then pr_value_detail v else pr_value v
 ;;
 
-let rec sprint_expr (e : expr) : string =
+let rec pr_expr (e : expr) : string =
   match e with
   | Undef t -> "undef"
   | Int64 i -> Int64.to_string i
-  | Float f -> sprint_float f
+  | Float f -> pr_float f
   | String s -> "\"" ^ s ^ "\""
-  | Var v -> sprint_value v
-  | OldE e -> sprint_expr e ^ "'"
-  | Deref e -> "*" ^ sprint_expr e
+  | Var v -> pr_value v
+  | OldE e -> pr_expr e ^ "'"
+  | Deref e -> "*" ^ pr_expr e
   | ElemPtr (root, rtyp, idxs) ->
-    let sidxs = idxs |> List.map ~f:sprint_expr |> String.concat ~sep:"," in
-    "EP(" ^ sprint_expr root ^ "," ^ sprint_type rtyp ^ "," ^ sidxs ^ ")"
-  | Malloc e -> "Malloc(" ^ sprint_expr e ^ ")"
-  | FuncRes f -> "res_" ^ sprint_value (llvalue_of_func f)
-  | Exn e -> "exn_" ^ sprint_expr e
+    let sidxs = idxs |> List.map ~f:pr_expr |> String.concat ~sep:"," in
+    "EP(" ^ pr_expr root ^ "," ^ pr_type rtyp ^ "," ^ sidxs ^ ")"
+  | Malloc e -> "Malloc(" ^ pr_expr e ^ ")"
+  | FuncRes f -> "res_" ^ pr_value (llvalue_of_func f)
+  | Exn e -> "exn_" ^ pr_expr e
 ;;
 
-let sprint_params (ps : params) : string = sprint_args ~f:sprint_param ps
-let sprint_globals (gs : globals) : string = sprint_list ~f:sprint_global gs
-let sprint_exprs (es : expr list) : string = sprint_list ~f:sprint_expr es
+let pr_params (ps : params) : string = pr_args ~f:pr_param ps
+let pr_globals (gs : globals) : string = pr_list ~f:pr_global gs
+let pr_exprs (es : expr list) : string = pr_list ~f:pr_expr es
 
-let rec sprint_predicate (p : predicate) : string =
+let rec pr_predicate (p : predicate) : string =
   match p with
-  | PBool b -> sprint_bool b
+  | PBool b -> pr_bool b
   | PIcmp (cmp, lhs, rhs) ->
-    sprint_value lhs ^ sprint_icmp cmp ^ sprint_value rhs
+    pr_value lhs ^ pr_icmp cmp ^ pr_value rhs
   | PFcmp (cmp, lhs, rhs) ->
-    sprint_value lhs ^ sprint_fcmp cmp ^ sprint_value rhs
-  | PNeg p -> "!" ^ sprint_predicate p
-  | PConj ps -> sprint_list_plain ~sep:" & " ~f:sprint_predicate ps
-  | PDisj ps -> sprint_list_plain ~sep:" | " ~f:sprint_predicate ps
+    pr_value lhs ^ pr_fcmp cmp ^ pr_value rhs
+  | PNeg p -> "!" ^ pr_predicate p
+  | PConj ps -> pr_list_plain ~sep:" & " ~f:pr_predicate ps
+  | PDisj ps -> pr_list_plain ~sep:" | " ~f:pr_predicate ps
 ;;
 
 let block_name (blk : block) : string = LL.value_name (LL.value_of_block blk)
-let block_names (blks : block list) : string = sprint_list ~f:block_name blks
+let block_names (blks : block list) : string = pr_list ~f:block_name blks
 
-let sprint_prec_block (pblk : prec_block) : string =
+let pr_prec_block (pblk : prec_block) : string =
   let blk, p = pblk.pblk_block, pblk.pblk_pathcond in
-  "Preceding Block: { " ^ block_name blk ^ "; " ^ sprint_predicate p ^ "}"
+  "Preceding Block: { " ^ block_name blk ^ "; " ^ pr_predicate p ^ "}"
 ;;
 
-let sprint_prec_blocks (pblks : prec_block list) : string =
-  hsprint_list_itemized ~f:sprint_prec_block pblks
+let pr_prec_blocks (pblks : prec_block list) : string =
+  hpr_list_itemized ~f:pr_prec_block pblks
 ;;
 
-let sprint_succ_block (sblk : succ_block) : string =
+let pr_succ_block (sblk : succ_block) : string =
   let blk, p = sblk.sblk_block, sblk.sblk_pathcond in
-  "Succeeding Block: { " ^ block_name blk ^ "; " ^ sprint_predicate p ^ "}"
+  "Succeeding Block: { " ^ block_name blk ^ "; " ^ pr_predicate p ^ "}"
 ;;
 
 (*******************************************************************
@@ -1291,7 +1295,7 @@ let is_type_pointer_to_func (typ : lltype) : bool =
 let memsize_of_type (typ : lltype) : int64 =
   match LL.classify_type typ with
   | LT.Integer -> Int64.of_int (LL.integer_bitwidth typ / 8)
-  | _ -> herror "memsize_of_size: need to implement: " sprint_type typ
+  | _ -> herror "memsize_of_size: need to implement: " pr_type typ
 ;;
 
 let rec get_elemptr_typ (typ : lltype) (idxs : expr list) : lltype =
@@ -1308,7 +1312,7 @@ let rec get_elemptr_typ (typ : lltype) (idxs : expr list) : lltype =
         Array.get (LL.subtypes typ) fld_idx
       | LT.Array -> LL.element_type typ
       | LT.Pointer -> LL.element_type typ
-      | _ -> herror "get_elemptr_typ: need to handle type: " sprint_type typ
+      | _ -> herror "get_elemptr_typ: need to handle type: " pr_type typ
     in
     get_elemptr_typ ntyp nidxs
 ;;
@@ -1582,8 +1586,8 @@ let equal_pred_simple (p1 : predicate) (p2 : predicate) =
  * global
  *-----------------------------------------*)
 
-let global_name (g : global) : string = sprint_value (llvalue_of_global g)
-let global_names (gs : globals) : string = sprint_args ~f:global_name gs
+let global_name (g : global) : string = pr_value (llvalue_of_global g)
+let global_names (gs : globals) : string = pr_args ~f:global_name gs
 
 (*-----------------------------------------
  * instruction
@@ -1686,21 +1690,21 @@ let func_name (f : func) : string =
   | _ -> LL.value_name v
 ;;
 
-(* herror "func_name: not a function or pointer: " sprint_value_detail v *)
+(* herror "func_name: not a function or pointer: " pr_value_detail v *)
 
-let param_name (p : param) : string = sprint_value (llvalue_of_param p)
-let param_names (ps : params) : string = sprint_args ~f:param_name ps
+let param_name (p : param) : string = pr_value (llvalue_of_param p)
+let param_names (ps : params) : string = pr_args ~f:param_name ps
 
 let func_name_and_params (f : func) : string =
   let v = llvalue_of_func f in
   match LL.classify_value v with
   | LV.Function ->
     let params = Array.to_list (LL.params v) in
-    LL.value_name v ^ "(" ^ sprint_args ~f:sprint_value_detail params ^ ")"
-  | _ -> herror "func_name_and_params: not a function: " sprint_value_detail v
+    LL.value_name v ^ "(" ^ pr_args ~f:pr_value_detail params ^ ")"
+  | _ -> herror "func_name_and_params: not a function: " pr_value_detail v
 ;;
 
-let func_names (fs : func list) : string = sprint_list ~f:func_name fs
+let func_names (fs : func list) : string = pr_list ~f:func_name fs
 
 let func_params (f : func) : param list =
   let v = llvalue_of_func f in
@@ -1708,7 +1712,7 @@ let func_params (f : func) : param list =
   | LV.Function ->
     let vparams = Array.to_list (LL.params v) in
     List.map ~f:mk_param vparams
-  | _ -> herror "func_params: not a function: " sprint_value_detail v
+  | _ -> herror "func_params: not a function: " pr_value_detail v
 ;;
 
 let func_type (f : func) : lltype =
@@ -1902,6 +1906,19 @@ let get_main_function (m : llmodule) : func option =
 ;;
 
 (*-----------------------------------------
+ * callable
+ *-----------------------------------------*)
+
+let callable_name (c : callable) : string =
+  match c with
+  | ClFunc f -> func_name f
+  | ClFPtr fp -> value_name fp
+;;
+
+let callable_of_func (f : func) : callable = ClFunc f
+let callable_of_func_pointer (fp : llvalue) : callable = ClFPtr fp
+
+(*-----------------------------------------
  * block
  *-----------------------------------------*)
 
@@ -1929,12 +1946,12 @@ type substve = (llvalue * expr) list (* old / new values*)
 
 type subste = (expr * expr) list (* old / new exprs*)
 
-let sprint_substv (sst : substv) : string =
-  sprint_list ~f:(sprint_pair ~f1:sprint_value ~f2:sprint_value) sst
+let pr_substv (sst : substv) : string =
+  pr_list ~f:(pr_pair ~f1:pr_value ~f2:pr_value) sst
 ;;
 
-let sprint_subste (sst : subste) : string =
-  sprint_list ~f:(sprint_pair ~f1:sprint_expr ~f2:sprint_expr) sst
+let pr_subste (sst : subste) : string =
+  pr_list ~f:(pr_pair ~f1:pr_expr ~f2:pr_expr) sst
 ;;
 
 let init_substv () : substv = []
@@ -2051,12 +2068,6 @@ let rec subst_expr
 (*******************************************************************
  ** operations with llvalue
  *******************************************************************)
-
-let get_undef_values_at_instr (prog : program) (instr : instr) : llvalues =
-  match Hashtbl.find prog.prog_undef_values instr with
-  | Some undefs -> undefs
-  | None -> []
-;;
 
 let collect_llvalue_of_expr (e : expr) : llvalues =
   let rec collect e acc =
@@ -2184,7 +2195,7 @@ let mk_pred_disj (ps : predicate list) : predicate =
 
 let extract_icmp_predicate (cond : llvalue) : predicate =
   match LL.icmp_predicate cond with
-  | None -> herror "extract_icmp_predicate: not Icmp cond: " sprint_value cond
+  | None -> herror "extract_icmp_predicate: not Icmp cond: " pr_value cond
   | Some cmp ->
     let lhs, rhs = LL.operand cond 0, LL.operand cond 1 in
     mk_pred_icmp cmp lhs rhs
@@ -2192,7 +2203,7 @@ let extract_icmp_predicate (cond : llvalue) : predicate =
 
 let extract_fcmp_predicate (cond : llvalue) : predicate =
   match LL.fcmp_predicate cond with
-  | None -> herror "extract_fcmp_predicate: not Fcmp cond: " sprint_value cond
+  | None -> herror "extract_fcmp_predicate: not Fcmp cond: " pr_value cond
   | Some cmp ->
     let lhs, rhs = LL.operand cond 0, LL.operand cond 1 in
     mk_pred_fcmp cmp lhs rhs
@@ -2203,7 +2214,7 @@ let extract_trunc_predicate (cond : llvalue) : predicate =
   | LO.Trunc ->
     (* FIXME: need better handling of Trunc, maybe by unfolding? *)
     mk_pred_true ()
-  | _ -> herror "extract_trunc_predicate: not a Trunc cond: " sprint_value cond
+  | _ -> herror "extract_trunc_predicate: not a Trunc cond: " pr_value cond
 ;;
 
 let extract_zext_predicate (cond : llvalue) : predicate =
@@ -2211,7 +2222,7 @@ let extract_zext_predicate (cond : llvalue) : predicate =
   | LO.ZExt ->
     (* FIXME: need better handling of ZExt? *)
     mk_pred_true ()
-  | _ -> herror "extract_zext_predicate: not a ZExt cond: " sprint_value cond
+  | _ -> herror "extract_zext_predicate: not a ZExt cond: " pr_value cond
 ;;
 
 let extract_br_cond_predicate (cond : llvalue) : predicate =
@@ -2262,7 +2273,7 @@ let get_struct_types (m : llmodule) : lltype list =
  *******************************************************************)
 
 let index_of_global_name (g : global) : int =
-  let gname = sprint_global g in
+  let gname = pr_global g in
   if String.is_prefix gname ~prefix:"g"
   then (
     let sindex = String.sub gname ~pos:1 ~len:(String.length gname - 1) in
@@ -2284,7 +2295,7 @@ let compare_global_by_name blk1 blk2 : int =
 let dst_of_instr_alloca (i : instr) : llvalue =
   match instr_opcode i with
   | LO.Alloca -> llvalue_of_instr i
-  | _ -> herror "dst_of_instr: not an instr Alloca: " sprint_instr i
+  | _ -> herror "dst_of_instr: not an instr Alloca: " pr_instr i
 ;;
 
 (* Store *)
@@ -2292,13 +2303,13 @@ let dst_of_instr_alloca (i : instr) : llvalue =
 let src_of_instr_store (i : instr) : llvalue =
   match instr_opcode i with
   | LO.Store -> operand i 0
-  | _ -> herror "src_of_instr: not an instr Store: " sprint_instr i
+  | _ -> herror "src_of_instr: not an instr Store: " pr_instr i
 ;;
 
 let dst_of_instr_store (i : instr) : llvalue =
   match instr_opcode i with
   | LO.Store -> operand i 1
-  | _ -> herror "dst_of_instr: not an instr Store: " sprint_instr i
+  | _ -> herror "dst_of_instr: not an instr Store: " pr_instr i
 ;;
 
 (* Load *)
@@ -2306,13 +2317,13 @@ let dst_of_instr_store (i : instr) : llvalue =
 let src_of_instr_load (i : instr) : llvalue =
   match instr_opcode i with
   | LO.Load -> operand i 0
-  | _ -> herror "src_of_instr: not an instr Load: " sprint_instr i
+  | _ -> herror "src_of_instr: not an instr Load: " pr_instr i
 ;;
 
 let dst_of_instr_load (i : instr) : llvalue =
   match instr_opcode i with
   | LO.Load -> llvalue_of_instr i
-  | _ -> herror "dst_of_instr: not an instr Load: " sprint_instr i
+  | _ -> herror "dst_of_instr: not an instr Load: " pr_instr i
 ;;
 
 (* InsertValue *)
@@ -2320,13 +2331,13 @@ let dst_of_instr_load (i : instr) : llvalue =
 let src_of_instr_insertvalue (i : instr) : llvalue =
   match instr_opcode i with
   | LO.InsertValue -> operand i 1
-  | _ -> herror "src_of_instr: not an instr InsertValue: " sprint_instr i
+  | _ -> herror "src_of_instr: not an instr InsertValue: " pr_instr i
 ;;
 
 let dst_of_instr_insertvalue (i : instr) : llvalue =
   match instr_opcode i with
   | LO.InsertValue -> operand i 0
-  | _ -> herror "dst_of_instr: not an instr InsertValue: " sprint_instr i
+  | _ -> herror "dst_of_instr: not an instr InsertValue: " pr_instr i
 ;;
 
 (* ExtractValue *)
@@ -2334,13 +2345,13 @@ let dst_of_instr_insertvalue (i : instr) : llvalue =
 let src_of_instr_extractvalue (i : instr) : llvalue =
   match instr_opcode i with
   | LO.ExtractValue -> operand i 0
-  | _ -> herror "src_of_instr: not an instr ExtractValue: " sprint_instr i
+  | _ -> herror "src_of_instr: not an instr ExtractValue: " pr_instr i
 ;;
 
 let dst_of_instr_extractvalue (i : instr) : llvalue =
   match instr_opcode i with
   | LO.ExtractValue -> llvalue_of_instr i
-  | _ -> herror "dst_of_instr: not an instr ExtractValue: " sprint_instr i
+  | _ -> herror "dst_of_instr: not an instr ExtractValue: " pr_instr i
 ;;
 
 (* GetElementPointer *)
@@ -2348,13 +2359,13 @@ let dst_of_instr_extractvalue (i : instr) : llvalue =
 let src_of_instr_gep (i : instr) : llvalue =
   match instr_opcode i with
   | LO.GetElementPtr -> operand i 0
-  | _ -> herror "src_of_instr: not an instr GEP: " sprint_instr i
+  | _ -> herror "src_of_instr: not an instr GEP: " pr_instr i
 ;;
 
 let dst_of_instr_gep (i : instr) : llvalue =
   match instr_opcode i with
   | LO.GetElementPtr -> llvalue_of_instr i
-  | _ -> herror "dst_of_instr: not an instr GEP: " sprint_instr i
+  | _ -> herror "dst_of_instr: not an instr GEP: " pr_instr i
 ;;
 
 let indexes_of_instr_gep (i : instr) : llvalue list =
@@ -2371,14 +2382,14 @@ let src_of_instr_gep_extract_value (i : instr) : llvalue =
   match instr_opcode i with
   | LO.GetElementPtr -> operand i 0
   | LO.ExtractValue -> operand i 0
-  | _ -> herror "src_of_instr: not an instr GEP/ExtractValue: " sprint_instr i
+  | _ -> herror "src_of_instr: not an instr GEP/ExtractValue: " pr_instr i
 ;;
 
 let dst_of_instr_gep_extract_value (i : instr) : llvalue =
   match instr_opcode i with
   | LO.GetElementPtr -> llvalue_of_instr i
   | LO.ExtractValue -> llvalue_of_instr i
-  | _ -> herror "dst_of_instr: not an instr GEP/ExtractValue: " sprint_instr i
+  | _ -> herror "dst_of_instr: not an instr GEP/ExtractValue: " pr_instr i
 ;;
 
 let indexes_of_instr_gep_extract_value (i : instr) : llvalue list =
@@ -2394,13 +2405,13 @@ let indexes_of_instr_gep_extract_value (i : instr) : llvalue list =
 let src_of_instr_bitcast (i : instr) : llvalue =
   match instr_opcode i with
   | LO.BitCast -> operand i 0
-  | _ -> herror "src_of_instr: not an instr BitCast: " sprint_instr i
+  | _ -> herror "src_of_instr: not an instr BitCast: " pr_instr i
 ;;
 
 let dst_of_instr_bitcast (i : instr) : llvalue =
   match instr_opcode i with
   | LO.BitCast -> llvalue_of_instr i
-  | _ -> herror "dst_of_instr: not an instr BitCast: " sprint_instr i
+  | _ -> herror "dst_of_instr: not an instr BitCast: " pr_instr i
 ;;
 
 let rec get_root_src_of_bitcast (v : llvalue) : llvalue =
@@ -2414,7 +2425,7 @@ let rec get_root_src_of_bitcast (v : llvalue) : llvalue =
 let src_of_instr_return (i : instr) : llvalue =
   match instr_opcode i with
   | LO.Ret -> operand i 0
-  | _ -> herror "src_of_instr: not an instr FuncRes: " sprint_instr i
+  | _ -> herror "src_of_instr: not an instr FuncRes: " pr_instr i
 ;;
 
 (* SExt *)
@@ -2422,13 +2433,13 @@ let src_of_instr_return (i : instr) : llvalue =
 let src_of_instr_sext (i : instr) : llvalue =
   match instr_opcode i with
   | LO.SExt -> operand i 0
-  | _ -> herror "src_of_instr: not an instr SExt: " sprint_instr i
+  | _ -> herror "src_of_instr: not an instr SExt: " pr_instr i
 ;;
 
 let dst_of_instr_sext (i : instr) : llvalue =
   match instr_opcode i with
   | LO.SExt -> llvalue_of_instr i
-  | _ -> herror "dst_of_instr: not an instr SExt: " sprint_instr i
+  | _ -> herror "dst_of_instr: not an instr SExt: " pr_instr i
 ;;
 
 (* ZExt *)
@@ -2436,13 +2447,13 @@ let dst_of_instr_sext (i : instr) : llvalue =
 let src_of_instr_zext (i : instr) : llvalue =
   match instr_opcode i with
   | LO.ZExt -> operand i 0
-  | _ -> herror "src_of_instr: not an instr ZExt: " sprint_instr i
+  | _ -> herror "src_of_instr: not an instr ZExt: " pr_instr i
 ;;
 
 let dst_of_instr_zext (i : instr) : llvalue =
   match instr_opcode i with
   | LO.ZExt -> llvalue_of_instr i
-  | _ -> herror "dst_of_instr: not an instr ZExt: " sprint_instr i
+  | _ -> herror "dst_of_instr: not an instr ZExt: " pr_instr i
 ;;
 
 (* Call *)
@@ -2450,7 +2461,7 @@ let dst_of_instr_zext (i : instr) : llvalue =
 let num_args_of_instr_call (i : instr) : int =
   match instr_opcode i with
   | LO.Call -> LL.num_arg_operands (llvalue_of_instr i)
-  | _ -> herror "num_args_of: not an instr Call: " sprint_instr i
+  | _ -> herror "num_args_of: not an instr Call: " pr_instr i
 ;;
 
 let callee_of_instr_call (i : instr) : func =
@@ -2458,7 +2469,7 @@ let callee_of_instr_call (i : instr) : func =
   | LO.Call ->
     let num_args = num_args_of_instr_call i in
     mk_func (operand i num_args)
-  | _ -> herror "callee_of: not an instr Call: " sprint_instr i
+  | _ -> herror "callee_of: not an instr Call: " pr_instr i
 ;;
 
 let arg_of_instr_call (i : instr) (idx : int) : llvalue =
@@ -2466,8 +2477,8 @@ let arg_of_instr_call (i : instr) (idx : int) : llvalue =
   | LO.Call ->
     if idx < num_args_of_instr_call i
     then operand i idx
-    else herror "arg_of_instr_call: idx out of bound" sprint_int idx
-  | _ -> herror "arg_of: not an instr Call: " sprint_instr i
+    else herror "arg_of_instr_call: idx out of bound" pr_int idx
+  | _ -> herror "arg_of: not an instr Call: " pr_instr i
 ;;
 
 let args_of_instr_call (i : instr) : llvalues =
@@ -2479,7 +2490,7 @@ let args_of_instr_call (i : instr) : llvalues =
       args := !args @ [ operand i idx ]
     done;
     !args
-  | _ -> herror "operand_args: not an instr Call: " sprint_instr i
+  | _ -> herror "operand_args: not an instr Call: " pr_instr i
 ;;
 
 (* CallBr *)
@@ -2487,7 +2498,7 @@ let args_of_instr_call (i : instr) : llvalues =
 let num_args_of_instr_callbr (i : instr) : int =
   match instr_opcode i with
   | LO.CallBr -> LL.num_arg_operands (llvalue_of_instr i)
-  | _ -> herror "num_args_of: not an instr CallBr: " sprint_instr i
+  | _ -> herror "num_args_of: not an instr CallBr: " pr_instr i
 ;;
 
 let arg_of_instr_callbr (i : instr) (idx : int) : llvalue =
@@ -2495,8 +2506,8 @@ let arg_of_instr_callbr (i : instr) (idx : int) : llvalue =
   | LO.CallBr ->
     if idx < num_args_of_instr_call i
     then operand i idx
-    else herror "arg_of_instr_call: idx out of bound" sprint_int idx
-  | _ -> herror "arg_of: not an instr Call: " sprint_instr i
+    else herror "arg_of_instr_call: idx out of bound" pr_int idx
+  | _ -> herror "arg_of: not an instr Call: " pr_instr i
 ;;
 
 let args_of_instr_callbr (i : instr) : llvalues =
@@ -2508,7 +2519,7 @@ let args_of_instr_callbr (i : instr) : llvalues =
       args := !args @ [ operand i idx ]
     done;
     !args
-  | _ -> herror "operand_args: not an instr CallBr: " sprint_instr i
+  | _ -> herror "operand_args: not an instr CallBr: " pr_instr i
 ;;
 
 let callee_of_instr_callbr (i : instr) : func =
@@ -2516,7 +2527,7 @@ let callee_of_instr_callbr (i : instr) : func =
   | LO.CallBr ->
     let num_args = num_args_of_instr_callbr i in
     mk_func (operand i num_args)
-  | _ -> herror "callee_of: not an instr CallBr: " sprint_instr i
+  | _ -> herror "callee_of: not an instr CallBr: " pr_instr i
 ;;
 
 (* Invoke *)
@@ -2524,7 +2535,7 @@ let callee_of_instr_callbr (i : instr) : func =
 let num_args_of_instr_invoke (i : instr) : int =
   match instr_opcode i with
   | LO.Invoke -> LL.num_arg_operands (llvalue_of_instr i)
-  | _ -> herror "num_args_of: not an instr Invoke: " sprint_instr i
+  | _ -> herror "num_args_of: not an instr Invoke: " pr_instr i
 ;;
 
 let callee_of_instr_invoke (i : instr) : func =
@@ -2532,19 +2543,19 @@ let callee_of_instr_invoke (i : instr) : func =
   | LO.Invoke ->
     let num_args = num_args_of_instr_invoke i in
     mk_func (operand i (num_args + 2))
-  | _ -> herror "callee_of: not an instr Invoke: " sprint_instr i
+  | _ -> herror "callee_of: not an instr Invoke: " pr_instr i
 ;;
 
 let unwind_dest_of_instr_invoke (i : instr) : block =
   match instr_opcode i with
   | LO.Invoke -> LL.get_unwind_dest (llvalue_of_instr i)
-  | _ -> herror "unwind_dest_of: not an instr Invoke: " sprint_instr i
+  | _ -> herror "unwind_dest_of: not an instr Invoke: " pr_instr i
 ;;
 
 let normal_dest_of_instr_invoke (i : instr) : block =
   match instr_opcode i with
   | LO.Invoke -> LL.get_normal_dest (llvalue_of_instr i)
-  | _ -> herror "normal_dest_of: not an instr Invoke: " sprint_instr i
+  | _ -> herror "normal_dest_of: not an instr Invoke: " pr_instr i
 ;;
 
 let arg_of_instr_invoke (i : instr) (idx : int) : llvalue =
@@ -2552,8 +2563,8 @@ let arg_of_instr_invoke (i : instr) (idx : int) : llvalue =
   | LO.Invoke ->
     if idx < num_args_of_instr_call i
     then operand i idx
-    else herror "arg_of_instr_invoke: idx out of bound" sprint_int idx
-  | _ -> herror "arg_of: not an instr Invoke: " sprint_instr i
+    else herror "arg_of_instr_invoke: idx out of bound" pr_int idx
+  | _ -> herror "arg_of: not an instr Invoke: " pr_instr i
 ;;
 
 let args_of_instr_invoke (i : instr) : llvalues =
@@ -2565,7 +2576,7 @@ let args_of_instr_invoke (i : instr) : llvalues =
       args := !args @ [ operand i idx ]
     done;
     !args
-  | _ -> herror "operand_args: not an instr Invoke: " sprint_instr i
+  | _ -> herror "operand_args: not an instr Invoke: " pr_instr i
 ;;
 
 (* Function application instructions are: Call, CallBr, Invoke *)
@@ -2576,7 +2587,7 @@ let num_args_of_instr_func_app (i : instr) : int =
   | LO.CallBr -> num_args_of_instr_call i
   | LO.Invoke -> num_args_of_instr_invoke i
   | _ ->
-    herror "num_args_of_instr_func_app: not a callable instr: " sprint_instr i
+    herror "num_args_of_instr_func_app: not a callable instr: " pr_instr i
 ;;
 
 let callee_of_instr_func_call (i : instr) : func =
@@ -2585,7 +2596,7 @@ let callee_of_instr_func_call (i : instr) : func =
   | LO.CallBr -> callee_of_instr_callbr i
   | LO.Invoke -> callee_of_instr_invoke i
   | _ ->
-    herror "callee_of_instr_func_call: not a callable instr: " sprint_instr i
+    herror "callee_of_instr_func_call: not a callable instr: " pr_instr i
 ;;
 
 let arg_of_instr_func_app (i : instr) (idx : int) : llvalue =
@@ -2593,7 +2604,7 @@ let arg_of_instr_func_app (i : instr) (idx : int) : llvalue =
   | LO.Call -> arg_of_instr_call i idx
   | LO.CallBr -> arg_of_instr_callbr i idx
   | LO.Invoke -> arg_of_instr_invoke i idx
-  | _ -> herror "arg_of_instr_func_app: not a callable instr: " sprint_instr i
+  | _ -> herror "arg_of_instr_func_app: not a callable instr: " pr_instr i
 ;;
 
 let args_of_instr_func_app (i : instr) : llvalues =
@@ -2601,21 +2612,21 @@ let args_of_instr_func_app (i : instr) : llvalues =
   | LO.Call -> args_of_instr_call i
   | LO.CallBr -> args_of_instr_callbr i
   | LO.Invoke -> args_of_instr_invoke i
-  | _ -> herror "args_of_instr_func_app: not a callable instr: " sprint_instr i
+  | _ -> herror "args_of_instr_func_app: not a callable instr: " pr_instr i
 ;;
 
 let get_origin_src_of_memcpy (i : instr) : llvalue =
   let callee = callee_of_instr_func_call i in
   if is_func_memcpy callee
   then operand (mk_instr (operand i 0)) 0
-  else herror "get_origin_src_of_memcpy: not a memcopy Call: " sprint_instr i
+  else herror "get_origin_src_of_memcpy: not a memcopy Call: " pr_instr i
 ;;
 
 let get_origin_dst_of_memcpy (i : instr) : llvalue =
   let callee = callee_of_instr_func_call i in
   if is_func_memcpy callee
   then operand (mk_instr (operand i 1)) 0
-  else herror "get_origin_dst_of_memcpy: not a memcopy Call: " sprint_instr i
+  else herror "get_origin_dst_of_memcpy: not a memcopy Call: " pr_instr i
 ;;
 
 (* Icmp *)
@@ -2623,7 +2634,7 @@ let get_origin_dst_of_memcpy (i : instr) : llvalue =
 let predicate_of_instr_icmp (i : instr) : LL.Icmp.t option =
   match instr_opcode i with
   | LO.ICmp -> LL.icmp_predicate (llvalue_of_instr i)
-  | _ -> herror "predicate: not an instr Icmp: " sprint_instr i
+  | _ -> herror "predicate: not an instr Icmp: " pr_instr i
 ;;
 
 (* Fcmp *)
@@ -2631,7 +2642,7 @@ let predicate_of_instr_icmp (i : instr) : LL.Icmp.t option =
 let predicate_of_instr_fcmp (i : instr) : LL.Fcmp.t option =
   match instr_opcode i with
   | LO.FCmp -> LL.fcmp_predicate (llvalue_of_instr i)
-  | _ -> herror "predicate: not an instr FCmp: " sprint_instr i
+  | _ -> herror "predicate: not an instr FCmp: " pr_instr i
 ;;
 
 (* Br *)
@@ -2639,7 +2650,7 @@ let predicate_of_instr_fcmp (i : instr) : LL.Fcmp.t option =
 let branch_of_instr_br (i : instr) =
   match instr_opcode i with
   | LO.Br | LO.IndirectBr -> LL.get_branch (llvalue_of_instr i)
-  | _ -> herror "branch: not an instr Br: " sprint_instr i
+  | _ -> herror "branch: not an instr Br: " pr_instr i
 ;;
 
 (* PHI Node *)
@@ -2652,19 +2663,19 @@ let src_of_instr_phi (i : instr) : llvalues =
       operands := !operands @ [ operand i idx ]
     done;
     !operands
-  | _ -> herror "operands: not an instr PHI: " sprint_instr i
+  | _ -> herror "operands: not an instr PHI: " pr_instr i
 ;;
 
 let src_and_origin_of_instr_phi (i : instr) : (llvalue * block) list =
   match instr_opcode i with
   | LO.PHI -> LL.incoming (llvalue_of_instr i)
-  | _ -> herror "operands: not an instr PHI: " sprint_instr i
+  | _ -> herror "operands: not an instr PHI: " pr_instr i
 ;;
 
 let dst_of_instr_phi (i : instr) : llvalue =
   match instr_opcode i with
   | LO.PHI -> llvalue_of_instr i
-  | _ -> herror "dst_of_instr: not an instr PHI: " sprint_instr i
+  | _ -> herror "dst_of_instr: not an instr PHI: " pr_instr i
 ;;
 
 let is_phi_of_same_src_and_origin (i1 : instr) (i2 : instr) : bool =
@@ -2772,8 +2783,10 @@ let get_preceding_blocks (prog : program) (blk : block) : prec_blocks =
           blk1)
       ~init:[]
       func in
-  Hashtbl.find_or_compute prog.prog_block_precedings ~key:blk ~f:(fun () ->
-      compute_blocks blk)
+  Hashtbl.find_or_compute
+    prog.prog_block_data.pbd_preceding_blocks
+    ~f:(fun () -> compute_blocks blk)
+    ~key:blk
 ;;
 
 let get_succeeding_blocks (prog : program) (blk : block) : succ_blocks =
@@ -2809,8 +2822,10 @@ let get_succeeding_blocks (prog : program) (blk : block) : succ_blocks =
         | _ -> acc)
       ~init:[]
       blk in
-  Hashtbl.find_or_compute prog.prog_block_succeedings ~key:blk ~f:(fun () ->
-      compute_blocks blk)
+  Hashtbl.find_or_compute
+    prog.prog_block_data.pbd_succeeding_blocks
+    ~f:(fun () -> compute_blocks blk)
+    ~key:blk
 ;;
 
 let has_unique_path_between_blocks prog (src : block) (dst : block) : bool =
@@ -2849,7 +2864,7 @@ let formal_params_of_func (f : func) : param list =
   match LL.classify_value v with
   | LV.Function -> fold_left_params ~f:(fun acc p -> acc @ [ p ]) ~init:[] f
   | _ ->
-    herror "formal_params_of_func: not an actual function: " sprint_value v
+    herror "formal_params_of_func: not an actual function: " pr_value v
 ;;
 
 let entry_block (f : func) : block = LL.entry_block (llvalue_of_func f)
@@ -2885,35 +2900,49 @@ let first_instr_of_func (f : func) : instr option =
   | Some b -> first_instr_of_block b
 ;;
 
-let get_func_callees (prog : program) (f : func) : funcs =
-  match Hashtbl.find prog.prog_func_callees f with
+let get_pfd_callees (prog : program) (f : func) : funcs =
+  match Hashtbl.find prog.prog_func_data.pfd_callees f with
   | None -> []
-  | Some fns -> fns
+  | Some callables ->
+    List.fold_right
+      ~f:(fun cl acc ->
+        match cl with
+        | ClFunc f -> f :: acc
+        | _ -> acc)
+      ~init:[]
+      callables
 ;;
 
 let get_func_ptr_callees (prog : program) (f : func) : llvalues =
-  match Hashtbl.find prog.prog_func_ptr_callees f with
+  match Hashtbl.find prog.prog_func_data.pfd_callees f with
   | None -> []
-  | Some vs -> vs
+  | Some callables ->
+    List.fold_right
+      ~f:(fun cl acc ->
+        match cl with
+        | ClFPtr vfp -> vfp :: acc
+        | _ -> acc)
+      ~init:[]
+      callables
 ;;
 
-let get_func_callers (prog : program) (f : func) : funcs =
-  match Hashtbl.find prog.prog_func_callers f with
+let get_pfd_callers (prog : program) (f : func) : funcs =
+  match Hashtbl.find prog.prog_func_data.pfd_callers f with
   | None -> []
   | Some fns -> fns
 ;;
 
-let get_func_used_globals prog (f : func) : globals =
+let get_func_used_globals (prog : program) (f : func) : globals =
   if is_user_func f || is_init_func f
   then (
-    match Hashtbl.find prog.prog_func_used_globals f with
+    match Hashtbl.find prog.prog_func_data.pfd_used_globals f with
     | None -> herror "get_func_used_globals: no infor of: " func_name f
     | Some gs -> gs)
   else []
 ;;
 
 let has_call_to_user_funcs prog (f : func) : bool =
-  let callees = get_func_callees prog f in
+  let callees = get_pfd_callees prog f in
   List.exists ~f:(fun f -> is_user_func f || is_func_pointer f) callees
 ;;
 
@@ -2946,7 +2975,10 @@ let get_reachable_blocks (prog : program) (blk : block) : blocks =
       |> get_succeeding_blocks prog
       |> List.map ~f:(fun sb -> sb.sblk_block) in
     compute_reachables sblks [] in
-  Hashtbl.find_or_compute prog.prog_block_reachables ~key:blk ~f:compute
+  Hashtbl.find_or_compute
+    prog.prog_block_data.pbd_reachable_blocks
+    ~f:compute
+    ~key:blk
 ;;
 
 (* TODO: can be optimized by compute for all functions at once *)
@@ -2956,15 +2988,18 @@ let get_reachable_funcs (prog : program) (f : func) : funcs =
     match queue with
     | [] -> visited
     | f :: nqueue ->
-      let callees = get_func_callees prog f in
+      let callees = get_pfd_callees prog f in
       let nfs = List.diff callees (nqueue @ visited) ~equal in
       let nqueue = List.concat_dedup nqueue nfs ~equal in
       let nvisited = List.insert_dedup visited f ~equal in
       compute_reachables nqueue nvisited in
   let compute () =
-    let callees = get_func_callees prog f in
+    let callees = get_pfd_callees prog f in
     compute_reachables callees [] in
-  Hashtbl.find_or_compute prog.prog_func_reachables ~key:f ~f:compute
+  Hashtbl.find_or_compute
+    prog.prog_func_data.pfd_reachable_funcs
+    ~key:f
+    ~f:compute
 ;;
 
 let is_reachable_func prog (src : func) (dst : func) : bool =
@@ -3006,7 +3041,7 @@ let find_user_func (prog : program) (fname : string) : func option =
 ;;
 
 let get_current_funcs_of_pointer (prog : program) (v : llvalue) : funcs =
-  match Hashtbl.find prog.prog_pointer_funcs v with
+  match Hashtbl.find prog.prog_func_data.pfd_funcs_of_pointer v with
   | None -> []
   | Some funcs -> funcs
 ;;
@@ -3014,70 +3049,72 @@ let get_current_funcs_of_pointer (prog : program) (v : llvalue) : funcs =
 let update_funcs_of_pointer (prog : program) (v : llvalue) (funcs : funcs) =
   let curr_funcs = get_current_funcs_of_pointer prog v in
   let new_funcs = List.concat_dedup curr_funcs funcs ~equal:equal_func in
-  let _ = hdebug "update func pointer of: " sprint_value v in
+  let _ = hdebug "update func pointer of: " pr_value v in
   let _ = hdebug "   new funcs: " func_names new_funcs in
-  Hashtbl.set prog.prog_pointer_funcs ~key:v ~data:new_funcs
+  Hashtbl.set prog.prog_func_data.pfd_funcs_of_pointer ~key:v ~data:new_funcs
 ;;
 
 (*******************************************************************
  ** constructors of program
  *******************************************************************)
 
+let mk_program_meta_data (filename : string) (modul : llmodule)
+    : program_meta_data
+  =
+  { pmd_bitcode_filename = filename;
+    pmd_source_filename = "<unknown>";
+    pmd_llvalue_original_name = Hashtbl.create (module String);
+    pmd_module_id = "<unknown>";
+    pmd_data_layout = LL.data_layout modul;
+    pmd_target_platform = LL.target_triple modul
+  }
+;;
+
+let mk_program_func_data (modul : llmodule) : program_func_data =
+  { pfd_return_instr = Hashtbl.create (module Func);
+    pfd_callers = Hashtbl.create (module Func);
+    pfd_callees = Hashtbl.create (module Callable);
+    pfd_reachable_funcs = Hashtbl.create (module Func);
+    pfd_loops = Hashtbl.create (module Func);
+    pfd_used_globals = Hashtbl.create (module Func);
+    pfd_func_call_graph = CG.create ();
+    pfd_block_graph = Hashtbl.create (module Func);
+    pfd_funcs_of_pointer = Hashtbl.create (module Llvalue);
+    pfd_funcs_of_type = Hashtbl.create (module Lltype)
+  }
+;;
+
+let mk_program_loop_data (modul: llmodule) : program_loop_data =
+  {
+    pld_loop_updated_instr = Hashtbl.create (module Instr);
+    pld_loop_head_instr = Hashtbl.create (module Instr);
+    pld_innermost_loop_containing_block = Hashtbl.create (module Block);
+    pld_innermost_loop_containing_value = Hashtbl.create (module Llvalue);
+  }
+
+let mk_program_block_data (modul : llmodule) : program_block_data =
+  { pbd_preceding_blocks = Hashtbl.create (module Block);
+    pbd_succeeding_blocks = Hashtbl.create (module Block);
+    pbd_incoming_pathcond = Hashtbl.create (module Block);
+    pbd_reachable_blocks = Hashtbl.create (module Block)
+  }
+;;
+
 let mk_program (filename : string) (m : llmodule) : program =
-  let compiled_target = LL.target_triple m in
-  let data_layout = LL.data_layout m in
   let globals =
     LL.fold_left_globals (fun acc g -> acc @ [ mk_global g ]) [] m in
-  (* let module_id, source_filename =
-   *   let str = LL.string_of_llmodule m in
-   *   let re = Str.regexp ".*ModuleID.*'\\(.*\\\)'\nsource_filename.=.\"\\(.*\\\)\"" in
-   *   if Str.string_match re str 0 then
-   *     (Str.matched_group 1 str, Str.matched_group 2 str)
-   *   else ("unknown", "unknown") in *)
   { prog_globals = globals;
     prog_struct_types = [];
-    (* get_struct_types m; *)
     prog_lib_funcs = get_library_functions m;
     prog_user_funcs = get_user_functions m;
     prog_testing_funcs = get_auxiliary_funcs m;
     prog_init_funcs = get_initilization_funcs m;
     prog_main_func = get_main_function m;
-    (* functions info *)
-    prog_func_return_instr = Hashtbl.create (module Func);
-    prog_func_callees = Hashtbl.create (module Func);
-    prog_func_ptr_callees = Hashtbl.create (module Func);
-    prog_func_callers = Hashtbl.create (module Func);
-    prog_func_reachables = Hashtbl.create (module Func);
-    prog_func_loops = Hashtbl.create (module Func);
-    prog_func_used_globals = Hashtbl.create (module Func);
-    prog_funcs_in_pointers = Hashtbl.create (module Lltype);
-    prog_func_call_graph = CG.create ();
-    prog_func_block_graph = Hashtbl.create (module Func);
-    prog_instr_graph = IG.create ();
-    (* blocks info *)
-    prog_block_precedings = Hashtbl.create (module Block);
-    prog_block_succeedings = Hashtbl.create (module Block);
-    prog_block_incoming_pathcond = Hashtbl.create (module Block);
-    prog_block_reachables = Hashtbl.create (module Block);
-    (* instruction info *)
-    prog_loop_updated_instr = Hashtbl.create (module Instr);
-    prog_loop_head_instr = Hashtbl.create (module Instr);
-    (* llvalue info *)
-    prog_llvalue_innermost_loop = Hashtbl.create (module Llvalue);
-    prog_block_innermost_loop = Hashtbl.create (module Block);
-    (* analysis results *)
-    prog_undef_values = Hashtbl.create (module Instr);
-    prog_pointer_funcs = Hashtbl.create (module Llvalue);
-    (* compilation info *)
-    prog_bitcode_filename = filename;
-    prog_source_filename = "<unknown>";
-    (* source_filename; *)
-    prog_llvalue_original_name = Hashtbl.create (module String);
-    prog_module_id = "<unknown>";
-    (* module_id; *)
-    prog_data_layout = data_layout;
-    prog_target_platform = compiled_target;
-    prog_llmodule = m
+    prog_meta_data = mk_program_meta_data filename m;
+    prog_func_data = mk_program_func_data m;
+    prog_loop_data = mk_program_loop_data m;
+    prog_block_data = mk_program_block_data m;
+    prog_module_data = m
   }
 ;;
 
@@ -3085,65 +3122,65 @@ let mk_program (filename : string) (m : llmodule) : program =
  ** more advanced printing
  *******************************************************************)
 
-let sprint_loop (l : loop) : string =
+let pr_loop (l : loop) : string =
   let loop_info =
     [ "Loop: {head: " ^ block_name l.loop_head;
-      "body: " ^ sprint_list ~f:block_name l.loop_body;
-      "exit: " ^ sprint_list ~f:block_name l.loop_exit ^ "}"
+      "body: " ^ pr_list ~f:block_name l.loop_body;
+      "exit: " ^ pr_list ~f:block_name l.loop_exit ^ "}"
     ] in
   String.concat ~sep:"; " loop_info
 ;;
 
-let sprint_loops (ls : loop list) : string =
-  hsprint_list_itemized ~f:sprint_loop ls
+let pr_loops (ls : loop list) : string =
+  hpr_list_itemized ~f:pr_loop ls
 ;;
 
-let sprint_block (blk : block) : string =
+let pr_block (blk : block) : string =
   let blkname = block_name blk in
   let sinstrs =
     blk
-    |> map_instrs ~f:(String.hindent 2 sprint_instr)
+    |> map_instrs ~f:(String.hindent 2 pr_instr)
     |> String.concat ~sep:"\n" in
   (" " ^ blkname ^ ":\n")
   ^ String.replace_if_empty sinstrs ~replacer:"{Empty block}"
 ;;
 
-let sprint_func (f : func) : string =
+let pr_func (f : func) : string =
   let fname =
     sprintf
       "Function: %s %s(%s)"
-      (sprint_type (func_return_type f))
+      (pr_type (func_return_type f))
       (func_name f)
-      (sprint_args ~f:sprint_typed_param (func_params f)) in
+      (pr_args ~f:pr_typed_param (func_params f)) in
   let sblks =
     f
-    |> map_blocks ~f:sprint_block
+    |> map_blocks ~f:pr_block
     |> String.concat ~sep:"\n\n"
     |> String.replace_if_empty ~replacer:"{Empty function}" in
   fname ^ "\n" ^ sblks
 ;;
 
-let sprint_module (m : llmodule) : string = LL.string_of_llmodule m
+let pr_module (m : llmodule) : string = LL.string_of_llmodule m
 
-let sprint_program (prog : program) : string =
+let pr_program (prog : program) : string =
   let sglobals =
     prog.prog_globals
-    |> List.map ~f:(String.hindent 2 (sprint_global ~detailed:true))
+    |> List.map ~f:(String.hindent 2 (pr_global ~detailed:true))
     |> String.concat ~sep:"\n"
     |> String.prefix_if_not_empty ~prefix:"Globals:\n" in
   let sstructs =
     prog.prog_struct_types
-    |> List.map ~f:(fun t -> "  " ^ sprint_type t)
+    |> List.map ~f:(fun t -> "  " ^ pr_type t)
     |> String.concat ~sep:"\n"
     |> String.prefix_if_not_empty ~prefix:"Struct types:\n" in
   let funcs = prog.prog_init_funcs @ prog.prog_user_funcs in
-  let sfuncs = funcs |> List.map ~f:sprint_func |> String.concat ~sep:"\n\n" in
+  let sfuncs = funcs |> List.map ~f:pr_func |> String.concat ~sep:"\n\n" in
   String.suffix_if_not_empty sglobals ~suffix:"\n\n"
   ^ String.suffix_if_not_empty sstructs ~suffix:"\n\n"
   ^ sfuncs
 ;;
 
-let sprint_caller_info (prog : program) : string =
+let pr_caller_info (prog : program) : string =
   Hashtbl.fold
     ~f:(fun ~key:func ~data:callers acc ->
       let fname = func_name func in
@@ -3151,21 +3188,22 @@ let sprint_caller_info (prog : program) : string =
         callers |> List.map ~f:func_name |> String.concat ~sep:", " in
       acc ^ "\n  " ^ fname ^ " <-- [" ^ caller_names ^ "]")
     ~init:"Caller graph:"
-    prog.prog_func_callers
+    prog.prog_func_data.pfd_callers
 ;;
 
-let sprint_callee_info (prog : program) : string =
+let pr_callee_info (prog : program) : string =
   Hashtbl.fold
     ~f:(fun ~key:func ~data:callees acc ->
       let fname = func_name func in
       let callee_names =
-        callees |> List.map ~f:func_name |> String.concat ~sep:", " in
+        callees |> List.map ~f:callable_name |> String.concat ~sep:", " in
       acc ^ "\n  " ^ fname ^ " --> [" ^ callee_names ^ "]")
     ~init:"Callee graph:"
-    prog.prog_func_callees
+    prog.prog_func_data.pfd_callees
 ;;
 
-let print_program_analysis_info prog =
+let print_program_analysis_info (prog : program) =
+  let pfd = prog.prog_func_data in
   let callees_info =
     "====================================\n"
     ^ "* Information of function callees:\n"
@@ -3174,13 +3212,10 @@ let print_program_analysis_info prog =
           if List.is_empty callees
           then acc
           else
-            acc
-            ^ "\n - "
-            ^ func_name f
-            ^ ":"
-            ^ hsprint_list_itemized ~bullet:"    ->" ~f:func_name callees)
+            (acc ^ "\n - " ^ func_name f ^ ":")
+            ^ hpr_list_itemized ~bullet:"    ->" ~f:callable_name callees)
         ~init:""
-        prog.prog_func_callees in
+        pfd.pfd_callees in
   let _ = debug callees_info in
   let callers_info =
     "====================================\n"
@@ -3190,12 +3225,9 @@ let print_program_analysis_info prog =
           if List.is_empty callers
           then acc
           else
-            acc
-            ^ "\n - "
-            ^ func_name f
-            ^ ":"
-            ^ hsprint_list_itemized ~bullet:"    <-" ~f:func_name callers)
+            (acc ^ "\n - " ^ func_name f ^ ":")
+            ^ hpr_list_itemized ~bullet:"    <-" ~f:func_name callers)
         ~init:""
-        prog.prog_func_callers in
+        pfd.pfd_callers in
   debug callers_info
 ;;

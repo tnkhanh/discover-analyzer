@@ -13,9 +13,6 @@ module CI = Commonir
 module OC = Llvm.Opcode
 module LI = Llir
 module LU = Llutils
-module LN = Llnormalize
-module LS = Llsimplify
-module LT = Llinstrument
 module LP = Llpass
 module PS = Process
 module SE = Symexec
@@ -32,7 +29,7 @@ type os_type =
   | Cygwin
   | UnkownOS
 
-let sprint_os_type (os : os_type) =
+let pr_os_type (os : os_type) =
   match os with
   | Linux -> "Linux"
   | MacOS -> "MacOS"

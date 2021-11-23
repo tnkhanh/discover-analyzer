@@ -49,15 +49,15 @@ type assertion =
  ** printing
  *******************************************************************)
 
-let sprint_predicateicate (pred : predicate) : string =
+let pr_predicateicate (pred : predicate) : string =
   match pred with
-  | NoAlias vs -> "NoAlias(" ^ sprint_args ~f:LI.sprint_value vs ^ ")"
-  | MayAlias vs -> "MayAlias(" ^ sprint_args ~f:LI.sprint_value vs ^ ")"
-  | MustAlias vs -> "MustAlias(" ^ sprint_args ~f:LI.sprint_value vs ^ ")"
-  | _ -> "sprint_predicateicate: to implement"
+  | NoAlias vs -> "NoAlias(" ^ pr_args ~f:LI.pr_value vs ^ ")"
+  | MayAlias vs -> "MayAlias(" ^ pr_args ~f:LI.pr_value vs ^ ")"
+  | MustAlias vs -> "MustAlias(" ^ pr_args ~f:LI.pr_value vs ^ ")"
+  | _ -> "pr_predicateicate: to implement"
 ;;
 
-let pr_assertion (ast : assertion) : string = LI.sprint_instr ast.ast_instr
+let pr_assertion (ast : assertion) : string = LI.pr_instr ast.ast_instr
 
 let pr_assertion_status (func : LI.func) (ast : assertion) (status : bool) =
   let instr = ast.ast_instr in
@@ -65,11 +65,11 @@ let pr_assertion_status (func : LI.func) (ast : assertion) (status : bool) =
   let assertion =
     match LI.is_instr_call_invoke instr with
     | false ->
-      herror "assertion must be a function call: " LI.sprint_instr instr
+      herror "assertion must be a function call: " LI.pr_instr instr
     | true ->
       let asname = LI.func_name (LI.callee_of_instr_func_call instr) in
       let args = LI.args_of_instr_func_app instr in
-      asname ^ "(" ^ sprint_args ~f:LI.sprint_value args ^ ")" in
+      asname ^ "(" ^ pr_args ~f:LI.pr_value args ^ ")" in
   let location =
     match LD.position_of_instr instr with
     | None -> "Function: " ^ func_name
@@ -78,7 +78,7 @@ let pr_assertion_status (func : LI.func) (ast : assertion) (status : bool) =
       let location =
         [ "File: " ^ file_name;
           "function: " ^ func_name;
-          "line: " ^ sprint_int line
+          "line: " ^ pr_int line
         ] in
       String.concat ~sep:", " location in
   location ^ "\n  " ^ assertion ^ if status then ": OK!" else ": FAILED!"
@@ -154,7 +154,7 @@ let count_all_assertions (prog : LI.program) : int =
   let _ =
     hprint
       "All assertions: "
-      (hsprint_list_itemized ~f:pr_assertion)
+      (hpr_list_itemized ~f:pr_assertion)
       assertions in
   List.length assertions
 ;;

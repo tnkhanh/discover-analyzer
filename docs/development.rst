@@ -35,7 +35,7 @@ Coding convention
   + Use ``janestreet`` style and additional settings in
     ``discover/.ocamlformat`` and ``discover/.ocamlformat-ignore``.
 
-  + To disable ocamlformat for certain code, use ``[@ocamlformat "disable"]``:
+  + To disable ocamlformat for certain code, use ``[@@ocamlformat "disable"]``:
 
     .. code-block:: ocaml
 
@@ -88,6 +88,14 @@ Autoformat project using Dune
   .. code-block:: sh
 
      make format
+
+  and
+
+  .. code-block:: ocaml
+
+     let x = 1 in
+     let b = 2 in
+     let x = 1 in
 
 - Read more at this `formatting project tutorial
   <https://dune.readthedocs.io/en/stable/formatting.html>.`_

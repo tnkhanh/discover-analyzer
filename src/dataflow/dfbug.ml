@@ -54,9 +54,9 @@ let check_bug_integer_overflow (pdata : program_data) bug : bug option =
                 let reason =
                   Printf.sprintf
                     "Expression %s can only take the maximum value of %s,\nwhile but is assigned with %s. "
-                    (LI.sprint_value iof.iof_expr)
-                    (BInt.sprint_bigint ub)
-                    (RG.ID.sprint_bound r.range_ub) in
+                    (LI.pr_value iof.iof_expr)
+                    (BInt.pr_bigint ub)
+                    (RG.ID.pr_bound r.range_ub) in
                 return (mk_real_bug ~analysis:"RangeAnalysis" ~reason bug))
               else None))
         ~init:None
@@ -104,9 +104,9 @@ let check_bug_integer_underflow (pdata : program_data) bug : bug option =
                 let reason =
                   Printf.sprintf
                     "Expression %s can only take the minimum value of %s,\nwhile but is assigned with %s. "
-                    (LI.sprint_value iuf.iuf_expr)
-                    (BInt.sprint_bigint lb)
-                    (RG.ID.sprint_bound r.range_lb) in
+                    (LI.pr_value iuf.iuf_expr)
+                    (BInt.pr_bigint lb)
+                    (RG.ID.pr_bound r.range_lb) in
                 return (mk_real_bug ~analysis:"RangeAnalysis" ~reason bug))
               else None))
         ~init:None
@@ -155,9 +155,9 @@ let check_bug_buffer_overflow (pdata : program_data) bug : bug option =
               let reason =
                 Printf.sprintf
                   "Buffer at pointer %s contains %s elements,\nwhile the accessing index is %s "
-                  (LI.sprint_value bof.bof_pointer)
-                  (sprint_int64 n)
-                  (RG.sprint_interval_concise itv) in
+                  (LI.pr_value bof.bof_pointer)
+                  (pr_int64 n)
+                  (RG.pr_interval_concise itv) in
               return (mk_real_bug ~analysis:"RangeAnalysis" ~reason bug))
             else None
           | MemSizeOf v ->
@@ -180,18 +180,18 @@ let check_bug_buffer_overflow (pdata : program_data) bug : bug option =
                     let reason =
                       Printf.sprintf
                         "Buffer at pointer %s contains most %s elements,\nwhile the accessing index is %s "
-                        (LI.sprint_value bof.bof_pointer)
-                        (sprint_int64 max_num_elem)
-                        (RG.sprint_interval_concise itv) in
+                        (LI.pr_value bof.bof_pointer)
+                        (pr_int64 max_num_elem)
+                        (RG.pr_interval_concise itv) in
                     return (mk_real_bug ~analysis:"RangeAnalysis" ~reason bug))
                   else if RG.ID.compare_interval_ub_int itv min_num_elem >= 0
                   then (
                     let reason =
                       Printf.sprintf
                         "Buffer at pointer %s may contain only %s elements,\nwhile the accessing index is %s "
-                        (LI.sprint_value bof.bof_pointer)
-                        (sprint_int64 min_num_elem)
-                        (RG.sprint_interval_concise itv) in
+                        (LI.pr_value bof.bof_pointer)
+                        (pr_int64 min_num_elem)
+                        (RG.pr_interval_concise itv) in
                     return (mk_real_bug ~analysis:"RangeAnalysis" ~reason bug))
                   else None))
               ~init:None

@@ -91,9 +91,9 @@ let pr_buffer_overflow ?(detailed = true) (bof : buffer_overflow) : string =
   if detailed
   then
     "\n  Root pointer: "
-    ^ sprint_value bof.bof_pointer
+    ^ pr_value bof.bof_pointer
     ^ ", accessing index: "
-    ^ sprint_value bof.bof_elem_index
+    ^ pr_value bof.bof_elem_index
   else ""
 ;;
 
@@ -101,7 +101,7 @@ let pr_memory_leak ?(detailed = true) (mlk : memory_leak) : string =
   let size =
     match mlk.mlk_size with
     | None -> "unknown"
-    | Some size -> sprint_int size in
+    | Some size -> pr_int size in
   "Memory Leak" ^ if detailed then "\n  Reason: buffer size: " ^ size else ""
 ;;
 
@@ -109,37 +109,37 @@ let pr_memory_leak ?(detailed = true) (mlk : memory_leak) : string =
  * Integer bugs
  *--------------*)
 
-let sprint_instr_detailed_position instr =
+let pr_instr_detailed_position instr =
   let code_excerpt =
     match LD.position_of_instr instr with
     | None -> ""
-    | Some p -> "  Location: " ^ sprint_file_position_and_excerpt p ^ "\n"
+    | Some p -> "  Location: " ^ pr_file_position_and_excerpt p ^ "\n"
   in
   if !location_source_code_only
   then code_excerpt
-  else "  Instruction: " ^ sprint_instr instr ^ "\n" ^ code_excerpt
+  else "  Instruction: " ^ pr_instr instr ^ "\n" ^ code_excerpt
 ;;
 
 let pr_llvalue_name (v : LL.llvalue) : string =
   match LD.get_original_name_of_llvalue v with
   | Some str -> str
-  | None -> sprint_value v
+  | None -> pr_value v
 ;;
 
-let sprint_integer_overflow ?(detailed = true) (iof : integer_overflow)
+let pr_integer_overflow ?(detailed = true) (iof : integer_overflow)
     : string
   =
   "Integer Overflow"
   ^
-  if detailed then "\n" ^ sprint_instr_detailed_position iof.iof_instr else ""
+  if detailed then "\n" ^ pr_instr_detailed_position iof.iof_instr else ""
 ;;
 
-let sprint_integer_underflow ?(detailed = true) (iuf : integer_underflow)
+let pr_integer_underflow ?(detailed = true) (iuf : integer_underflow)
     : string
   =
   "Integer Underflow"
   ^
-  if detailed then "\n" ^ sprint_instr_detailed_position iuf.iuf_instr else ""
+  if detailed then "\n" ^ pr_instr_detailed_position iuf.iuf_instr else ""
 ;;
 
 (*------------------------
@@ -151,8 +151,8 @@ let pr_bug_type ?(detailed = true) (btype : bug_type) : string =
   | MemoryLeak mlk -> pr_memory_leak mlk
   | NullPointerDeref -> "Null Pointer Dereference"
   | BufferOverflow bof -> pr_buffer_overflow ~detailed bof
-  | IntegerOverflow iof -> sprint_integer_overflow iof
-  | IntegerUnderflow iuf -> sprint_integer_underflow ~detailed iuf
+  | IntegerOverflow iof -> pr_integer_overflow iof
+  | IntegerUnderflow iuf -> pr_integer_underflow ~detailed iuf
   | DivisionByZero -> "Division By Zero"
 ;;
 
@@ -160,11 +160,11 @@ let pr_potential_bug (bug : bug) : string =
   (pr_bug_type ~detailed:false bug.bug_type ^ "\n")
   ^ ("    Function: " ^ func_name bug.bug_func ^ "\n")
   ^ "    "
-  ^ sprint_instr bug.bug_instr
+  ^ pr_instr bug.bug_instr
 ;;
 
 let pr_potential_bugs (bugs : bug list) : string =
-  hsprint_list_itemized ~f:pr_potential_bug bugs
+  hpr_list_itemized ~f:pr_potential_bug bugs
 ;;
 
 let pr_bug ?(detailed = true) (bug : bug) : string =
@@ -174,18 +174,18 @@ let pr_bug ?(detailed = true) (bug : bug) : string =
       let status =
         match bug.bug_status with
         | None -> "Unknown"
-        | Some b -> sprint_bool b in
+        | Some b -> pr_bool b in
       ("    Type: " ^ pr_bug_type ~detailed bug.bug_type)
       ^ "    Status: "
       ^ status)
     else "" in
   "Bug: "
-  ^ sprint_instr bug.bug_instr
+  ^ pr_instr bug.bug_instr
   ^ String.prefix_if_not_empty ~prefix:"\n" details
 ;;
 
 let pr_bug_name (bug : bug) : string = pr_bug_type ~detailed:false bug.bug_type
-let pr_bugs (bugs : bug list) : string = hsprint_list_itemized ~f:pr_bug bugs
+let pr_bugs (bugs : bug list) : string = hpr_list_itemized ~f:pr_bug bugs
 
 (*******************************************************************
  ** constructors
@@ -251,7 +251,7 @@ let mk_potential_buffer_overflow (instr : instr) : bug =
             | None ->
               herror
                 "mk_potential_buffer_overflow: array index not available:"
-                sprint_instr
+                pr_instr
                 instr in
           NumElem (size, elem_typ), array_idx
         (* pointer to a dynamically allocated memory *)
@@ -293,7 +293,7 @@ let report_bug (bug : bug) : unit =
     | true ->
       (match LD.position_of_instr bug.bug_instr with
       | None -> ""
-      | Some p -> "  " ^ sprint_file_position_and_excerpt p ^ "\n") in
+      | Some p -> "  " ^ pr_file_position_and_excerpt p ^ "\n") in
   let reason =
     match bug.bug_reason with
     | None -> ""
@@ -326,7 +326,7 @@ let report_bug_stats (bugs : bug list) : unit =
       let bug_stats = Hashtbl.to_alist tbl_stats in
       List.fold_left
         ~f:(fun acc (bug_name, times) ->
-          acc ^ "\n  " ^ bug_name ^ ": " ^ sprint_int times)
+          acc ^ "\n  " ^ bug_name ^ ": " ^ pr_int times)
         ~init:""
         bug_stats in
   print ("==============================\n" ^ "Bug Summary:\n" ^ summary)

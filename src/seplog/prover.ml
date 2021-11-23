@@ -14,7 +14,9 @@ open Proof
 open Rule
 module NO = Normalize
 
-let iprint pstate msg = if pstate.prs_interact then debugc msg else ()
+let iprint pstate msg =
+  if pstate.prs_interact then debug ~compact:true msg else ()
+;;
 
 (*******************************************************************
  ** rules
@@ -184,13 +186,13 @@ let prove_entailments prog ents : bool option =
 ;;
 
 let infer_entailment_frame prog ent : bool option * formula list =
-  (* let _ = hdebugc "Entail: " sprint_ent ent in *)
+  (* let _ = hdebugc "Entail: " pr_ent ent in *)
   let _ = init_global_vars [ ent ] in
   let goal = mk_goal [ ent ] in
   let pstate = mk_prover_state prog in
   let ptree = prove_one_goal pstate goal in
   let _ = dump_proof_tree pstate ptree in
-  (* let _ = hdebugc "  frames: " sprint_fs ptree.ptr_frames in *)
+  (* let _ = hdebugc "  frames: " pr_fs ptree.ptr_frames in *)
   ptree.ptr_status, ptree.ptr_frames
 ;;
 

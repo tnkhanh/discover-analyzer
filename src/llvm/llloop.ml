@@ -16,7 +16,7 @@ module BGSCC = LG.BlockGraphSCC
 let get_loop_blocks loop : block list = loop.loop_head :: loop.loop_body
 
 let find_loop_head (prog : program) (scb : LG.scblocks) : block option =
-  (* let _ = hprint "Find_loop_head in: " LG.sprint_scblocks scb in *)
+  (* let _ = hprint "Find_loop_head in: " LG.pr_scblocks scb in *)
   let head_blks =
     List.fold_left
       ~f:(fun acc blk ->
@@ -71,7 +71,7 @@ let update_loop_info (prog : program) loop : loop =
 
 let find_loop_in_blocks (prog : program) (blks : blocks) : loops =
   let scbs = LG.get_strongly_connected_blocks prog blks in
-  (* let _ = hdebugc "SCC blocks: " (sprint_string_list_itemized LG.sprint_scblocks) scbs in *)
+  (* let _ = hdebugc "SCC blocks: " (pr_list_itemized LG.pr_scblocks) scbs in *)
   let loops =
     List.fold_left
       ~f:(fun acc scb ->
@@ -88,7 +88,7 @@ let find_loop_in_blocks (prog : program) (blks : blocks) : loops =
             acc @ [ loop ]))
       ~init:[]
       scbs in
-  (* let _ = hdebugc "All loops: " (sprint_string_list_itemized sprint_loop) loops in *)
+  (* let _ = hdebugc "All loops: " (pr_list_itemized pr_loop) loops in *)
   loops
 ;;
 
@@ -98,7 +98,7 @@ let find_loop_in_func (prog : program) (func : func) : loops =
 ;;
 
 let get_loops_of_func (prog : program) (func : func) : loops =
-  Hashtbl.find_or_compute prog.prog_func_loops ~key:func ~f:(fun () ->
+  Hashtbl.find_or_compute prog.prog_func_data.pfd_loops ~key:func ~f:(fun () ->
       find_loop_in_func prog func)
 ;;
 
@@ -121,8 +121,10 @@ let find_innermost_loop_of_block (prog : program) blk : loop option =
     match loop_opt with
     | None -> None
     | Some loop -> Some (find_innermost_loop loop blk) in
-  Hashtbl.find_or_compute prog.prog_block_innermost_loop ~key:blk ~f:(fun () ->
-      find_loop blk)
+  Hashtbl.find_or_compute
+    prog.prog_loop_data.pld_innermost_loop_containing_block
+    ~f:(fun () -> find_loop blk)
+    ~key:blk
 ;;
 
 let find_innermost_loop_of_llvalue (prog : program) (v : llvalue) : loop option
@@ -133,8 +135,10 @@ let find_innermost_loop_of_llvalue (prog : program) (v : llvalue) : loop option
       let blk = block_of_instr (mk_instr v) in
       find_innermost_loop_of_block prog blk)
     else None in
-  Hashtbl.find_or_compute prog.prog_llvalue_innermost_loop ~key:v ~f:(fun () ->
-      find_loop v)
+  Hashtbl.find_or_compute
+    prog.prog_loop_data.pld_innermost_loop_containing_value
+    ~f:(fun () -> find_loop v)
+    ~key:v
 ;;
 
 let is_loop_updated_instr prog instr : bool =
@@ -145,8 +149,10 @@ let is_loop_updated_instr prog instr : bool =
       ~f:(fun lp ->
         List.exists ~f:(equal_block blk) (lp.loop_head :: lp.loop_body))
       loops in
-  Hashtbl.find_or_compute prog.prog_loop_updated_instr ~key:instr ~f:(fun () ->
-      check_instr instr)
+  Hashtbl.find_or_compute
+    prog.prog_loop_data.pld_loop_updated_instr
+    ~f:(fun () -> check_instr instr)
+    ~key:instr
 ;;
 
 let is_loop_head_instr prog instr : bool =
@@ -154,8 +160,10 @@ let is_loop_head_instr prog instr : bool =
     let func, blk = func_of_instr instr, block_of_instr instr in
     let loops = get_loops_of_func prog func in
     List.exists ~f:(fun lp -> equal_block blk lp.loop_head) loops in
-  Hashtbl.find_or_compute prog.prog_loop_head_instr ~key:instr ~f:(fun () ->
-      check_instr instr)
+  Hashtbl.find_or_compute
+    prog.prog_loop_data.pld_loop_head_instr
+    ~f:(fun () -> check_instr instr)
+    ~key:instr
 ;;
 
 let is_loop_updated_llvalue prog v : bool =

@@ -219,7 +219,7 @@ let apply_hd_bug
   | [] ->
     raise
       (AnnotFormat
-         ("Error: Bug_end without start at " ^ Ann.sprint_pos_ann end_ann))
+         ("Error: Bug_end without start at " ^ Ann.pr_pos_ann end_ann))
   | (ann, ins_op) :: tl ->
     (match ann with
     | Bug_start ((line, col), bugs) ->
@@ -227,7 +227,7 @@ let apply_hd_bug
       | None ->
         raise
           (AnnotFormat
-             ("Error: No ins for annot at " ^ Ann.sprint_pos_ann end_ann))
+             ("Error: No ins for annot at " ^ Ann.pr_pos_ann end_ann))
       | Some ins ->
         let _ = apply_annotation Bug ins bugs modul in
         tl)
@@ -235,7 +235,7 @@ let apply_hd_bug
       raise
         (AnnotFormat
            ("Error: no Bug_start matching Bug_end at "
-           ^ Ann.sprint_pos_ann end_ann)))
+           ^ Ann.pr_pos_ann end_ann)))
 ;;
 
 let apply_hd_safe
@@ -247,7 +247,7 @@ let apply_hd_safe
   | [] ->
     raise
       (AnnotFormat
-         ("Error: Safe_end without start at " ^ Ann.sprint_pos_ann end_ann))
+         ("Error: Safe_end without start at " ^ Ann.pr_pos_ann end_ann))
   | (ann, ins_op) :: tl ->
     (match ann with
     | Safe_start ((line, col), bugs) ->
@@ -255,7 +255,7 @@ let apply_hd_safe
       | None ->
         raise
           (AnnotFormat
-             ("Error: No ins for annot at " ^ Ann.sprint_pos_ann end_ann))
+             ("Error: No ins for annot at " ^ Ann.pr_pos_ann end_ann))
       | Some ins ->
         let _ = apply_annotation Safe ins bugs modul in
         tl)
@@ -263,7 +263,7 @@ let apply_hd_safe
       raise
         (AnnotFormat
            ("Error: no Safe_start matching Safe_end at"
-           ^ Ann.sprint_pos_ann end_ann)))
+           ^ Ann.pr_pos_ann end_ann)))
 ;;
 
 let rec resolve
@@ -282,9 +282,9 @@ let rec resolve
         raise
           (AnnotFormat
              ("Error: no matching instruction for bug annotation at "
-             ^ sprint_int line
+             ^ pr_int line
              ^ " "
-             ^ sprint_int col))
+             ^ pr_int col))
       | ins :: tl_ins ->
         if less_than ins hd_ann
         then resolve ann_marks tl_ins (update ins matched_anns) modul
@@ -355,10 +355,10 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
   (*        match Hashtbl.find coverage ins.ins with *)
   (*        | None -> "None" *)
   (*        | Some (lc_start, lc_end) -> *)
-  (*          (sprint_int lc_start.line ^ " ") *)
-  (*          ^ (sprint_int lc_start.col ^ " ") *)
-  (*          ^ (sprint_int lc_end.line ^ " ") *)
-  (*          ^ sprint_int lc_end.col in *)
+  (*          (pr_int lc_start.line ^ " ") *)
+  (*          ^ (pr_int lc_start.col ^ " ") *)
+  (*          ^ (pr_int lc_end.line ^ " ") *)
+  (*          ^ pr_int lc_end.col in *)
   (*      let llins = llvalue_of_instr ins.ins in *)
   (*            let args = *)
   (*        let num_args = LL.num_operands llins in *)
@@ -380,8 +380,8 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
   (*   acc ^ (LL.string_of_llvalue (llvalue_of_instr key)) ^ " " ^ *)
   (*     (match data with *)
   (*     | (st, fn) -> *)
-  (*       sprint_int st.line ^ " " ^ sprint_int st.col ^ " " ^ *)
-  (*       sprint_int fn.line ^ " " ^ sprint_int fn.col *)
+  (*       pr_int st.line ^ " " ^ pr_int st.col ^ " " ^ *)
+  (*       pr_int fn.line ^ " " ^ pr_int fn.col *)
   (*   ) ^ " " ^ findstr ^ "\n" *)
   (* ) in *)
   (* let _ = debug2 ~ruler:`Long "Hashtbl" strhash in *)
