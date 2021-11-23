@@ -55,6 +55,7 @@ type input_mode =
  *----------*)
 
 let print_input_prog = ref false
+let print_instrumented = ref false
 let print_typed_prog = ref false
 let print_core_prog = ref false
 let print_analyzed_prog = ref true

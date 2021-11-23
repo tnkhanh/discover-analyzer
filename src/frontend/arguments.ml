@@ -55,6 +55,7 @@ and arguments_raw =
      * printing
      *--------------------------------------------------------*)
     [ "--pip" ], "Print input programs", Arg.Set print_input_prog;
+    [ "--print-instrumented" ], "Print instrumented bitcode", Arg.Set print_instrumented;
     [ "--type" ], "Print type information of variables", Arg.Set print_type;
     [ "--pcp" ], "Print core programs", Arg.Set print_core_prog;
     [ "--pap" ], "Print analyzed programs", Arg.Set print_analyzed_prog;

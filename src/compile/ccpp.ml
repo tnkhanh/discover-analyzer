@@ -50,7 +50,9 @@ let compile_c_cpp (input_file : string) : LI.program =
   let _ = LT.instrument_bitcode ann_marks input_file modul in
   let instrued_filename = dirname ^ Filename.dir_sep ^ basename ^ ".ins.bc" in
   let _ = LL.set_module_identifer modul instrued_filename in
-  let _ = debug2 ~ruler:`Long "Changed name: " (LL.string_of_llmodule modul) in
+  let _ = 
+    if !print_instrumented
+    then debug2 ~ruler:`Long "Changed name: " (LL.string_of_llmodule modul) in
   let _ =
     let instrued_file = open_out instrued_filename in
     let _ = Llvm_bitwriter.output_bitcode instrued_file modul in
