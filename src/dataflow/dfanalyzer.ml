@@ -54,12 +54,12 @@ let perform_pre_analysis_passes (pdata : program_data) : program_data =
 let perform_range_analysis (pdata : program_data) : program_data =
   try
     let _ = if not (is_analysis_enabled DfaRange) then raise ESkip in
-    let _ = debug ~ruler:`Header "Performing Range Analysis..." in
+    let _ = debug ~header:true "Performing Range Analysis..." in
     let prog = pdata.pdata_program in
     let penv = RG.analyze_program prog in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then hprint ~ruler:`Header "RANGE INFO" RG.pr_prog_env penv in
+      then hprint ~header:true "RANGE INFO" RG.pr_prog_env penv in
     { pdata with pdata_env_range = Some penv }
   with ESkip -> pdata
 ;;
@@ -67,13 +67,13 @@ let perform_range_analysis (pdata : program_data) : program_data =
 let perform_undef_analysis (pdata : program_data) : program_data =
   try
     let _ = if not (is_analysis_enabled DfaUndef) then raise ESkip in
-    let _ = debug ~ruler:`Header "Performing Undef Analysis" in
+    let _ = debug ~header:true "Performing Undef Analysis" in
     let prog = pdata.pdata_program in
     let penv, time = Sys.track_runtime (fun () -> UA.analyze_program prog) in
     let _ = record_task_time "Undef analysis" time in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then hprint ~ruler:`Header "UNDEF INFO" UA.pr_prog_env penv in
+      then hprint ~header:true "UNDEF INFO" UA.pr_prog_env penv in
     { pdata with pdata_env_undef = Some penv }
   with ESkip -> pdata
 ;;
@@ -81,12 +81,12 @@ let perform_undef_analysis (pdata : program_data) : program_data =
 let perform_memsize_analysis (pdata : program_data) : program_data =
   try
     let _ = if not (is_analysis_enabled DfaMemsize) then raise ESkip in
-    let _ = debug ~ruler:`Header "Performing Memsize Analysis" in
+    let _ = debug ~header:true "Performing Memsize Analysis" in
     let prog = pdata.pdata_program in
     let penv = MS.analyze_program prog in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then hprint ~ruler:`Header "MEMSIZE INFO" MS.pr_prog_env penv in
+      then hprint ~header:true "MEMSIZE INFO" MS.pr_prog_env penv in
     { pdata with pdata_env_memsize = Some penv }
   with ESkip -> pdata
 ;;
@@ -94,13 +94,13 @@ let perform_memsize_analysis (pdata : program_data) : program_data =
 let perform_pointer_analysis (pdata : program_data) : program_data =
   try
     let _ = if not (is_analysis_enabled DfaPointer) then raise ESkip in
-    let _ = debug ~ruler:`Header "Performing Pointer Analysis" in
+    let _ = debug ~header:true "Performing Pointer Analysis" in
     let prog = pdata.pdata_program in
     let penv, time = Sys.track_runtime (fun () -> PA.analyze_program prog) in
     let _ = record_task_time "Pointer analysis" time in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then hprint ~ruler:`Header "POINTER INFO" PA.pr_prog_env penv in
+      then hprint ~header:true "POINTER INFO" PA.pr_prog_env penv in
     { pdata with pdata_env_pointer = Some penv }
   with ESkip -> pdata
 ;;

@@ -12,6 +12,13 @@ open Globals
 open Libstring
 open Libcore
 
+type ruler =
+  | RlLong
+  | RlShort
+  | RlMedium
+  | RlHeader
+  | RlNone
+
 let no_print = ref false
 
 (*******************************************************************
@@ -140,14 +147,11 @@ let beautiful_format_on_char ~(sep : char) ?(column = 80) (str : string) =
  ** Stdout printing functions
  *******************************************************************)
 
-let ruler_long = "\n************************************************\n"
-let ruler_medium = "\n*********************************\n"
-let ruler_short = "\n--------------------\n"
-
 (** core printing function *)
 
 let print_core
     ?(ruler = `None)
+    ?(header = false)
     ?(prefix = "")
     ?(indent = 0)
     ?(always = false)
@@ -158,28 +162,30 @@ let print_core
   if (not !no_print) || always
   then (
     let msg =
-      match ruler with
-      | `Header ->
+      if header
+      then (
         let msg = if String.is_empty msg then msg else "\n\n" ^ msg ^ "\n" in
-        ruler_long ^ prefix ^ msg
-      | `Long -> ruler_long ^ prefix ^ msg
-      | `Medium -> ruler_medium ^ prefix ^ msg
-      | `Short -> ruler_short ^ prefix ^ msg
-      | `None ->
-        if not format
-        then msg
-        else if String.is_prefix ~prefix:"\n" msg
-                || (String.length prefix > 1
-                   && String.is_suffix ~suffix:"\n" prefix)
-        then (
-          let indent = String.count_indent prefix + 2 + indent in
-          prefix ^ String.indent indent msg)
-        else if String.length prefix > 12
-                && String.exists ~f:(fun c -> c == '\n') msg
-        then (
-          let indent = String.count_indent prefix + 2 + indent in
-          prefix ^ "\n" ^ String.indent indent msg)
-        else String.indent indent (String.align_line prefix msg) in
+        "\n" ^ String.make 68 '*' ^ "\n" ^ prefix ^ msg)
+      else (
+        match ruler with
+        | `Long -> "\n" ^ String.make 68 '*' ^ "\n" ^ prefix ^ msg
+        | `Medium -> "\n" ^ String.make 45 '*' ^ "\n" ^ prefix ^ msg
+        | `Short -> "\n" ^ String.make 21 '-' ^ "\n" ^ prefix ^ msg
+        | `None ->
+          if not format
+          then msg
+          else if String.is_prefix ~prefix:"\n" msg
+                  || (String.length prefix > 1
+                     && String.is_suffix ~suffix:"\n" prefix)
+          then (
+            let indent = String.count_indent prefix + 2 + indent in
+            prefix ^ String.indent indent msg)
+          else if String.length prefix > 12
+                  && String.exists ~f:(fun c -> c == '\n') msg
+          then (
+            let indent = String.count_indent prefix + 2 + indent in
+            prefix ^ "\n" ^ String.indent indent msg)
+          else String.indent indent (String.align_line prefix msg)) in
     print_endline ("[info] " ^ msg))
   else ()
 ;;
@@ -187,6 +193,7 @@ let print_core
 (** print a message *)
 
 let print
+    ?(header = false)
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
@@ -194,12 +201,13 @@ let print
     (msg : string)
     : unit
   =
-  print_core ~ruler ~indent ~always ~format msg
+  print_core ~header ~ruler ~indent ~always ~format msg
 ;;
 
 (** print 2 messages *)
 
 let print2
+    ?(header = false)
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
@@ -208,12 +216,13 @@ let print2
     (msg2 : string)
     : unit
   =
-  print_core ~ruler ~indent ~always ~format (msg1 ^ msg2)
+  print_core ~header ~ruler ~indent ~always ~format (msg1 ^ msg2)
 ;;
 
 (** print a list of messages *)
 
-let prints
+let printl
+    ?(header = false)
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
@@ -224,13 +233,13 @@ let prints
   print_core ~ruler ~indent ~always ~format (String.concat msgs)
 ;;
 
+(** print a message and a newline character *)
 let println
-    ?(header = "")
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
     ?(format = true)
-    msg
+    (msg : string)
     : unit
   =
   print_core ~ruler ~indent ~always ~format (msg ^ "\n")
@@ -240,30 +249,21 @@ let println
 
 let hprint
     ?(ruler = `None)
+    ?(header = false)
     ?(indent = 0)
     ?(always = false)
     ?(format = true)
-    prefix
+    (prefix : string)
     (f : 'a -> string)
     (v : 'a)
   =
   print_core ~ruler ~indent ~prefix ~always ~format (f v)
 ;;
 
-let hprintln
-    ?(ruler = `None)
-    ?(indent = 0)
-    ?(always = false)
-    ?(format = true)
-    prefix
-    (f : 'a -> string)
-    (v : 'a)
-  =
-  let msg = f v in
-  print_core ~ruler ~indent ~prefix ~always ~format (msg ^ "\n")
-;;
-
 let nprint _ = ()
+let nprint2 _ = ()
+let nprintl _ = ()
+let nprintln _ = ()
 let nhprint _ _ = ()
 
 (** Print error *)

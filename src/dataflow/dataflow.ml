@@ -2791,9 +2791,8 @@ functor
       (* let _ = hprint "Non-sparse functions: "  *)
       let _ = if !print_stats_prog then print_stats_sparse_prog penv in
       let _ =
-        hprint "Goal functions: "
-          (pr_items ~f:func_name)
-          penv.penv_goal_funcs in
+        hprint "Goal functions: " (pr_items ~f:func_name) penv.penv_goal_funcs
+      in
       (* let prog = update_program_info prog in *)
       let _ =
         if !export_core_prog
@@ -2802,7 +2801,7 @@ functor
           export_core_program_to_file ~sparse:true penv) in
       let _ = if !export_debug_info then export_debugging_info_to_file penv in
       if !dfa_sparse_analysis && not !print_concise_output
-      then hprint ~ruler:`Header "CORE SPARSE PROGRAM" pr_sparse_prog penv
+      then hprint ~header:true "CORE SPARSE PROGRAM" pr_sparse_prog penv
     ;;
 
     let analyze_program_intraproc ?(func = None) penv : T.prog_env =

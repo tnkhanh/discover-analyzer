@@ -45,7 +45,7 @@ let compile_solidity (filename : string) : LI.program =
       @ [ "--no-constant-folding"; "--no-strength-reduce" ]
       @ [ "--no-dead-storage"; "--no-vector-to-slice" ]
       @ [ "-o"; output_dir ] @ user_options in
-    let _ = debugs [ "COMMAND: '"; String.concat ~sep:" " cmd; "'" ] in
+    let _ = debugl [ "COMMAND: '"; String.concat ~sep:" " cmd; "'" ] in
     PS.run_command cmd in
   let generated_files = Sys.ls_dir output_dir in
   let _ = hdebug "Generated files: " (pr_list ~f:pr_str) generated_files in
