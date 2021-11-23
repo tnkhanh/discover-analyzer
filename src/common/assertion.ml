@@ -64,8 +64,7 @@ let pr_assertion_status (func : LI.func) (ast : assertion) (status : bool) =
   let func_name = LI.func_name func in
   let assertion =
     match LI.is_instr_call_invoke instr with
-    | false ->
-      herror "assertion must be a function call: " LI.pr_instr instr
+    | false -> herror "assertion must be a function call: " LI.pr_instr instr
     | true ->
       let asname = LI.func_name (LI.callee_of_instr_func_call instr) in
       let args = LI.args_of_instr_func_app instr in
@@ -130,8 +129,7 @@ let find_range_assertions (func : LI.func) : assertion list =
           let operands = LI.operands instr in
           if String.is_substring fname ~substring:__assert_range_lower_bound
           then acc @ [ mk_assertion Assert (RangeLB operands) instr ]
-          else if String.is_substring
-                    fname
+          else if String.is_substring fname
                     ~substring:__assert_range_upper_bound
           then acc @ [ mk_assertion Assert (RangeUB operands) instr ]
           else if String.is_substring fname ~substring:__assert_range_full
@@ -149,12 +147,9 @@ let count_all_assertions (prog : LI.program) : int =
   let assertions =
     List.fold_left
       ~f:(fun acc func -> acc @ find_all_assertions func)
-      ~init:[]
-      prog.prog_user_funcs in
+      ~init:[] prog.prog_user_funcs in
   let _ =
-    hprint
-      "All assertions: "
-      (hpr_list_itemized ~f:pr_assertion)
-      assertions in
+    hprint "All assertions: " (hpr_list_itemized ~f:pr_assertion) assertions
+  in
   List.length assertions
 ;;

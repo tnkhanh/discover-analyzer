@@ -225,9 +225,7 @@ let rec pr_exp (e : exp) : string =
   | Func (FName n, es, _) -> n ^ "(" ^ pr_exps es ^ ")"
   | Func _ -> error "pr_exp: unexpected exp: (need details)"
 
-and pr_exps (es : exp list) : string =
-  pr_list ~sep:"," ~f:pr_exp es
-;;
+and pr_exps (es : exp list) : string = pr_list ~sep:"," ~f:pr_exp es
 
 let pr_reln_form (rf : reln_form) : string =
   match rf with
@@ -254,33 +252,21 @@ let rec pr_pure_form (f : pure_form) : string =
   | BEq (e, p) -> pr_exp e ^ "=" ^ "(" ^ pr_pure_form p ^ ")"
   | PConj fs -> pr_list ~sep:" & " ~f:pr_aux fs
   | PDisj fs -> pr_list ~sep:" | " ~f:pr_aux fs
-  | PForall (vs, f) ->
-    "(forall " ^ pr_vars vs ^ ". " ^ pr_pure_form f ^ ")"
-  | PExists (vs, f) ->
-    "(exists " ^ pr_vars vs ^ ". " ^ pr_pure_form f ^ ")"
+  | PForall (vs, f) -> "(forall " ^ pr_vars vs ^ ". " ^ pr_pure_form f ^ ")"
+  | PExists (vs, f) -> "(exists " ^ pr_vars vs ^ ". " ^ pr_pure_form f ^ ")"
 
 and pr_pf (f : pure_form) = pr_pure_form f
+and pr_pfs (fs : pure_forms) : string = pr_list ~sep:"\n" ~f:pr_pf fs
 
-and pr_pfs (fs : pure_forms) : string =
-  pr_list ~sep:"\n" ~f:pr_pf fs
-;;
-
-let pr_addr_form a =
-  "(" ^ pr_exp a.addr_base ^ "," ^ pr_exp a.addr_elem ^ ")"
-;;
+let pr_addr_form a = "(" ^ pr_exp a.addr_base ^ "," ^ pr_exp a.addr_elem ^ ")"
 
 let pr_data_form (d : data_form) : string =
   let addr =
     match d.data_addr with
     | None -> ""
     | Some addr -> "@" ^ pr_addr_form addr in
-  pr_exp d.data_root
-  ^ "->"
-  ^ pr_type d.data_typ
-  ^ "{"
-  ^ pr_exps d.data_args
-  ^ "}"
-  ^ addr
+  pr_exp d.data_root ^ "->" ^ pr_type d.data_typ ^ "{" ^ pr_exps d.data_args
+  ^ "}" ^ addr
 ;;
 
 let pr_df (s : data_form) = pr_data_form s
@@ -300,41 +286,27 @@ let pr_vfs vfs : string =
 ;;
 
 let pr_iter_form (i : iter_form) =
-  "aiter("
-  ^ pr_exp i.iter_base
-  ^ ","
+  "aiter(" ^ pr_exp i.iter_base ^ ","
   ^ pr_exp i.iter_element_index
-  ^ ")"
-  ^ "{"
+  ^ ")" ^ "{"
   ^ pr_var i.iter_running_index
-  ^ ","
-  ^ pr_exp i.iter_begin
-  ^ ","
-  ^ pr_exp i.iter_end
-  ^ "}"
+  ^ "," ^ pr_exp i.iter_begin ^ "," ^ pr_exp i.iter_end ^ "}"
 ;;
 
 let pr_if (i : iter_form) = pr_iter_form i
 
 let pr_array_form (a : array_form) =
   let res =
-    "array("
-    ^ pr_exp a.array_root
-    ^ ","
-    ^ pr_exp a.array_size
-    ^ ","
-    ^ pr_type a.array_typ
-    ^ ")" in
+    "array(" ^ pr_exp a.array_root ^ "," ^ pr_exp a.array_size ^ ","
+    ^ pr_type a.array_typ ^ ")" in
   let res =
     List.fold_left
       ~f:(fun acc d -> "(" ^ acc ^ " *+ " ^ pr_df d ^ ")")
-      ~init:res
-      a.array_update in
+      ~init:res a.array_update in
   let res =
     List.fold_left
       ~f:(fun acc d -> "(" ^ acc ^ " *- " ^ pr_df d ^ ")")
-      ~init:res
-      a.array_subtract in
+      ~init:res a.array_subtract in
   res
 ;;
 
@@ -397,8 +369,7 @@ let pr_func_defn (f : func_defn) : string =
 ;;
 
 let pr_reln_defn (r : reln_defn) : string =
-  let header =
-    "rel " ^ r.relnd_name ^ "(" ^ pr_vars r.relnd_params ^ ") := " in
+  let header = "rel " ^ r.relnd_name ^ "(" ^ pr_vars r.relnd_params ^ ") := " in
   let body =
     match r.relnd_body with
     | None -> "?"
@@ -414,9 +385,7 @@ let pr_data_defn (d : data_defn) : string =
   "data " ^ pr_type d.datad_typ ^ "{\n" ^ fields ^ "\n};"
 ;;
 
-let pr_view_defn_case (vdc : view_defn_case) : string =
-  pr_f vdc.vdc_form
-;;
+let pr_view_defn_case (vdc : view_defn_case) : string = pr_f vdc.vdc_form
 
 let pr_view_defn (v : view_defn) : string =
   let header =
@@ -756,11 +725,8 @@ let mk_sub e1 e2 =
     | TInt i1, TInt i2 -> TInt (max i1 i2)
     | _ ->
       error
-        ("mk_sub "
-        ^ pr_exp e1
-        ^ " and "
-        ^ pr_exp e2
-        ^ ": expect int or float but found") in
+        ("mk_sub " ^ pr_exp e1 ^ " and " ^ pr_exp e2
+       ^ ": expect int or float but found") in
   Func (Sub, [ e1; e2 ], typ)
 ;;
 
@@ -937,8 +903,7 @@ let mk_f_star fs =
         | Emp -> afs, aps
         | Pure p -> afs, aps @ [ p ]
         | _ -> afs @ [ f ], aps)
-      ~init:([], [])
-      fs in
+      ~init:([], []) fs in
   let fs =
     match ps with
     | [] -> fs
@@ -1183,8 +1148,7 @@ let get_subst_of_vars vars (eqs : equalities) : substitution =
         then extend_subst acc v e
         else acc
       | _ -> acc)
-    ~init:(init_subst ())
-    eqs
+    ~init:(init_subst ()) eqs
 ;;
 
 let get_substitute_formula_eqs (eqs : equalities) : substitution =
@@ -1233,8 +1197,7 @@ let cancel_renaming (rnm : renaming) (v : var) : renaming =
 let mk_renaming_fresh (vs : var list) : renaming =
   List.fold_left
     ~f:(fun acc v -> extend_renaming acc v (fresh_old_var v))
-    ~init:(init_renaming ())
-    vs
+    ~init:(init_renaming ()) vs
 ;;
 
 let mk_renaming_of_vars (vs1 : vars) (vs2 : vars) : renaming =
@@ -1243,9 +1206,7 @@ let mk_renaming_of_vars (vs1 : vars) (vs2 : vars) : renaming =
   else
     List.fold2_exn
       ~f:(fun acc v1 v2 -> extend_renaming acc v1 v2)
-      ~init:(init_renaming ())
-      vs1
-      vs2
+      ~init:(init_renaming ()) vs1 vs2
 ;;
 
 let rename_var (rnm : renaming) (v : var) : var = rnm v
@@ -1468,8 +1429,7 @@ let translate_llvalue (v : LL.llvalue) : exp =
       | TStruct _ | TPointer _ -> mk_exp_var_typ vname typ
       | TVoid -> mk_void ()
       | TUnk -> herror "translate_llvalue: unknown type of: " LI.pr_value v
-      | _ -> herror "translate_llvalue: unhandled typ of" LI.pr_value v
-    in
+      | _ -> herror "translate_llvalue: unhandled typ of" LI.pr_value v in
     res)
 ;;
 
@@ -1512,11 +1472,8 @@ let mk_f_star_with ?(dfs = []) ?(vfs = []) ?(afs = []) ?(pfs = []) ?(fs = []) f
   =
   let pfs = List.exclude ~f:is_pf_true pfs in
   let nfs =
-    List.map ~f:f_of_data dfs
-    @ List.map ~f:f_of_view vfs
-    @ List.map ~f:f_of_array afs
-    @ List.map ~f:f_of_pure pfs
-    @ fs in
+    List.map ~f:f_of_data dfs @ List.map ~f:f_of_view vfs
+    @ List.map ~f:f_of_array afs @ List.map ~f:f_of_pure pfs @ fs in
   mk_f_star (f :: nfs)
 ;;
 
@@ -1524,11 +1481,8 @@ let mk_f_wand_with ?(dfs = []) ?(vfs = []) ?(afs = []) ?(pfs = []) ?(fs = []) f
   =
   let pfs = List.exclude ~f:is_pf_true pfs in
   let nfs =
-    List.map ~f:f_of_data dfs
-    @ List.map ~f:f_of_view vfs
-    @ List.map ~f:f_of_array afs
-    @ List.map ~f:f_of_pure pfs
-    @ fs in
+    List.map ~f:f_of_data dfs @ List.map ~f:f_of_view vfs
+    @ List.map ~f:f_of_array afs @ List.map ~f:f_of_pure pfs @ fs in
   let fleft = mk_f_star nfs in
   mk_f_wand fleft f
 ;;
@@ -1538,9 +1492,7 @@ let mk_eq_exps_pair (es1 : exps) (es2 : exps) : pure_form =
     let pfs =
       List.fold2_exn
         ~f:(fun acc e1 e2 -> acc @ [ mk_eq e1 e2 ])
-        ~init:[]
-        es1
-        es2 in
+        ~init:[] es1 es2 in
     mk_pconj pfs
   with _ -> error "mk_eq_exps_pair: lists of different length"
 ;;
@@ -1721,8 +1673,7 @@ let replace_reln_form_p (head : reln_form) (body : pure_form) p : pure_form =
             | _ ->
               let v = fresh_new_var (typ_of_exp e) in
               aargs @ [ v ], apfs @ [ mk_eq (mk_exp_var v) e ])
-          ~init:([], [])
-          esh in
+          ~init:([], []) esh in
       let body =
         let vs = diff_vs (fv_pf body) (fv_es esh) in
         let rnm = mk_renaming_fresh vs in
@@ -1766,8 +1717,7 @@ let replace_view_form_f (head : view_form) (body : formula) f : formula =
               | _ ->
                 let v = fresh_new_var (typ_of_exp e) in
                 aargs @ [ v ], apfs @ [ mk_eq (mk_exp_var v) e ])
-            ~init:([], [])
-            head.view_args in
+            ~init:([], []) head.view_args in
         let body =
           let vs = diff_vs (fv_f body) (fv_es head.view_args) in
           let rnm = mk_renaming_fresh vs in

@@ -484,7 +484,9 @@ let process_one_state_inst_load vstate instr src dst pstate =
   let curr_data = mk_f_data elem_typ src [ data_value ] in
   let evs = fv_es [ data_value ] in
   let ent = mk_entailment pstate.pgs_formula (mk_f_exists evs curr_data) in
-  let _ = hdebug ~compact:true "LOAD: Prove Pre-Condition By Frame:\n\n" pr_ent ent in
+  let _ =
+    hdebug ~compact:true "LOAD: Prove Pre-Condition By Frame:\n\n" pr_ent ent
+  in
   let res, frames = PV.infer_entailment_frame vstate.vrs_core_prog ent in
   let _ = hdebug ~compact:true "==> Result: " pr_bresult res in
   let _ = hdebug ~compact:true "==> Frame: " pr_fs frames in
@@ -790,7 +792,9 @@ let process_one_state_instr_call vstate instr pstate func args return =
   let precond, postcond = get_prepost_llproc func args return in
   let evs = diff_vs (fv_f precond) (fv_es args) in
   let ent = mk_entailment pstate.pgs_formula (mk_f_exists evs precond) in
-  let _ = hdebug ~compact:true "CALL: Prove Pre-Condition By Frame:\n\n" pr_ent ent in
+  let _ =
+    hdebug ~compact:true "CALL: Prove Pre-Condition By Frame:\n\n" pr_ent ent
+  in
   let res, frames = PV.infer_entailment_frame vstate.vrs_core_prog ent in
   let _ = hdebug ~compact:true "==> Result: " pr_bresult res in
   let _ = hdebug ~compact:true "==> Frame: " pr_fs frames in

@@ -59,7 +59,6 @@ let shortest_block_distance bg (src : block) (dst : block) : int option =
   with _ -> None
 ;;
 
-
 (*******************************************************************
  ** sparse control flow graph
  *******************************************************************)

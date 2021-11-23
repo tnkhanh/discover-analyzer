@@ -48,8 +48,7 @@ let process_module (input_file : string) (modul : LL.llmodule) : LI.program =
   let _ = LP.update_program_info prog in
   let _ =
     if (not !print_concise_output) && !print_core_prog
-    then hprint ~ruler:`Header "CORE BITCODE PROGRAM" LI.pr_program prog
-  in
+    then hprint ~ruler:`Header "CORE BITCODE PROGRAM" LI.pr_program prog in
   (* let _ = hdebug "Call Graph: " LI.pr_callee_info prog in *)
   let _ = if !llvm_print_prog_info then LI.print_program_analysis_info prog in
   prog
@@ -78,8 +77,7 @@ let optimize_bitcode (input_file : string) : string =
       let cmd =
         [ !opt_exe; input_file; "-o"; output_file ]
         @ [ "-mem2reg" ] (* promote pointer variables to registers *)
-        @ [ "--disable-verify" ]
-        @ user_options in
+        @ [ "--disable-verify" ] @ user_options in
       PS.run_command cmd)
     else PS.run_command [ "cp"; input_file; output_file ] in
   let _ = if is_debug_mode () then disassemble_bitcode output_file in
@@ -115,8 +113,7 @@ let process_bitcode (input_file : string) : LI.program =
   let _ = LL.MemoryBuffer.dispose llmem in
   let _ =
     if !print_input_prog
-    then hprint ~ruler:`Long "ORIGINAL BITCODE MODULE" LI.pr_module modul
-  in
+    then hprint ~ruler:`Long "ORIGINAL BITCODE MODULE" LI.pr_module modul in
   process_module output_file modul
 ;;
 

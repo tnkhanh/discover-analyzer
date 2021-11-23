@@ -103,14 +103,12 @@ let choose_rule_elim_bvar prog goal : rule list =
     List.fold_left
       ~f:(fun acc enc ->
         let eqs =
-          enc.enc_lhs
-          |> collect_eq_exp_f
+          enc.enc_lhs |> collect_eq_exp_f
           |> List.filter ~f:(function
-                 | EqPure _ -> true
-                 | _ -> false) in
+               | EqPure _ -> true
+               | _ -> false) in
         if List.is_empty eqs then acc else acc @ [ enc, eqs ])
-      ~init:[]
-      goal.gl_entail_cores in
+      ~init:[] goal.gl_entail_cores in
   if List.is_empty encs_eqss then [] else [ mk_rule_elim_bvar encs_eqss ]
 ;;
 
@@ -119,14 +117,12 @@ let choose_rule_equal_left prog goal : rule list =
     List.fold_left
       ~f:(fun acc enc ->
         let eqs =
-          enc.enc_lhs
-          |> collect_eq_exp_f
+          enc.enc_lhs |> collect_eq_exp_f
           |> List.filter ~f:(function
-                 | EqExp _ -> true
-                 | _ -> false) in
+               | EqExp _ -> true
+               | _ -> false) in
         if List.is_empty eqs then acc else acc @ [ enc, eqs ])
-      ~init:[]
-      goal.gl_entail_cores in
+      ~init:[] goal.gl_entail_cores in
   if List.is_empty encs_eqss then [] else [ mk_rule_equal_left encs_eqss ]
 ;;
 
@@ -257,8 +253,7 @@ let choose_rule_wand_inner prog goal : rule list =
         match find_elim_form e.enc_lhs with
         | [] -> acc
         | fs -> acc @ [ e, fs ])
-      ~init:[]
-      goal.gl_entail_cores in
+      ~init:[] goal.gl_entail_cores in
   if List.is_empty encs then [] else [ mk_rule_wand_inner encs ]
 ;;
 
@@ -293,8 +288,7 @@ let choose_rule_wand_outer prog goal : rule list =
         match find_elim_form e.enc_lhs with
         | [] -> acc
         | fs -> acc @ [ e, fs ])
-      ~init:[]
-      goal.gl_entail_cores in
+      ~init:[] goal.gl_entail_cores in
   if List.is_empty encs then [] else [ mk_rule_wand_outer encs ]
 ;;
 
@@ -321,8 +315,7 @@ let choose_rule_wand_data prog goal : rule list =
         match find_elim_form e.enc_lhs with
         | [] -> acc
         | fs -> acc @ [ e, fs ])
-      ~init:[]
-      goal.gl_entail_cores in
+      ~init:[] goal.gl_entail_cores in
   if List.is_empty encs then [] else [ mk_rule_wand_data encs ]
 ;;
 
@@ -369,8 +362,7 @@ let choose_rule_unfold_head prog goal : rule list =
               let bs = SP.union_list [ bs; collect_reln_name_f e.enc_lhs ] in
               let hs = SP.union_list [ hs; collect_reln_name_f e.enc_rhs ] in
               bs, hs)
-            ~init:(SP.empty, SP.empty)
-            oencs in
+            ~init:(SP.empty, SP.empty) oencs in
         let rs =
           if not (SP.mem rns_lhs rn)
           then rs
@@ -385,8 +377,7 @@ let choose_rule_unfold_head prog goal : rule list =
               let bs = SP.union_list [ bs; collect_view_name_f e.enc_lhs ] in
               let hs = SP.union_list [ hs; collect_view_name_f e.enc_rhs ] in
               bs, hs)
-            ~init:(SP.empty, SP.empty)
-            oencs in
+            ~init:(SP.empty, SP.empty) oencs in
         let rs =
           if not (SP.mem vns_lhs v.view_name)
           then rs
@@ -407,10 +398,8 @@ let choose_rule_unfold_view_left prog goal : rule list =
           if has_view_defn prog vsp.vsp_head.view_name
           then acc2 @ [ mk_rule_unfold_view_left vf rest evs enc ]
           else acc2)
-        ~init:acc1
-        enc.enc_lst.fst_view_splits)
-    ~init:[]
-    goal.gl_entail_cores
+        ~init:acc1 enc.enc_lst.fst_view_splits)
+    ~init:[] goal.gl_entail_cores
 ;;
 
 let choose_rule_unfold_view_right prog goal : rule list =
@@ -422,10 +411,8 @@ let choose_rule_unfold_view_right prog goal : rule list =
           if has_view_defn prog vsp.vsp_head.view_name
           then acc @ [ mk_rule_unfold_view_left vf rest evs enc ]
           else acc)
-        ~init:arules
-        enc.enc_rst.fst_view_splits)
-    ~init:[]
-    goal.gl_entail_cores
+        ~init:arules enc.enc_rst.fst_view_splits)
+    ~init:[] goal.gl_entail_cores
 ;;
 
 let choose_rule_match_data prog goal : rule list =
@@ -439,12 +426,9 @@ let choose_rule_match_data prog goal : rule list =
               if equal_typ ldf.data_typ rdf.data_typ
               then acc2 @ [ mk_rule_match_data enc ldsp rdsp ]
               else acc2)
-            ~init:acc1
-            enc.enc_rst.fst_data_splits)
-        ~init:arules
-        enc.enc_lst.fst_data_splits)
-    ~init:[]
-    goal.gl_entail_cores
+            ~init:acc1 enc.enc_rst.fst_data_splits)
+        ~init:arules enc.enc_lst.fst_data_splits)
+    ~init:[] goal.gl_entail_cores
 ;;
 
 let choose_rule_match_view prog goal : rule list =
@@ -458,12 +442,9 @@ let choose_rule_match_view prog goal : rule list =
               if String.equal ldf.view_name rdf.view_name
               then acc2 @ [ mk_rule_match_view enc lvsp rvsp ]
               else acc2)
-            ~init:acc1
-            enc.enc_rst.fst_view_splits)
-        ~init:arules
-        enc.enc_lst.fst_view_splits)
-    ~init:[]
-    goal.gl_entail_cores
+            ~init:acc1 enc.enc_rst.fst_view_splits)
+        ~init:arules enc.enc_lst.fst_view_splits)
+    ~init:[] goal.gl_entail_cores
 ;;
 
 let choose_rule_match_array prog goal : rule list =
@@ -477,12 +458,9 @@ let choose_rule_match_array prog goal : rule list =
               if equal_exp laf.array_root raf.array_root
               then acc2 @ [ mk_rule_match_array enc lasp rasp ]
               else acc2)
-            ~init:acc1
-            enc.enc_rst.fst_array_splits)
-        ~init:arules
-        enc.enc_lst.fst_array_splits)
-    ~init:[]
-    goal.gl_entail_cores
+            ~init:acc1 enc.enc_rst.fst_array_splits)
+        ~init:arules enc.enc_lst.fst_array_splits)
+    ~init:[] goal.gl_entail_cores
 ;;
 
 let choose_rule_subtract_data prog goal : rule list =
@@ -504,12 +482,9 @@ let choose_rule_subtract_data prog goal : rule list =
               if has_same_root_df
               then acc2 @ [ mk_rule_subtract_data enc lasp rdsp ]
               else acc2)
-            ~init:acc1
-            enc.enc_rst.fst_data_splits)
-        ~init:arules
-        enc.enc_lst.fst_array_splits)
-    ~init:[]
-    goal.gl_entail_cores
+            ~init:acc1 enc.enc_rst.fst_data_splits)
+        ~init:arules enc.enc_lst.fst_array_splits)
+    ~init:[] goal.gl_entail_cores
 ;;
 
 let choose_rule_empty_array_right prog goal : rule list =
@@ -530,10 +505,8 @@ let choose_rule_empty_array_right prog goal : rule list =
           if (not has_data_same_root) && not has_array_same_root
           then acc @ [ mk_rule_empty_array_right enc raf rest evs ]
           else acc)
-        ~init:arules
-        enc.enc_rst.fst_array_splits)
-    ~init:[]
-    goal.gl_entail_cores
+        ~init:arules enc.enc_rst.fst_array_splits)
+    ~init:[] goal.gl_entail_cores
 ;;
 
 (*******************************************************************
@@ -627,8 +600,7 @@ let process_rule_elim_bvar pstate goal r : derivation =
               match eq with
               | EqExp _ -> acc
               | EqPure (v, p) -> fun u -> if equal_var u v then p else acc u)
-            ~init:sst0
-            eqs in
+            ~init:sst0 eqs in
         let lhs = enc.enc_lhs |> elim_f sst |> simplify_tauto_contra_f |> fst in
         let nenc = update_entail_core enc ~lhs:[ lhs ] in
         pr_rule_result pstate rule [ enc; nenc ];
@@ -645,11 +617,8 @@ let process_rule_equal_left pstate goal r : derivation =
       ~f:(fun (enc, eqs) ->
         let ssts = get_substitute_formula_eqs eqs in
         let lhs =
-          enc.enc_lhs
-          |> substitute_formula ssts
-          |> simplify_arith_f
-          |> simplify_tauto_contra_f
-          |> fst in
+          enc.enc_lhs |> substitute_formula ssts |> simplify_arith_f
+          |> simplify_tauto_contra_f |> fst in
         let rhs = enc.enc_rhs |> substitute_formula ssts in
         let nenc = update_entail_core enc ~lhs:[ lhs ] ~rhs:[ rhs ] in
         pr_rule_result pstate rule [ enc; nenc ];

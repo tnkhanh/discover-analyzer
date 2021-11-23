@@ -40,9 +40,7 @@ module UndefDomain = struct
 
   let equal_undef (ud1 : undef) (ud2 : undef) : bool =
     List.length ud1.undef_pointers = List.length ud2.undef_pointers
-    && List.is_subset
-         ud1.undef_pointers
-         ud2.undef_pointers
+    && List.is_subset ud1.undef_pointers ud2.undef_pointers
          ~equal:equal_llvalue
     && List.length ud1.undef_pointers = List.length ud2.undef_pointers
     && List.is_subset ud1.undef_values ud2.undef_values ~equal:equal_llvalue

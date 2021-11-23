@@ -196,8 +196,7 @@ module Z3SL = struct
       let body = transform_exp e in
       "(define-fun "
       ^ (fd.funcd_name ^ (" (" ^ param_typs ^ ") ") ^ return_typ)
-      ^ body
-      ^ ")"
+      ^ body ^ ")"
   ;;
 
   let mk_reln_defn (pd : SI.reln_defn) : string =
@@ -208,28 +207,19 @@ module Z3SL = struct
         pd.relnd_params
         |> List.map ~f:(fun x -> transform_typ (SI.typ_of_var x))
         |> String.concat ~sep:" " in
-      Printf.sprintf
-        "(declare-fun %s (%s) %s)"
-        pd.relnd_name
-        param_typs
+      Printf.sprintf "(declare-fun %s (%s) %s)" pd.relnd_name param_typs
         return_typ
     | Some f ->
       let params =
         pd.relnd_params
         |> List.map ~f:(fun x ->
-               "("
-               ^ transform_var x
-               ^ " "
+               "(" ^ transform_var x ^ " "
                ^ transform_typ (SI.typ_of_var x)
                ^ ")")
         |> String.concat ~sep:" " in
       let body = transform_pure_form f in
-      Printf.sprintf
-        "(define-fun %s (%s) %s %s)"
-        pd.relnd_name
-        params
-        return_typ
-        body
+      Printf.sprintf "(define-fun %s (%s) %s %s)" pd.relnd_name params
+        return_typ body
   ;;
 
   let mk_assert f = "(assert " ^ transform_pure_form f ^ ")"
@@ -238,11 +228,7 @@ module Z3SL = struct
     let concat_newlines str =
       if String.equal str "" then str else str ^ "\n\n" in
     let var_decls =
-      fs
-      |> SI.fv_pfs
-      |> ( @ ) mvars
-      |> SI.dedup_vs
-      |> List.map ~f:mk_var_decl
+      fs |> SI.fv_pfs |> ( @ ) mvars |> SI.dedup_vs |> List.map ~f:mk_var_decl
       |> String.concat ~sep:"\n" in
     let func_decls =
       match prog with
@@ -255,8 +241,7 @@ module Z3SL = struct
               match SI.find_func_defn prog.SI.prog_func_defns fn with
               | None -> acc
               | Some fd -> SP.add acc (mk_func_defn fd))
-            ~init:SP.empty
-            fnames in
+            ~init:SP.empty fnames in
         String.concat ~sep:"\n" (SP.to_list fdefns) in
     let reln_decls =
       match prog with
@@ -269,14 +254,11 @@ module Z3SL = struct
               match SI.find_reln_defn prog.prog_reln_defns rn with
               | None -> acc
               | Some rd -> SP.add acc (mk_reln_defn rd))
-            ~init:SP.empty
-            rnames in
+            ~init:SP.empty rnames in
         String.concat ~sep:"\n" (SP.to_list rdefns) in
     let assertions = fs |> List.map ~f:mk_assert |> String.concat ~sep:"\n\n" in
-    concat_newlines var_decls
-    ^ concat_newlines func_decls
-    ^ concat_newlines reln_decls
-    ^ assertions
+    concat_newlines var_decls ^ concat_newlines func_decls
+    ^ concat_newlines reln_decls ^ assertions
   ;;
 
   (* return the result and the model if existing *)
@@ -288,13 +270,11 @@ module Z3SL = struct
           ~f:(fun acc (s, i) ->
             try
               let var =
-                List.find_exn
-                  ~f:(fun v -> String.equal (SI.pr_var v) s)
-                  mvars in
+                List.find_exn ~f:(fun v -> String.equal (SI.pr_var v) s) mvars
+              in
               acc @ [ var, SI.mk_exp_int i ]
             with _ -> acc)
-          ~init:[]
-          (norm_model model) in
+          ~init:[] (norm_model model) in
       (* sort decreasingly *)
       let model =
         List.sort ~compare:(fun (v1, _) (v2, _) -> SI.compare_var v2 v1) model
@@ -313,13 +293,8 @@ module Z3SL = struct
       | [] -> "(set-option :produce-models false)\n", ""
       | _ -> "(set-option :produce-models true)\n", "(get-model)\n" in
     let z3_input =
-      Printf.sprintf
-        "%s%s\n%s\n\n%s\n%s"
-        set_logic
-        set_option_model
-        (mk_input ~prog ~mvars fs)
-        "(check-sat)"
-        get_model in
+      Printf.sprintf "%s%s\n%s\n\n%s\n%s" set_logic set_option_model
+        (mk_input ~prog ~mvars fs) "(check-sat)" get_model in
     let _ = start_solver () in
     let _ = send_input !proc z3_input in
     let z3_output = read_output !proc in
@@ -328,8 +303,7 @@ module Z3SL = struct
     match output with
     | Error msg ->
       let msg =
-        Printf.sprintf
-          "Z3SL: error while checking sat:\n%s\n%s\n%s\n%s"
+        Printf.sprintf "Z3SL: error while checking sat:\n%s\n%s\n%s\n%s"
           (String.halign_line "  - formula: " SI.pr_pfs fs)
           (String.align_line "  - z3 input:\n" z3_input)
           (String.align_line "  - z3 output:\n" z3_output)
@@ -363,8 +337,7 @@ module Z3LL = struct
     match LL.classify_type t with
     | LL.TypeKind.Integer -> "Int"
     | LL.TypeKind.Pointer -> "Int" (* handle pointer as Int type *)
-    | _ ->
-      herror "Z3LL.transform_lltype: need to handle type: " LI.pr_type t
+    | _ -> herror "Z3LL.transform_lltype: need to handle type: " LI.pr_type t
   ;;
 
   let transform_llvalue (v : LI.llvalue) : string =
@@ -408,8 +381,7 @@ module Z3LL = struct
 
   let mk_z3_input (p : LI.predicate) : string =
     let vars =
-      p
-      |> LI.collect_llvalue_of_predicate
+      p |> LI.collect_llvalue_of_predicate
       |> List.exclude ~f:(fun v ->
              LI.is_llvalue_null_constant v || LI.is_llvalue_integer_constant v)
     in

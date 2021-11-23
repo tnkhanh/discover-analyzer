@@ -77,16 +77,14 @@ module List = struct
   let diff (l1 : 'a list) (l2 : 'a list) ~(equal : 'a -> 'a -> bool) =
     List.fold_right
       ~f:(fun x acc -> if List.mem l2 x ~equal then acc else x :: acc)
-      ~init:[]
-      l1
+      ~init:[] l1
   ;;
 
   let diff_dedup (l1 : 'a list) (l2 : 'a list) ~(equal : 'a -> 'a -> bool) =
     List.fold_right
       ~f:(fun x acc ->
         if List.mem l2 x ~equal then acc else insert_dedup acc x ~equal)
-      ~init:[]
-      l1
+      ~init:[] l1
   ;;
 
   let remove (l : 'a list) (x : 'a) ~(equal : 'a -> 'a -> bool) =

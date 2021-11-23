@@ -26,16 +26,13 @@ let find_loop_head (prog : program) (scb : LG.scblocks) : block option =
             ~f:(fun pb -> not (List.mem scb pb.pblk_block ~equal:( == )))
             pblks in
         if has_outside_preceding then acc @ [ blk ] else acc)
-      ~init:[]
-      scb in
+      ~init:[] scb in
   match head_blks with
   | [] -> None
   | [ blk ] -> Some blk
   | _ ->
     let msg =
-      "Too many loop heads: "
-      ^ block_names head_blks
-      ^ "\n"
+      "Too many loop heads: " ^ block_names head_blks ^ "\n"
       ^ "  Stop creating loop!" in
     let _ = warning msg in
     None
@@ -51,10 +48,8 @@ let find_loop_exit (prog : program) (scb : LG.scblocks) : blocks =
           ~f:(fun acc2 sblk ->
             let blk_succ = sblk.sblk_block in
             if SP.mem scblocks blk_succ then acc2 else SP.add acc2 blk_succ)
-          ~init:acc1
-          sblks)
-      ~init:SP.empty
-      scb in
+          ~init:acc1 sblks)
+      ~init:SP.empty scb in
   SP.to_list exit_blocks
 ;;
 
@@ -64,8 +59,7 @@ let update_loop_info (prog : program) loop : loop =
       ~f:(fun acc blk ->
         let blks = get_reachable_blocks prog blk in
         List.concat_dedup acc blks ~equal:equal_block)
-      ~init:loop.loop_exit
-      loop.loop_exit in
+      ~init:loop.loop_exit loop.loop_exit in
   { loop with loop_exit_reachables = exit_reachables }
 ;;
 
@@ -86,8 +80,7 @@ let find_loop_in_blocks (prog : program) (blks : blocks) : loops =
             let loop = mk_loop ~head ~body ~exit in
             let loop = update_loop_info prog loop in
             acc @ [ loop ]))
-      ~init:[]
-      scbs in
+      ~init:[] scbs in
   (* let _ = hdebugc "All loops: " (pr_list_itemized pr_loop) loops in *)
   loops
 ;;
@@ -149,8 +142,7 @@ let is_loop_updated_instr prog instr : bool =
       ~f:(fun lp ->
         List.exists ~f:(equal_block blk) (lp.loop_head :: lp.loop_body))
       loops in
-  Hashtbl.find_or_compute
-    prog.prog_loop_data.pld_loop_updated_instr
+  Hashtbl.find_or_compute prog.prog_loop_data.pld_loop_updated_instr
     ~f:(fun () -> check_instr instr)
     ~key:instr
 ;;
@@ -160,8 +152,7 @@ let is_loop_head_instr prog instr : bool =
     let func, blk = func_of_instr instr, block_of_instr instr in
     let loops = get_loops_of_func prog func in
     List.exists ~f:(fun lp -> equal_block blk lp.loop_head) loops in
-  Hashtbl.find_or_compute
-    prog.prog_loop_data.pld_loop_head_instr
+  Hashtbl.find_or_compute prog.prog_loop_data.pld_loop_head_instr
     ~f:(fun () -> check_instr instr)
     ~key:instr
 ;;

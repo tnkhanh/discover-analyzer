@@ -66,8 +66,7 @@ module Math = struct
       | x :: xs ->
         List.fold_left
           ~f:(fun acc p -> acc @ ins_all_positions x p)
-          ~init:[]
-          (permutations xs) in
+          ~init:[] (permutations xs) in
     permutations list
   ;;
 
@@ -96,8 +95,7 @@ module Math = struct
             let nlist = extract (k - 1) list in
             let nlist = List.map ~f:(fun l -> x :: l) nlist in
             acc @ nlist)
-          ~init:[]
-          list in
+          ~init:[] list in
     extract k list
   ;;
 
@@ -118,7 +116,6 @@ module Math = struct
   let gen_all_subsets (lst : 'a list) : 'a list list =
     List.fold_right
       ~f:(fun x rest -> rest @ List.map ~f:(fun ys -> x :: ys) rest)
-      lst
-      ~init:[ [] ]
+      lst ~init:[ [] ]
   ;;
 end

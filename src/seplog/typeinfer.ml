@@ -58,28 +58,23 @@ let mk_subst_id () t = t
 let update_substitution sst (old_typ : typ) (new_typ : typ) : substitution =
   let cur_typ = sst old_typ in
   let _ =
-    if is_typ_known cur_typ
-       && is_typ_known new_typ
+    if is_typ_known cur_typ && is_typ_known new_typ
        && not (equal_typ cur_typ new_typ)
     then
       error
-        ("update_sst: unmatched current and new types: "
-        ^ pr_type cur_typ
-        ^ " ~~ "
-        ^ pr_type new_typ) in
+        ("update_sst: unmatched current and new types: " ^ pr_type cur_typ
+       ^ " ~~ " ^ pr_type new_typ) in
   fun t ->
     let substed_t = sst t in
     match cur_typ with
     | TVar _ ->
-      if equal_typ t old_typ
-         || equal_typ t cur_typ
+      if equal_typ t old_typ || equal_typ t cur_typ
          || equal_typ substed_t old_typ
          || equal_typ substed_t cur_typ
       then new_typ
       else substed_t
     | _ ->
-      if equal_typ t old_typ
-         || equal_typ t new_typ
+      if equal_typ t old_typ || equal_typ t new_typ
          || equal_typ substed_t old_typ
          || equal_typ substed_t new_typ
       then cur_typ
@@ -102,10 +97,8 @@ let unify_typ sst current_typ expected_typ : substitution =
     | _, TVar _ -> update_substitution sst expected_typ current_typ
     | _, _ ->
       error
-        ("unify_typ: found typ: "
-        ^ pr_type current_typ
-        ^ " but expect typ: "
-        ^ pr_type expected_typ))
+        ("unify_typ: found typ: " ^ pr_type current_typ ^ " but expect typ: "
+       ^ pr_type expected_typ))
 ;;
 
 (*******************************************************************
@@ -135,8 +128,7 @@ let annotate_typ_vars prog env vs : var list * environment =
       ~f:(fun (avs, env) v ->
         let v, env = annotate_typ_var prog env v in
         avs @ [ v ], env)
-      ~init:([], env)
-      vs in
+      ~init:([], env) vs in
   vs, env
 ;;
 
@@ -168,8 +160,7 @@ and annotate_typ_exps prog env es : exp list * environment =
       ~f:(fun (aes, env) e ->
         let e, env = annotate_typ_exp prog env e in
         aes @ [ e ], env)
-      ~init:([], env)
-      es in
+      ~init:([], env) es in
   es, env
 ;;
 
@@ -272,8 +263,7 @@ and annotate_typ_formulas prog env fs : formula list * environment =
       ~f:(fun (afs, env) f ->
         let f, env = annotate_typ_formula prog env f in
         afs @ [ f ], env)
-      ~init:([], env)
-      fs in
+      ~init:([], env) fs in
   fs, env
 ;;
 
@@ -291,8 +281,7 @@ let annotate_typ_entailments prog env ents : entailment list * environment =
       ~f:(fun (aents, env) ent ->
         let ent, env = annotate_typ_entailment prog env ent in
         aents @ [ ent ], env)
-      ~init:([], env)
-      ents in
+      ~init:([], env) ents in
   ents, env
 ;;
 
@@ -321,8 +310,7 @@ let rec find_substitution_exp env sst expected_typ e : substitution =
       | TFunc (arg_typs, ret_typ) ->
         let sst = unify_typ sst ret_typ t in
         List.fold2_exn ~f:(find_substitution_exp env) ~init:sst arg_typs es
-      | t ->
-        herror "find_substitution_exp: expect TFunc but found:" pr_type t)
+      | t -> herror "find_substitution_exp: expect TFunc but found:" pr_type t)
   with exc -> error ("find_substitution_exp: " ^ pr_exp e ^ "\n")
 ;;
 
@@ -349,10 +337,8 @@ let rec find_substitution_form env sst f : substitution =
           List.fold2_exn ~f:(find_substitution_exp env) ~init:sst typs (e :: es)
         | t ->
           error
-            ("find_subst_data_form "
-            ^ pr_formula f
-            ^ ": expect TFunc"
-            ^ pr_type t) in
+            ("find_subst_data_form " ^ pr_formula f ^ ": expect TFunc"
+           ^ pr_type t) in
       res
     | Pred (pn, es, _) ->
       (match env pn with
@@ -360,10 +346,8 @@ let rec find_substitution_form env sst f : substitution =
         List.fold2_exn ~f:(find_substitution_exp env) ~init:sst typs es
       | t ->
         error
-          ("find_subst_pred_form "
-          ^ pr_formula f
-          ^ ": expect TFunc but found: "
-          ^ pr_type t))
+          ("find_subst_pred_form " ^ pr_formula f
+         ^ ": expect TFunc but found: " ^ pr_type t))
     | Array (root, size, etyp, _) ->
       let sst = find_substitution_exp env sst (TInt 32) size in
       find_substitution_exp env sst etyp root
@@ -591,29 +575,25 @@ let infer_typ_program prog : program =
       ~f:(fun (dds, sst, env) dd ->
         let dd, sst, env = infer_typ_data_defn prog env sst dd in
         dds @ [ dd ], sst, env)
-      ~init:([], sst, env)
-      prog.prog_data_defns in
+      ~init:([], sst, env) prog.prog_data_defns in
   let fdefns, sst, env =
     List.fold_left
       ~f:(fun (fds, sst, env) fd ->
         let fd, sst, env = infer_typ_func_defn prog env sst fd in
         fds @ [ fd ], sst, env)
-      ~init:([], sst, env)
-      prog.prog_func_defns in
+      ~init:([], sst, env) prog.prog_func_defns in
   let pdefns, sst, env =
     List.fold_left
       ~f:(fun (pds, sst, env) pd ->
         let pd, sst, env = infer_typ_pred_defn prog env sst pd in
         pds @ [ pd ], sst, env)
-      ~init:([], sst, env)
-      prog.prog_pred_defns in
+      ~init:([], sst, env) prog.prog_pred_defns in
   let cmds, sst, env =
     List.fold_left
       ~f:(fun (cmds, sst, env) cmd ->
         let cmd, sst, env = infer_typ_command prog env sst cmd in
         cmds @ [ cmd ], sst, env)
-      ~init:([], sst, env)
-      prog.prog_commands in
+      ~init:([], sst, env) prog.prog_commands in
   let prog =
     { prog with
       prog_data_defns = ddefns;

@@ -534,10 +534,9 @@ struct
           let _ =
             warning
               ("Range.subst_data: duplicate expr after substitution"
-              ^ pr_expr ne) in
+             ^ pr_expr ne) in
           acc)
-      ~init:MP.empty
-      d
+      ~init:MP.empty d
   ;;
 
   let merge_data ?(widen = false) (a : t) (b : t) : t =
@@ -547,8 +546,7 @@ struct
         | `Both (ia, ib) -> Some (combine_interval ia ib)
         | `Left ia -> Some ia
         | `Right ib -> Some ib)
-      a
-      b
+      a b
   ;;
 
   (* FIXME: fix this later *)
@@ -577,8 +575,8 @@ struct
         let b =
           match extract_constant_bound lhs with
           | Some b -> b
-          | None ->
-            herror "extract_const_bound_lhs: not found:" pr_expr lhs in
+          | None -> herror "extract_const_bound_lhs: not found:" pr_expr lhs
+        in
         match cmp with
         | LC.Eq -> MP.of_alist_exn [ rhs, interval_of_bound b ]
         | LC.Ne -> MP.empty (* TODO: can be improved here to be more precise *)
@@ -595,8 +593,8 @@ struct
         let b =
           match extract_constant_bound rhs with
           | Some b -> b
-          | None ->
-            herror "extract_const_bound_rhs: not found:" pr_expr rhs in
+          | None -> herror "extract_const_bound_rhs: not found:" pr_expr rhs
+        in
         match cmp with
         | LC.Eq -> MP.of_alist_exn [ lhs, interval_of_bound b ]
         | LC.Ne -> MP.empty (* TODO: can be improved here to be more precise *)
@@ -721,8 +719,7 @@ struct
         | `Both (id, ip) -> Some (intersect_interval id ip)
         | `Left id -> Some id
         | `Right _ -> None)
-      d
-      pcond_data
+      d pcond_data
   ;;
 
   (*******************************************************************
@@ -834,8 +831,7 @@ struct
     let assertions =
       List.fold_left
         ~f:(fun acc func -> acc @ AS.find_range_assertions func)
-        ~init:[]
-        prog.prog_user_funcs in
+        ~init:[] prog.prog_user_funcs in
     List.length assertions
   ;;
 
@@ -959,8 +955,7 @@ module RangeAnalysis = struct
     match i with
     | Bottom -> "[Empty]"
     | Range r ->
-      if r.ID.range_lb_inclusive
-         && r.ID.range_ub_inclusive
+      if r.ID.range_lb_inclusive && r.ID.range_ub_inclusive
          && r.range_lb == r.range_ub
       then ID.pr_bound r.range_ub
       else ID.pr_range r

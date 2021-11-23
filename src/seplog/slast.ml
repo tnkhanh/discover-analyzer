@@ -209,18 +209,11 @@ let rec pr_exp (e : exp) : string =
   | BinExp (Div, e1, e2, _) -> pr_exp e1 ^ "/" ^ pr_exp e2
   | Func (fn, es, _, _) -> fn ^ "(" ^ pr_exps es ^ ")"
 
-and pr_exps (es : exp list) : string =
-  pr_list ~sep:"," ~f:pr_exp es
-;;
+and pr_exps (es : exp list) : string = pr_list ~sep:"," ~f:pr_exp es
 
 let pr_addr_exp (a : addr_exp) : string =
-  "("
-  ^ pr_exp a.addr_base
-  ^ ","
-  ^ pr_exp a.addr_elem
-  ^ ","
-  ^ pr_exp a.addr_field
-  ^ ")"
+  "(" ^ pr_exp a.addr_base ^ "," ^ pr_exp a.addr_elem ^ ","
+  ^ pr_exp a.addr_field ^ ")"
 ;;
 
 let rec pr_formula (f : formula) : string =
@@ -251,10 +244,8 @@ let rec pr_formula (f : formula) : string =
   | Wand (f1, f2) -> pr_formula f1 ^ " --* " ^ pr_formula f2
   | Septract (f1, f2) -> pr_formula f1 ^ " *- " ^ pr_formula f2
   | Update (f1, f2) -> pr_formula f1 ^ " *+ " ^ pr_formula f2
-  | Forall (vs, f) ->
-    "(exists " ^ pr_vars vs ^ ". " ^ pr_formula f ^ ")"
-  | Exists (vs, f) ->
-    "(forall " ^ pr_vars vs ^ ". " ^ pr_formula f ^ ")"
+  | Forall (vs, f) -> "(exists " ^ pr_vars vs ^ ". " ^ pr_formula f ^ ")"
+  | Exists (vs, f) -> "(forall " ^ pr_vars vs ^ ". " ^ pr_formula f ^ ")"
 ;;
 
 let pr_ent (ent : entailment) : string =
@@ -310,19 +301,10 @@ let pr_proc_defn (p : proc_defn) : string =
   let specs =
     p.procd_specs
     |> List.map ~f:(fun s ->
-           "  requires "
-           ^ pr_formula s.psp_precond
-           ^ "\n"
-           ^ "  ensures "
-           ^ pr_formula s.psp_postcond
-           ^ ";")
+           "  requires " ^ pr_formula s.psp_precond ^ "\n" ^ "  ensures "
+           ^ pr_formula s.psp_postcond ^ ";")
     |> String.concat ~sep:"\n" in
-  pr_type p.procd_return_typ
-  ^ " "
-  ^ p.procd_name
-  ^ "("
-  ^ params
-  ^ ")\n"
+  pr_type p.procd_return_typ ^ " " ^ p.procd_name ^ "(" ^ params ^ ")\n"
   ^ specs
 ;;
 

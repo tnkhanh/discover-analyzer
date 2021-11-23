@@ -57,13 +57,9 @@ let rename_vars_and_params (modul : LL.llmodule) : unit =
     (* reset index for each function *)
     let _ = index_blk := -1 in
     None in
-  deep_iter_module
-    ~fglobal:(Some visit_global)
-    ~ffunc:(Some visit_func)
-    ~fparam:(Some visit_param)
-    ~fblock:(Some visit_block)
-    ~finstr:(Some visit_instr)
-    modul
+  deep_iter_module ~fglobal:(Some visit_global) ~ffunc:(Some visit_func)
+    ~fparam:(Some visit_param) ~fblock:(Some visit_block)
+    ~finstr:(Some visit_instr) modul
 ;;
 
 (*******************************************************************
@@ -89,8 +85,7 @@ let elim_instr_intrinsic_lifetime (modul : LL.llmodule) : unit =
       ~f:(fun acc instr ->
         let callee = callee_of_instr_call instr in
         if List.mem ~equal:equal_func acc callee then acc else acc @ [ callee ])
-      ~init:[]
-      instr_calls in
+      ~init:[] instr_calls in
   let _ = List.iter ~f:delete_instruction instr_calls in
   List.iter ~f:delete_function callees
 ;;

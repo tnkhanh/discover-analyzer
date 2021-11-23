@@ -95,8 +95,7 @@ let print_analysis_summary () =
         List.fold_left
           ~f:(fun acc (task, time) ->
             acc ^ "\n- " ^ task ^ ": " ^ Printf.sprintf "%.2fs" time)
-          ~init:"\n\nDetailed runtime:"
-          !detailed_task_time in
+          ~init:"\n\nDetailed runtime:" !detailed_task_time in
     let summary =
       [ "Summary:";
         "- Input file: " ^ !input_file;

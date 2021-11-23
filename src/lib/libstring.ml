@@ -66,8 +66,7 @@ module String = struct
 
   let indent ?(skipfirst = false) (indent : int) (msg : string) : string =
     let sindent = mk_indent indent in
-    msg
-    |> String.split ~on:'\n'
+    msg |> String.split ~on:'\n'
     |> List.mapi ~f:(fun i s -> if i = 0 && skipfirst then s else sindent ^ s)
     |> String.concat ~sep:"\n"
   ;;
@@ -94,8 +93,7 @@ module String = struct
 
   (** insert a prefix to each line of a string *)
   let prefix_line ~(prefix : string) (msg : string) : string =
-    msg
-    |> String.split_lines
+    msg |> String.split_lines
     |> List.map ~f:(fun s -> prefix ^ s)
     |> String.concat ~sep:"\n"
   ;;

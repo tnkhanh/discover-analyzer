@@ -30,9 +30,7 @@ let construct_map_llvalue_to_source_name (prog : program) : unit =
         (* let v0, v1 = operand instr 0, operand instr 1 in *)
         let vname = pr_value (operand instr 0) in
         let sname = LD.extract_name_from_metadata (operand instr 1) in
-        Hashtbl.set
-          prog.prog_meta_data.pmd_llvalue_original_name
-          ~key:vname
+        Hashtbl.set prog.prog_meta_data.pmd_llvalue_original_name ~key:vname
           ~data:sname)
       else ()
     | _ -> () in
@@ -159,15 +157,13 @@ let compute_func_used_globals (prog : program) : unit =
                   match Hashtbl.find pfd.pfd_funcs_of_type ftyp with
                   | None -> acc
                   | Some fs -> List.concat_dedup acc fs ~equal:equal_func)
-                ptr_callees
-                ~init:callees) in
+                ptr_callees ~init:callees) in
         let cgs =
           List.fold_left
             ~f:(fun acc f1 ->
               let gs1 = Hashtbl.find_default tbl_used_globals f1 ~default:[] in
               List.concat_sorti_dedup acc gs1 ~compare)
-            ~init:[]
-            callees in
+            ~init:[] callees in
         let _ = ngs := List.concat_sorti_dedup !ngs cgs ~compare in
         (* let _ = print "  done" in *)
         if List.length !ngs > List.length gs

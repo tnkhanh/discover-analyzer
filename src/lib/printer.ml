@@ -121,9 +121,7 @@ let pr_args ~(f : 'a -> string) (args : 'a list) : string =
   pr_list ~sep:", " ~obrace:"" ~cbrace:"" ~f args
 ;;
 
-let pr_pair ~(f1 : 'a -> string) ~(f2 : 'b -> string) (p : 'a * 'b)
-    : string
-  =
+let pr_pair ~(f1 : 'a -> string) ~(f2 : 'b -> string) (p : 'a * 'b) : string =
   let x, y = p in
   "(" ^ f1 x ^ ", " ^ f2 y ^ ")"
 ;;
@@ -294,7 +292,6 @@ let nhprint _ _ = ()
 
 let eprint (msg : string) : unit = prerr_endline msg
 let eprintf = Printf.eprintf
-
 
 (*******************************************************************
  ** Warning and error

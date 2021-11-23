@@ -74,13 +74,9 @@ let print_pointer_stats (modul : LL.llmodule) : unit =
     let _ = incr num_user_funcs in
     None in
   let _ =
-    deep_iter_module
-      ~fglobal:(Some visit_global)
-      ~ffunc:(Some visit_func)
-      ~fparam:(Some visit_param)
-      ~fblock:(Some visit_block)
-      ~finstr:(Some visit_instr)
-      modul in
+    deep_iter_module ~fglobal:(Some visit_global) ~ffunc:(Some visit_func)
+      ~fparam:(Some visit_param) ~fblock:(Some visit_block)
+      ~finstr:(Some visit_instr) modul in
   let stats =
     "\nPointer Statistics:\n"
     ^ sprintf "  #User funcs: %d\n" !num_user_funcs

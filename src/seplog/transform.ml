@@ -63,8 +63,7 @@ let rec transform_formula (prog : SA.program) (f : SA.formula) : SI.formula =
     let p =
       match transform_formula prog f0 with
       | Pure p -> p
-      | _ -> herror "transform_formula: BEq: not a pure" SA.pr_formula f
-    in
+      | _ -> herror "transform_formula: BEq: not a pure" SA.pr_formula f in
     SI.mk_f_pure (SI.mk_beq (transform_exp e) p)
   | SA.Emp l -> SI.mk_emp ()
   | SA.BinRel (rel, e1, e2, _) ->
@@ -89,22 +88,19 @@ let rec transform_formula (prog : SA.program) (f : SA.formula) : SI.formula =
     let p =
       match transform_formula prog f0 with
       | SI.Pure p -> p
-      | _ -> herror "transform_formula: Neg: not a pure" SA.pr_formula f
-    in
+      | _ -> herror "transform_formula: Neg: not a pure" SA.pr_formula f in
     SI.mk_f_pure (SI.mk_pneg p)
   | SA.Conj (f1, f2) ->
     let p1, p2 =
       match transform_formula prog f1, transform_formula prog f2 with
       | SI.Pure p1, SI.Pure p2 -> p1, p2
-      | _ -> herror "transform_formula: Conj: not a pure" SA.pr_formula f
-    in
+      | _ -> herror "transform_formula: Conj: not a pure" SA.pr_formula f in
     SI.mk_f_pure (SI.mk_pconj [ p1; p2 ])
   | SA.Disj (f1, f2) ->
     let p1, p2 =
       match transform_formula prog f1, transform_formula prog f2 with
       | SI.Pure p1, SI.Pure p2 -> p1, p2
-      | _ -> herror "transform_formula: Disj: not a pure" SA.pr_formula f
-    in
+      | _ -> herror "transform_formula: Disj: not a pure" SA.pr_formula f in
     SI.mk_f_pure (SI.mk_pdisj [ p1; p2 ])
   | SA.Star (f1, f2) ->
     let f1, f2 = transform_formula prog f1, transform_formula prog f2 in
@@ -123,8 +119,7 @@ let rec transform_formula (prog : SA.program) (f : SA.formula) : SI.formula =
   | SA.Forall (vs, f0) ->
     (match transform_formula prog f0 with
     | SI.Pure p -> Pure (SI.mk_pforall vs p)
-    | g ->
-      herror "transform_formula: Forall: expect pure: " SA.pr_formula f)
+    | g -> herror "transform_formula: Forall: expect pure: " SA.pr_formula f)
   | SA.Exists (vs, f0) ->
     (match transform_formula prog f0 with
     | SI.Pure p -> Pure (SI.mk_pforall vs p)
@@ -203,8 +198,7 @@ let transform_program (prog : SA.program) : SI.program =
         match transform_pred_defn prog pd with
         | PView vd -> rds, vds @ [ vd ]
         | PReln rd -> rds @ [ rd ], vds)
-      ~init:([], [])
-      prog.SA.prog_pred_defns in
+      ~init:([], []) prog.SA.prog_pred_defns in
   let procs = List.map ~f:(transform_proc_defn prog) prog.SA.prog_proc_defns in
   let cmds = List.map ~f:(transform_command prog) prog.SA.prog_commands in
   { SI.prog_file_name = prog.SA.prog_file_name;

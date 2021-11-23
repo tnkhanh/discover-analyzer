@@ -54,13 +54,11 @@ let check_bug_integer_overflow (pdata : program_data) bug : bug option =
                 let reason =
                   Printf.sprintf
                     "Expression %s can only take the maximum value of %s,\nwhile but is assigned with %s. "
-                    (LI.pr_value iof.iof_expr)
-                    (BInt.pr_bigint ub)
+                    (LI.pr_value iof.iof_expr) (BInt.pr_bigint ub)
                     (RG.ID.pr_bound r.range_ub) in
                 return (mk_real_bug ~analysis:"RangeAnalysis" ~reason bug))
               else None))
-        ~init:None
-        fenvs_rng)
+        ~init:None fenvs_rng)
     else None
   | _ -> None
 ;;
@@ -104,13 +102,11 @@ let check_bug_integer_underflow (pdata : program_data) bug : bug option =
                 let reason =
                   Printf.sprintf
                     "Expression %s can only take the minimum value of %s,\nwhile but is assigned with %s. "
-                    (LI.pr_value iuf.iuf_expr)
-                    (BInt.pr_bigint lb)
+                    (LI.pr_value iuf.iuf_expr) (BInt.pr_bigint lb)
                     (RG.ID.pr_bound r.range_lb) in
                 return (mk_real_bug ~analysis:"RangeAnalysis" ~reason bug))
               else None))
-        ~init:None
-        fenvs_rng)
+        ~init:None fenvs_rng)
     else None
   | _ -> None
 ;;
@@ -194,10 +190,8 @@ let check_bug_buffer_overflow (pdata : program_data) bug : bug option =
                         (RG.pr_interval_concise itv) in
                     return (mk_real_bug ~analysis:"RangeAnalysis" ~reason bug))
                   else None))
-              ~init:None
-              fenvs_msz))
-      ~init:None
-      fenvs_rng
+              ~init:None fenvs_msz))
+      ~init:None fenvs_rng
   | _ -> None
 ;;
 

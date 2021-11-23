@@ -35,8 +35,7 @@ let pr_z3_val = function
 
 let pr_z3_res = function
   | Unsat -> "unsat"
-  | Sat m ->
-    "sat: " ^ pr_list ~f:(pr_pair ~f1:(fun s -> s) ~f2:pr_z3_val) m
+  | Sat m -> "sat: " ^ pr_list ~f:(pr_pair ~f1:(fun s -> s) ~f2:pr_z3_val) m
   | Unk -> "unknown"
   | Error s -> "error: " ^ s
 ;;
@@ -72,8 +71,7 @@ let z3_val_to_int (vl : z3_val list) : int list =
           match v with
           | Int _ -> a
           | Frac (_, d) -> a @ [ int_of_float d ])
-        ~init:[]
-        vl in
+        ~init:[] vl in
     let den_lcm = Math.lcm_ints den_l in
     List.map
       ~f:(fun v ->

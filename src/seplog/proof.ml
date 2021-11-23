@@ -323,8 +323,7 @@ let pr_reb r =
       ~f:(fun acc (enc, eqs) ->
         let acc = if String.equal acc "" then acc else acc ^ ", " in
         acc ^ pr_enc_id enc ^ ": " ^ pr_equalities eqs)
-      ~init:""
-      r.reb_entails_eqss in
+      ~init:"" r.reb_entails_eqss in
   "Elim BVar {" ^ encs ^ "}"
 ;;
 
@@ -350,8 +349,7 @@ let pr_rwi r =
       ~f:(fun acc (enc, fs) ->
         let acc = if String.equal acc "" then acc else acc ^ ", " in
         acc ^ pr_enc_id enc ^ ": " ^ pr_fs fs)
-      ~init:""
-      r.rwi_entails in
+      ~init:"" r.rwi_entails in
   "Wand Inner {" ^ encs ^ "}"
 ;;
 
@@ -361,8 +359,7 @@ let pr_rwo r =
       ~f:(fun acc (enc, fs) ->
         let acc = if String.equal acc "" then acc else acc ^ ", " in
         acc ^ pr_enc_id enc ^ ": " ^ pr_fs fs)
-      ~init:""
-      r.rwo_entails in
+      ~init:"" r.rwo_entails in
   "Wand Outer {" ^ encs ^ "}"
 ;;
 
@@ -372,8 +369,7 @@ let pr_rwd r =
       ~f:(fun acc (enc, fs) ->
         let acc = if String.equal acc "" then acc else acc ^ ", " in
         acc ^ pr_enc_id enc ^ ": " ^ pr_fs fs)
-      ~init:""
-      r.rwd_entails in
+      ~init:"" r.rwd_entails in
   "Wand Data {" ^ encs ^ "}"
 ;;
 
@@ -387,72 +383,44 @@ let pr_ruh r =
 ;;
 
 let pr_ruvl r =
-  "Unfold View Left {"
-  ^ pr_enc_id r.ruvl_entail
-  ^ ": "
+  "Unfold View Left {" ^ pr_enc_id r.ruvl_entail ^ ": "
   ^ pr_view_form r.ruvl_lhs_view
   ^ "}"
 ;;
 
 let pr_ruvr r =
-  "Unfold View Right {"
-  ^ pr_enc_id r.ruvr_entail
-  ^ ": "
+  "Unfold View Right {" ^ pr_enc_id r.ruvr_entail ^ ": "
   ^ pr_view_form r.ruvr_rhs_view
   ^ "}"
 ;;
 
 let pr_rear r =
-  "Unfold Array Right {"
-  ^ pr_enc_id r.rear_entail
-  ^ ": "
+  "Unfold Array Right {" ^ pr_enc_id r.rear_entail ^ ": "
   ^ pr_array_form r.rear_rhs_array
   ^ "}"
 ;;
 
 let pr_rmd r =
-  "Match Data {"
-  ^ pr_enc_id r.rmd_entail
-  ^ ": "
-  ^ pr_df r.rmd_lhs_data
-  ^ " vs. "
-  ^ pr_df r.rmd_rhs_data
-  ^ ", early: "
-  ^ pr_bool r.rmd_apply_early
+  "Match Data {" ^ pr_enc_id r.rmd_entail ^ ": " ^ pr_df r.rmd_lhs_data
+  ^ " vs. " ^ pr_df r.rmd_rhs_data ^ ", early: " ^ pr_bool r.rmd_apply_early
   ^ "}"
 ;;
 
 let pr_rmv r =
-  "Match View {"
-  ^ pr_enc_id r.rmv_entail
-  ^ ": "
-  ^ pr_vf r.rmv_lhs_view
-  ^ " vs. "
-  ^ pr_vf r.rmv_rhs_view
-  ^ ", early: "
-  ^ pr_bool r.rmv_apply_early
+  "Match View {" ^ pr_enc_id r.rmv_entail ^ ": " ^ pr_vf r.rmv_lhs_view
+  ^ " vs. " ^ pr_vf r.rmv_rhs_view ^ ", early: " ^ pr_bool r.rmv_apply_early
   ^ "}"
 ;;
 
 let pr_rma r =
-  "Match Array {"
-  ^ pr_enc_id r.rma_entail
-  ^ ": "
-  ^ pr_af r.rma_lhs_array
-  ^ " vs. "
-  ^ pr_af r.rma_rhs_array
-  ^ ", early: "
-  ^ pr_bool r.rma_apply_early
+  "Match Array {" ^ pr_enc_id r.rma_entail ^ ": " ^ pr_af r.rma_lhs_array
+  ^ " vs. " ^ pr_af r.rma_rhs_array ^ ", early: " ^ pr_bool r.rma_apply_early
   ^ "}"
 ;;
 
 let pr_rsd r =
-  "Subtract Data {"
-  ^ pr_enc_id r.rsd_entail
-  ^ ": "
-  ^ pr_af r.rsd_lhs_array
-  ^ " vs. "
-  ^ pr_df r.rsd_rhs_data
+  "Subtract Data {" ^ pr_enc_id r.rsd_entail ^ ": " ^ pr_af r.rsd_lhs_array
+  ^ " vs. " ^ pr_df r.rsd_rhs_data
 ;;
 
 let pr_rule rule =
@@ -500,16 +468,9 @@ let pr_goal goal =
   let encs =
     List.fold_left
       ~f:(fun acc enc ->
-        acc
-        ^ "   #"
-        ^ pr_int enc.enc_id
-        ^ ". "
-        ^ pr_f enc.enc_lhs
-        ^ " |- "
-        ^ pr_f enc.enc_rhs
-        ^ "\n")
-      ~init:""
-      goal.gl_entail_cores in
+        acc ^ "   #" ^ pr_int enc.enc_id ^ ". " ^ pr_f enc.enc_lhs ^ " |- "
+        ^ pr_f enc.enc_rhs ^ "\n")
+      ~init:"" goal.gl_entail_cores in
   let traces =
     if List.is_empty goal.gl_trace
     then "[]"
@@ -581,9 +542,7 @@ let mk_matching_forms args1 args2 =
   let equal_args =
     List.fold2_exn
       ~f:(fun acc x y -> if equal_exp x y then acc else acc @ [ mk_eq x y ])
-      ~init:[]
-      args1
-      args2 in
+      ~init:[] args1 args2 in
   mk_pconj equal_args
 ;;
 
@@ -842,8 +801,7 @@ let remove_goal_entcores goal encs : goal =
         if List.exists ~f:(fun e -> enc.enc_id = e.enc_id) encs
         then acc
         else acc @ [ enc ])
-      ~init:[]
-      goal.gl_entail_cores in
+      ~init:[] goal.gl_entail_cores in
   { goal with gl_entail_cores = nents }
 ;;
 

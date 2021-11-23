@@ -31,8 +31,7 @@ module Entail = struct
       ("Goal: " ^ goal_id ^ ":\n")
       ^ (goal ^ "\n\n")
       ^ ("Rule: " ^ rule ^ "\n\n")
-      ^ "==>\n\n"
-      ^ premises in
+      ^ "==>\n\n" ^ premises in
     match ptree.ptr_status with
     | Some _ -> pr_ptcore "1" ptree
     | None -> "Proof tree status: Unknown"

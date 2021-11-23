@@ -37,8 +37,7 @@ let rec print_usage () =
           else opt in
         let opt = opt ^ Printf.sprintf "  %s\n" (String.strip_newline doc) in
         acc ^ opt)
-      ~init:""
-      arguments in
+      ~init:"" arguments in
   let usage_msg = "\n" ^ welcome_msg ^ args_msg in
   let _ = print_endline usage_msg in
   exit 0
@@ -62,7 +61,9 @@ and arguments_raw =
     ( [ "--dis-pcp"; "--dis-print-core-program" ],
       "Disable printing core program",
       Arg.Clear print_core_prog );
-    [ "--print-instrumented" ], "Print instrumented bitcode", Arg.Set print_instrumented;
+    ( [ "--print-instrumented" ],
+      "Print instrumented bitcode",
+      Arg.Set print_instrumented );
     [ "--pap" ], "Print analyzed program", Arg.Set print_analyzed_prog;
     [ "--psp" ], "Print statistics of program", Arg.Set print_stats_prog;
     [ "--type" ], "Print type information of variables", Arg.Set print_type;
@@ -289,8 +290,7 @@ let parse_arguments () : unit =
         ~f:(fun acc (flags, doc, spec) ->
           let args = List.map ~f:(fun flag -> flag, spec, doc) flags in
           acc @ args)
-        ~init:[]
-        arguments_raw in
+        ~init:[] arguments_raw in
     let _ = Arg.parse_argv Sys.argv arguments collect_input_file "" in
     match !all_input_files with
     | [] -> print_error "Input file is undefined!"

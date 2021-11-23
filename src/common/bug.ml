@@ -90,9 +90,7 @@ let pr_buffer_overflow ?(detailed = true) (bof : buffer_overflow) : string =
   ^
   if detailed
   then
-    "\n  Root pointer: "
-    ^ pr_value bof.bof_pointer
-    ^ ", accessing index: "
+    "\n  Root pointer: " ^ pr_value bof.bof_pointer ^ ", accessing index: "
     ^ pr_value bof.bof_elem_index
   else ""
 ;;
@@ -113,8 +111,7 @@ let pr_instr_detailed_position instr =
   let code_excerpt =
     match LD.position_of_instr instr with
     | None -> ""
-    | Some p -> "  Location: " ^ pr_file_position_and_excerpt p ^ "\n"
-  in
+    | Some p -> "  Location: " ^ pr_file_position_and_excerpt p ^ "\n" in
   if !location_source_code_only
   then code_excerpt
   else "  Instruction: " ^ pr_instr instr ^ "\n" ^ code_excerpt
@@ -126,20 +123,14 @@ let pr_llvalue_name (v : LL.llvalue) : string =
   | None -> pr_value v
 ;;
 
-let pr_integer_overflow ?(detailed = true) (iof : integer_overflow)
-    : string
-  =
+let pr_integer_overflow ?(detailed = true) (iof : integer_overflow) : string =
   "Integer Overflow"
-  ^
-  if detailed then "\n" ^ pr_instr_detailed_position iof.iof_instr else ""
+  ^ if detailed then "\n" ^ pr_instr_detailed_position iof.iof_instr else ""
 ;;
 
-let pr_integer_underflow ?(detailed = true) (iuf : integer_underflow)
-    : string
-  =
+let pr_integer_underflow ?(detailed = true) (iuf : integer_underflow) : string =
   "Integer Underflow"
-  ^
-  if detailed then "\n" ^ pr_instr_detailed_position iuf.iuf_instr else ""
+  ^ if detailed then "\n" ^ pr_instr_detailed_position iuf.iuf_instr else ""
 ;;
 
 (*------------------------
@@ -159,8 +150,7 @@ let pr_bug_type ?(detailed = true) (btype : bug_type) : string =
 let pr_potential_bug (bug : bug) : string =
   (pr_bug_type ~detailed:false bug.bug_type ^ "\n")
   ^ ("    Function: " ^ func_name bug.bug_func ^ "\n")
-  ^ "    "
-  ^ pr_instr bug.bug_instr
+  ^ "    " ^ pr_instr bug.bug_instr
 ;;
 
 let pr_potential_bugs (bugs : bug list) : string =
@@ -176,11 +166,9 @@ let pr_bug ?(detailed = true) (bug : bug) : string =
         | None -> "Unknown"
         | Some b -> pr_bool b in
       ("    Type: " ^ pr_bug_type ~detailed bug.bug_type)
-      ^ "    Status: "
-      ^ status)
+      ^ "    Status: " ^ status)
     else "" in
-  "Bug: "
-  ^ pr_instr bug.bug_instr
+  "Bug: " ^ pr_instr bug.bug_instr
   ^ String.prefix_if_not_empty ~prefix:"\n" details
 ;;
 
@@ -249,10 +237,8 @@ let mk_potential_buffer_overflow (instr : instr) : bug =
             match List.nth idxs 1 with
             | Some idx -> idx
             | None ->
-              herror
-                "mk_potential_buffer_overflow: array index not available:"
-                pr_instr
-                instr in
+              herror "mk_potential_buffer_overflow: array index not available:"
+                pr_instr instr in
           NumElem (size, elem_typ), array_idx
         (* pointer to a dynamically allocated memory *)
         | _ -> MemSizeOf ptr, List.hd_exn idxs in
@@ -301,9 +287,7 @@ let report_bug (bug : bug) : unit =
   let msg =
     "BUG: "
     ^ pr_bug_type ~detailed:false bug.bug_type
-    ^ "\n"
-    ^ location
-    ^ reason in
+    ^ "\n" ^ location ^ reason in
   print_endline ("\n" ^ msg)
 ;;
 
@@ -327,8 +311,7 @@ let report_bug_stats (bugs : bug list) : unit =
       List.fold_left
         ~f:(fun acc (bug_name, times) ->
           acc ^ "\n  " ^ bug_name ^ ": " ^ pr_int times)
-        ~init:""
-        bug_stats in
+        ~init:"" bug_stats in
   print ("==============================\n" ^ "Bug Summary:\n" ^ summary)
 ;;
 
@@ -381,6 +364,5 @@ let annotate_potential_bugs (prog : program) : bug list =
   let funcs = prog.prog_user_funcs in
   List.fold_left
     ~f:(fun acc func -> acc @ deep_fold_func ~finstr [] func)
-    ~init:[]
-    funcs
+    ~init:[] funcs
 ;;

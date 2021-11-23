@@ -104,8 +104,7 @@ module SmtSL = struct
           let rhs =
             match SI.is_f_pure e.SI.ent_rhs with
             | true -> SI.extract_pure_form e.SI.ent_rhs
-            | _ -> herror "check_sat_horn: not a pure horn" SI.pr_ent e
-          in
+            | _ -> herror "check_sat_horn: not a pure horn" SI.pr_ent e in
           let vs = SI.merge_vs [ SI.fv_pf lhs; SI.fv_pf rhs ] in
           let f = SI.mk_pdisj [ SI.mk_pneg lhs; rhs ] in
           if List.is_empty vs then f else SI.mk_pforall vs f)

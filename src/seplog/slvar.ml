@@ -58,9 +58,7 @@ let rec pr_type (t : typ) : string =
   | TVar i -> "tvar" ^ pr_int i
   | TUnk -> "unk"
 
-and pr_types (ts : typ list) : string =
-  pr_list ~sep:" * " ~f:pr_type ts
-;;
+and pr_types (ts : typ list) : string = pr_list ~sep:" * " ~f:pr_type ts
 
 let pr_var (v : var) : string =
   let id, typ = v in
@@ -69,9 +67,7 @@ let pr_var (v : var) : string =
   else "(" ^ pr_id id ^ ":" ^ pr_type typ ^ ")"
 ;;
 
-let pr_vars (vs : var list) : string =
-  pr_list ~sep:"," ~f:pr_var vs
-;;
+let pr_vars (vs : var list) : string = pr_list ~sep:"," ~f:pr_var vs
 
 (*******************************************************************
  ** Constructors

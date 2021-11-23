@@ -71,8 +71,7 @@ let simplify_tauto_contra_f (f : formula) : formula * bool =
     | Emp | Data _ | View _ | Iter _ | Array _ -> f
     | Star fs ->
       let nfs =
-        fs
-        |> List.map ~f:simplify
+        fs |> List.map ~f:simplify
         |> List.exclude ~f:(fun f -> is_f_true f || is_f_emp f) in
       let _ = if List.length nfs < List.length fs then changed := true in
       mk_f_star nfs
@@ -187,8 +186,7 @@ let simplify_arith_e e =
   let rec simplify e =
     match e with
     | Func (func, [ e1; e2 ], t) ->
-      if equal_func_symbol func Add
-         || equal_func_symbol func Sub
+      if equal_func_symbol func Add || equal_func_symbol func Sub
          || equal_func_symbol func Mul
       then (
         match LA.term_of_exp e with
@@ -468,12 +466,10 @@ let simplify_f (f : formula) : formula =
   |> (* eliminate_wand_array |> *)
      (* eliminate_septraction_array |> *)
      (* eliminate_wand_outer_data |> *)
-  eliminate_exists_var_by_equality_f
-  |> simplify_arith_f
+  eliminate_exists_var_by_equality_f |> simplify_arith_f
   |> eliminate_exists_var_by_equality_f
   |> (* simplify_array_one_data |> *)
-  simplify_tauto_contra_f
-  |> fst
+  simplify_tauto_contra_f |> fst
 ;;
 
 let simplify_entail (e : entailment) : entailment =

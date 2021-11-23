@@ -571,9 +571,7 @@ functor
 
     (* printing *)
 
-    let pr_data_with_checksum d =
-      pr_data_checksum d ^ "\n" ^ pr_data d
-    ;;
+    let pr_data_with_checksum d = pr_data_checksum d ^ "\n" ^ pr_data d
 
     let pr_data d =
       if !print_concise_output && not (is_debug_mode ())
@@ -612,9 +610,7 @@ functor
         "\n\nGlobals:\n\n" ^ globals)
     ;;
 
-    let pr_func_output (output : T.t * blocks) : string =
-      pr_data (fst output)
-    ;;
+    let pr_func_output (output : T.t * blocks) : string = pr_data (fst output)
 
     let pr_callsite (cs : callsite) : string =
       let caller, instr = cs.cs_caller, cs.cs_instr_call in
@@ -636,20 +632,16 @@ functor
     ;;
 
     let pr_exn (exn : exn) : string =
-      "Exception:\n" ^ "  Pointer: "
-      ^ pr_expr exn.exn_orig_expr
-      ^ "\n" ^ "  Data: " ^ pr_data exn.exn_data ^ "\n" ^ "  Type info: "
+      "Exception:\n" ^ "  Pointer: " ^ pr_expr exn.exn_orig_expr ^ "\n"
+      ^ "  Data: " ^ pr_data exn.exn_data ^ "\n" ^ "  Type info: "
       ^ pr_value exn.exn_type_info
     ;;
 
-    let pr_exns (exns : exn list) : string =
-      hpr_list_itemized ~f:pr_exn exns
-    ;;
+    let pr_exns (exns : exn list) : string = hpr_list_itemized ~f:pr_exn exns
 
     let pr_working_block (wb : working_block) : string =
       block_name wb.wb_block ^ " @ " ^ pr_instr wb.wb_instr ^ " @ {"
-      ^ pr_data wb.wb_instr_input
-      ^ " }"
+      ^ pr_data wb.wb_instr_input ^ " }"
     ;;
 
     let pr_working_blocks (wbs : working_block list) : string =
@@ -691,8 +683,7 @@ functor
           ~f:(fun ~key:f ~data:inputs acc ->
             let sfuncs =
               List.map
-                ~f:(fun input ->
-                  func_name f ^ " @ {" ^ pr_data input ^ "}")
+                ~f:(fun input -> func_name f ^ " @ {" ^ pr_data input ^ "}")
                 inputs in
             acc @ sfuncs)
           ~init:[] penv.penv_func_analyzed_inputs in
@@ -781,8 +772,7 @@ functor
             then (
               let bname = block_name blk in
               let binput =
-                String.hindent 4 pr_data_opt (T.get_block_input fenv blk)
-              in
+                String.hindent 4 pr_data_opt (T.get_block_input fenv blk) in
               let instrs_output =
                 fold_left_instrs
                   ~f:(fun acc2 instr ->
@@ -1096,8 +1086,7 @@ functor
                     ~f:(fun instr ->
                       if not sparse
                       then
-                        fprintf file "%s\n"
-                          (String.hindent 2 pr_instr instr)
+                        fprintf file "%s\n" (String.hindent 2 pr_instr instr)
                       else if is_sparse_instr penv instr
                       then fprintf file "  %s\n" (pr_sparse_instr penv instr))
                     blk))
@@ -1254,8 +1243,7 @@ functor
       let res =
         List.find
           ~f:(fun fs ->
-            let _ =
-              hdebug ~indent:4 "  Fsum input: " pr_data fs.fsum_input in
+            let _ = hdebug ~indent:4 "  Fsum input: " pr_data fs.fsum_input in
             let res = T.equal_data fs.fsum_input input in
             let _ = hdebug ~indent:4 "    equal? " pr_bool res in
             res)
@@ -1271,8 +1259,8 @@ functor
           hdebug ~always:true ~indent:4 "Func summary NOT FOUND: " func_name
             func
         | Some fsum ->
-          hdebug ~always:true ~indent:4 "Found func summary:\n"
-            pr_func_summary fsum in
+          hdebug ~always:true ~indent:4 "Found func summary:\n" pr_func_summary
+            fsum in
       res
     ;;
 
@@ -1283,8 +1271,7 @@ functor
       let _ =
         debug ~always:true
           ("Record current func summary: " ^ func_name func ^ " @ {"
-          ^ pr_data fsum.fsum_input
-          ^ "}") in
+         ^ pr_data fsum.fsum_input ^ "}") in
       match Hashtbl.find penv.penv_func_summaries func with
       | None -> Hashtbl.set penv.penv_func_summaries ~key:func ~data:[ fsum ]
       | Some fsums ->
@@ -1342,9 +1329,7 @@ functor
               ~finstr:(Some visit_instr) func in
           true
         with EBool res -> res in
-      let _ =
-        hdebug ~always:true " - Env completed: " pr_bool env_completed
-      in
+      let _ = hdebug ~always:true " - Env completed: " pr_bool env_completed in
       match Hashtbl.find penv.penv_func_envs func with
       | None ->
         let fenv = { fenv with fenv_id = "1" } in
@@ -1371,19 +1356,16 @@ functor
         let nfenvs =
           if input_updated
           then (
-            let fenv =
-              { fenv with fenv_id = pr_int (List.length fenvs + 1) } in
+            let fenv = { fenv with fenv_id = pr_int (List.length fenvs + 1) } in
             fenvs @ [ fenv ])
           else fenvs in
         let _ = Hashtbl.set penv.penv_func_envs ~key:func ~data:nfenvs in
         let _ =
-          hdebug ~always:true " - Input updated: " pr_bool input_updated
-        in
+          hdebug ~always:true " - Input updated: " pr_bool input_updated in
         let _ =
           hdebug ~always:true " - Output updated: " pr_bool output_updated
         in
-        let _ =
-          hdebug ~always:true " - Env updated: " pr_bool env_updated in
+        let _ = hdebug ~always:true " - Env updated: " pr_bool env_updated in
         input_updated, output_updated, env_updated, env_completed
     ;;
 
@@ -1410,8 +1392,8 @@ functor
       let _ = hdebug " - Input: " pr_data input in
       let _ =
         print
-          ("Record analyzed input: " ^ func_name func ^ " @ {"
-         ^ pr_data input ^ "}") in
+          ("Record analyzed input: " ^ func_name func ^ " @ {" ^ pr_data input
+         ^ "}") in
       match Hashtbl.find penv.penv_func_analyzed_inputs func with
       | Some inputs ->
         let inputs = List.insert_dedup ~equal:T.equal_data inputs input in
@@ -1488,9 +1470,8 @@ functor
       in
       let _ = hdebug " - input: " pr_data core_input in
       let _ =
-        hdebug " - analyzed inputs: "
-          (pr_datas ~bullet:"  +")
-          analyzed_inputs in
+        hdebug " - analyzed inputs: " (pr_datas ~bullet:"  +") analyzed_inputs
+      in
       let _ = hdebug " - res (<=): " pr_bool res in
       res
     ;;
@@ -1729,8 +1710,8 @@ functor
           if !dfa_context_split_phi
           then (
             let _ =
-              hdebug "Do context splitting PHI for the call: " pr_instr
-                instr in
+              hdebug "Do context splitting PHI for the call: " pr_instr instr
+            in
             let phi_incoming_blks =
               List.fold_left
                 ~f:(fun acc arg ->
@@ -1864,9 +1845,7 @@ functor
           let ndata = T.merge_data exn.exn_data cur_exn.exn_data in
           let nexn = { exn with exn_data = ndata } in
           Hashtbl.set fenv.fenv_thrown_exn ~key:tinfo ~data:nexn)
-      else
-        herror "analyze_throw_exception: expect >=2 params: " pr_instr
-          instr
+      else herror "analyze_throw_exception: expect >=2 params: " pr_instr instr
     ;;
 
     let analyze_instr_landingpad penv fenv instr : unit =
@@ -1889,8 +1868,7 @@ functor
         let _ = hdebug "landing exns: " pr_exns !landing_exns in
         Hashtbl.set fenv.fenv_landing_exns ~key:landing_ptr ~data:!landing_exns
       | _ ->
-        herror "analyze_instr_landingpad: not a landingpad: " pr_instr
-          instr
+        herror "analyze_instr_landingpad: not a landingpad: " pr_instr instr
     ;;
 
     let get_catch_exception_type_info penv fenv instr : llvalue option =
@@ -1996,8 +1974,7 @@ functor
               let ptr = llvalue_of_func callee in
               let callees =
                 ptr |> get_current_funcs_of_pointer penv.penv_prog in
-              let _ =
-                hdebug ~always:true "Function pointer: " pr_value ptr in
+              let _ = hdebug ~always:true "Function pointer: " pr_value ptr in
               let _ = hdebug ~always:true "Callees: " func_names callees in
               if List.is_empty callees
               then (* (input, false) *)
@@ -2212,13 +2189,11 @@ functor
       let _ =
         let _ = debug ~ruler:`Short "Do widening..." in
         let _ = do_widening () in
-        hdebug ~ruler:`Short "After widening:\n" (pr_func_env penv) fenv
-      in
+        hdebug ~ruler:`Short "After widening:\n" (pr_func_env penv) fenv in
       let _ =
         let _ = debug ~ruler:`Short "Do narrowing..." in
         (* let _ = do_narrowing () in *)
-        hdebug ~ruler:`Short "After narrowing:\n" (pr_func_env penv) fenv
-      in
+        hdebug ~ruler:`Short "After narrowing:\n" (pr_func_env penv) fenv in
       ()
     ;;
 

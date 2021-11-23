@@ -23,9 +23,7 @@ module LU = Llutils
 module PS = Process
 module FN = Filename
 
-let mark_solidity_user_funcs (prog: LI.program) : LI.program =
-  prog
-
+let mark_solidity_user_funcs (prog : LI.program) : LI.program = prog
 
 let compile_solidity (filename : string) : LI.program =
   let _ = debug ("Compiling file: " ^ filename) in
@@ -42,13 +40,11 @@ let compile_solidity (filename : string) : LI.program =
       then []
       else String.split ~on:' ' !solang_user_options in
     let cmd =
-      [ !solang_exe; filename ]
-      @ [ "--emit"; "llvm-bc" ]
+      [ !solang_exe; filename ] @ [ "--emit"; "llvm-bc" ]
       @ [ "-O"; "none"; "--target"; "ewasm" ]
       @ [ "--no-constant-folding"; "--no-strength-reduce" ]
       @ [ "--no-dead-storage"; "--no-vector-to-slice" ]
-      @ [ "-o"; output_dir ]
-      @ user_options in
+      @ [ "-o"; output_dir ] @ user_options in
     let _ = debugs [ "COMMAND: '"; String.concat ~sep:" " cmd; "'" ] in
     PS.run_command cmd in
   let generated_files = Sys.ls_dir output_dir in

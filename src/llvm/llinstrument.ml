@@ -108,12 +108,11 @@ let extract_ann_marks (filename : string) =
       in
       [] in
   (*print all marks*)
-  let _ = 
-    if !print_instrumented
-    then debug ~ruler:`Short "Annotations" in
+  let _ = if !print_instrumented then debug ~ruler:`Short "Annotations" in
   let _ =
     if !print_instrumented
-    then List.iter (List.rev (List.map rev_mark_list ~f:Ann.str_of_mark)) ~f:debug
+    then
+      List.iter (List.rev (List.map rev_mark_list ~f:Ann.str_of_mark)) ~f:debug
   in
   List.rev rev_mark_list
 ;;
@@ -218,24 +217,21 @@ let apply_hd_bug
   match matched_anns with
   | [] ->
     raise
-      (AnnotFormat
-         ("Error: Bug_end without start at " ^ Ann.pr_pos_ann end_ann))
+      (AnnotFormat ("Error: Bug_end without start at " ^ Ann.pr_pos_ann end_ann))
   | (ann, ins_op) :: tl ->
     (match ann with
     | Bug_start ((line, col), bugs) ->
       (match ins_op with
       | None ->
         raise
-          (AnnotFormat
-             ("Error: No ins for annot at " ^ Ann.pr_pos_ann end_ann))
+          (AnnotFormat ("Error: No ins for annot at " ^ Ann.pr_pos_ann end_ann))
       | Some ins ->
         let _ = apply_annotation Bug ins bugs modul in
         tl)
     | Bug_end _ | Safe_start _ | Safe_end _ | Skip ->
       raise
         (AnnotFormat
-           ("Error: no Bug_start matching Bug_end at "
-           ^ Ann.pr_pos_ann end_ann)))
+           ("Error: no Bug_start matching Bug_end at " ^ Ann.pr_pos_ann end_ann)))
 ;;
 
 let apply_hd_safe
@@ -254,8 +250,7 @@ let apply_hd_safe
       (match ins_op with
       | None ->
         raise
-          (AnnotFormat
-             ("Error: No ins for annot at " ^ Ann.pr_pos_ann end_ann))
+          (AnnotFormat ("Error: No ins for annot at " ^ Ann.pr_pos_ann end_ann))
       | Some ins ->
         let _ = apply_annotation Safe ins bugs modul in
         tl)
@@ -263,7 +258,7 @@ let apply_hd_safe
       raise
         (AnnotFormat
            ("Error: no Safe_start matching Safe_end at"
-           ^ Ann.pr_pos_ann end_ann)))
+          ^ Ann.pr_pos_ann end_ann)))
 ;;
 
 let rec resolve
@@ -282,9 +277,7 @@ let rec resolve
         raise
           (AnnotFormat
              ("Error: no matching instruction for bug annotation at "
-             ^ pr_int line
-             ^ " "
-             ^ pr_int col))
+            ^ pr_int line ^ " " ^ pr_int col))
       | ins :: tl_ins ->
         if less_than ins hd_ann
         then resolve ann_marks tl_ins (update ins matched_anns) modul
@@ -321,8 +314,9 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
      See module llsimp.ml, function elim_instr_intrinsic_lifetime ...
      for how to manipulating LLVM bitcode *)
   let _ =
-    if !print_instrumented 
-    then debug2 ~ruler:`Long "Uninstrumented: " (LL.string_of_llmodule modul) in
+    if !print_instrumented
+    then debug2 ~ruler:`Long "Uninstrumented: " (LL.string_of_llmodule modul)
+  in
   let finstr =
     Some
       (fun acc instr ->

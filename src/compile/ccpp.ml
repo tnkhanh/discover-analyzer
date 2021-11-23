@@ -32,8 +32,7 @@ let compile_c_cpp (input_file : string) : LI.program =
     let _ = Sys.remove_file output_filename in
     (* TODO: possibly use the  llvm-normalizer as a pass of clang or opt?? *)
     let cmd =
-      [ !clang_exe ]
-      @ [ "-O0"; "-fno-rtti" ]
+      [ !clang_exe ] @ [ "-O0"; "-fno-rtti" ]
       @ [ "-Xclang"; "-disable-llvm-passes" ]
       @ [ "-Xclang"; "-disable-O0-optnone" ]
       @ [ "-Werror=implicit-function-declaration" ]
@@ -50,9 +49,10 @@ let compile_c_cpp (input_file : string) : LI.program =
   let _ = LT.instrument_bitcode ann_marks input_file modul in
   let instrued_filename = dirname ^ Filename.dir_sep ^ basename ^ ".ins.bc" in
   let _ = LL.set_module_identifer modul instrued_filename in
-  let _ = 
+  let _ =
     if !print_instrumented
-    then debug2 ~ruler:`Long "Changed name: " (LL.string_of_llmodule modul) in
+    then debug2 ~ruler:`Long "Changed name: " (LL.string_of_llmodule modul)
+  in
   let _ =
     let instrued_file = open_out instrued_filename in
     let _ = Llvm_bitwriter.output_bitcode instrued_file modul in
