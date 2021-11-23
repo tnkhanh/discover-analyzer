@@ -66,6 +66,7 @@ let print_stats_prog = ref false
 
 (* reporting *)
 let location_source_code_only = ref false
+let enable_instrument = ref false
 
 (* work mode *)
 let work_mode = ref WkmNoAnalysis
