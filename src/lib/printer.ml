@@ -295,10 +295,6 @@ let nhprint _ _ = ()
 let eprint (msg : string) : unit = prerr_endline msg
 let eprintf = Printf.eprintf
 
-(** print formatting *)
-
-let printf =
-  Printf.printf
 
 (*******************************************************************
  ** Warning and error

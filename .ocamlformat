@@ -7,7 +7,7 @@
 # profile = default
 # profile = compact
 profile = janestreet
-version = 0.19.0
+# version = 0.19.0
 
 # Generals
 margin = 79
@@ -23,3 +23,10 @@ break-separators = after
 wrap-comments = false
 comment-check = false
 sequence-blank-line = preserve-one                     # allow blank lines
+exp-grouping = preserve
+
+# Use wrap infix to avoid breaking string concatenation (^) into many lines
+break-infix = wrap
+wrap-fun-args = true
+break-fun-sig = wrap
+type-decl = sparse

@@ -283,9 +283,7 @@ module MakeDefaultEnv (M : Data) = struct
     let visit_instr i =
       let vi = llvalue_of_instr i in
       Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:true in
-    deep_iter_program
-      ~fglobal:(Some visit_global)
-      ~finstr:(Some visit_instr)
+    deep_iter_program ~fglobal:(Some visit_global) ~finstr:(Some visit_instr)
       penv.penv_prog
   ;;
 
@@ -441,13 +439,10 @@ functor
         fold_left_instrs
           ~f:(fun acc instr ->
             if is_sparse_instr penv instr then acc @ [ instr ] else acc)
-          ~init:[]
-          blk in
+          ~init:[] blk in
       if cache
       then
-        Hashtbl.find_or_compute
-          penv.penv_block_sparse_instrs
-          ~key:blk
+        Hashtbl.find_or_compute penv.penv_block_sparse_instrs ~key:blk
           ~f:(fun () -> compute blk)
       else compute blk
     ;;
@@ -470,8 +465,7 @@ functor
                 else if List.for_all ~f:is_instr_br_or_switch sparse_instrs
                 then List.append_dedup acctf pblk ~equal, acctg
                 else acctf, List.append_dedup acctg pblk ~equal)
-              ~init:([], [])
-              pblks in
+              ~init:([], []) pblks in
           let nvisited = List.append_dedup visited blk ~equal:equal_block in
           let nblks =
             let tblks =
@@ -492,9 +486,7 @@ functor
           List.map ~f:block_of_prec_block pblks) in
       if cache
       then
-        Hashtbl.find_or_compute
-          penv.penv_sparse_precedings_block
-          ~key:blk
+        Hashtbl.find_or_compute penv.penv_sparse_precedings_block ~key:blk
           ~f:(fun () -> compute blk)
       else compute blk
     ;;
@@ -522,8 +514,7 @@ functor
                         && List.not_empty ssblks
                 then List.append_dedup acctf sblk ~equal, acctg
                 else acctf, List.append_dedup acctg sblk ~equal)
-              ~init:([], [])
-              sblks in
+              ~init:([], []) sblks in
           let nvisited = List.append_dedup visited blk ~equal:equal_block in
           let nblks =
             let tblks =
@@ -544,9 +535,7 @@ functor
           List.map ~f:block_of_succ_block sblks) in
       if cache
       then
-        Hashtbl.find_or_compute
-          penv.penv_sparse_succeedings_block
-          ~key:blk
+        Hashtbl.find_or_compute penv.penv_sparse_succeedings_block ~key:blk
           ~f:(fun () -> compute blk)
       else compute blk
     ;;
@@ -567,9 +556,7 @@ functor
       let compute () =
         let sblks = get_sparse_succeeding_blocks penv blk in
         compute_reachables sblks [] in
-      Hashtbl.find_or_compute
-        penv.penv_sparse_reachable_blocks
-        ~key:blk
+      Hashtbl.find_or_compute penv.penv_sparse_reachable_blocks ~key:blk
         ~f:compute
     ;;
 
@@ -618,12 +605,10 @@ functor
           List.fold_left
             ~f:(fun acc global ->
               let gdata = T.get_global_output genv global in
-              acc
-              ^ ("\n  " ^ sprint_global global)
-              ^ "\n"
+              acc ^ "\n"
+              ^ ("  " ^ sprint_global global ^ "\n")
               ^ String.hindent 4 sprint_data_opt gdata)
-            prog.prog_globals
-            ~init:ginput in
+            prog.prog_globals ~init:ginput in
         "\n\nGlobals:\n\n" ^ globals)
     ;;
 
@@ -631,7 +616,7 @@ functor
       sprint_data (fst output)
     ;;
 
-    let pr_callsite (cs : callsite) : string =
+    let sprint_callsite (cs : callsite) : string =
       let caller, instr = cs.cs_caller, cs.cs_instr_call in
       let blk = block_of_instr instr in
       let index =
@@ -640,38 +625,29 @@ functor
             fold_left_instrs
               ~f:(fun acc i ->
                 if equal_instr instr i then raise (EInt acc) else acc + 1)
-              ~init:1
-              blk in
+              ~init:1 blk in
           -1
         with EInt res -> res in
       func_name caller ^ ":" ^ block_name blk ^ ":" ^ sprint_int index
     ;;
 
-    let pr_callsites (css : callsite list) : string =
-      sprint_list ~sep:",\n" ~f:pr_callsite css
+    let sprint_callsites (css : callsite list) : string =
+      sprint_list ~sep:",\n" ~f:sprint_callsite css
     ;;
 
-    let pr_exn (exn : exn) : string =
-      "Exception:\n"
-      ^ "  Pointer: "
+    let sprint_exn (exn : exn) : string =
+      "Exception:\n" ^ "  Pointer: "
       ^ sprint_expr exn.exn_orig_expr
-      ^ "\n"
-      ^ "  Data: "
-      ^ sprint_data exn.exn_data
-      ^ "\n"
-      ^ "  Type info: "
+      ^ "\n" ^ "  Data: " ^ sprint_data exn.exn_data ^ "\n" ^ "  Type info: "
       ^ sprint_value exn.exn_type_info
     ;;
 
-    let pr_exns (exns : exn list) : string =
-      hsprint_list_itemized ~f:pr_exn exns
+    let sprint_exns (exns : exn list) : string =
+      hsprint_list_itemized ~f:sprint_exn exns
     ;;
 
     let pr_working_block (wb : working_block) : string =
-      block_name wb.wb_block
-      ^ " @ "
-      ^ sprint_instr wb.wb_instr
-      ^ " @ {"
+      block_name wb.wb_block ^ " @ " ^ sprint_instr wb.wb_instr ^ " @ {"
       ^ sprint_data wb.wb_instr_input
       ^ " }"
     ;;
@@ -693,18 +669,14 @@ functor
         let str = sprint_data wf.wf_input in
         if String.is_substring str ~substring:"\n"
         then
-          str
-          |> String.split_lines
+          str |> String.split_lines
           |> List.map ~f:(fun s -> "\n  " ^ s)
           |> String.concat ~sep:""
         else str in
       let res =
-        func_name wf.wf_func
-        ^ " @ "
-        ^ sprint_list ~f:pr_callsite wf.wf_callsites
-        ^ " @ {"
-        ^ input
-        ^ "}" in
+        func_name wf.wf_func ^ " @ "
+        ^ sprint_list ~f:sprint_callsite wf.wf_callsites
+        ^ " @ {" ^ input ^ "}" in
       let _ = if !mode_debug_working_function then restore_mode_debug () in
       res
     ;;
@@ -723,8 +695,7 @@ functor
                   func_name f ^ " @ {" ^ sprint_data input ^ "}")
                 inputs in
             acc @ sfuncs)
-          ~init:[]
-          penv.penv_func_analyzed_inputs in
+          ~init:[] penv.penv_func_analyzed_inputs in
       sprint_string_list_itemized ~bullet:"+" func_inputs
     ;;
 
@@ -754,13 +725,8 @@ functor
                 Hashtbl.find_default tbl_func_inputs func ~default:[] in
               List.length inputs in
             let func_stat =
-              "  "
-              ^ func_name func
-              ^ ": "
-              ^ sprint_int ftimes
-              ^ " times on "
-              ^ sprint_int num_inputs
-              ^ " inputs" in
+              "  " ^ func_name func ^ ": " ^ sprint_int ftimes ^ " times on "
+              ^ sprint_int num_inputs ^ " inputs" in
             if ftimes = 0
             then func_stat
             else (
@@ -783,12 +749,8 @@ functor
       let total_func_analyzed_times =
         Stack.length penv.penv_func_analysis_stack in
       let func_stats = String.concat ~sep:"\n" func_stats in
-      "- Analyzed times of functions and blocks:\n"
-      ^ func_stats
-      ^ "\n"
-      ^ "- Function analysis stack:\n"
-      ^ func_sequence
-      ^ "\n"
+      "- Analyzed times of functions and blocks:\n" ^ func_stats ^ "\n"
+      ^ "- Function analysis stack:\n" ^ func_sequence ^ "\n"
       ^ "- Total functions analyzed times: "
       ^ sprint_int total_func_analyzed_times
     ;;
@@ -801,8 +763,7 @@ functor
         | LO.IndirectBr | LO.Br | LO.Switch ->
           "jump<sparse> " ^ block_names (get_sparse_succeeding_blocks penv blk)
         | LO.Invoke ->
-          sprint_instr instr
-          ^ ", jump<sparse> "
+          sprint_instr instr ^ ", jump<sparse> "
           ^ block_names (get_sparse_succeeding_blocks penv blk)
         | _ -> sprint_instr instr)
       else sprint_instr instr
@@ -827,35 +788,20 @@ functor
                   ~f:(fun acc2 instr ->
                     if (not sparse) || is_sparse_instr penv instr
                     then
-                      acc2
-                      ^ "\n\n  "
-                      ^ pr_sparse_instr penv instr
-                      ^ "\n\n"
+                      acc2 ^ "\n\n  " ^ pr_sparse_instr penv instr ^ "\n\n"
                       ^
                       match T.get_instr_output fenv instr with
                       | None -> String.indent 4 "{No data}"
                       | Some output -> String.hindent 4 sprint_data output
                     else acc2)
-                  ~init:""
-                  blk in
-              acc1
-              ^ "\n\n "
-              ^ bname
-              ^ ":\n\n"
-              ^ binput
-              ^ instrs_output
+                  ~init:"" blk in
+              acc1 ^ "\n\n " ^ bname ^ ":\n\n" ^ binput ^ instrs_output
               ^ "\n\n -----")
             else acc1)
-          ~init:""
-          func in
+          ~init:"" func in
       let id = if String.is_empty id then id else " ~~ (" ^ id ^ ")" in
-      "Function env: "
-      ^ fname_params
-      ^ id
-      ^ "\n\n"
-      ^ " Callsite: "
-      ^ pr_callsites fenv.fenv_callsites
-      ^ "\n\n"
+      "Function env: " ^ fname_params ^ id ^ "\n\n"
+      ^ (" Callsite: " ^ sprint_callsites fenv.fenv_callsites ^ "\n\n")
       ^ String.halign_line " Input: " sprint_data fenv.fenv_input
       ^ sblocks
     ;;
@@ -877,12 +823,9 @@ functor
                 |> String.concat ~sep:"\n\n" in
               acc ^ "\n\n" ^ sfenvs
             | None -> acc)
-          ~init:""
-          analyzed_funcs in
-      "Input program: "
-      ^ prog.prog_meta_data.pmd_source_filename
-      ^ sprint_prog_globals penv
-      ^ sfuncs
+          ~init:"" analyzed_funcs in
+      "Input program: " ^ prog.prog_meta_data.pmd_source_filename
+      ^ sprint_prog_globals penv ^ sfuncs
     ;;
 
     let pr_sparse_prog (penv : T.prog_env) : string =
@@ -902,23 +845,16 @@ functor
                  else acc)
                ~init:[]
           |> String.concat ~sep:"\n" in
-        " "
-        ^ blkname
-        ^ ":\n"
-        ^ String.replace_if_empty sinstrs ~replacer:"  {Empty block}" in
+        sprintf " %s:\n%s" blkname
+          (String.replace_if_empty sinstrs ~replacer:"  {Empty block}") in
       let sprint_func (f : func) : string =
         let fname =
-          "Function: "
-          ^ sprint_type (func_return_type f)
-          ^ " "
-          ^ func_name f
-          ^ "("
-          ^ sprint_args ~f:sprint_param (func_params f)
-          ^ ")" in
+          sprintf "Function: %s %s(%s)"
+            (sprint_type (func_return_type f))
+            (func_name f)
+            (sprint_args ~f:sprint_param (func_params f)) in
         let sblks =
-          f
-          |> map_blocks ~f:sprint_block
-          |> String.concat ~sep:"\n\n"
+          f |> map_blocks ~f:sprint_block |> String.concat ~sep:"\n\n"
           |> String.replace_if_empty ~replacer:" {Empty function}" in
         fname ^ "\n" ^ sblks in
       let prog = penv.penv_prog in
@@ -938,8 +874,7 @@ functor
         |> String.concat ~sep:"\n"
         |> String.prefix_if_not_empty ~prefix:"Struct types:\n" in
       let sfuncs =
-        penv.penv_goal_funcs
-        |> List.map ~f:sprint_func
+        penv.penv_goal_funcs |> List.map ~f:sprint_func
         |> String.concat ~sep:"\n\n" in
       String.suffix_if_not_empty sglobals ~suffix:"\n\n"
       ^ String.suffix_if_not_empty sstructs ~suffix:"\n\n"
@@ -1014,13 +949,9 @@ functor
           None)
         else Some () in
       let _ =
-        deep_iter_program
-          ~fglobal:(Some visit_global)
-          ~ffunc:(Some visit_func)
-          ~fparam:(Some visit_param)
-          ~fblock:(Some visit_block)
-          ~finstr:(Some visit_instr)
-          prog in
+        deep_iter_program ~fglobal:(Some visit_global) ~ffunc:(Some visit_func)
+          ~fparam:(Some visit_param) ~fblock:(Some visit_block)
+          ~finstr:(Some visit_instr) prog in
       let stats =
         "\nSparse Pointer Statistics:\n"
         ^ sprintf "  #Sparse User funcs: %d\n" !num_user_funcs
@@ -1039,9 +970,7 @@ functor
         Filename.chop_extension prog.prog_meta_data.pmd_bitcode_filename in
       let pr_pretty_list printer items : string =
         let res =
-          items
-          |> List.map ~f:printer
-          |> beautiful_concat ~sep:", "
+          items |> List.map ~f:printer |> beautiful_concat ~sep:", "
           |> String.indent ~skipfirst:true 4 in
         if String.is_empty res then " []" else "\n   [" ^ res ^ "]" in
       let _ =
@@ -1054,13 +983,9 @@ functor
           List.iter
             ~f:(fun f ->
               let gs =
-                f
-                |> get_func_used_globals prog
+                f |> get_func_used_globals prog
                 |> List.sorti ~compare:compare_global_by_name in
-              fprintf
-                file
-                "- %s: %s\n\n"
-                (func_name f)
+              fprintf file "- %s: %s\n\n" (func_name f)
                 (pr_pretty_list sprint_global gs))
             penv.penv_goal_funcs in
         close_out file in
@@ -1077,10 +1002,7 @@ functor
                 f
                 |> get_sparse_used_globals penv
                 |> List.sorti ~compare:compare_global_by_name in
-              fprintf
-                file
-                "- %s: %s\n\n"
-                (func_name f)
+              fprintf file "- %s: %s\n\n" (func_name f)
                 (pr_pretty_list sprint_global gs))
             penv.penv_goal_funcs in
         close_out file in
@@ -1095,10 +1017,7 @@ functor
             ~f:(fun f ->
               let fs =
                 f |> get_pfd_callees prog |> List.filter ~f:is_user_func in
-              fprintf
-                file
-                "- %s:%s\n\n"
-                (func_name f)
+              fprintf file "- %s:%s\n\n" (func_name f)
                 (pr_pretty_list func_name fs))
             penv.penv_goal_funcs in
         close_out file in
@@ -1113,10 +1032,7 @@ functor
             ~f:(fun f ->
               let fs =
                 f |> get_pfd_callers prog |> List.filter ~f:is_user_func in
-              fprintf
-                file
-                "- %s:%s\n\n"
-                (func_name f)
+              fprintf file "- %s:%s\n\n" (func_name f)
                 (pr_pretty_list func_name fs))
             penv.penv_goal_funcs in
         close_out file in
@@ -1132,10 +1048,7 @@ functor
               let fs =
                 f |> get_reachable_funcs prog |> List.filter ~f:is_user_func
               in
-              fprintf
-                file
-                "- %s:%s\n\n"
-                (func_name f)
+              fprintf file "- %s:%s\n\n" (func_name f)
                 (pr_pretty_list func_name fs))
             penv.penv_goal_funcs in
         close_out file in
@@ -1150,8 +1063,7 @@ functor
         Filename.chop_extension prog.prog_meta_data.pmd_bitcode_filename
         ^ if sparse then ".sparse.ll" else ".ll" in
       let _ =
-        printf
-          "Export %s program to: %s"
+        printf "Export %s program to: %s"
           (if sparse then "sparse " else "")
           filename in
       let file = open_out filename in
@@ -1161,9 +1073,7 @@ functor
           ~f:(fun g ->
             if (not sparse) || is_sparse_global penv g
             then
-              fprintf
-                file
-                "%s\n"
+              fprintf file "%s\n"
                 (String.hindent 2 (sprint_global ~detailed:true) g))
           prog.prog_globals in
       let _ =
@@ -1172,8 +1082,7 @@ functor
           ~f:(fun f ->
             let params = func_params f in
             let fname =
-              sprintf
-                "Function: %s %s(%s)"
+              sprintf "Function: %s %s(%s)"
                 (sprint_type (func_return_type f))
                 (func_name f)
                 (sprint_args ~f:sprint_typed_param params) in
@@ -1187,9 +1096,7 @@ functor
                     ~f:(fun instr ->
                       if not sparse
                       then
-                        fprintf
-                          file
-                          "%s\n"
+                        fprintf file "%s\n"
                           (String.hindent 2 sprint_instr instr)
                       else if is_sparse_instr penv instr
                       then fprintf file "  %s\n" (pr_sparse_instr penv instr))
@@ -1340,11 +1247,7 @@ functor
 
     let get_suitable_func_summary penv func input : T.func_summary option =
       let _ =
-        hdebug
-          ~always:true
-          ~indent:4
-          "Get suitable func summary: "
-          func_name
+        hdebug ~always:true ~indent:4 "Get suitable func summary: " func_name
           func in
       let _ = hdebug ~always:true ~indent:4 "  Input: " sprint_data input in
       let fsums = get_func_summaries penv func in
@@ -1365,19 +1268,11 @@ functor
       let _ =
         match res with
         | None ->
-          hdebug
-            ~always:true
-            ~indent:4
-            "Func summary NOT FOUND: "
-            func_name
+          hdebug ~always:true ~indent:4 "Func summary NOT FOUND: " func_name
             func
         | Some fsum ->
-          hdebug
-            ~always:true
-            ~indent:4
-            "Found func summary:\n"
-            sprint_func_summary
-            fsum in
+          hdebug ~always:true ~indent:4 "Found func summary:\n"
+            sprint_func_summary fsum in
       res
     ;;
 
@@ -1386,11 +1281,8 @@ functor
       let _ = hdebug "Record current function summary: " func_name func in
       let _ = hdebug "  input: " sprint_data fsum.fsum_input in
       let _ =
-        debug
-          ~always:true
-          ("Record current func summary: "
-          ^ func_name func
-          ^ " @ {"
+        debug ~always:true
+          ("Record current func summary: " ^ func_name func ^ " @ {"
           ^ sprint_data fsum.fsum_input
           ^ "}") in
       match Hashtbl.find penv.penv_func_summaries func with
@@ -1402,8 +1294,7 @@ functor
               if T.equal_data fs.fsum_input fsum.fsum_input
               then accf @ [ fsum ], true
               else accf @ [ fs ], accu)
-            ~init:([], false)
-            fsums in
+            ~init:([], false) fsums in
         let nfsums = if updated then fsums else fsums @ [ fsum ] in
         Hashtbl.set penv.penv_func_summaries ~key:func ~data:nfsums
     ;;
@@ -1431,7 +1322,7 @@ functor
       let func = fenv.fenv_func in
       let _ = hdebug ~always:true "Record new function env: " func_name func in
       let _ =
-        hdebug ~always:true " - Callsites: " pr_callsites fenv.fenv_callsites
+        hdebug ~always:true " - Callsites: " sprint_callsites fenv.fenv_callsites
       in
       let _ = hdebug " - Output: " sprint_data_opt fenv.fenv_output in
       let env_completed =
@@ -1447,10 +1338,8 @@ functor
                 raise (EBool false)
               | Some _ -> ()) in
           let _ =
-            deep_iter_func
-              ~fblock:(Some visit_block)
-              ~finstr:(Some visit_instr)
-              func in
+            deep_iter_func ~fblock:(Some visit_block)
+              ~finstr:(Some visit_instr) func in
           true
         with EBool res -> res in
       let _ =
@@ -1478,8 +1367,7 @@ functor
                   | Some d1, Some d2 -> not (T.equal_data d1 d2) in
                 naccf, false, nacco, nacce)
               else accf @ [ fe ], acci, acco, acce)
-            ~init:([], true, true, true)
-            fenvs in
+            ~init:([], true, true, true) fenvs in
         let nfenvs =
           if input_updated
           then (
@@ -1517,16 +1405,13 @@ functor
         hdebug ~always:true "Record analyzed input of func: " func_name func
       in
       let _ =
-        hdebug ~always:true " - Callsites: " pr_callsites fenv.fenv_callsites
+        hdebug ~always:true " - Callsites: " sprint_callsites fenv.fenv_callsites
       in
       let _ = hdebug " - Input: " sprint_data input in
       let _ =
         print
-          ("Record analyzed input: "
-          ^ func_name func
-          ^ " @ {"
-          ^ sprint_data input
-          ^ "}") in
+          ("Record analyzed input: " ^ func_name func ^ " @ {"
+         ^ sprint_data input ^ "}") in
       match Hashtbl.find penv.penv_func_analyzed_inputs func with
       | Some inputs ->
         let inputs = List.insert_dedup ~equal:T.equal_data inputs input in
@@ -1603,8 +1488,7 @@ functor
       in
       let _ = hdebug " - input: " sprint_data core_input in
       let _ =
-        hdebug
-          " - analyzed inputs: "
+        hdebug " - analyzed inputs: "
           (sprint_datas ~bullet:"  +")
           analyzed_inputs in
       let _ = hdebug " - res (<=): " sprint_bool res in
@@ -1622,9 +1506,7 @@ functor
               then (
                 let _ = new_wf := false in
                 let callsites =
-                  List.concat_dedup
-                    wf.wf_callsites
-                    wf2.wf_callsites
+                  List.concat_dedup wf.wf_callsites wf2.wf_callsites
                     ~equal:equal_callsite in
                 { wf2 with wf_callsites = callsites })
               else if List.for_all
@@ -1650,8 +1532,7 @@ functor
           let _ =
             hdebug
               ("-> ENQUEUE function: " ^ fname ^ ", with input: ")
-              sprint_data
-              input in
+              sprint_data input in
           wfuncs @ [ wf ])
         else wfuncs in
       let _ = penv.penv_working_funcs <- nwfuncs in
@@ -1670,7 +1551,7 @@ functor
               record_working_func ~msg penv wf
             | _ ->
               let _ =
-                hdebug ~always:true "   at call site: " pr_callsites callsites
+                hdebug ~always:true "   at call site: " sprint_callsites callsites
               in
               let wfuncs = penv.penv_working_funcs in
               let has_earlier_working_func_of_same_context =
@@ -1682,8 +1563,7 @@ functor
                            List.exists
                              ~f:(fun cs2 ->
                                equal_instr cs1.cs_instr_call cs2.cs_instr_call
-                               && equal_data
-                                    cs1.cs_callee_input
+                               && equal_data cs1.cs_callee_input
                                     cs2.cs_callee_input)
                              wf.wf_callsites)
                          callsites)
@@ -1802,9 +1682,7 @@ functor
                   | None -> output
                   | Some pred ->
                     let _ =
-                      hdebug
-                        "Preceding block's current output: "
-                        T.sprint_data
+                      hdebug "Preceding block's current output: " T.sprint_data
                         output in
                     let new_output =
                       match get_block_input fenv blk with
@@ -1814,15 +1692,12 @@ functor
                         then output
                         else old_output in
                     let _ =
-                      hdebug
-                        "Preceding block's refined output: "
-                        T.sprint_data
+                      hdebug "Preceding block's refined output: " T.sprint_data
                         new_output in
                     new_output in
                 (* let changed = not (T.lequal_data new_output output) in *)
                 acc @ [ output ]))
-          ~init:[]
-          pblks in
+          ~init:[] pblks in
       let new_block_input =
         match pblks_data with
         | [] -> fenv.fenv_input (* entry block *)
@@ -1854,9 +1729,7 @@ functor
           if !dfa_context_split_phi
           then (
             let _ =
-              hdebug
-                "Do context splitting PHI for the call: "
-                sprint_instr
+              hdebug "Do context splitting PHI for the call: " sprint_instr
                 instr in
             let phi_incoming_blks =
               List.fold_left
@@ -1866,8 +1739,7 @@ functor
                     let blks = arg |> LL.incoming |> List.unzip |> snd in
                     List.concat_dedup acc blks ~equal:equal_block)
                   else acc)
-                ~init:[]
-                args in
+                ~init:[] args in
             if List.is_empty phi_incoming_blks
             then [ args ]
             else
@@ -1915,31 +1787,20 @@ functor
                  let _ =
                    if get_func_analyzed_times penv callee == 0
                       || not
-                           (equal_args_data_vs_analyzed_inputs
-                              penv
-                              callee
-                              args
+                           (equal_args_data_vs_analyzed_inputs penv callee args
                               callee_input)
                    then (
                      let caller_callsites = fenv.fenv_callsites in
                      let callsites =
-                       [ mk_callsite
-                           instr
-                           ~caller
-                           ~caller_input
-                           ~caller_callsites
-                           ~callee
-                           ~callee_input
+                       [ mk_callsite instr ~caller ~caller_input
+                           ~caller_callsites ~callee ~callee_input
                        ] in
                      (* enqueue to analyze callee *)
                      let wf_callee =
                        mk_working_func callee callee_input callsites in
                      let _ =
-                       hdebug
-                         ~always:true
-                         "Prepare to enqueue callee: "
-                         func_name
-                         wf_callee.wf_func in
+                       hdebug ~always:true "Prepare to enqueue callee: "
+                         func_name wf_callee.wf_func in
                      let _ =
                        enqueue_to_analyze_func ~msg:"callee" penv wf_callee
                      in
@@ -1947,15 +1808,10 @@ functor
                      let blk = block_of_instr instr in
                      let wb = mk_working_block blk instr input in
                      let _ =
-                       hdebug
-                         ~indent:4
-                         "Mark working block to re-analyze: "
-                         pr_working_block
-                         wb in
+                       hdebug ~indent:4 "Mark working block to re-analyze: "
+                         pr_working_block wb in
                      let working_blks =
-                       List.insert_dedup
-                         fenv.fenv_working_blocks
-                         wb
+                       List.insert_dedup fenv.fenv_working_blocks wb
                          ~equal:equal_working_block in
                      fenv.fenv_working_blocks <- working_blks)
                    else hdebug "Not enqueue: " func_name callee in
@@ -1967,13 +1823,8 @@ functor
                    (* compute output, exceptions *)
                    (* let _ = hprint "Found a function summary of: " func_name callee in *)
                    let output, exns =
-                     compute_call_output_exns_from_summary
-                       penv
-                       instr
-                       callee
-                       args
-                       input
-                       fsum in
+                     compute_call_output_exns_from_summary penv instr callee
+                       args input fsum in
                    (* update exception *)
                    let _ =
                      List.iter
@@ -1981,17 +1832,13 @@ functor
                          let tinfo = exn.exn_type_info in
                          match Hashtbl.find fenv.fenv_thrown_exn tinfo with
                          | None ->
-                           Hashtbl.set
-                             fenv.fenv_thrown_exn
-                             ~key:tinfo
+                           Hashtbl.set fenv.fenv_thrown_exn ~key:tinfo
                              ~data:exn
                          | Some cur_exn ->
                            let ndata =
                              T.merge_data exn.exn_data cur_exn.exn_data in
                            let nexn = { exn with exn_data = ndata } in
-                           Hashtbl.set
-                             fenv.fenv_thrown_exn
-                             ~key:tinfo
+                           Hashtbl.set fenv.fenv_thrown_exn ~key:tinfo
                              ~data:nexn)
                        exns in
                    output, true) in
@@ -2018,9 +1865,7 @@ functor
           let nexn = { exn with exn_data = ndata } in
           Hashtbl.set fenv.fenv_thrown_exn ~key:tinfo ~data:nexn)
       else
-        herror
-          "analyze_throw_exception: expect >=2 params: "
-          sprint_instr
+        herror "analyze_throw_exception: expect >=2 params: " sprint_instr
           instr
     ;;
 
@@ -2041,12 +1886,10 @@ functor
               landing_exns := !landing_exns @ [ exn ]
           done in
         let landing_ptr = llvalue_of_instr instr in
-        let _ = hdebug "landing exns: " pr_exns !landing_exns in
+        let _ = hdebug "landing exns: " sprint_exns !landing_exns in
         Hashtbl.set fenv.fenv_landing_exns ~key:landing_ptr ~data:!landing_exns
       | _ ->
-        herror
-          "analyze_instr_landingpad: not a landingpad: "
-          sprint_instr
+        herror "analyze_instr_landingpad: not a landingpad: " sprint_instr
           instr
     ;;
 
@@ -2060,14 +1903,12 @@ functor
         | PIcmp (LL.Icmp.Eq, v1, v2)
           when is_llvalue_instr v1 && is_llvalue_instr v2 ->
           let iv1, iv2 = mk_instr v1, mk_instr v2 in
-          if is_instr_call_invoke iv1
-             && is_instr_extractvalue iv2
+          if is_instr_call_invoke iv1 && is_instr_extractvalue iv2
              && is_func_eh_typeid_for (callee_of_instr_func_call iv1)
           then (
             let args = args_of_instr_func_app iv1 in
             Some (get_root_src_of_bitcast (List.hd_exn args)))
-          else if is_instr_call_invoke iv2
-                  && is_instr_extractvalue iv1
+          else if is_instr_call_invoke iv2 && is_instr_extractvalue iv1
                   && is_func_eh_typeid_for (callee_of_instr_func_call iv2)
           then (
             let args = args_of_instr_func_app iv2 in
@@ -2141,12 +1982,7 @@ functor
             then (
               let res, time =
                 Sys.track_runtime (fun () ->
-                    analyze_instr_call_user_func
-                      penv
-                      fenv
-                      instr
-                      callee
-                      args
+                    analyze_instr_call_user_func penv fenv instr callee args
                       input) in
               res)
             else if is_func_pointer callee
@@ -2174,12 +2010,7 @@ functor
                       let outputs_continues =
                         List.map
                           ~f:(fun f ->
-                            analyze_instr_call_user_func
-                              penv
-                              fenv
-                              instr
-                              f
-                              args
+                            analyze_instr_call_user_func penv fenv instr f args
                               input)
                           callees in
                       let outputs, continues = List.unzip outputs_continues in
@@ -2240,8 +2071,7 @@ functor
               then acci @ [ instr ], true
               else acci, true
             else acci, accs)
-          ~init:([], false)
-          blk in
+          ~init:([], false) blk in
       analyze_instrs ~widen penv fenv instrs wb.wb_instr_input
     ;;
 
@@ -2349,8 +2179,7 @@ functor
                   let wb = mk_working_block sb instr input in
                   let _ = hdebug "--> Enqueue block: " block_name sb in
                   List.insert_dedup acc wb ~equal:equal_working_block)
-              ~init:nwblks
-              sblks)
+              ~init:nwblks sblks)
           else nwblks in
         analyze_blocks ~widen ~fixpoint penv fenv nwblks
     ;;
@@ -2378,8 +2207,7 @@ functor
               | Some instr ->
                 let input = compute_block_input penv fenv blk in
                 acc @ [ mk_working_block blk instr input ])
-            ~init:[]
-            func in
+            ~init:[] func in
         analyze_blocks ~widen:false ~fixpoint:false penv fenv wblocks in
       let _ =
         let _ = debug ~ruler:`Short "Do widening..." in
@@ -2432,9 +2260,7 @@ functor
       let _ =
         (* if not !print_concise_output then *)
         let msg =
-          "Analyzing function: "
-          ^ fname_params
-          ^ " ~ ("
+          "Analyzing function: " ^ fname_params ^ " ~ ("
           ^ sprint_int (get_func_analyzed_times penv func)
           ^ ")" in
         print ~ruler:`Medium msg in
@@ -2452,8 +2278,8 @@ functor
             then (
               let _ = save_mode_debug () in
               enable_mode_debug ()))) in
-      (* let _ = hdebug ~always:true " - Callsites: " (sprint_list pr_callsite) callsites in *)
-      let _ = hprint " - Callsites: " (sprint_list ~f:pr_callsite) callsites in
+      (* let _ = hdebug ~always:true " - Callsites: " (sprint_list sprint_callsite) callsites in *)
+      let _ = hprint " - Callsites: " (sprint_list ~f:sprint_callsite) callsites in
       (* let _ = hdebug ~always:true " - Input: " sprint_data input in *)
       let _ = hprint " - Input: " sprint_data input in
       (* let _ = hprint " - Input: " sprint_data_with_checksum input in *)
@@ -2463,11 +2289,8 @@ functor
        *   else
        *     hprint " - Input: " sprint_data input in *)
       let _ =
-        hdebug
-          ~always:true
-          " - Re-analyzing from working blocks: "
-          pr_working_blocks
-          fenv.fenv_working_blocks in
+        hdebug ~always:true " - Re-analyzing from working blocks: "
+          pr_working_blocks fenv.fenv_working_blocks in
       let _ = LP.get_loops_of_func prog func in
       let _ = update_func_analyzed_stats penv func in
       let _ =
@@ -2489,11 +2312,9 @@ functor
         then (
           let fsum = mk_func_summary penv fenv input in
           let _ =
-            hdebug
-              ~ruler:`Short
+            hdebug ~ruler:`Short
               ("Analysis output: " ^ fname_params ^ ":\n\n")
-              sprint_func_summary
-              fsum in
+              sprint_func_summary fsum in
           record_func_summary penv fsum) in
       let _ = if !mode_debug_function then restore_mode_debug () in
       let _ = post_analyze_func penv fenv in
@@ -2635,9 +2456,7 @@ functor
         else List.extract_nth (int_of_string decicion - 1) wfuncs
       | false ->
         let _ =
-          hdebug
-            "\nWorking functions (after sorting): "
-            pr_working_funcs
+          hdebug "\nWorking functions (after sorting): " pr_working_funcs
             wfuncs in
         List.extract_nth 0 wfuncs
     ;;
@@ -2657,8 +2476,7 @@ functor
         let _ =
           hdebug
             (" - Time analyzing function: " ^ fname ^ ": ")
-            (sprintf "%.3fs")
-            time in
+            (sprintf "%.3fs") time in
         (* let _ = if Float.(>) time 15. then
          *     hprint "TOO SLOW... Func env: " (sprint_func_env penv) fenv in *)
         let _ = hdebug "Analysis output updated: " sprint_bool env_updated in
@@ -2683,10 +2501,7 @@ functor
               let wf_caller =
                 mk_working_func caller caller_input caller_callsites in
               let _ =
-                hdebug
-                  ~always:true
-                  "Prepare to enqueue caller: "
-                  func_name
+                hdebug ~always:true "Prepare to enqueue caller: " func_name
                   wf_caller.wf_func in
               enqueue_to_analyze_func ~msg:"caller" penv wf_caller)
             wf.wf_callsites in
@@ -2712,8 +2527,7 @@ functor
               let _ = set_global_output genv global output in
               let _ = hdebugc "    Out: " T.sprint_data output in
               output))
-          globals
-          ~init:input in
+          globals ~init:input in
       let output =
         let func_init_global =
           List.find
@@ -2754,8 +2568,7 @@ functor
                     fold_left_instrs
                       ~f:(fun acc instr ->
                         if is_sparse_instr penv instr then acc + 1 else acc)
-                      ~init:0
-                      blk in
+                      ~init:0 blk in
                   let num_sblks =
                     blk |> get_succeeding_blocks penv.penv_prog |> List.length
                   in
@@ -2831,9 +2644,7 @@ functor
               let vf = llvalue_of_func f in
               LL.iter_uses
                 (fun u ->
-                  Hashtbl.set
-                    penv.penv_sparse_llvalue
-                    ~key:(LL.user u)
+                  Hashtbl.set penv.penv_sparse_llvalue ~key:(LL.user u)
                     ~data:false)
                 vf)
             else Hashtbl.set penv.penv_sparse_func ~key:f ~data:true))
@@ -2876,9 +2687,7 @@ functor
                   let vf = llvalue_of_func f in
                   LL.iter_uses
                     (fun u ->
-                      Hashtbl.set
-                        penv.penv_sparse_llvalue
-                        ~key:(LL.user u)
+                      Hashtbl.set penv.penv_sparse_llvalue ~key:(LL.user u)
                         ~data:false)
                     vf)))
             penv.penv_goal_funcs in
@@ -2896,8 +2705,7 @@ functor
           List.iter
             ~f:(fun f ->
               let gs =
-                f
-                |> get_func_used_globals prog
+                f |> get_func_used_globals prog
                 |> List.filter ~f:(is_sparse_global penv) in
               Hashtbl.set tbl_used_globals ~key:f ~data:gs)
             prog.prog_init_funcs in
@@ -2912,9 +2720,7 @@ functor
                   match LL.classify_value opr with
                   | LV.GlobalVariable ->
                     gs
-                      := List.insert_sorti_dedup
-                           !gs
-                           (mk_global opr)
+                      := List.insert_sorti_dedup !gs (mk_global opr)
                            ~compare:Poly.compare
                   | _ -> ()
                 done in
@@ -2947,16 +2753,14 @@ functor
                       match Hashtbl.find pfd.pfd_funcs_of_type ftyp with
                       | None -> acc
                       | Some fs -> List.concat_dedup acc fs ~equal:equal_func)
-                    ptr_callees
-                    ~init:callees) in
+                    ptr_callees ~init:callees) in
             let cgs =
               List.fold_left
                 ~f:(fun acc f1 ->
                   let gs1 =
                     Hashtbl.find_default tbl_used_globals f1 ~default:[] in
                   List.concat_sorti_dedup acc gs1 ~compare)
-                ~init:[]
-                callees in
+                ~init:[] callees in
             let _ = ngs := List.concat_sorti_dedup !ngs cgs ~compare in
             (* let _ = print "  done" in *)
             if List.length !ngs > List.length gs
@@ -3007,15 +2811,12 @@ functor
             penv.penv_goal_funcs <- new_goals)
           sparse_time in
       let _ =
-        hprint
-          " - Time preparing sparse program: "
-          (sprintf "%.3fs")
+        hprint " - Time preparing sparse program: " (sprintf "%.3fs")
           !sparse_time in
       (* let _ = hprint "Non-sparse functions: "  *)
       let _ = if !print_stats_prog then print_stats_sparse_prog penv in
       let _ =
-        hprint
-          "Goal functions: "
+        hprint "Goal functions: "
           (hsprint_list_itemized ~f:func_name)
           penv.penv_goal_funcs in
       (* let prog = update_program_info prog in *)
@@ -3097,8 +2898,7 @@ functor
       let num_checked =
         List.fold
           ~f:(fun acc func -> acc + T.check_assertions penv func)
-          ~init:0
-          funcs in
+          ~init:0 funcs in
       let num_skipped = num_total - num_checked in
       let msg =
         if num_total = 0
@@ -3106,19 +2906,22 @@ functor
         else if num_skipped == 0
         then sprintf "%d/%d assertion(s) are checked!\n" num_checked num_total
         else
-          sprintf
-            "%d/%d assertion(s) are checked, %d are skipped!\n"
-            num_checked
-            num_total
-            num_skipped in
+          sprintf "%d/%d assertion(s) are checked, %d are skipped!\n"
+            num_checked num_total num_skipped in
       println msg
     ;;
 
     let report_analysis_stats (penv : T.prog_env) : unit =
       (* if not !print_concise_output || !print_concise_debug then *)
-      println
-        ~format:false (* ~always:true *)
+      println ~format:false (* ~always:true *)
         (("\nStatistics of " ^ name_of_dfa analysis ^ ": \n")
         ^ pr_analysis_stats penv)
     ;;
   end
+
+let foo () =
+  let s1, s2, s3 = "first", "second", "third" in
+  ("This is the " ^ s1 ^ " string")
+  ^ ("This is the " ^ s2 ^ " string")
+  ^ "This is the " ^ s3 ^ " string"
+;;
