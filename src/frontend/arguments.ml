@@ -55,7 +55,9 @@ and arguments_raw =
      * printing
      *--------------------------------------------------------*)
     [ "--pip" ], "Print input programs", Arg.Set print_input_prog;
-    [ "--print-instrumented" ], "Print instrumented bitcode", Arg.Set print_instrumented;
+    ( [ "--print-instrumented" ],
+      "Print instrumented bitcode",
+      Arg.Set print_instrumented );
     [ "--type" ], "Print type information of variables", Arg.Set print_type;
     [ "--pcp" ], "Print core programs", Arg.Set print_core_prog;
     [ "--pap" ], "Print analyzed programs", Arg.Set print_analyzed_prog;
@@ -95,6 +97,9 @@ and arguments_raw =
     ( [ "--opt-option" ],
       "Command options for LLVM-Opt",
       Arg.Set_string opt_user_options );
+    ( [ "--enable-instrument" ],
+      "Instrument bug annotations from source code",
+      Arg.Set enable_instrument );
     (*--------------------------------------------------------
      * analysis
      *--------------------------------------------------------*)

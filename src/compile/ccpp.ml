@@ -43,19 +43,23 @@ let compile_c_cpp (input_file : string) : LI.program =
       @ String.split ~on:' ' !clang_user_options in
     let _ = debug (String.concat ~sep:" " cmd) in
     PS.run_command cmd in
-  let ann_marks = LT.extract_ann_marks input_file in
-  let llcontext = LL.create_context () in
-  let llmem = LL.MemoryBuffer.of_file output_filename in
-  let modul = Llvm_bitreader.parse_bitcode llcontext llmem in
-  let _ = LT.instrument_bitcode ann_marks input_file modul in
-  let instrued_filename = dirname ^ Filename.dir_sep ^ basename ^ ".ins.bc" in
-  let _ = LL.set_module_identifer modul instrued_filename in
-  let _ = 
-    if !print_instrumented
-    then debug2 ~ruler:`Long "Changed name: " (LL.string_of_llmodule modul) in
-  let _ =
-    let instrued_file = open_out instrued_filename in
-    let _ = Llvm_bitwriter.output_bitcode instrued_file modul in
-    close_out instrued_file in
-  BC.process_bitcode instrued_filename
+  if !enable_instrument
+  then (
+    let ann_marks = LT.extract_ann_marks input_file in
+    let llcontext = LL.create_context () in
+    let llmem = LL.MemoryBuffer.of_file output_filename in
+    let modul = Llvm_bitreader.parse_bitcode llcontext llmem in
+    let _ = LT.instrument_bitcode ann_marks input_file modul in
+    let instrued_filename = dirname ^ Filename.dir_sep ^ basename ^ ".ins.bc" in
+    let _ = LL.set_module_identifer modul instrued_filename in
+    let _ =
+      if !print_instrumented
+      then debug2 ~ruler:`Long "Changed name: " (LL.string_of_llmodule modul)
+    in
+    let _ =
+      let instrued_file = open_out instrued_filename in
+      let _ = Llvm_bitwriter.output_bitcode instrued_file modul in
+      close_out instrued_file in
+    BC.process_bitcode instrued_filename)
+  else BC.process_bitcode output_filename
 ;;
