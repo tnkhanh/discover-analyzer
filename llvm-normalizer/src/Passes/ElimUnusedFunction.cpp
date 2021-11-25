@@ -41,12 +41,18 @@ bool ElimUnusedFunction::runOnModule(Module &M) {
         funcName.contains("main"))
       continue;
 
+    // do not eliminate internal linkage function
+    if (func->hasInternalLinkage())
+      continue;
+
     if (func->getNumUses() == 0)
       unusedFuncs.insert(func);
   }
 
-  for (Function *func : unusedFuncs)
+  for (Function *func : unusedFuncs) {
+    debug() << "Eliminating unused function " << func->getName();
     func->removeFromParent();
+  }
 
   debug() << "Finish Module Pass: " << passName << "\n";
 
