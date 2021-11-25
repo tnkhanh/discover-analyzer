@@ -115,7 +115,7 @@ let find_bug_integer_underflow (pdata : program_data) =
   if !bug_all || !bug_memory_all || !bug_buffer_overflow
   then
     pdata.pdata_potential_bugs
-    |> List.map ~f:(check_bug_integer_overflow pdata)
+    |> List.map ~f:(check_bug_integer_underflow pdata)
     |> List.filter_opt
   else []
 ;;
