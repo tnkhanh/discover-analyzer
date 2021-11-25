@@ -5,14 +5,23 @@
  * All rights reserved.
  *******************************************************************/
 
-#include "Passes/ElimUnusedAuxFunction.h"
+#include "Passes/ElimUnusedFunction.h"
 
 using namespace discover;
 using namespace llvm;
 
-char ElimUnusedAuxFunction::ID = 0;
+char ElimUnusedFunction::ID = 0;
 
-bool ElimUnusedAuxFunction::runOnModule(Module &M) {
+// Option to manually disable this pass
+static cl::opt<bool>
+    DisableElimUnusedFunction("disable-elim-unused-function",
+                              cl::desc("Disable promote alloca to vector"),
+                              cl::init(false));
+
+bool ElimUnusedFunction::runOnModule(Module &M) {
+  if (DisableElimUnusedFunction)
+    return true;
+
   StringRef passName = this->getPassName();
   debug() << "=========================================\n"
           << "Running Module Pass: " << passName << "\n";
@@ -26,42 +35,36 @@ bool ElimUnusedAuxFunction::runOnModule(Module &M) {
 
     StringRef funcName = func->getName();
 
-    // not auxiliary function of Discover
+    // do note eliminate assertions or main function
     if (funcName.startswith("__assert") || funcName.startswith("__refute") ||
         funcName.contains("main"))
       continue;
 
     if (func->getNumUses() == 0)
       unusedFuncs.insert(func);
-
-    // outs() << "Function name: " << func->getName()
-    //        << ", num of uses: " << func->getNumUses() << "\n";
   }
 
-  for (Function *func : unusedFuncs) {
-    // outs() << "Remove function: " << func->getName() << "\n";
-
+  for (Function *func : unusedFuncs)
     func->removeFromParent();
-    // func->deleteValue();
-  }
 
   debug() << "Finish Module Pass: " << passName << "\n";
 
   return true;
 }
 
-bool ElimUnusedAuxFunction::normalizeModule(Module &M) {
-  ElimUnusedAuxFunction pass;
+bool ElimUnusedFunction::normalizeModule(Module &M) {
+  ElimUnusedFunction pass;
   return pass.runOnModule(M);
 }
 
-static RegisterPass<ElimUnusedAuxFunction> X("ElimUnusedAuxFunction",
-                                             "ElimUnusedAuxFunction",
-                                             false /* Only looks at CFG */,
-                                             false /* Analysis Pass */);
+static RegisterPass<ElimUnusedFunction>
+    X("elim-unused-funcs",          // flag to run pass
+      "Elimimate Unused Functions", // Pass name
+      false,                        // Only looks at CFG
+      false);                       // Analysis Pass
 
 static RegisterStandardPasses Y(PassManagerBuilder::EP_EarlyAsPossible,
                                 [](const PassManagerBuilder &Builder,
                                    legacy::PassManagerBase &PM) {
-                                  PM.add(new ElimUnusedAuxFunction());
+                                  PM.add(new ElimUnusedFunction());
                                 });

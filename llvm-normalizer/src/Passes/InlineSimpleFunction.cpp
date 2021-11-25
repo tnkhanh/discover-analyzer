@@ -10,6 +10,10 @@
 using namespace discover;
 using namespace llvm;
 
+static cl::opt<bool> DisableInline("disable-inlining",
+                                   cl::desc("Do not run the inliner pass"),
+                                   cl::init(false));
+
 char InlineSimpleFunction::ID = 0;
 
 bool hasGlobalValue(Function &F) {

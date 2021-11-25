@@ -7,7 +7,7 @@
 
 set(LLNormPasses
   ${CMAKE_CURRENT_SOURCE_DIR}/InlineSimpleFunction.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/ElimUnusedAuxFunction.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/ElimUnusedFunction.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/ElimUnusedGlobal.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/ElimIdenticalInstrs.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/ElimAllocaStoreArg.cpp

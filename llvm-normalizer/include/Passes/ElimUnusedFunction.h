@@ -32,11 +32,11 @@ using namespace llvm;
 
 namespace discover {
 
-struct ElimUnusedAuxFunction : public ModulePass {
+struct ElimUnusedFunction : public ModulePass {
   static char ID;
   static bool normalizeModule(Module &M);
 
-  ElimUnusedAuxFunction() : ModulePass(ID) {}
+  ElimUnusedFunction() : ModulePass(ID) {}
 
   virtual bool runOnModule(Module &M) override;
 };

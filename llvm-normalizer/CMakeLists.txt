@@ -39,8 +39,8 @@ message (STATUS "Looking for LLVM ${LLVM_VERSION}")
 # Set LLVM preferred path
 set(LLVM_CMAKE_PATH_HINTS
   ## Linux
-  "$HOME/llvm/llvm-12/lib/cmake/llvm"         # manually provided path
-  "/usr/lib/llvm-12/lib/cmake/llvm/"          # system path
+  "$HOME/llvm/llvm-sbip/lib/cmake/llvm"         # manually provided path
+  "/usr/lib/llvm-13/lib/cmake/llvm/"          # system path
   # "/usr/lib/llvm-11/lib/cmake/llvm/"        # system path
   # "/usr/lib/llvm/lib/cmake/llvm/"
   # "/usr/lib/llvm-8/lib/cmake/llvm/"

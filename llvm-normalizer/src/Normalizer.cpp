@@ -23,8 +23,6 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/TargetSelect.h"
-#include "llvm/Support/PrettyStackTrace.h"
-#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include "llvm/Transforms/Utils/Debugify.h"
@@ -35,7 +33,7 @@
 #include "Passes/ElimAllocaStoreArg.h"
 #include "Passes/ElimIdenticalInstrs.h"
 #include "Passes/ElimInlineAsm.h"
-#include "Passes/ElimUnusedAuxFunction.h"
+#include "Passes/ElimUnusedFunction.h"
 #include "Passes/ElimUnusedGlobal.h"
 #include "Passes/InitGlobal.h"
 #include "Passes/InlineSimpleFunction.h"
@@ -69,16 +67,16 @@ static cl::opt<string> InputFilename(cl::Positional,
                                      cl::init("-"), cl::value_desc("filename"));
 
 static cl::opt<bool> NoVerify("disable-verify",
-                              cl::desc("Do not run the verifier"), cl::Hidden);
+                              cl::desc("Do not run the verifier"), cl::Hidden,
+                              cl::init(false));
 
 static cl::opt<bool> VerifyEach("verify-each",
-                                cl::desc("Verify after each transform"));
+                                cl::desc("Verify after each transform"),
+                                cl::init(false));
 
 static cl::opt<bool> VerifyOnly("verify-only",
-                                cl::desc("Only verify, not transform bitcode"));
-
-static cl::opt<bool> DisableInline("disable-inlining",
-                                   cl::desc("Do not run the inliner pass"));
+                                cl::desc("Only verify, not transform bitcode"),
+                                cl::init(false));
 
 /*---------------------------------------------------------
  * Command line options of only this tool LLVM-normalizer
@@ -250,7 +248,7 @@ int main(int argc, char **argv) {
   } else {
     // Add module transformation passes
     addModulePass(ModulePasses, new InitGlobal());
-    addModulePass(ModulePasses, new ElimUnusedAuxFunction());
+    addModulePass(ModulePasses, new ElimUnusedFunction());
     addModulePass(ModulePasses, new InlineSimpleFunction());
     addModulePass(ModulePasses, new ElimUnusedGlobal());
     addModulePass(ModulePasses, new ElimInlineAsm());
