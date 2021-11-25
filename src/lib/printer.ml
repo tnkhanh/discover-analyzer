@@ -25,10 +25,6 @@ let no_print = ref false
  ** String printing functions
  *******************************************************************)
 
-(*----------------------
- * Compute indentation
- *---------------------*)
-
 (*---------------------------
  * Basic printing functions
  *--------------------------*)
@@ -168,9 +164,10 @@ let print_core
       else (
         match ruler with
         | `Long -> "\n" ^ String.make 68 '*' ^ "\n" ^ prefix ^ msg
-        | `Medium -> "\n" ^ String.make 45 '*' ^ "\n" ^ prefix ^ msg
+        | `Medium -> "\n" ^ String.make 36 '=' ^ "\n" ^ prefix ^ msg
         | `Short -> "\n" ^ String.make 21 '-' ^ "\n" ^ prefix ^ msg
         | `None ->
+          let msg = "[info] " ^ msg in
           if not format
           then msg
           else if String.is_prefix ~prefix:"\n" msg
@@ -185,7 +182,7 @@ let print_core
             let indent = String.count_indent prefix + 2 + indent in
             prefix ^ "\n" ^ String.indent indent msg)
           else String.indent indent (String.align_line prefix msg)) in
-    print_endline ("[info] " ^ msg))
+    print_endline msg)
   else ()
 ;;
 
@@ -307,4 +304,24 @@ let errorl ?(log = "") (msgs : string list) =
 let herror (msg : string) (f : 'a -> string) (x : 'a) =
   let msg = msg ^ f x in
   error msg
+;;
+
+(*******************************************************************
+ ** Override default printing function to throw some warning
+ *******************************************************************)
+
+let print_endline (s : string) =
+  let _ =
+    warning
+      ("DO NOT USE print_endline DIRECTLY. "
+     ^ "Use printing functions in Printer.ml instead!") in
+  Core.print_endline s
+;;
+
+let print_string (s : string) =
+  let _ =
+    warning
+      ("DO NOT USE print_string directly. \n"
+     ^ "Use printing functions in Printer.ml instead!") in
+  Core.print_string s
 ;;

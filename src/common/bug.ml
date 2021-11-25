@@ -312,7 +312,7 @@ let report_bug_stats (bugs : bug list) : unit =
         ~f:(fun acc (bug_name, times) ->
           acc ^ "\n  " ^ bug_name ^ ": " ^ pr_int times)
         ~init:"" bug_stats in
-  print ("==============================\n" ^ "Bug Summary:\n" ^ summary)
+  print ~ruler:`Medium ("Bug Summary:\n" ^ summary)
 ;;
 
 (*******************************************************************

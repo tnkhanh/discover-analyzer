@@ -26,14 +26,10 @@ type predicate =
   | MustAlias of LL.llvalue list
   | MayAlias of LL.llvalue list
   (* range *)
+  (* | RangeLB of (LL.llvalue * BInt.big_int) *)
   | RangeLB of LL.llvalue list
   | RangeUB of LL.llvalue list
   | RangeFull of LL.llvalue list
-  (* interger *)
-  | IntegerOverflow
-  | IntegerUnderflow
-  (* buffer *)
-  | BufferOverflow
 
 type assertion_type =
   | Assert

@@ -835,7 +835,13 @@ struct
     List.length assertions
   ;;
 
-  let check_range_lower_bound fenv instr (v : llvalue) (lb : int64) : bool =
+  let check_range_lower_bound
+      (fenv : func_env)
+      (instr: instr)
+      (v : llvalue)
+      (lb : int64)
+      : bool
+    =
     match get_instr_output fenv instr with
     | None -> false
     | Some data ->

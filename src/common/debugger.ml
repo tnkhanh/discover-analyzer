@@ -101,7 +101,7 @@ let debug_core
       else (
         match ruler with
         | `Long -> "\n" ^ String.make 68 '*' ^ "\n" ^ prefix ^ msg
-        | `Medium -> "\n" ^ String.make 45 '*' ^ "\n" ^ prefix ^ msg
+        | `Medium -> "\n" ^ String.make 36 '*' ^ "\n" ^ prefix ^ msg
         | `Short -> "\n" ^ String.make 21 '-' ^ "\n" ^ prefix ^ msg
         | `None ->
           if String.is_prefix ~prefix:"\n" msg

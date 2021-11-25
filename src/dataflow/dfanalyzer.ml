@@ -115,7 +115,7 @@ let perform_main_analysis_passes (pdata : program_data) : program_data =
  *******************************************************************)
 
 let check_assertions (pdata : program_data) : unit =
-  let _ = print_endline "\nChecking assertions..." in
+  let _ = print "Checking assertions..." in
   Option.iter ~f:PA.check_assertions pdata.pdata_env_pointer;
   Option.iter ~f:RG.check_assertions pdata.pdata_env_range
 ;;
