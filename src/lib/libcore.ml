@@ -36,7 +36,7 @@ let pr_bresult (b : bresult) : string =
  * Big interger
  *----------------*)
 
-type bint = BInt.big_int
+type big_int = BInt.big_int
 
 (*-----------------
  * Exceptions

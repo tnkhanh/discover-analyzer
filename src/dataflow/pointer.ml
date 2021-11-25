@@ -288,9 +288,7 @@ module PointerGraph = struct
     beautiful_concat ~sep:", " strs
   ;;
 
-  let pr_paths (paths : path list) : string =
-    pr_items ~f:pr_path paths
-  ;;
+  let pr_paths (paths : path list) : string = pr_items ~f:pr_path paths
 
   let is_alias_edge (e : edge) : bool =
     match E.label e with
@@ -3661,50 +3659,56 @@ struct
       : bool option
     =
     let instr = ast.AS.ast_instr in
-    if ast.AS.ast_type == AS.Assert
-    then (
-      match ast.AS.ast_predicate with
-      | AS.NoAlias (v1 :: v2 :: _) ->
-        Some (List.for_all ~f:(fun fe -> check_no_alias fe instr v1 v2) fenvs)
-      | AS.MayAlias (v1 :: v2 :: _) ->
-        Some
-          (List.exists
-             ~f:(fun fe ->
-               if !dfa_pointer_conservative
-               then check_may_alias fe instr v1 v2
-               else true)
-             fenvs)
-      | AS.MustAlias (v1 :: v2 :: _) ->
-        Some
-          (List.for_all ~f:(fun fe -> check_must_alias fe instr v1 v2) fenvs)
+    match ast.AS.ast_type with
+    | AS.Assert ->
+      (match ast.AS.ast_predicate with
+      | AS.NoAlias (v1, v2) ->
+        let res =
+          List.for_all ~f:(fun fe -> check_no_alias fe instr v1 v2) fenvs in
+        Some res
+      | AS.MayAlias (v1, v2) ->
+        let res =
+          List.exists
+            ~f:(fun fe ->
+              if !dfa_pointer_conservative
+              then check_may_alias fe instr v1 v2
+              else true)
+            fenvs in
+        Some res
+      | AS.MustAlias (v1, v2) ->
+        let res =
+          List.for_all ~f:(fun fe -> check_must_alias fe instr v1 v2) fenvs
+        in
+        Some res
       | _ -> None)
-    else if ast.AS.ast_type == AS.Refute
-    then (
-      match ast.AS.ast_predicate with
-      | AS.NoAlias (v1 :: v2 :: _) ->
-        Some
-          (List.exists
-             ~f:(fun fe ->
-               if !dfa_pointer_conservative
-               then check_may_alias fe instr v1 v2
-               else true)
-             fenvs)
-      | AS.MayAlias (v1 :: v2 :: _) ->
-        Some
-          (List.for_all
-             ~f:(fun fe ->
-               if !dfa_pointer_conservative
-               then check_no_alias fe instr v1 v2
-               else true)
-             fenvs)
-      | AS.MustAlias (v1 :: v2 :: _) ->
-        Some
-          (List.for_all
-             ~f:(fun fe ->
-               check_no_alias fe instr v1 v2 || check_may_alias fe instr v1 v2)
-             fenvs)
+    | AS.Refute ->
+      (match ast.AS.ast_predicate with
+      | AS.NoAlias (v1, v2) ->
+        let res =
+          List.exists
+            ~f:(fun fe ->
+              if !dfa_pointer_conservative
+              then check_may_alias fe instr v1 v2
+              else true)
+            fenvs in
+        Some res
+      | AS.MayAlias (v1, v2) ->
+        let res =
+          List.for_all
+            ~f:(fun fe ->
+              if !dfa_pointer_conservative
+              then check_no_alias fe instr v1 v2
+              else true)
+            fenvs in
+        Some res
+      | AS.MustAlias (v1, v2) ->
+        let res =
+          List.for_all
+            ~f:(fun fe ->
+              check_no_alias fe instr v1 v2 || check_may_alias fe instr v1 v2)
+            fenvs in
+        Some res
       | _ -> None)
-    else None
   ;;
 
   let check_assertions (penv : prog_env) (func : func) : int =

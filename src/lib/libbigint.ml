@@ -10,7 +10,10 @@ module BInt = struct
 
   let one = Big_int.unit_big_int
   let zero = Big_int.zero_big_int
-  let subtract = Big_int.sub_big_int
+  let sub = Big_int.sub_big_int
+  let add = Big_int.add_big_int
+  let mult = Big_int.mult_big_int
+  let div = Big_int.div_big_int
   let neg = Big_int.minus_big_int
 
   let compute_lower_bound_two_complement (n : int) : big_int =
@@ -20,14 +23,14 @@ module BInt = struct
 
   let compute_upper_bound_two_complement (n : int) : big_int =
     let x = Big_int.power_int_positive_int 2 (n - 1) in
-    subtract x one
+    sub x one
   ;;
 
   (** return lower bound, upper bound of a n bits two's complement number *)
   let compute_range_two_complement (n : int) : big_int * big_int =
     let x = Big_int.power_int_positive_int 2 (n - 1) in
     let lb = neg x in
-    let ub = subtract x one in
+    let ub = sub x one in
     lb, ub
   ;;
 

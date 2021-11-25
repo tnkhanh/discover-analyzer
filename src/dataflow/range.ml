@@ -30,7 +30,7 @@ module IntervalDomain = struct
     | PInf (* positive infinity *)
     | NInf (* negative infinity *)
     | Int64 of int64 (* integer 64 bit *)
-    | BInt of bint
+    | BInt of big_int
 
   type range =
     { range_lb : bound;
@@ -230,7 +230,7 @@ module IntervalDomain = struct
     | BInt x -> BInt (BInt.mult_big_int (BInt.big_int_of_int64 i) x)
   ;;
 
-  let mult_big_int_bound (i : bint) (b : bound) =
+  let mult_big_int_bound (i : big_int) (b : bound) =
     match b with
     | PInf ->
       if BInt.eq_big_int i BInt.zero
@@ -426,7 +426,7 @@ module IntervalDomain = struct
       let bi = BInt.big_int_of_int64 i in
       if r.range_ub_inclusive
       then BInt.compare_big_int x bi
-      else BInt.compare_big_int (BInt.subtract x BInt.one) bi
+      else BInt.compare_big_int (BInt.sub x BInt.one) bi
   ;;
 
   let compare_interval_ub_int (itv : interval) (i : int64) : int =
@@ -835,9 +835,9 @@ struct
     List.length assertions
   ;;
 
-  let check_range_lower_bound
+  let check_lower_bound
       (fenv : func_env)
-      (instr: instr)
+      (instr : instr)
       (v : llvalue)
       (lb : int64)
       : bool
@@ -862,7 +862,9 @@ struct
           BInt.ge_big_int vlb (BInt.big_int_of_int64 lb)))
   ;;
 
-  let check_range_upper_bound fenv instr (v : llvalue) (ub : int64) : bool =
+  let check_upper_bound (fenv : func_env) instr (v : llvalue) (ub : int64)
+      : bool
+    =
     match get_instr_output fenv instr with
     | None -> false
     | Some data ->
@@ -883,11 +885,15 @@ struct
           BInt.le_big_int vub (BInt.big_int_of_int64 ub)))
   ;;
 
-  let check_range_full fenv instr (v : llvalue) (lb : int64) (ub : int64)
+  let check_lower_upper_bound
+      (fenv : func_env)
+      instr
+      (v : llvalue)
+      (lb : int64)
+      (ub : int64)
       : bool
     =
-    check_range_lower_bound fenv instr v lb
-    && check_range_upper_bound fenv instr v ub
+    check_lower_bound fenv instr v lb && check_upper_bound fenv instr v ub
   ;;
 
   let check_assertion (fenvs : func_env list) (ast : AS.assertion)
@@ -895,28 +901,15 @@ struct
     =
     let instr = ast.AS.ast_instr in
     match ast.AS.ast_type, ast.AS.ast_predicate with
-    | AS.Assert, AS.RangeLB (v :: lb :: _) ->
-      (match LL.int64_of_const lb with
-      | None -> None
-      | Some lb ->
-        Some
-          (List.exists
-             ~f:(fun fe -> check_range_lower_bound fe instr v lb)
-             fenvs))
-    | AS.Assert, AS.RangeUB (v :: ub :: _) ->
-      (match LL.int64_of_const ub with
-      | None -> None
-      | Some ub ->
-        Some
-          (List.exists
-             ~f:(fun fe -> check_range_upper_bound fe instr v ub)
-             fenvs))
-    | AS.Assert, AS.RangeFull (v :: lb :: ub :: _) ->
-      (match LL.int64_of_const lb, LL.int64_of_const ub with
-      | None, _ | _, None -> None
-      | Some lb, Some ub ->
-        Some
-          (List.exists ~f:(fun fe -> check_range_full fe instr v lb ub) fenvs))
+    | AS.Assert, AS.RangeLB (v, lb) ->
+      Some (List.exists ~f:(fun fe -> check_lower_bound fe instr v lb) fenvs)
+    | AS.Assert, AS.RangeUB (v, ub) ->
+      Some (List.exists ~f:(fun fe -> check_upper_bound fe instr v ub) fenvs)
+    | AS.Assert, AS.RangeLUB (v, lb, ub) ->
+      Some
+        (List.exists
+           ~f:(fun fe -> check_lower_upper_bound fe instr v lb ub)
+           fenvs)
     | _ -> None
   ;;
 
@@ -934,7 +927,7 @@ struct
           | Some res ->
             let _ = incr num_checked_assertions in
             let _ =
-              incr (if res then num_valid_asserts else num_invalid_asserts)
+              if res then incr num_valid_asserts else incr num_invalid_asserts
             in
             print_endline (AS.pr_assertion_status func ast res)
           | None -> ())
