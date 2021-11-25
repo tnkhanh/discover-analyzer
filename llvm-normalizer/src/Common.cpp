@@ -10,6 +10,12 @@
 
 using namespace llvm;
 
+// Use an OptionCategory to store all the flags of this tool
+cl::OptionCategory llvm::DiscoverNormalizerCategory(
+    "LLVM Discover Normalizer Options",
+    "Options for the LLVM-normalizer tool of the project Discover.");
+
+
 bool llvm::isDiscoverTestingFunc(Function &F) {
   StringRef fName = F.getName();
 

@@ -32,6 +32,9 @@ using FunctionSet = SmallSetVector<Function*, 16>;
 
 const std::string LLVM_GLOBAL_CTORS = "llvm.global_ctors";
 
+// Use an OptionCategory to store all the flags of this tool
+extern cl::OptionCategory DiscoverNormalizerCategory;
+
 bool isDiscoverTestingFunc(Function&);
 void replaceOperand(Function *func, Value *oldOpr, Value *newOpr);
 void replacePhiSource(Function *func, BasicBlock *oldOpr, BasicBlock *newOpr);

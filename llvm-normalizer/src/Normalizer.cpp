@@ -54,43 +54,35 @@ typedef struct Arguments {
  * Declare command line options
  *******************************************************************/
 
-/*------------------------------
- * Generic command line options
- *-----------------------------*/
-
 static cl::opt<bool> DebugifyEach(
     "debugify-each",
-    cl::desc("Start each pass with debugify and end it with check-debugify"));
+    cl::desc("Start each pass with debugify and end it with check-debugify"),
+    cl::cat(DiscoverNormalizerCategory));
 
 static cl::opt<string> InputFilename(cl::Positional,
                                      cl::desc("<Input bitcode file>"),
-                                     cl::init("-"), cl::value_desc("filename"));
-
-static cl::opt<bool> NoVerify("disable-verify",
-                              cl::desc("Do not run the verifier"), cl::Hidden,
-                              cl::init(false));
-
-static cl::opt<bool> VerifyEach("verify-each",
-                                cl::desc("Verify after each transform"),
-                                cl::init(false));
-
-static cl::opt<bool> VerifyOnly("verify-only",
-                                cl::desc("Only verify, not transform bitcode"),
-                                cl::init(false));
-
-/*---------------------------------------------------------
- * Command line options of only this tool LLVM-normalizer
- *--------------------------------------------------------*/
-
-// Use an OptionCategory to store all the flags of this tool
-cl::OptionCategory DiscoverNormalizerCategory(
-    "LLVM Discover Normalizer Options",
-    "Options for the LLVM-normalizer tool of the project Discover.");
+                                     cl::init("-"), cl::value_desc("filename"),
+                                     cl::cat(DiscoverNormalizerCategory));
 
 static cl::opt<string> OutputFilename("o", "output",
                                       cl::desc("<Output bitcode file>"),
                                       cl::value_desc("filename"),
                                       cl::cat(DiscoverNormalizerCategory));
+
+static cl::opt<bool> NoVerify("disable-verify",
+                              cl::desc("Do not run the verifier"), cl::Hidden,
+                              cl::init(false),
+                              cl::cat(DiscoverNormalizerCategory));
+
+static cl::opt<bool> VerifyEach("verify-each",
+                                cl::desc("Verify after each transform"),
+                                cl::init(false),
+                                cl::cat(DiscoverNormalizerCategory));
+
+static cl::opt<bool> VerifyOnly("verify-only",
+                                cl::desc("Only verify, not transform bitcode"),
+                                cl::init(false),
+                                cl::cat(DiscoverNormalizerCategory));
 
 static cl::opt<bool> PrintOnly("print-only",
                                cl::desc("Only print, not transform bitcode"),
@@ -202,6 +194,7 @@ int main(int argc, char **argv) {
    * Parse command line options
    *----------------------------*/
 
+  // Show only options of Discover category
   cl::HideUnrelatedOptions(DiscoverNormalizerCategory);
   cl::ParseCommandLineOptions(argc, argv, "LLVM Discover Normalizer!\n");
 
