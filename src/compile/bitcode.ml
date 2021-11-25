@@ -95,7 +95,7 @@ let normalize_bitcode (input_file : string) : string =
     let _ = Sys.remove_file output_file in
     if !llvm_normalize
     then (
-      let cmd = [ !normalizer_exe; input_file; "-o"; output_file ] in
+      let cmd = [ !normalizer_exe; input_file; "--output"; output_file ] in
       PS.run_command cmd)
     else PS.run_command [ "cp"; input_file; output_file ] in
   let _ = if is_debug_mode () then disassemble_bitcode output_file in
@@ -117,7 +117,7 @@ let process_bitcode (input_file : string) : LI.program =
   process_module output_file modul
 ;;
 
-let compile_llir (input_file : string) : LI.program =
+let compile_program (input_file : string) : LI.program =
   let llcontext = LL.create_context () in
   let llmem = LL.MemoryBuffer.of_file input_file in
   let modul = Llvm_irreader.parse_ir llcontext llmem in

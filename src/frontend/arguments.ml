@@ -11,7 +11,16 @@ open Libdiscover
 open Debugger
 
 (*******************************************************************
- ** arguments management
+ ** Auxiliary fucntions
+ *******************************************************************)
+
+let enable_only_bug_type (bug_type : bool ref) : unit =
+  let _ = bug_all := false in
+  bug_type := true
+;;
+
+(*******************************************************************
+ ** Arguments management
  *******************************************************************)
 
 let print_error msg =
@@ -195,22 +204,22 @@ and arguments_raw =
      *--------------------------------------------------------*)
     ( [ "--bug-integer-overflow" ],
       "Find integer-overflow bugs",
-      Arg.Unit (fun () -> bug_integer_overflow := true) );
+      Arg.Unit (fun () -> enable_only_bug_type bug_integer_overflow) );
     ( [ "--bug-integer-underflow" ],
       "Find integer-underflow bugs",
-      Arg.Unit (fun () -> bug_integer_underflow := true) );
+      Arg.Unit (fun () -> enable_only_bug_type bug_integer_underflow) );
     ( [ "--bug-memory-leak" ],
       "Find memory leak bugs",
-      Arg.Unit (fun () -> bug_memory_leak := true) );
+      Arg.Unit (fun () -> enable_only_bug_type bug_memory_leak) );
     ( [ "--bug-null-pointer-deref" ],
       "Find null pointer dereference bugs",
-      Arg.Unit (fun () -> bug_null_pointer_deref := true) );
+      Arg.Unit (fun () -> enable_only_bug_type bug_null_pointer_deref) );
     ( [ "--bug-buffer-overflow" ],
       "Find buffer overflow bugs",
-      Arg.Unit (fun () -> bug_buffer_overflow := true) );
+      Arg.Unit (fun () -> enable_only_bug_type bug_buffer_overflow) );
     ( [ "--bug-integer-all" ],
       "Find all integer bugs",
-      Arg.Unit (fun () -> bug_integer_all := true) );
+      Arg.Unit (fun () -> enable_only_bug_type bug_integer_all) );
     ( [ "--bug-memory-all" ],
       "Find all memory bugs",
       Arg.Unit (fun () -> bug_memory_all := true) );

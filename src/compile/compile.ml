@@ -115,9 +115,9 @@ let compile_input_file (filename : string) : CI.program =
   match input_type with
   | InpSepLogic -> filename |> SE.compile_sep_logic |> CI.mk_seplogic_prog
   | InpBitcode -> filename |> BC.process_bitcode |> CI.mk_llvm_prog
-  | InpLlir -> filename |> BC.compile_llir |> CI.mk_llvm_prog
-  | InpCCpp -> filename |> Ccpp.compile_c_cpp |> CI.mk_llvm_prog
-  | InpGolang -> filename |> Golang.compile_golang |> CI.mk_llvm_prog
-  | InpSolidity -> filename |> Solidity.compile_solidity |> CI.mk_llvm_prog
+  | InpLlir -> filename |> BC.compile_program |> CI.mk_llvm_prog
+  | InpCCpp -> filename |> Clang.compile_program |> CI.mk_llvm_prog
+  | InpGolang -> filename |> Golang.compile_program |> CI.mk_llvm_prog
+  | InpSolidity -> filename |> Solidity.compile_program |> CI.mk_llvm_prog
   | InpUnkn -> error2 "Unknown input type: " filename
 ;;

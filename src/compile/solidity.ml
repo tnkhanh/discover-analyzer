@@ -23,15 +23,24 @@ module LU = Llutils
 module PS = Process
 module FN = Filename
 
-let mark_solidity_user_funcs (prog : LI.program) : LI.program =
-  let _ =
-    List.iter
-      ~f:(fun f -> hdebug "- Function: " LI.func_name f)
-      prog.prog_user_funcs in
+let find_entry_functions (prog : LI.program) : LI.funcs =
+  List.fold_left
+    ~f:(fun acc f ->
+      let vf = LI.llvalue_of_func f in
+      if LL.linkage vf == LL.Linkage.Internal
+      then acc @ [ f ]
+      else acc)
+    ~init:[] prog.LI.prog_user_funcs
+;;
+
+let preprocess_program (prog : LI.program) : LI.program =
+  let _ = debug "Preprocess Solidity program..." in
+  let entry_funcs = find_entry_functions prog in
+  let prog = { prog with LI.prog_entry_funcs = entry_funcs } in
   prog
 ;;
 
-let compile_solidity (filename : string) : LI.program =
+let compile_program (filename : string) : LI.program =
   let _ = debug ("Compiling file: " ^ filename) in
   let contract_name = FN.basename filename in
   let output_dir =
@@ -51,16 +60,16 @@ let compile_solidity (filename : string) : LI.program =
       @ [ "--no-constant-folding"; "--no-strength-reduce" ]
       @ [ "--no-dead-storage"; "--no-vector-to-slice" ]
       @ [ "-o"; output_dir ] @ user_options in
-    let _ = debugl [ "COMMAND: '"; String.concat ~sep:" " cmd; "'" ] in
     PS.run_command cmd in
   let generated_files = Sys.ls_dir output_dir in
   let _ = hdebug "Generated files: " (pr_list ~f:pr_str) generated_files in
   let deploy_file =
     List.find ~f:(String.is_suffix ~suffix:"_deploy.bc") generated_files in
   match deploy_file with
-  | None -> error "compile_solidity: no output file generated!"
+  | None -> error "compile_program: no output file generated!"
   | Some deploy_file ->
     let output_file = output_dir ^ FN.dir_sep ^ deploy_file in
     let _ = print2 "Output file: " output_file in
-    BC.process_bitcode output_file
+    let prog = BC.process_bitcode output_file in
+    preprocess_program prog
 ;;

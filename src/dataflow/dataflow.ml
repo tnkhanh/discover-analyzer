@@ -2827,22 +2827,21 @@ functor
 
     let analyze_program_interproc ?(func = None) penv : T.prog_env =
       let prog = penv.penv_prog in
-      let func =
+      let entry_funcs =
         match func with
-        | Some f -> f
-        | None ->
-          (match prog.prog_main_func with
-          | Some f -> f
-          | None ->
-            error "analyze_program_interproc: entry function not found!") in
-      (* then analyze *)
-      let _ = hprint "Entry function: " func_name func in
-      let _ = initialize_analysis penv func in
-      let _ = analyze_globals penv in
-      let input = penv.penv_global_env.genv_globals_data in
-      let wf = mk_working_func func input [] in
-      let _ = enqueue_to_analyze_func ~msg:"entry" penv wf in
-      let _ = analyze_functions penv in
+        | Some f -> [ f ]
+        | None -> prog.prog_entry_funcs in
+      let _ =
+        List.iter
+          ~f:(fun f ->
+            let _ = hprint "Analyze entry function: " func_name f in
+            let _ = initialize_analysis penv f in
+            let _ = analyze_globals penv in
+            let input = penv.penv_global_env.genv_globals_data in
+            let wf = mk_working_func f input [] in
+            let _ = enqueue_to_analyze_func ~msg:"entry" penv wf in
+            analyze_functions penv)
+          entry_funcs in
       penv
     ;;
 

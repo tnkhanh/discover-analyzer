@@ -39,4 +39,9 @@ Contents
    :caption: Discover
 
    development.rst
+
+   llvm-normalizer.rst
+
    find-bugs.rst
+
+   .. toctree::

@@ -341,14 +341,11 @@ type program =
   { prog_globals : global list;
     prog_struct_types : lltype list;
     prog_lib_funcs : func list;
-    (* lib function, won't be analyzed *)
+    (* program functions  *)
     prog_testing_funcs : func list;
-    (* testing functions of analysis passes *)
     prog_init_funcs : func list;
-    (* initialization functions *)
     prog_user_funcs : func list;
-    (* user functions, will be analyzed *)
-    prog_main_func : func option;
+    prog_entry_funcs : func list;
     (* program data *)
     prog_block_data : program_block_data;
     prog_loop_data : program_loop_data;
@@ -1869,17 +1866,6 @@ let get_initilization_funcs (m : llmodule) =
     ~init:[] m
 ;;
 
-let get_main_function (m : llmodule) : func option =
-  let main_func = ref None in
-  let _ =
-    LL.iter_functions
-      (fun v ->
-        let f = mk_func v in
-        if is_func_main f then main_func := Some f)
-      m in
-  !main_func
-;;
-
 (*-----------------------------------------
  * callable
  *-----------------------------------------*)
@@ -3060,7 +3046,7 @@ let mk_program (filename : string) (m : llmodule) : program =
     prog_user_funcs = get_user_functions m;
     prog_testing_funcs = get_auxiliary_funcs m;
     prog_init_funcs = get_initilization_funcs m;
-    prog_main_func = get_main_function m;
+    prog_entry_funcs = [];
     prog_meta_data = mk_program_meta_data filename m;
     prog_func_data = mk_program_func_data m;
     prog_loop_data = mk_program_loop_data m;

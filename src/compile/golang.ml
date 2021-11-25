@@ -41,7 +41,7 @@ let config_golang_compiler () =
   then gollvm_path := !gollvm_path ^ "/"
 ;;
 
-let compile_golang (filename : string) : LI.program =
+let compile_program (filename : string) : LI.program =
   let _ = debug2 "Compiling Go file: " filename in
   let _ = debug2 "gollvm_path: " !gollvm_path in
   let dirname = Filename.dirname filename ^ Filename.dir_sep ^ "logs" in

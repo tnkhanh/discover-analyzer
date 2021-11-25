@@ -149,8 +149,8 @@ let beautiful_format_on_char ~(sep : char) ?(column = 80) (str : string) =
 
 (** core printing function *)
 let print_core
-    ?(ruler = `None)
     ?(header = false)
+    ?(ruler = `None)
     ?(prefix = "")
     ?(indent = 0)
     ?(always = false)
@@ -163,7 +163,7 @@ let print_core
     let msg =
       if header
       then (
-        let msg = if String.is_empty msg then msg else "\n\n" ^ msg ^ "\n" in
+        let msg = if String.is_empty msg then msg else "\n\n" ^ msg ^ "\n\n" in
         "\n" ^ String.make 68 '*' ^ "\n" ^ prefix ^ msg)
       else (
         match ruler with
@@ -226,11 +226,12 @@ let printl
     (msgs : string list)
     : unit
   =
-  print_core ~ruler ~indent ~always ~format (String.concat msgs)
+  print_core ~header ~ruler ~indent ~always ~format (String.concat msgs)
 ;;
 
 (** print a message and a newline character *)
 let println
+    ?(header = false)
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
@@ -238,13 +239,13 @@ let println
     (msg : string)
     : unit
   =
-  print_core ~ruler ~indent ~always ~format (msg ^ "\n")
+  print_core ~header ~ruler ~indent ~always ~format (msg ^ "\n")
 ;;
 
 (** high-order print a message *)
 let hprint
-    ?(ruler = `None)
     ?(header = false)
+    ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
     ?(format = true)
@@ -252,7 +253,7 @@ let hprint
     (f : 'a -> string)
     (v : 'a)
   =
-  print_core ~ruler ~indent ~prefix ~always ~format (f v)
+  print_core ~header ~ruler ~indent ~prefix ~always ~format (f v)
 ;;
 
 let nprint _ = ()
