@@ -52,7 +52,7 @@ Coding convention
 
   + No trailing whitespaces at the end of every lines.
 
-  + Each code line is at most 80 column.
+  + Each code line is at most 80 columns.
 
   + Function and variable names follow: ``snake_case_naming_style``.
 

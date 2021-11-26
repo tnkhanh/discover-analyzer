@@ -32,21 +32,17 @@ module IntervalDomain = struct
     | Int64 of int64 (* integer 64 bit *)
     | BInt of big_int
 
+  (* lower bound, upper bound, and bound inclusiveness *)
   type range =
     { range_lb : bound;
-      range_lb_inclusive : bool;
+      range_lb_incl : bool;
       range_ub : bound;
-      range_ub_inclusive : bool
+      range_ub_incl : bool
     }
 
   type interval =
     | Bottom
     | Range of range
-
-  type einterval =
-    { ei_expr : expr;
-      ei_interval : interval
-    }
 
   (* printers *)
 
@@ -59,8 +55,8 @@ module IntervalDomain = struct
   ;;
 
   let pr_range (r : range) : string =
-    let plb = if r.range_lb_inclusive then "[" else "(" in
-    let pub = if r.range_ub_inclusive then "]" else ")" in
+    let plb = if r.range_lb_incl then "[" else "(" in
+    let pub = if r.range_ub_incl then "]" else ")" in
     let lb = pr_bound r.range_lb in
     let ub = pr_bound r.range_ub in
     plb ^ lb ^ ", " ^ ub ^ pub
@@ -72,13 +68,9 @@ module IntervalDomain = struct
     | Range r -> pr_range r
   ;;
 
-  let pr_einterval (e : einterval) : string =
-    pr_expr e.ei_expr ^ ": " ^ pr_interval e.ei_interval
-  ;;
-
   (* constructors *)
 
-  let mk_range ?(li = false) ?(ui = false) lb ub =
+  let mk_range ?(li = false) ?(ui = false) (lb : bound) (ub : bound) =
     (* normalize integer range to have inclusive lower && upper bounds *)
     let lb, li =
       match lb, li with
@@ -88,27 +80,26 @@ module IntervalDomain = struct
       match ub, ui with
       | Int64 x, false -> Int64 (Int64.( - ) x Int64.one), true
       | _ -> ub, ui in
-    { range_lb = lb;
-      range_lb_inclusive = li;
-      range_ub = ub;
-      range_ub_inclusive = ui
-    }
+    { range_lb = lb; range_lb_incl = li; range_ub = ub; range_ub_incl = ui }
   ;;
 
-  let mk_interval_range ?(li = false) ?(ui = false) lb ub =
+  let mk_interval_range ?(li = false) ?(ui = false) (lb : bound) (ub : bound)
+      : interval
+    =
     Range (mk_range ~li ~ui lb ub)
   ;;
 
-  let mk_interval_bottom () = Bottom
+  let mk_interval_bottom () : interval = Bottom
 
-  let mk_einterval (e : expr) (i : interval) : einterval =
-    { ei_expr = e; ei_interval = i }
+  let compute_int_max_interval (bitwidth : int) : interval =
+    let lb, ub = BInt.compute_range_two_complement bitwidth in
+    mk_interval_range ~li:true ~ui:true (BInt lb) (BInt ub)
   ;;
 
   (* utilities *)
 
-  let range_of_bound (c : bound) : range = mk_range c c ~li:true ~ui:true
-  let interval_of_bound (c : bound) : interval = Range (range_of_bound c)
+  let range_of_bound (b : bound) : range = mk_range b b ~li:true ~ui:true
+  let interval_of_bound (b : bound) : interval = Range (range_of_bound b)
 
   (* constant *)
 
@@ -142,8 +133,8 @@ module IntervalDomain = struct
     (* assume that the ranges are normalized with inclusive integer bounds *)
     lequal_bound b.range_lb a.range_lb
     && lequal_bound a.range_ub b.range_ub
-    && Bool.equal a.range_lb_inclusive b.range_lb_inclusive
-    && Bool.equal a.range_ub_inclusive b.range_ub_inclusive
+    && Bool.equal a.range_lb_incl b.range_lb_incl
+    && Bool.equal a.range_ub_incl b.range_ub_incl
   ;;
 
   let lequal_interval (a : interval) (b : interval) : bool =
@@ -151,11 +142,6 @@ module IntervalDomain = struct
     | Bottom, _ -> true
     | Range _, Bottom -> false
     | Range ra, Range rb -> lequal_range ra rb
-  ;;
-
-  let lequal_einterval (a : einterval) (b : einterval) : bool =
-    equal_expr a.ei_expr b.ei_expr
-    && lequal_interval a.ei_interval b.ei_interval
   ;;
 
   (* equal *)
@@ -166,8 +152,8 @@ module IntervalDomain = struct
     (* assume that the ranges are normalized with inclusive integer bounds *)
     equal_bound b.range_lb a.range_lb
     && equal_bound a.range_ub b.range_ub
-    && Bool.equal a.range_lb_inclusive b.range_lb_inclusive
-    && Bool.equal a.range_ub_inclusive b.range_ub_inclusive
+    && Bool.equal a.range_lb_incl b.range_lb_incl
+    && Bool.equal a.range_ub_incl b.range_ub_incl
   ;;
 
   let equal_interval (a : interval) (b : interval) : bool =
@@ -175,11 +161,6 @@ module IntervalDomain = struct
     | Bottom, Bottom -> true
     | Range ra, Range rb -> equal_range ra rb
     | _ -> false
-  ;;
-
-  let equal_einterval (a : einterval) (b : einterval) : bool =
-    equal_expr a.ei_expr b.ei_expr
-    && equal_interval a.ei_interval b.ei_interval
   ;;
 
   (* operations with bound *)
@@ -262,17 +243,17 @@ module IntervalDomain = struct
 
   let add_range (a : range) (b : range) =
     let lb = add_bound a.range_lb b.range_lb in
-    let li = a.range_lb_inclusive && b.range_lb_inclusive in
+    let li = a.range_lb_incl && b.range_lb_incl in
     let ub = add_bound a.range_ub b.range_ub in
-    let ui = a.range_ub_inclusive && b.range_ub_inclusive in
+    let ui = a.range_ub_incl && b.range_ub_incl in
     mk_range lb ub ~li ~ui
   ;;
 
   let sub_range (a : range) (b : range) =
     let lb = sub_bound a.range_lb b.range_ub in
-    let li = a.range_lb_inclusive && b.range_ub_inclusive in
+    let li = a.range_lb_incl && b.range_ub_incl in
     let ub = sub_bound a.range_ub b.range_lb in
-    let ui = a.range_ub_inclusive && b.range_lb_inclusive in
+    let ui = a.range_ub_incl && b.range_lb_incl in
     mk_range lb ub ~li ~ui
   ;;
 
@@ -290,17 +271,17 @@ module IntervalDomain = struct
       then b2, i2
       else b1, i1 || i2 in
     let b1, i1 =
-      ( mult_bound a.range_lb b.range_lb,
-        a.range_lb_inclusive && b.range_lb_inclusive ) in
+      mult_bound a.range_lb b.range_lb, a.range_lb_incl && b.range_lb_incl
+    in
     let b2, i2 =
-      ( mult_bound a.range_lb b.range_ub,
-        a.range_lb_inclusive && b.range_ub_inclusive ) in
+      mult_bound a.range_lb b.range_ub, a.range_lb_incl && b.range_ub_incl
+    in
     let b3, i3 =
-      ( mult_bound a.range_ub b.range_lb,
-        a.range_ub_inclusive && b.range_lb_inclusive ) in
+      mult_bound a.range_ub b.range_lb, a.range_ub_incl && b.range_lb_incl
+    in
     let b4, i4 =
-      ( mult_bound a.range_ub b.range_ub,
-        a.range_ub_inclusive && b.range_ub_inclusive ) in
+      mult_bound a.range_ub b.range_ub, a.range_ub_incl && b.range_ub_incl
+    in
     let lb, li =
       (b1, i1)
       |> get_lower_bound (b2, i2)
@@ -318,28 +299,28 @@ module IntervalDomain = struct
     let lb, li =
       let cmp = compare_bound a.range_lb b.range_lb in
       if cmp < 0
-      then a.range_lb, a.range_lb_inclusive
+      then a.range_lb, a.range_lb_incl
       else if cmp > 0
-      then b.range_lb, b.range_lb_inclusive
-      else a.range_lb, a.range_lb_inclusive && b.range_lb_inclusive in
+      then b.range_lb, b.range_lb_incl
+      else a.range_lb, a.range_lb_incl && b.range_lb_incl in
     let ub, ui =
       let cmp = compare_bound a.range_ub b.range_ub in
       if cmp > 0
-      then a.range_ub, a.range_ub_inclusive
+      then a.range_ub, a.range_ub_incl
       else if cmp < 0
-      then b.range_ub, b.range_ub_inclusive
-      else a.range_ub, a.range_ub_inclusive && b.range_ub_inclusive in
+      then b.range_ub, b.range_ub_incl
+      else a.range_ub, a.range_ub_incl && b.range_ub_incl in
     mk_range lb ub ~li ~ui
   ;;
 
   let widen_range (a : range) (b : range) : range =
     let lb, li =
       if compare_bound a.range_lb b.range_lb <= 0
-      then a.range_lb, a.range_lb_inclusive
+      then a.range_lb, a.range_lb_incl
       else NInf, false in
     let ub, ui =
       if compare_bound a.range_ub b.range_ub >= 0
-      then a.range_ub, a.range_ub_inclusive
+      then a.range_ub, a.range_ub_incl
       else PInf, false in
     mk_range lb ub ~li ~ui
   ;;
@@ -383,17 +364,17 @@ module IntervalDomain = struct
       let lb, li =
         let cmp = compare_bound ra.range_lb rb.range_lb in
         if cmp > 0
-        then ra.range_lb, ra.range_lb_inclusive
+        then ra.range_lb, ra.range_lb_incl
         else if cmp < 0
-        then rb.range_lb, rb.range_lb_inclusive
-        else ra.range_lb, ra.range_lb_inclusive && rb.range_lb_inclusive in
+        then rb.range_lb, rb.range_lb_incl
+        else ra.range_lb, ra.range_lb_incl && rb.range_lb_incl in
       let ub, ui =
         let cmp = compare_bound ra.range_ub rb.range_ub in
         if cmp < 0
-        then ra.range_ub, ra.range_ub_inclusive
+        then ra.range_ub, ra.range_ub_incl
         else if cmp > 0
-        then rb.range_ub, rb.range_ub_inclusive
-        else ra.range_ub, ra.range_ub_inclusive && rb.range_ub_inclusive in
+        then rb.range_ub, rb.range_ub_incl
+        else ra.range_ub, ra.range_ub_incl && rb.range_ub_incl in
       if compare_bound lb ub > 0
       then Bottom
       else Range (mk_range lb ub ~li ~ui)
@@ -419,12 +400,12 @@ module IntervalDomain = struct
     | PInf -> 1
     | NInf -> -1
     | Int64 x ->
-      if r.range_ub_inclusive
+      if r.range_ub_incl
       then Int64.compare x i
       else Int64.compare (Int64.( - ) x Int64.one) i
     | BInt x ->
       let bi = BInt.big_int_of_int64 i in
-      if r.range_ub_inclusive
+      if r.range_ub_incl
       then BInt.compare_big_int x bi
       else BInt.compare_big_int (BInt.sub x BInt.one) bi
   ;;
@@ -445,10 +426,6 @@ module IntervalData = struct
 
   (* FIXME: use Map to represent it *)
   type t = (expr, interval) MP.t
-
-  (** aa *)
-
-  (* type t = einterval list         (\* sorted by expr *\) *)
 end
 
 module RangeUtil = struct
@@ -456,13 +433,19 @@ module RangeUtil = struct
   include IntervalData
 
   let get_interval (e : expr) (d : t) : interval =
-    match e with
-    | Int64 i -> interval_of_bound (Int64 i)
-    | _ ->
-      (match MP.find d e with
-      | Some i -> i
-      | None -> least_interval)
-  ;;
+  match e with
+  | Int64 i -> interval_of_bound (Int64 i)
+  | _ ->
+    (match MP.find d e with
+    | Some i -> i
+    | None ->
+      let etyp = type_of_expr e in
+      if is_type_integer etyp
+      then (
+        let bw = LL.integer_bitwidth etyp in
+        compute_int_max_interval bw)
+      else least_interval)
+;;
 
   let replace_interval (e : expr) (i : interval) (d : t) : t =
     let nd =
@@ -531,10 +514,7 @@ struct
         match MP.add acc ~key:ne ~data:i with
         | `Ok res -> res
         | `Duplicate ->
-          let _ =
-            warning
-              ("Range.subst_data: duplicate expr after substitution"
-             ^ pr_expr ne) in
+          let _ = hwarning "Range.subst_data: duplicate expr: " pr_expr ne in
           acc)
       ~init:MP.empty d
   ;;
@@ -698,17 +678,17 @@ struct
     (*     let lb, li = *)
     (*       let cmp = compare_bound ra.range_lb rb.range_lb in *)
     (*       if cmp > 0 *)
-    (*       then ra.range_lb, ra.range_lb_inclusive *)
+    (*       then ra.range_lb, ra.range_lb_incl *)
     (*       else if cmp < 0 *)
-    (*       then ra.range_lb, ra.range_lb_inclusive *)
-    (*       else ra.range_lb, ra.range_lb_inclusive && rb.range_lb_inclusive in *)
+    (*       then ra.range_lb, ra.range_lb_incl *)
+    (*       else ra.range_lb, ra.range_lb_incl && rb.range_lb_incl in *)
     (*     let ub, ui = *)
     (*       let cmp = compare_bound ra.range_ub rb.range_ub in *)
     (*       if cmp < 0 *)
-    (*       then ra.range_ub, ra.range_ub_inclusive *)
+    (*       then ra.range_ub, ra.range_ub_incl *)
     (*       else if cmp > 0 *)
-    (*       then ra.range_ub, ra.range_ub_inclusive *)
-    (*       else ra.range_ub, ra.range_ub_inclusive && rb.range_ub_inclusive in *)
+    (*       then ra.range_ub, ra.range_ub_incl *)
+    (*       else ra.range_ub, ra.range_ub_incl && rb.range_ub_incl in *)
     (*     if compare_bound lb ub > 0 *)
     (*     then Bottom *)
     (*     else Range (mk_range lb ub ~li ~ui) in *)
@@ -740,14 +720,25 @@ struct
     if not has_int_cmp_relation then widen else true
   ;;
 
-  let prepare_callee_input penv instr func args (input : t) : t = input
+  let prepare_callee_input (penv : prog_env) instr func args (input : t) : t =
+    input
+  ;;
 
   let compute_callee_output_exns penv instr callee args input fsum : t * exns =
     input, []
   ;;
 
-  let prepare_thrown_exception_data penv exn_ptr tinfo input : t = input
-  let compute_catch_exception_data penv instr ptr input exn : t = input
+  let prepare_thrown_exception_data (penv : prog_env) exn_ptr tinfo (input : t)
+      : t
+    =
+    input
+  ;;
+
+  let compute_catch_exception_data (penv : prog_env) instr ptr (input : t) exn
+      : t
+    =
+    input
+  ;;
 
   let analyze_global (g : global) (input : t) : t =
     (* TODO: default behavior, implement later if necessary *)
@@ -852,13 +843,11 @@ struct
         | PInf -> true
         | NInf -> false
         | Int64 i ->
-          let vlb =
-            if r.range_lb_inclusive then i else Int64.( + ) i Int64.one in
+          let vlb = if r.range_lb_incl then i else Int64.( + ) i Int64.one in
           Int64.( >= ) vlb lb
         | BInt i ->
           let vlb =
-            if r.range_lb_inclusive then i else BInt.add_big_int i BInt.one
-          in
+            if r.range_lb_incl then i else BInt.add_big_int i BInt.one in
           BInt.ge_big_int vlb (BInt.big_int_of_int64 lb)))
   ;;
 
@@ -875,13 +864,11 @@ struct
         | PInf -> false
         | NInf -> true
         | Int64 i ->
-          let vub =
-            if r.range_ub_inclusive then i else Int64.( - ) i Int64.one in
+          let vub = if r.range_ub_incl then i else Int64.( - ) i Int64.one in
           Int64.( <= ) vub ub
         | BInt i ->
           let vub =
-            if r.range_ub_inclusive then i else BInt.sub_big_int i BInt.one
-          in
+            if r.range_ub_incl then i else BInt.sub_big_int i BInt.one in
           BInt.le_big_int vub (BInt.big_int_of_int64 ub)))
   ;;
 
@@ -902,14 +889,19 @@ struct
     let instr = ast.AS.ast_instr in
     match ast.AS.ast_type, ast.AS.ast_predicate with
     | AS.Assert, AS.RangeLB (v, lb) ->
-      Some (List.exists ~f:(fun fe -> check_lower_bound fe instr v lb) fenvs)
+      let res =
+        List.exists ~f:(fun fe -> check_lower_bound fe instr v lb) fenvs in
+      Some res
     | AS.Assert, AS.RangeUB (v, ub) ->
-      Some (List.exists ~f:(fun fe -> check_upper_bound fe instr v ub) fenvs)
+      let res =
+        List.exists ~f:(fun fe -> check_upper_bound fe instr v ub) fenvs in
+      Some res
     | AS.Assert, AS.RangeLUB (v, lb, ub) ->
-      Some
-        (List.exists
-           ~f:(fun fe -> check_lower_upper_bound fe instr v lb ub)
-           fenvs)
+      let res =
+        List.exists
+          ~f:(fun fe -> check_lower_upper_bound fe instr v lb ub)
+          fenvs in
+      Some res
     | _ -> None
   ;;
 
@@ -954,8 +946,7 @@ module RangeAnalysis = struct
     match i with
     | Bottom -> "[Empty]"
     | Range r ->
-      if r.ID.range_lb_inclusive && r.ID.range_ub_inclusive
-         && r.range_lb == r.range_ub
+      if r.ID.range_lb_incl && r.ID.range_ub_incl && r.range_lb == r.range_ub
       then ID.pr_bound r.range_ub
       else ID.pr_range r
   ;;

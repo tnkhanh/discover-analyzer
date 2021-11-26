@@ -16,19 +16,19 @@ module BInt = struct
   let div = Big_int.div_big_int
   let neg = Big_int.minus_big_int
 
-  let compute_lower_bound_two_complement (n : int) : big_int =
-    let x = Big_int.power_int_positive_int 2 (n - 1) in
+  let compute_lower_bound_two_complement (bitwidth : int) : big_int =
+    let x = Big_int.power_int_positive_int 2 (bitwidth - 1) in
     neg x
   ;;
 
-  let compute_upper_bound_two_complement (n : int) : big_int =
-    let x = Big_int.power_int_positive_int 2 (n - 1) in
+  let compute_upper_bound_two_complement (bitwidth : int) : big_int =
+    let x = Big_int.power_int_positive_int 2 (bitwidth - 1) in
     sub x one
   ;;
 
   (** return lower bound, upper bound of a n bits two's complement number *)
-  let compute_range_two_complement (n : int) : big_int * big_int =
-    let x = Big_int.power_int_positive_int 2 (n - 1) in
+  let compute_range_two_complement (bitwidth : int) : big_int * big_int =
+    let x = Big_int.power_int_positive_int 2 (bitwidth - 1) in
     let lb = neg x in
     let ub = sub x one in
     lb, ub

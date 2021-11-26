@@ -9,6 +9,7 @@ open Core
 open Globals
 open Libdiscover
 open Printer
+open Debugger
 open Dfcore
 open Bug
 module LL = Llvm
@@ -34,6 +35,7 @@ let check_bug_integer_overflow (pdata : program_data) bug : bug option =
   | IntegerOverflow iof ->
     if !bug_integer_all || !bug_integer_overflow
     then (
+      let _ = hdebug "Checking Intreger Overflow: " pr_bug bug in
       let func = LI.func_of_instr iof.iof_instr in
       let%bind penv_rng = pdata.pdata_env_range in
       let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
@@ -231,6 +233,9 @@ let find_bug_memory_leak (pdata : program_data) : bug list =
 
 let find_all_bugs (pdata : program_data) : unit =
   let _ = println "Checking Bugs..." in
+  (* let _ = *)
+  (*   hdebug "Annotated potential bugs: " pr_potential_bugs *)
+  (*     pdata.pdata_potential_bugs in *)
   let bugs =
     find_bug_memory_leak pdata
     @ find_bug_buffer_overflow pdata

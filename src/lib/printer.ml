@@ -282,7 +282,7 @@ let warningl (msgs : string list) = warning (String.concat ~sep:"" msgs)
 
 (** high-order report a warning message *)
 let hwarning (msg : string) (f : 'a -> string) (x : 'a) =
-  warning (msg ^ ": " ^ f x)
+  warning (msg ^ f x)
 ;;
 
 (** report an error message *)
