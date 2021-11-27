@@ -433,19 +433,19 @@ module RangeUtil = struct
   include IntervalData
 
   let get_interval (e : expr) (d : t) : interval =
-  match e with
-  | Int64 i -> interval_of_bound (Int64 i)
-  | _ ->
-    (match MP.find d e with
-    | Some i -> i
-    | None ->
-      let etyp = type_of_expr e in
-      if is_type_integer etyp
-      then (
-        let bw = LL.integer_bitwidth etyp in
-        compute_int_max_interval bw)
-      else least_interval)
-;;
+    match e with
+    | Int64 i -> interval_of_bound (Int64 i)
+    | _ ->
+      (match MP.find d e with
+      | Some i -> i
+      | None ->
+        let etyp = type_of_expr e in
+        if is_type_integer etyp
+        then (
+          let bw = LL.integer_bitwidth etyp in
+          compute_int_max_interval bw)
+        else least_interval)
+  ;;
 
   let replace_interval (e : expr) (i : interval) (d : t) : t =
     let nd =

@@ -86,13 +86,13 @@ type bug =
  *-------------*)
 
 let pr_buffer_overflow ?(detailed = true) (bof : buffer_overflow) : string =
-  "Buffer Overflow"
-  ^
+  let bug_info = "Buffer Overflow" in
   if detailed
   then
-    "\n  Root pointer: " ^ pr_value bof.bof_pointer ^ ", accessing index: "
-    ^ pr_value bof.bof_elem_index
-  else ""
+    (bug_info ^ "\n  ")
+    ^ sprintf "Root pointer: %s, " (pr_value bof.bof_pointer)
+    ^ sprintf "accessing index: %s" (pr_value bof.bof_elem_index)
+  else bug_info
 ;;
 
 let pr_memory_leak ?(detailed = true) (mlk : memory_leak) : string =
@@ -100,7 +100,10 @@ let pr_memory_leak ?(detailed = true) (mlk : memory_leak) : string =
     match mlk.mlk_size with
     | None -> "unknown"
     | Some size -> pr_int size in
-  "Memory Leak" ^ if detailed then "\n  Reason: buffer size: " ^ size else ""
+  let bug_info = "Memory Leak" in
+  if detailed
+  then (bug_info ^ "\n") ^ "  Reason: buffer size: " ^ size
+  else bug_info
 ;;
 
 (*---------------
@@ -114,7 +117,9 @@ let pr_instr_detailed_position instr =
     | Some p -> "  Location: " ^ pr_file_position_and_excerpt p ^ "\n" in
   if !location_source_code_only
   then code_excerpt
-  else "  Instruction: " ^ pr_instr instr ^ "\n" ^ code_excerpt
+  else
+    "  Instruction: " ^ pr_instr instr
+    ^ String.prefix_if_not_empty ~prefix:"\n" code_excerpt
 ;;
 
 let pr_llvalue_name (v : LL.llvalue) : string =
@@ -124,13 +129,17 @@ let pr_llvalue_name (v : LL.llvalue) : string =
 ;;
 
 let pr_integer_overflow ?(detailed = true) (iof : integer_overflow) : string =
-  "Integer Overflow"
-  ^ if detailed then "\n" ^ pr_instr_detailed_position iof.iof_instr else ""
+  let bug_info = "Integer Overflow" in
+  if detailed
+  then bug_info ^ "\n" ^ pr_instr_detailed_position iof.iof_instr
+  else bug_info
 ;;
 
 let pr_integer_underflow ?(detailed = true) (iuf : integer_underflow) : string =
-  "Integer Underflow"
-  ^ if detailed then "\n" ^ pr_instr_detailed_position iuf.iuf_instr else ""
+  let bug_info = "Integer Underflow" in
+  if detailed
+  then bug_info ^ "\n" ^ pr_instr_detailed_position iuf.iuf_instr
+  else bug_info
 ;;
 
 (*------------------------
@@ -139,18 +148,18 @@ let pr_integer_underflow ?(detailed = true) (iuf : integer_underflow) : string =
 
 let pr_bug_type ?(detailed = true) (btype : bug_type) : string =
   match btype with
-  | MemoryLeak mlk -> pr_memory_leak mlk
+  | MemoryLeak mlk -> pr_memory_leak ~detailed mlk
   | NullPointerDeref -> "Null Pointer Dereference"
   | BufferOverflow bof -> pr_buffer_overflow ~detailed bof
-  | IntegerOverflow iof -> pr_integer_overflow iof
+  | IntegerOverflow iof -> pr_integer_overflow ~detailed iof
   | IntegerUnderflow iuf -> pr_integer_underflow ~detailed iuf
   | DivisionByZero -> "Division By Zero"
 ;;
 
 let pr_potential_bug (bug : bug) : string =
   (pr_bug_type ~detailed:false bug.bug_type ^ "\n")
-  ^ ("    Function: " ^ func_name bug.bug_func ^ "\n")
-  ^ "    " ^ pr_instr bug.bug_instr
+  ^ sprintf "  Instruction: %s\n" (pr_instr bug.bug_instr)
+  ^ sprintf "  Function: %s\n" (func_name bug.bug_func)
 ;;
 
 let pr_potential_bugs (bugs : bug list) : string =

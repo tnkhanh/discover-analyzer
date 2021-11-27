@@ -39,8 +39,6 @@ let pr_str : string -> string = fun s -> s
  * Print to string
  *-----------------*)
 
-let sprintf = Printf.sprintf
-
 (** print a list to string *)
 let pr_list
     ?(sep = ", ")
@@ -106,6 +104,8 @@ let pr_pair ~(f1 : 'a -> string) ~(f2 : 'b -> string) (p : 'a * 'b) : string =
   let x, y = p in
   "(" ^ f1 x ^ ", " ^ f2 y ^ ")"
 ;;
+
+let sprintf = Printf.sprintf
 
 let beautiful_concat ?(column = 80) ~(sep : string) (strs : string list) =
   let rec concat strs current_line res =

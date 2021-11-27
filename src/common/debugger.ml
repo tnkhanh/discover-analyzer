@@ -251,8 +251,8 @@ let hddebug
 let ndebug _ = ()
 let ndebug2 _ = ()
 let ndebugl _ = ()
-let nhdebug _ = ()
-let nhddebug _ = ()
+let nhdebug _ _ _ = ()
+let nhddebug _ _ _ = ()
 
 (*******************************************************************
  ** Interactive

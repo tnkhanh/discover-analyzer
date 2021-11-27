@@ -233,9 +233,9 @@ let find_bug_memory_leak (pdata : program_data) : bug list =
 
 let find_all_bugs (pdata : program_data) : unit =
   let _ = println "Checking Bugs..." in
-  (* let _ = *)
-  (*   hdebug "Annotated potential bugs: " pr_potential_bugs *)
-  (*     pdata.pdata_potential_bugs in *)
+  let _ =
+    hddebug ~header:true "Annotated potential bugs: " pr_potential_bugs
+      pdata.pdata_potential_bugs in
   let bugs =
     find_bug_memory_leak pdata
     @ find_bug_buffer_overflow pdata
