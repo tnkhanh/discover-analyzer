@@ -30,7 +30,7 @@ module IntervalDomain = struct
     | PInf (* positive infinity *)
     | NInf (* negative infinity *)
     | Int64 of int64 (* integer 64 bit *)
-    | BInt of big_int
+    | BInt of bint
 
   (* lower bound, upper bound, and bound inclusiveness *)
   type range =
@@ -51,7 +51,7 @@ module IntervalDomain = struct
     | PInf -> "+inf"
     | NInf -> "-inf"
     | Int64 x -> Int64.to_string x
-    | BInt x -> BInt.string_of_big_int x
+    | BInt x -> BInt.pr_bint x
   ;;
 
   let pr_range (r : range) : string =
@@ -120,9 +120,9 @@ module IntervalDomain = struct
     | _, NInf -> 1
     (* one of a, b is Int64, or Big_int *)
     | Int64 x, Int64 y -> Int64.compare x y
-    | BInt x, BInt y -> BInt.compare_big_int x y
-    | Int64 x, BInt y -> BInt.compare_big_int (BInt.big_int_of_int64 x) y
-    | BInt x, Int64 y -> BInt.compare_big_int x (BInt.big_int_of_int64 y)
+    | BInt x, BInt y -> BInt.compare_bint x y
+    | Int64 x, BInt y -> BInt.compare_bint (BInt.bint_of_int64 x) y
+    | BInt x, Int64 y -> BInt.compare_bint x (BInt.bint_of_int64 y)
   ;;
 
   (* leq *)
@@ -178,9 +178,9 @@ module IntervalDomain = struct
     | _, NInf -> NInf
     (* Int64, Big_int *)
     | Int64 x, Int64 y -> Int64 (Int64.( + ) x y)
-    | BInt x, BInt y -> BInt (BInt.add_big_int x y)
-    | Int64 x, BInt y -> BInt (BInt.add_big_int (BInt.big_int_of_int64 x) y)
-    | BInt x, Int64 y -> BInt (BInt.add_big_int x (BInt.big_int_of_int64 y))
+    | BInt x, BInt y -> BInt (BInt.add x y)
+    | Int64 x, BInt y -> BInt (BInt.add (BInt.bint_of_int64 x) y)
+    | BInt x, Int64 y -> BInt (BInt.add x (BInt.bint_of_int64 y))
   ;;
 
   let sub_bound (a : bound) (b : bound) =
@@ -208,25 +208,25 @@ module IntervalDomain = struct
       then NInf
       else PInf
     | Int64 x -> Int64 (Int64.( * ) i x)
-    | BInt x -> BInt (BInt.mult_big_int (BInt.big_int_of_int64 i) x)
+    | BInt x -> BInt (BInt.mult (BInt.bint_of_int64 i) x)
   ;;
 
-  let mult_big_int_bound (i : big_int) (b : bound) =
+  let mult_bint_bound (i : bint) (b : bound) =
     match b with
     | PInf ->
-      if BInt.eq_big_int i BInt.zero
+      if BInt.eq i BInt.zero
       then error "mult_bound: 0 * PInf is undefined"
-      else if BInt.gt_big_int i BInt.zero
+      else if BInt.gt i BInt.zero
       then PInf
       else NInf
     | NInf ->
-      if BInt.eq_big_int i BInt.zero
+      if BInt.eq i BInt.zero
       then error "mult_bound: 0 * NInf is undefined"
-      else if BInt.gt_big_int i BInt.zero
+      else if BInt.gt i BInt.zero
       then NInf
       else PInf
-    | Int64 x -> BInt (BInt.mult_big_int i (BInt.big_int_of_int64 x))
-    | BInt x -> BInt (BInt.mult_big_int i x)
+    | Int64 x -> BInt (BInt.mult i (BInt.bint_of_int64 x))
+    | BInt x -> BInt (BInt.mult i x)
   ;;
 
   let mult_bound (a : bound) (b : bound) =
@@ -237,8 +237,8 @@ module IntervalDomain = struct
     | NInf, NInf -> PInf
     | Int64 x, _ -> mult_int_bound x b
     | _, Int64 x -> mult_int_bound x a
-    | BInt x, _ -> mult_big_int_bound x b
-    | _, BInt x -> mult_big_int_bound x a
+    | BInt x, _ -> mult_bint_bound x b
+    | _, BInt x -> mult_bint_bound x a
   ;;
 
   let add_range (a : range) (b : range) =
@@ -404,10 +404,10 @@ module IntervalDomain = struct
       then Int64.compare x i
       else Int64.compare (Int64.( - ) x Int64.one) i
     | BInt x ->
-      let bi = BInt.big_int_of_int64 i in
+      let bi = BInt.bint_of_int64 i in
       if r.range_ub_incl
-      then BInt.compare_big_int x bi
-      else BInt.compare_big_int (BInt.sub x BInt.one) bi
+      then BInt.compare_bint x bi
+      else BInt.compare_bint (BInt.sub x BInt.one) bi
   ;;
 
   let compare_interval_ub_int (itv : interval) (i : int64) : int =
@@ -847,8 +847,8 @@ struct
           Int64.( >= ) vlb lb
         | BInt i ->
           let vlb =
-            if r.range_lb_incl then i else BInt.add_big_int i BInt.one in
-          BInt.ge_big_int vlb (BInt.big_int_of_int64 lb)))
+            if r.range_lb_incl then i else BInt.add i BInt.one in
+          BInt.ge vlb (BInt.bint_of_int64 lb)))
   ;;
 
   let check_upper_bound (fenv : func_env) instr (v : llvalue) (ub : int64)
@@ -868,8 +868,8 @@ struct
           Int64.( <= ) vub ub
         | BInt i ->
           let vub =
-            if r.range_ub_incl then i else BInt.sub_big_int i BInt.one in
-          BInt.le_big_int vub (BInt.big_int_of_int64 ub)))
+            if r.range_ub_incl then i else BInt.sub i BInt.one in
+          BInt.le vub (BInt.bint_of_int64 ub)))
   ;;
 
   let check_lower_upper_bound
