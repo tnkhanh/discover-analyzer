@@ -7,8 +7,8 @@ assignees: ''
 
 ---
 
-1. What is the feature requested?
+**What is the feature requested?**
 
-2. Why it is important?
+**Why it is important?**
 
-3. How to implement it?
+**How to implement it?**

@@ -7,14 +7,14 @@ assignees: ''
 
 ---
 
-1. What is the problem?
+**What is the problem?**
 
-2. How to reproduce it?
+**How to reproduce it?**
 
-3. What is the expected output?
+**What is the expected output?**
 
-4. Additional information
+**Additional information**
 
-   - OS type:
-   - Clang, LLVM version:
-   - OCaml/Core version:
+  - OS type:
+  - Clang, LLVM version:
+  - OCaml/Core version:

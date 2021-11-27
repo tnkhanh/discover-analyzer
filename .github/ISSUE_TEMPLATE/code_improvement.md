@@ -1,10 +1,10 @@
 ---
 name: Code improvement
-about: Create a code improvement request
+about: Create a code improvement note
 title: ''
 labels: ''
 assignees: ''
 
 ---
 
-1. What needs be improved or implemented?
+**Which part of the code need to be improved or re-implemented?**
