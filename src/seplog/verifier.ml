@@ -459,8 +459,8 @@ let analyze_instr_alloca vstate pstates (instr : LI.instr) =
       |> List.map ~f:translate_lltyp in
     let init_elems =
       List.map ~f:(fun typ -> mk_exp_var (fresh_new_var typ)) elem_typs in
-    let _ = hdebug ~compact:true "Struct Typ: " pr_type struct_typ in
-    let _ = hdebug ~compact:true "Root Typ: " pr_type (typ_of_exp root) in
+    let _ = hdebug "Struct Typ: " pr_type struct_typ in
+    let _ = hdebug "Root Typ: " pr_type (typ_of_exp root) in
     let data = mk_data struct_typ root init_elems in
     mk_star_program_states pstates ~dfs:[ data ]
   | _ ->
@@ -485,11 +485,11 @@ let process_one_state_inst_load vstate instr src dst pstate =
   let evs = fv_es [ data_value ] in
   let ent = mk_entailment pstate.pgs_formula (mk_f_exists evs curr_data) in
   let _ =
-    hdebug ~compact:true "LOAD: Prove Pre-Condition By Frame:\n\n" pr_ent ent
+    hdebug "LOAD: Prove Pre-Condition By Frame:\n\n" pr_ent ent
   in
   let res, frames = PV.infer_entailment_frame vstate.vrs_core_prog ent in
-  let _ = hdebug ~compact:true "==> Result: " pr_bresult res in
-  let _ = hdebug ~compact:true "==> Frame: " pr_fs frames in
+  let _ = hdebug "==> Result: " pr_bresult res in
+  let _ = hdebug "==> Frame: " pr_fs frames in
   match res, frames with
   | Some true, [ frame ] ->
     let npf = mk_eq dst data_value in
@@ -532,10 +532,10 @@ let process_one_state_instr_store vstate instr dst new_val pstate =
   let curr_data = mk_f_data elem_typ dst [ data_value ] in
   let evs = fv_e data_value in
   let ent = mk_entailment pstate.pgs_formula (mk_f_exists evs curr_data) in
-  let _ = hdebug ~compact:true "STORE: Entailment:\n" pr_ent ent in
+  let _ = hdebug "STORE: Entailment:\n" pr_ent ent in
   let res, frames = PV.infer_entailment_frame vstate.vrs_core_prog ent in
-  let _ = hdebug ~compact:true "==> Result: " pr_bresult res in
-  let _ = hdebug ~compact:true "==> Frame: " pr_fs frames in
+  let _ = hdebug "==> Result: " pr_bresult res in
+  let _ = hdebug "==> Frame: " pr_fs frames in
   match res, frames with
   | Some true, [ frame ] ->
     let new_data = mk_data elem_typ dst [ new_val ] in
@@ -571,14 +571,11 @@ let process_getelemptr_array vstate instr pstate src index field dst =
       src_array, dst_addr
     | _ -> herror "process_getelemptr: too many array cells of:" pr_exp src
   in
-  (* let _ = hdebug ~compact:true "Src array: " pr_array_form src_array in *)
   let ent =
     let rhs = mk_f_exists src_evs (mk_f_array src_array) in
     mk_entailment pstate.pgs_formula rhs in
   (* let _ = nhdebugc "GetElemPtr: Entailment:\n" pr_ent ent in *)
   let res, frames = PV.infer_entailment_frame vstate.vrs_core_prog ent in
-  (* let _ = hdebug ~compact:true "==> Result: " pr_ternary res in *)
-  (* let _ = hdebug ~compact:true "==> Frame: " pr_fs frames in *)
   match res, frames with
   | Some true, [ frame ] ->
     let npstate = { pstate with pgs_formula = frame } in
@@ -642,16 +639,16 @@ let process_getelemptr_struct vstate instr pstate src index field dst =
 
 let analyze_instr_getelemptr vstate pstates (instr : LI.instr) =
   let src = translate_llvalue (LI.operand instr 0) in
-  let _ = hdebug ~compact:true "SRC:" pr_exp src in
+  let _ = hdebug "SRC:" pr_exp src in
   let elem = translate_llvalue (LI.operand instr 1) in
   let field = translate_llvalue (LI.operand instr 2) in
-  let _ = hdebug ~compact:true "GetElemPtr ELEM: " pr_exp elem in
-  let _ = hdebug ~compact:true "           FIELD: " pr_exp field in
+  let _ = hdebug "GetElemPtr ELEM: " pr_exp elem in
+  let _ = hdebug "           FIELD: " pr_exp field in
   let dst = translate_instr instr in
   List.map
     ~f:(fun pstate ->
       let src_typ = typ_of_exp src in
-      let _ = hdebug ~compact:true "SRC_TYP: " pr_type src_typ in
+      let _ = hdebug "SRC_TYP: " pr_type src_typ in
       match src_typ with
       | TPointer (TStruct _) ->
         (* let _ = ndebugc "analyze_getelemptr of struct" in *)
@@ -793,11 +790,11 @@ let process_one_state_instr_call vstate instr pstate func args return =
   let evs = diff_vs (fv_f precond) (fv_es args) in
   let ent = mk_entailment pstate.pgs_formula (mk_f_exists evs precond) in
   let _ =
-    hdebug ~compact:true "CALL: Prove Pre-Condition By Frame:\n\n" pr_ent ent
+    hdebug "CALL: Prove Pre-Condition By Frame:\n\n" pr_ent ent
   in
   let res, frames = PV.infer_entailment_frame vstate.vrs_core_prog ent in
-  let _ = hdebug ~compact:true "==> Result: " pr_bresult res in
-  let _ = hdebug ~compact:true "==> Frame: " pr_fs frames in
+  let _ = hdebug "==> Result: " pr_bresult res in
+  let _ = hdebug "==> Frame: " pr_fs frames in
   match res, frames with
   | Some true, [ frame ] ->
     let nf = mk_f_exists evs (mk_f_star_with frame ~fs:[ postcond ]) in
@@ -806,9 +803,9 @@ let process_one_state_instr_call vstate instr pstate func args return =
     let npstate =
       if LI.is_func_free func
       then (
-        let _ = hdebug ~compact:true " Freed args: " pr_exps args in
+        let _ = hdebug " Freed args: " pr_exps args in
         let freed_exps = get_original_freed_pointers npstate args in
-        let _ = hdebug ~compact:true " Freed exps: " pr_exps freed_exps in
+        let _ = hdebug " Freed exps: " pr_exps freed_exps in
         propagate_program_state_freed_pointers npstate freed_exps)
       else npstate in
     (* TODO: update alloced and freed data *)
@@ -910,8 +907,8 @@ let symexec_block vstate (blk : LI.block) : entailment list =
   let all_entails =
     List.fold ~f:(fun acc s -> acc @ s.pgs_entails) ~init:[] final_states in
   let _ =
-    debug ~compact:true
-      ("--------\nEntailments: " ^ LI.block_name blk ^ ": \n"
+    debug
+      ("--------\nEntailments: " ^ LI.block_name blk ^ ":\n"
      ^ pr_ents all_entails ^ "\n") in
   all_entails
 ;;
@@ -920,7 +917,7 @@ let symexc_function vstate (func : LI.func) : entailment list =
   if List.is_empty (LI.blocks_of_func func)
   then []
   else (
-    hdebug ~compact:true "Analyzing function: " LI.func_name func;
+    hdebug ~marker:false "Analyzing function: " LI.func_name func;
     LI.fold_left_blocks
       ~f:(fun acc blk -> acc @ symexec_block vstate blk)
       ~init:[] func)
@@ -932,9 +929,7 @@ let symexec_program vstate (prog : LI.program) : entailment list =
     List.fold_left
       ~f:(fun acc f -> acc @ symexc_function vstate f)
       ~init:[] prog.prog_user_funcs in
-  debug ~compact:true
-    ("=======================================\n" ^ "ALL ENTAILMENTS:\n"
-   ^ pr_ents ents);
+  let _ = hdebug ~header:true "ALL ENTAILMENTS:" pr_ents ents in
   let _ = Export.Entails.export_entailments ~export:!export_entailment ents in
   ents
 ;;

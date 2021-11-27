@@ -1935,8 +1935,8 @@ functor
       match instrs with
       | [] -> true, true
       | instr :: ninstrs ->
-        let _ = hdebug ">> " pr_instr instr in
-        let _ = hdebug "    In:  " T.pr_data input in
+        let _ = hdebug ~marker:false ">> " pr_instr instr in
+        let _ = hdebug ~marker:false "    In:  " T.pr_data input in
         let old_output = T.get_instr_output fenv instr in
         let new_output, continue =
           match instr_opcode instr with
@@ -2009,7 +2009,7 @@ functor
           | None -> true
           | Some old_output -> not (T.lequal_data new_output old_output) in
         let _ = if continue then T.set_instr_output fenv instr new_output in
-        let _ = hdebug "    Out: " T.pr_data new_output in
+        let _ = hdebug ~marker:false "    Out: " T.pr_data new_output in
         let _ =
           ndebug (sprintf "    Changed: %B\n    Continue: %B" changed continue)
         in
@@ -2034,8 +2034,8 @@ functor
         then (
           let binput = wb.wb_instr_input in
           let _ = T.set_block_input fenv blk binput in
-          let _ = debug " - Starting from the entry of the block. " in
-          hdebug "    Block input: " T.pr_data binput)
+          let _ = debug ~marker:false " - Starting from the block's entry. " in
+          hdebug ~marker:false "    Block input: " T.pr_data binput)
         else hdebug " - Continuing from instruction: " pr_instr wb.wb_instr
       in
       let _ = update_block_analyzed_stats penv func blk in
@@ -2496,11 +2496,11 @@ functor
             if not (is_sparse_global penv global)
             then input
             else (
-              let _ = hdebug "  " pr_global global in
-              let _ = hdebug ~compact:true "    In:  " T.pr_data input in
+              let _ = hdebug ~marker:false "  " pr_global global in
+              let _ = hdebug ~marker:false "    In:  " T.pr_data input in
               let output = T.analyze_global global input in
               let _ = set_global_output genv global output in
-              let _ = hdebug ~compact:true "    Out: " T.pr_data output in
+              let _ = hdebug ~marker:false "    Out: " T.pr_data output in
               output))
           globals ~init:input in
       let output =

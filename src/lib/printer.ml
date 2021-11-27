@@ -150,11 +150,12 @@ let print_core
     ?(prefix = "")
     ?(indent = 0)
     ?(always = false)
+    ?(enable = true)
     ?(format = true)
     msg
     : unit
   =
-  if (not !no_print) || always
+  if ((not !no_print) && enable) || always
   then (
     let msg =
       if header
@@ -192,11 +193,12 @@ let print
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
+    ?(enable = true)
     ?(format = true)
     (msg : string)
     : unit
   =
-  print_core ~header ~ruler ~indent ~always ~format msg
+  print_core ~header ~ruler ~indent ~always ~enable ~format msg
 ;;
 
 (** print 2 messages *)
@@ -205,12 +207,13 @@ let print2
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
+    ?(enable = true)
     ?(format = true)
     (msg1 : string)
     (msg2 : string)
     : unit
   =
-  print_core ~header ~ruler ~indent ~always ~format (msg1 ^ msg2)
+  print_core ~header ~ruler ~indent ~always ~enable ~format (msg1 ^ msg2)
 ;;
 
 (** print a list of messages *)
@@ -219,11 +222,12 @@ let printl
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
+    ?(enable = true)
     ?(format = true)
     (msgs : string list)
     : unit
   =
-  print_core ~header ~ruler ~indent ~always ~format (String.concat msgs)
+  print_core ~header ~ruler ~indent ~always ~enable ~format (String.concat msgs)
 ;;
 
 (** print a message and a newline character *)
@@ -232,11 +236,12 @@ let println
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
+    ?(enable = true)
     ?(format = true)
     (msg : string)
     : unit
   =
-  print_core ~header ~ruler ~indent ~always ~format (msg ^ "\n")
+  print_core ~header ~ruler ~indent ~always ~enable ~format (msg ^ "\n")
 ;;
 
 (** high-order print a message *)
@@ -245,12 +250,13 @@ let hprint
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
+    ?(enable = true)
     ?(format = true)
     (prefix : string)
     (f : 'a -> string)
     (v : 'a)
   =
-  print_core ~header ~ruler ~indent ~prefix ~always ~format (f v)
+  print_core ~header ~ruler ~indent ~prefix ~always ~enable ~format (f v)
 ;;
 
 let nprint _ = ()

@@ -87,37 +87,50 @@ let debug_core
     ?(ruler = `None)
     ?(prefix = "")
     ?(indent = 0)
-    ~(enable : bool)
+    ?(marker = true)
+    ?(enable = true)
     (print_msg : unit -> string)
   =
   if enable
   then (
     let msg = print_msg () in
+    let str_marker = if marker then "[debug] " else "" in
     let msg =
       if header
       then (
-        let prefix = String.prefix_if_not_empty prefix ~prefix:"\n\n" in
-        "\n" ^ String.make 68 '*' ^ "\n" ^ prefix ^ msg)
+        let prefix = String.suffix_if_not_empty prefix ~suffix:"\n\n" in
+        "\n" ^ String.make 68 '*' ^ "\n" ^ str_marker ^ prefix ^ msg)
       else (
         match ruler with
-        | `Long -> "\n" ^ String.make 68 '*' ^ "\n" ^ prefix ^ msg
-        | `Medium -> "\n" ^ String.make 36 '*' ^ "\n" ^ prefix ^ msg
-        | `Short -> "\n" ^ String.make 21 '-' ^ "\n" ^ prefix ^ msg
+        | `Long ->
+          let ruler = String.make 68 '*' ^ "\n" in
+          "\n" ^ ruler ^ "\n" ^ str_marker ^ prefix ^ msg
+        | `Medium ->
+          let ruler = String.make 36 '*' in
+          "\n" ^ ruler ^ "\n" ^ str_marker ^ prefix ^ msg
+        | `Short ->
+          let ruler = String.make 21 '-' in
+          "\n" ^ ruler ^ "\n" ^ str_marker ^ prefix ^ msg
         | `None ->
+          let msg = if marker then msg else msg in
           if String.is_prefix ~prefix:"\n" msg
              || (String.length prefix > 1
                 && String.is_suffix ~suffix:"\n" prefix)
           then (
             let indent = String.count_indent prefix + 2 + indent in
-            prefix ^ String.indent indent msg)
+            str_marker ^ prefix ^ String.indent indent msg)
           else if String.length prefix > 12 && String.is_infix ~infix:"\n" msg
           then (
             let indent = String.count_indent prefix + 2 + indent in
-            prefix ^ "\n" ^ String.indent indent msg)
-          else String.indent indent (String.align_line prefix msg)) in
-    print_endline ("[debug] " ^ msg))
+            str_marker ^ prefix ^ "\n" ^ String.indent indent msg)
+          else
+            String.indent indent (String.align_line (str_marker ^ prefix) msg))
+    in
+    print_endline msg)
   else ()
 ;;
+
+(*** simple debugging printers ***)
 
 (** print a message *)
 let debug
@@ -125,15 +138,15 @@ let debug
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
-    ?(compact = false)
     ?(enable = true)
+    ?(marker = true)
     (msg : string)
     : unit
   =
   let enable =
     enable && (not !no_debug) && (!mode_debug || !mode_deep_debug || always)
   in
-  let prefix = if ruler != `None then "" else if compact then "" else "\n" in
+  let prefix = if ruler != `None then "" else if marker then "" else "\n" in
   debug_core ~header ~ruler ~indent ~enable ~prefix (fun () -> msg)
 ;;
 
@@ -143,13 +156,13 @@ let debug2
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
-    ?(compact = false)
     ?(enable = true)
+    ?(marker = true)
     (msg1 : string)
     (msg2 : string)
     : unit
   =
-  debug ~header ~ruler ~indent ~always ~compact ~enable (msg1 ^ msg2)
+  debug ~header ~ruler ~indent ~always ~enable ~marker (msg1 ^ msg2)
 ;;
 
 (** print a list of messages *)
@@ -157,13 +170,15 @@ let debugl
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
-    ?(compact = false)
     ?(enable = true)
+    ?(marker = true)
     (msgs : string list)
     : unit
   =
-  debug ~ruler ~indent ~always ~compact ~enable (String.concat msgs)
+  debug ~ruler ~indent ~always ~enable ~marker (String.concat msgs)
 ;;
+
+(*** deep debugging printers ***)
 
 (** print a deep mode_debug message *)
 let ddebug
@@ -171,14 +186,14 @@ let ddebug
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
-    ?(compact = false)
     ?(enable = true)
+    ?(marker = true)
     (msg : string)
     : unit
   =
   let enable = enable && (not !no_debug) && (!mode_deep_debug || always) in
-  let prefix = if ruler != `None then "" else if compact then "" else "\n" in
-  debug_core ~header ~ruler ~indent ~enable ~prefix (fun () -> msg)
+  let printer = fun () -> msg in
+  debug_core ~header ~ruler ~indent ~enable ~prefix:msg ~marker printer
 ;;
 
 let ddebug2
@@ -186,38 +201,38 @@ let ddebug2
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
-    ?(compact = false)
     ?(enable = true)
+    ?(marker = true)
     (msg1 : string)
     (msg2 : string)
     : unit
   =
-  ddebug ~header ~ruler ~indent ~always ~compact ~enable (msg1 ^ msg2)
+  ddebug ~header ~ruler ~indent ~always ~enable ~marker (msg1 ^ msg2)
 ;;
 
 let ddebugl
+    ?(header = false)
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
-    ?(compact = false)
     ?(enable = true)
+    ?(marker = true)
     (msgs : string list)
     : unit
   =
-  ddebug ~ruler ~indent ~always ~compact ~enable (String.concat msgs)
+  ddebug ~header ~ruler ~indent ~always ~enable ~marker (String.concat msgs)
 ;;
 
-(*** higher order printers ***)
+(*** higher order debugging printer ***)
 
 (** high-order print a mode_debug message *)
-
 let hdebug
     ?(header = false)
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
-    ?(compact = false)
     ?(enable = true)
+    ?(marker = true)
     (msg : string)
     (pr : 'a -> string)
     (data : 'a)
@@ -225,29 +240,29 @@ let hdebug
   let enable =
     enable && (not !no_debug) && (!mode_debug || !mode_deep_debug || always)
   in
-  let prefix = if compact then msg else "\n" ^ msg in
-  debug_core ~header ~ruler ~indent ~enable ~prefix (fun () -> pr data)
+  let printer = fun () -> pr data in
+  debug_core ~header ~ruler ~indent ~enable ~prefix:msg ~marker printer
 ;;
 
 (** high-order print a deep mode_debug message *)
-
 let hddebug
     ?(header = false)
     ?(ruler = `None)
     ?(indent = 0)
     ?(always = false)
-    ?(compact = false)
     ?(enable = true)
+    ?(marker = true)
     (msg : string)
     (pr : 'a -> string)
     (data : 'a)
   =
   let enable = enable && (not !no_debug) && (!mode_deep_debug || always) in
-  let prefix = if compact then msg else "\n" ^ msg in
-  debug_core ~header ~ruler ~indent ~enable ~prefix (fun () -> pr data)
+  let printer = fun () -> pr data in
+  debug_core ~header ~ruler ~indent ~enable ~marker ~prefix:msg printer
 ;;
 
-(* disable printing *)
+(*** disable debugging printers ***)
+
 let ndebug _ = ()
 let ndebug2 _ = ()
 let ndebugl _ = ()

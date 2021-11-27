@@ -294,7 +294,8 @@ module Z3SL = struct
       | _ -> "(set-option :produce-models true)\n", "(get-model)\n" in
     let z3_input =
       Printf.sprintf "%s%s\n%s\n\n%s\n%s" set_logic set_option_model
-        (mk_input ~prog ~mvars fs) "(check-sat)" get_model in
+        (mk_input ~prog ~mvars fs)
+        "(check-sat)" get_model in
     let _ = start_solver () in
     let _ = send_input !proc z3_input in
     let z3_output = read_output !proc in
@@ -303,12 +304,12 @@ module Z3SL = struct
     match output with
     | Error msg ->
       let msg =
-        Printf.sprintf "Z3SL: error while checking sat:\n%s\n%s\n%s\n%s"
-          (String.halign_line "  - formula: " SI.pr_pfs fs)
-          (String.align_line "  - z3 input:\n" z3_input)
-          (String.align_line "  - z3 output:\n" z3_output)
-          ("  - error: " ^ msg) in
-      let _ = debug ~compact:true msg in
+        "Z3SL: error while checking sat:\n"
+        ^ (String.halign_line "  - formula: " SI.pr_pfs fs ^ "\n")
+        ^ (String.align_line "  - z3 input:\n" z3_input ^ "\n")
+        ^ (String.align_line "  - z3 output:\n" z3_output ^ "\n")
+        ^ "  - error: " ^ msg ^ "\n" in
+      let _ = debug msg in
       None, []
     | _ ->
       let res, model = get_result ~mvars output in

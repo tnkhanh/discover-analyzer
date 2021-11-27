@@ -72,16 +72,16 @@ let process_command (prog : SI.program) (cmd : SI.command) : unit =
 let compile_lib_seplog () =
   let ilib = parse_program_seplog !lib_core_file in
   let _ =
-    debug ~compact:true ~ruler:`Medium ~enable:!print_input_prog
+    debug ~ruler:`Medium ~enable:!print_input_prog
       ("INPUT LIBS:\n\n" ^ SA.pr_program ilib ^ "\n\n") in
   let ilib = TI.infer_typ_program ilib in
   let _ =
-    debug ~compact:true ~ruler:`Medium
+    debug ~ruler:`Medium
       ~enable:(!print_input_prog && !print_type)
       ("TYPED LIBS:\n\n" ^ SA.pr_program ilib ^ "\n\n") in
   let clib = TF.transform_program ilib in
   let _ =
-    debug ~compact:true ~ruler:`Medium ~enable:!print_core_prog
+    debug ~ruler:`Medium ~enable:!print_core_prog
       ("CORE LIBS:\n\n" ^ SI.pr_program clib ^ "\n\n") in
   clib
 ;;
@@ -89,17 +89,15 @@ let compile_lib_seplog () =
 let compile_sep_logic (filename : string) : SI.program =
   let iprog = parse_program_seplog filename in
   let _ =
-    debug ~compact:true ~ruler:`Medium ~enable:!print_input_prog
+    debug ~ruler:`Medium ~enable:!print_input_prog
       ("INPUT PROGRAMS:\n\n" ^ SA.pr_program iprog ^ "\n\n") in
   let iprog = TI.infer_typ_program iprog in
   let _ =
-    debug
-      ~enable:(!print_input_prog && !print_type)
-      ~ruler:`Medium ~compact:true
+    debug ~ruler:`Medium ~enable:(!print_input_prog && !print_type)
       ("TYPED PROGRAMS:\n\n" ^ SA.pr_program iprog ^ "\n\n") in
   let cprog = TF.transform_program iprog in
   let _ =
-    debug ~compact:true ~ruler:`Medium ~enable:!print_core_prog
+    debug ~ruler:`Medium ~enable:!print_core_prog
       ("CORE PROGRAMS:\n\n" ^ SI.pr_program cprog ^ "\n\n") in
   cprog
 ;;

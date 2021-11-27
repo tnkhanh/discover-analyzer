@@ -340,8 +340,8 @@ type program_meta_data =
 type program =
   { prog_globals : global list;
     prog_struct_types : lltype list;
-    prog_lib_funcs : func list;
     (* program functions  *)
+    prog_lib_funcs : func list;
     prog_testing_funcs : func list;
     prog_init_funcs : func list;
     prog_user_funcs : func list;
@@ -3106,8 +3106,8 @@ let pr_program (prog : program) : string =
     |> String.prefix_if_not_empty ~prefix:"Struct types:\n" in
   let funcs = prog.prog_init_funcs @ prog.prog_user_funcs in
   let sfuncs = funcs |> List.map ~f:pr_func |> String.concat ~sep:"\n\n" in
-  String.suffix_if_not_empty sglobals ~suffix:"\n\n"
-  ^ String.suffix_if_not_empty sstructs ~suffix:"\n\n"
+  (sglobals |> String.suffix_if_not_empty ~suffix:"\n\n")
+  ^ (sstructs |> String.suffix_if_not_empty ~suffix:"\n\n")
   ^ sfuncs
 ;;
 
@@ -3131,11 +3131,10 @@ let pr_callee_info (prog : program) : string =
     ~init:"Callee graph:" prog.prog_func_data.pfd_callees
 ;;
 
-let print_program_analysis_info (prog : program) =
+let pr_func_call_info (prog : program) : unit =
   let pfd = prog.prog_func_data in
   let callees_info =
-    "====================================\n"
-    ^ "* Information of function callees:\n"
+    "Function call information:\n"
     ^ Hashtbl.fold
         ~f:(fun ~key:f ~data:callees acc ->
           if List.is_empty callees
@@ -3157,4 +3156,14 @@ let print_program_analysis_info (prog : program) =
             ^ pr_items ~bullet:"    <-" ~f:func_name callers)
         ~init:"" pfd.pfd_callers in
   debug callers_info
+;;
+
+let pr_program_stats (prog : program) : string =
+  sprintf "- Init functions: %s\n" (func_names prog.prog_init_funcs)
+  ^ sprintf "- Library functions: %s\n" (func_names prog.prog_lib_funcs)
+  ^ sprintf "- User functions: %s\n" (func_names prog.prog_user_funcs)
+  ^ sprintf "- Entry functions: %s\n" (func_names prog.prog_entry_funcs)
+  ^ sprintf "\n"
+  ^ sprintf "  - Function call information: %s\n %s" (pr_caller_info prog)
+      (pr_callee_info prog)
 ;;
