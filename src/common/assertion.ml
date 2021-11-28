@@ -6,7 +6,6 @@
  ********************************************************************)
 
 open Libdiscover
-open Printer
 module LL = Llvm
 module LI = Llir
 module LD = Lldebug
@@ -104,29 +103,29 @@ let find_alias_assertions (func : LI.func) : assertion list =
           let callee = LI.callee_of_instr_func_call instr in
           let fname = LI.func_name callee in
           if String.is_substring fname ~substring:__assert_no_alias
-          then
+          then (
             let u, v = LI.operand instr 0, LI.operand instr 1 in
-            acc @ [ mk_assert (NoAlias (u, v)) instr ]
+            acc @ [ mk_assert (NoAlias (u, v)) instr ])
           else if String.is_substring fname ~substring:__refute_no_alias
-          then
+          then (
             let u, v = LI.operand instr 0, LI.operand instr 1 in
-            acc @ [ mk_refute (NoAlias (u, v)) instr ]
+            acc @ [ mk_refute (NoAlias (u, v)) instr ])
           else if String.is_substring fname ~substring:__assert_may_alias
-          then
+          then (
             let u, v = LI.operand instr 0, LI.operand instr 1 in
-            acc @ [ mk_assert (MayAlias (u, v)) instr ]
+            acc @ [ mk_assert (MayAlias (u, v)) instr ])
           else if String.is_substring fname ~substring:__refute_may_alias
-          then
+          then (
             let u, v = LI.operand instr 0, LI.operand instr 1 in
-            acc @ [ mk_refute (MayAlias (u, v)) instr ]
+            acc @ [ mk_refute (MayAlias (u, v)) instr ])
           else if String.is_substring fname ~substring:__assert_must_alias
-          then
+          then (
             let u, v = LI.operand instr 0, LI.operand instr 1 in
-            acc @ [ mk_assert (MustAlias (u, v)) instr ]
+            acc @ [ mk_assert (MustAlias (u, v)) instr ])
           else if String.is_substring fname ~substring:__refute_must_alias
-          then
+          then (
             let u, v = LI.operand instr 0, LI.operand instr 1 in
-            acc @ [ mk_refute (MustAlias (u, v)) instr ]
+            acc @ [ mk_refute (MustAlias (u, v)) instr ])
           else acc
         | _ -> acc) in
   LI.deep_fold_func ~finstr [] func

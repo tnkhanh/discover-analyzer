@@ -226,7 +226,8 @@ let printl
     (msgs : string list)
     : unit
   =
-  print_core ~header ~ruler ~indent ~always ~enable ~format (String.concat msgs)
+  print_core ~header ~ruler ~indent ~always ~enable ~format
+    (String.concat msgs)
 ;;
 
 (** print a message and a newline character *)
@@ -286,9 +287,7 @@ let warning2 (msg1 : string) (msg2 : string) = warning (msg1 ^ msg2)
 let warningl (msgs : string list) = warning (String.concat ~sep:"" msgs)
 
 (** high-order report a warning message *)
-let hwarning (msg : string) (f : 'a -> string) (x : 'a) =
-  warning (msg ^ f x)
-;;
+let hwarning (msg : string) (f : 'a -> string) (x : 'a) = warning (msg ^ f x)
 
 (** report an error message *)
 let error ?(log = "") (msg : string) = raise (EError (msg, log))
