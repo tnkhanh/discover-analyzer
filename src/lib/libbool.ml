@@ -5,8 +5,6 @@
  * All rights reserved.
  ********************************************************************)
 
-include Libbigint
-
 (*-----------------
  * Boolean result
  *----------------*)
@@ -31,17 +29,3 @@ let pr_bresult (b : bresult) : string =
   | Some false -> "False"
   | None -> "Unknown"
 ;;
-
-(*-----------------
- * Exceptions
- *----------------*)
-
-exception EInt of int
-exception EBool of bool
-exception EError of (string * string)
-exception EString of string
-exception ESkip
-exception EDone
-
-let raise_bool b = raise (EBool b)
-let raise_int i = raise (EInt i)

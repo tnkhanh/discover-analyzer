@@ -5,8 +5,8 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
 open Libdiscover
+open Printer
 open Slast
 
 type environment = string -> typ

@@ -5,8 +5,8 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
 open Libdiscover
+open Printer
 
 let pid_dummy = -1000
 

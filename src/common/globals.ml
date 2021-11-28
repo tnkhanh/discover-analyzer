@@ -5,9 +5,9 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
+(* This module contains declaration of global variables *)
 
-(* open Libdiscover *)
+open Core
 module LL = Llvm
 module LX = Lexing
 
@@ -45,6 +45,18 @@ type input_mode =
   | InpCCpp
   | InpGolang
   | InpSolidity
+
+
+(*******************************************************************
+ * Exceptions
+ *******************************************************************)
+
+exception EInt of int
+exception EBool of bool
+exception EError of (string * string)
+exception EString of string
+exception ESkip
+exception EDone
 
 (*******************************************************************
  ** Global Flags
@@ -299,3 +311,10 @@ let pr_work_mode wm =
   | WkmAbsInt -> "Abstract Interpretation"
   | WkmNoAnalysis -> "No Analysis"
 ;;
+
+(*-------------
+ * exceptions
+ *------------*)
+
+let raise_bool b = raise (EBool b)
+let raise_int i = raise (EInt i)

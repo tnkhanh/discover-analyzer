@@ -5,8 +5,6 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
-open Globals
 open Libdiscover
 open Llir
 module AS = Assertion

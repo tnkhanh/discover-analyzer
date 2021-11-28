@@ -5,8 +5,8 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
 open Libdiscover
+open Printer
 
 exception Invalid_Z3_val
 

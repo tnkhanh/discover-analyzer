@@ -5,9 +5,6 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
-open Globals
-open Debugger
 open Libdiscover
 open Llir
 module LL = Llvm

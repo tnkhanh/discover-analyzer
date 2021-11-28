@@ -5,9 +5,6 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
-
-(* open Globals *)
 open Libdiscover
 module SI = Slir
 module LI = Llir

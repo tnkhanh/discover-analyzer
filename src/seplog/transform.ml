@@ -5,10 +5,9 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
-
-(* open Globals *)
 open Libdiscover
+open Printer
+
 module SA = Slast
 module SI = Slir
 

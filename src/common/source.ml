@@ -1,5 +1,3 @@
-open Core
-open Globals
 open Libdiscover
 
 let pr_file_excerpt

@@ -5,11 +5,8 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
-open Globals
 open Libdiscover
 open Source
-open Debugger
 open Slir
 open Bug
 module PV = Prover

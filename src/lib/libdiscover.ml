@@ -5,15 +5,24 @@
  * All rights reserved.
  ********************************************************************)
 
+include Core
+
 (*---------------------
  * Extended libraries
  *--------------------*)
 
-include Libbigint
+include Libint
 include Libhashtbl
 include Liblist
 include Libmath
 include Libstring
 include Libsys
-include Libcore
+include Libbool
+
+(*---------------------
+ * Discover's modules
+ *--------------------*)
+
+include Globals
 include Printer
+include Debugger

@@ -5,7 +5,6 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
 module PS = Process
 
 let discover_official_version = "1.0"

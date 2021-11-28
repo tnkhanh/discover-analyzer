@@ -5,11 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
-open Globals
 open Libdiscover
-open Printer
-open Debugger
 module AG = Arguments
 module AS = Assertion
 module CI = Commonir

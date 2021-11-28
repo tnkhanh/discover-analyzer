@@ -10,7 +10,6 @@
 open Core
 open Globals
 open Libstring
-open Libcore
 
 type ruler =
   | RlLong

@@ -5,8 +5,8 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
-open Globals
+open Libdiscover
+
 module LL = Llvm
 module LD = Llvm_debuginfo
 module LV = Llvm.ValueKind

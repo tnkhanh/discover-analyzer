@@ -14,10 +14,8 @@ open Libstring
  * debugging flags
  *-----------------*)
 
-let mode_debug = ref false (* parameter: -d  *)
-
-let mode_deep_debug = ref false (* parameter: -dd *)
-
+let mode_debug = ref false
+let mode_deep_debug = ref false
 let no_debug = ref false
 
 (*-------------------
@@ -192,7 +190,7 @@ let ddebug
     : unit
   =
   let enable = enable && (not !no_debug) && (!mode_deep_debug || always) in
-  let printer = fun () -> msg in
+  let printer () = msg in
   debug_core ~header ~ruler ~indent ~enable ~prefix:msg ~marker printer
 ;;
 
@@ -240,7 +238,7 @@ let hdebug
   let enable =
     enable && (not !no_debug) && (!mode_debug || !mode_deep_debug || always)
   in
-  let printer = fun () -> pr data in
+  let printer () = pr data in
   debug_core ~header ~ruler ~indent ~enable ~prefix:msg ~marker printer
 ;;
 
@@ -257,7 +255,7 @@ let hddebug
     (data : 'a)
   =
   let enable = enable && (not !no_debug) && (!mode_deep_debug || always) in
-  let printer = fun () -> pr data in
+  let printer () = pr data in
   debug_core ~header ~ruler ~indent ~enable ~marker ~prefix:msg printer
 ;;
 
@@ -270,7 +268,7 @@ let nhdebug _ _ _ = ()
 let nhddebug _ _ _ = ()
 
 (*******************************************************************
- ** Interactive
+ ** Interactive debugging
  *******************************************************************)
 
 (** display choices and return a range *)

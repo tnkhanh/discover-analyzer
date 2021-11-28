@@ -5,9 +5,8 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
-open Globals
 open Libdiscover
+open Printer
 
 type typ =
   | TVoid

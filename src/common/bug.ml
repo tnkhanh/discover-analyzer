@@ -5,11 +5,8 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
-open Globals
 open Libdiscover
 open Source
-open Printer
 open Llir
 module LL = Llvm
 module LD = Lldebug

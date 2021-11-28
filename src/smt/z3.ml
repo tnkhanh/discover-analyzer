@@ -5,10 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
-open Globals
 open Libdiscover
-open Debugger
 open Z3ir
 module PS = Process
 module SI = Slir

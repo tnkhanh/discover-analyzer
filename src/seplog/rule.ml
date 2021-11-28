@@ -5,11 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
-
-(* open Globals *)
 open Libdiscover
-open Debugger
 open Slir
 open Proof
 open Normalize

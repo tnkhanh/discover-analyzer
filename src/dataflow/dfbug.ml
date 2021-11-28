@@ -5,11 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
-open Globals
 open Libdiscover
-open Printer
-open Debugger
 open Dfcore
 open Bug
 module LL = Llvm

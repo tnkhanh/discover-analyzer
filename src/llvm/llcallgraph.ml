@@ -6,6 +6,7 @@
  ********************************************************************)
 
 open Libdiscover
+open Printer
 open Llir
 module LL = Llvm
 module BG = BlockGraph

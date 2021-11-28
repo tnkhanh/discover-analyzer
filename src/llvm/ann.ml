@@ -1,5 +1,5 @@
-open Core
 open Libdiscover
+open Printer
 
 type bug_group =
   | MemoryLeak

@@ -5,7 +5,6 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
 open Libdiscover
 open Llir
 module LL = Llvm

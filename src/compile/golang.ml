@@ -5,10 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Core
-open Globals
 open Libdiscover
-open Debugger
 module AG = Arguments
 module AS = Assertion
 module BG = Bug
