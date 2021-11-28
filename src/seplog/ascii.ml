@@ -5,8 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
-open Printer
+open Dcore
 
 module Entail = struct
   open Proof

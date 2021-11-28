@@ -5,7 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
+open Dcore
 open Printer
 open Slast
 

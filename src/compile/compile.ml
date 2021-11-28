@@ -5,7 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
+open Dcore
 module LL = Llvm
 module CI = Commonir
 module OC = Llvm.Opcode

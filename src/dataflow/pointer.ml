@@ -5,7 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
+open Dcore
 open Graph
 open Llir
 module AS = Assertion

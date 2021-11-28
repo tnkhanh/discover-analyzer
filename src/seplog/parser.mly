@@ -10,7 +10,7 @@
  *******************************************************************)
 
 %{
-open Globals
+open Dcore
 open Slast
 
 let get_loc l = mk_position_lexing (fst l) (snd l)

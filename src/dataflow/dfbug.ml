@@ -5,7 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
+open Dcore
 open Dfcore
 open Bug
 module LL = Llvm

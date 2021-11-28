@@ -5,10 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
-open Debugger
-open Printer
-
+open Dcore
 module LL = Llvm
 module LT = LL.TypeKind
 module LV = LL.ValueKind

@@ -5,7 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
+open Dcore
 open Slir
 
 (** each term is stored as a list of variables with their coefficients

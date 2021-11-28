@@ -5,10 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
-open Globals
-open Printer
-
+open Dcore
 include Slvar
 
 type bin_op =

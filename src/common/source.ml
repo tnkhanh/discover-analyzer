@@ -1,4 +1,4 @@
-open Libdiscover
+open Dcore
 
 let pr_file_excerpt
     filename

@@ -5,7 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
+open Dcore
 module SI = Slir
 module LI = Llir
 module Z3SL = Z3.Z3SL

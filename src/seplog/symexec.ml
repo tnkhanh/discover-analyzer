@@ -5,7 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
+open Dcore
 module AG = Arguments
 module BG = Bug
 module BR = Llvm_bitreader
@@ -89,7 +89,8 @@ let compile_sep_logic (filename : string) : SI.program =
       ("INPUT PROGRAMS:\n\n" ^ SA.pr_program iprog ^ "\n\n") in
   let iprog = TI.infer_typ_program iprog in
   let _ =
-    debug ~ruler:`Medium ~enable:(!print_input_prog && !print_type)
+    debug ~ruler:`Medium
+      ~enable:(!print_input_prog && !print_type)
       ("TYPED PROGRAMS:\n\n" ^ SA.pr_program iprog ^ "\n\n") in
   let cprog = TF.transform_program iprog in
   let _ =

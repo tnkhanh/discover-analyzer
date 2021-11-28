@@ -10,5 +10,5 @@ clean:
 
 # Auto-format code
 format:
-	dune build @fmt
+	-dune build @fmt
 	dune promote

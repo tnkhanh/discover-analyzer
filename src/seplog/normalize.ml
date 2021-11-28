@@ -5,7 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
+open Dcore
 open Slir
 module LA = Linarith
 module SMT = Smt.SmtSL

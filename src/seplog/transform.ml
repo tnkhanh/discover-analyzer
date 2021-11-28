@@ -5,9 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
-open Printer
-
+open Dcore
 module SA = Slast
 module SI = Slir
 

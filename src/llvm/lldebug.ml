@@ -5,8 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
-
+open Dcore
 module LL = Llvm
 module LD = Llvm_debuginfo
 module LV = Llvm.ValueKind

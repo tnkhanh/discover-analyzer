@@ -5,7 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
+open Dcore
 open Llir
 module AS = Assertion
 module DF = Dataflow
@@ -926,8 +926,6 @@ struct
           let vub = if r.range_ub_incl then i else BInt.sub i BInt.one in
           BInt.le vub (BInt.of_int64 ub)))
   ;;
-
-;;
 
   let check_lower_upper_bound
       (fenv : func_env)

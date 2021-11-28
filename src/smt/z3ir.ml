@@ -5,8 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
-open Printer
+open Dcore
 
 exception Invalid_Z3_val
 

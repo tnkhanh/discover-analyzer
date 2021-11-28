@@ -5,8 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
-open Debugger
+open Dcore
 open Slir
 open Normalize
 

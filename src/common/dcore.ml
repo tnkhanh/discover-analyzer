@@ -5,6 +5,8 @@
  * All rights reserved.
  ********************************************************************)
 
+(** Core module of Discover. To be open by all other modules *)
+
 include Core
 
 (*---------------------
@@ -23,6 +25,6 @@ include Libbool
  * Discover's modules
  *--------------------*)
 
-include Globals
+include Global
 include Printer
 include Debugger

@@ -5,7 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
+open Dcore
 module AG = Arguments
 module AS = Assertion
 module BG = Bug
@@ -24,9 +24,7 @@ let find_entry_functions (prog : LI.program) : LI.funcs =
   List.fold_left
     ~f:(fun acc f ->
       let vf = LI.llvalue_of_func f in
-      if LL.linkage vf == LL.Linkage.Internal
-      then acc @ [ f ]
-      else acc)
+      if LL.linkage vf == LL.Linkage.Internal then acc @ [ f ] else acc)
     ~init:[] prog.LI.prog_user_funcs
 ;;
 

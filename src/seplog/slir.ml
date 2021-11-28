@@ -5,9 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
-open Debugger
-open Printer
+open Dcore
 module SA = Slast
 module LL = Llvm
 module LI = Llir

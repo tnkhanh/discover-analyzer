@@ -5,7 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
+open Dcore
 open Z3ir
 module PS = Process
 module SI = Slir
@@ -291,8 +291,7 @@ module Z3SL = struct
       | _ -> "(set-option :produce-models true)\n", "(get-model)\n" in
     let z3_input =
       Printf.sprintf "%s%s\n%s\n\n%s\n%s" set_logic set_option_model
-        (mk_input ~prog ~mvars fs)
-        "(check-sat)" get_model in
+        (mk_input ~prog ~mvars fs) "(check-sat)" get_model in
     let _ = start_solver () in
     let _ = send_input !proc z3_input in
     let z3_output = read_output !proc in

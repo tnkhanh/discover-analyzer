@@ -5,7 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
+open Dcore
 module AG = Arguments
 module AS = Assertion
 module BG = Bug

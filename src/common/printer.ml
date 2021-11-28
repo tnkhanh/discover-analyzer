@@ -8,7 +8,7 @@
 (* Printer module *)
 
 open Core
-open Globals
+open Global
 open Libstring
 
 type ruler =

@@ -5,7 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
+open Dcore
 open Llir
 module LL = Llvm
 module LO = Llvm.Opcode

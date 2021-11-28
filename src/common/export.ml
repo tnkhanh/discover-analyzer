@@ -5,7 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-open Libdiscover
+open Dcore
 module LL = Llvm
 module SI = Slir
 module LI = Llir
