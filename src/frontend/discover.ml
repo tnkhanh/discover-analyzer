@@ -102,7 +102,7 @@ let print_analysis_summary () =
         detailed_runtime
       ] in
     let msg = String.concat ~sep:"\n" summary in
-    println ~always:true ~format:false ~ruler:`Long msg
+    println ~always:true ~autoformat:false ~ruler:`Long msg
 ;;
 
 let handle_system_signals () =

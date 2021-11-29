@@ -84,5 +84,5 @@ let print_pointer_stats (modul : LL.llmodule) : unit =
     ^ sprintf "  #Pointer Vars: %d\n" !num_pointer_vars
     ^ sprintf "  #Struct Vars: %d\n" !num_struct_vars
     ^ sprintf "  #Array Vars: %d\n" !num_array_vars in
-  print ~format:false ~always:true stats
+  print ~autoformat:false ~always:true stats
 ;;

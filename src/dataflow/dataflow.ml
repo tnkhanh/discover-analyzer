@@ -947,7 +947,7 @@ functor
         ^ sprintf "  #Sparse Pointer Vars: %d\n" !num_pointer_vars
         ^ sprintf "  #Sparse Struct Vars: %d\n" !num_struct_vars
         ^ sprintf "  #Sparse Array Vars: %d\n" !num_array_vars in
-      print ~format:false ~always:true stats
+      print ~autoformat:false ~always:true stats
     ;;
 
     let export_debugging_info_to_file (penv : T.prog_env) : unit =
@@ -2881,7 +2881,7 @@ functor
 
     let report_analysis_stats (penv : T.prog_env) : unit =
       (* if not !print_concise_output || !print_concise_debug then *)
-      println ~format:false (* ~always:true *)
+      println ~autoformat:false (* ~always:true *)
         (("\nStatistics of " ^ name_of_dfa analysis ^ ": \n")
         ^ pr_analysis_stats penv)
     ;;
