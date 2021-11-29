@@ -939,7 +939,7 @@ struct
   ;;
 
   let check_assertion (fenvs : func_env list) (ast : AS.assertion)
-      : bool_result
+      : bool option
     =
     let instr = ast.AS.ast_instr in
     match ast.AS.ast_type, ast.AS.ast_predicate with

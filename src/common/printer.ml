@@ -38,6 +38,13 @@ let pr_str : string -> string = fun s -> s
  * Print to string
  *-----------------*)
 
+(** print option *)
+let pr_option ~(f : 'a -> string) (x : 'a option) =
+  match x with
+  | Some v -> "Some(" ^ f v ^ ")"
+  | None -> "None"
+;;
+
 (** print a list to string *)
 let pr_list
     ?(sep = ", ")
