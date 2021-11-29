@@ -7,7 +7,7 @@
 
 open Dcore
 open Dfbug
-open Dfcore
+open Dfdata
 module LI = Llir
 module BG = Bug
 module PA = Pointer.Analysis

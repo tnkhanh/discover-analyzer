@@ -6,7 +6,7 @@
  ********************************************************************)
 
 open Dcore
-open Dfcore
+open Dfdata
 open Bug
 module LL = Llvm
 module LI = Llir

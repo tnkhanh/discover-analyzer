@@ -10,10 +10,12 @@ module LO = Llvm.Opcode
 module LC = Llvm.Icmp
 module LI = Llir
 module BG = Bug
-module PA = Pointer.Analysis
+
+(* analyses *)
+module PT = Pointer.Analysis
 module MS = Memsize.Analysis
 module RG = Range.Analysis
-module UA = Undef.Analysis
+module UD = Undef.Analysis
 
 (*******************************************************************
  ** Data structures
@@ -23,9 +25,9 @@ type program_data =
   { pdata_program : LI.program;
     pdata_potential_bugs : BG.bug list;
     pdata_env_memsize : MS.prog_env option;
-    pdata_env_pointer : PA.prog_env option;
+    pdata_env_pointer : PT.prog_env option;
     pdata_env_range : RG.prog_env option;
-    pdata_env_undef : UA.prog_env option
+    pdata_env_undef : UD.prog_env option
   }
 
 (*******************************************************************
