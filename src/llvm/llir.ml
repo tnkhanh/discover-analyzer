@@ -1478,19 +1478,19 @@ let is_expr_var (e : expr) : bool =
   | _ -> false
 ;;
 
-let is_integer_expr (e : expr) : bool =
+let is_expr_int64_const (e : expr) : bool =
   match e with
   | Int64 _ -> true
   | _ -> false
 ;;
 
-let is_float_expr (e : expr) : bool =
+let is_expr_float_const (e : expr) : bool =
   match e with
-  | Int64 _ -> true
+  | Float _ -> true
   | _ -> false
 ;;
 
-let is_constant_expr (e : expr) : bool =
+let is_expr_const (e : expr) : bool =
   match e with
   | Int64 _ | Float _ -> true
   | _ -> false

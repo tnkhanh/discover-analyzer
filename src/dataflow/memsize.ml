@@ -181,7 +181,13 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
    ** Core analysis functions
    *******************************************************************)
 
-  let prepare_callee_input penv instr callee args (input : t) : t = input
+  let prepare_entry_func_input (penv : prog_env) func (input : t) : t =
+    input
+  ;;
+
+  let prepare_callee_input penv instr callee (args : llvalues) (input : t) : t =
+    input
+  ;;
 
   let compute_callee_output_exns penv instr callee args input fsum : t * exns =
     input, []

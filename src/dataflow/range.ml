@@ -596,7 +596,7 @@ struct
     | PBool _ -> MP.empty
     | PIcmp (cmp, lhs, rhs) ->
       let lhs, rhs = expr_of_llvalue lhs, expr_of_llvalue rhs in
-      if is_constant_expr lhs && not (is_constant_expr rhs)
+      if is_expr_const lhs && not (is_expr_const rhs)
       then (
         let b =
           match extract_constant_bound lhs with
@@ -614,7 +614,7 @@ struct
           MP.of_alist_exn [ rhs, mk_interval_range ~li:false b PInf ]
         | LC.Ule | LC.Sle ->
           MP.of_alist_exn [ rhs, mk_interval_range ~li:true b PInf ])
-      else if (not (is_constant_expr lhs)) && is_constant_expr rhs
+      else if (not (is_expr_const lhs)) && is_expr_const rhs
       then (
         let b =
           match extract_constant_bound rhs with
@@ -766,8 +766,35 @@ struct
     if not has_int_cmp_relation then widen else true
   ;;
 
-  let prepare_callee_input (penv : prog_env) instr func args (input : t) : t =
-    input
+  let prepare_entry_func_input (penv : prog_env) func (input : t) : t =
+    let _ = debug "PREPARE_ENTRY_FUNC_INPUT" in
+    let params = func_params func in
+    List.fold_left
+      ~f:(fun acc param ->
+        let _ = hdebug "param: " pr_param param in
+        let expr = mk_expr_var (llvalue_of_param param) in
+        if is_type_integer (type_of_expr expr)
+        then (
+          let itv = get_interval expr acc in
+          replace_interval expr itv acc)
+        else acc)
+      ~init:input params
+  ;;
+
+  let prepare_callee_input
+      (penv : prog_env)
+      instr
+      func
+      (args : llvalues)
+      (input : t)
+      : t
+    =
+    List.fold_left
+      ~f:(fun acc arg ->
+        let earg = mk_expr_var arg in
+        let itv = get_interval earg acc in
+        replace_interval earg itv acc)
+      ~init:input args
   ;;
 
   let compute_callee_output_exns penv instr callee args input fsum : t * exns =

@@ -376,6 +376,12 @@ module type ForwardDataTransfer = sig
   val is_data_satisfied_predicate : t -> predicate -> bool
   val refine_data_by_predicate : ?widen:bool -> t -> predicate -> t
 
+  val prepare_entry_func_input
+    :  prog_env ->
+    func ->
+    t ->
+    t
+
   val prepare_callee_input
     :  prog_env ->
     instr ->
@@ -2812,6 +2818,7 @@ functor
             (* prepare environment and input *)
             let _ = initialize_analysis penv f in
             let input = penv.penv_global_env.genv_globals_data in
+            let input = T.prepare_entry_func_input penv f input in
             let wf = mk_working_func f input [] in
             (* then analyze *)
             let _ = analyze_function penv wf in
@@ -2833,6 +2840,7 @@ functor
             let _ = initialize_analysis penv f in
             let _ = analyze_globals penv in
             let input = penv.penv_global_env.genv_globals_data in
+            let input = T.prepare_entry_func_input penv f input in
             let wf = mk_working_func f input [] in
             let _ = enqueue_to_analyze_func ~msg:"entry" penv wf in
             analyze_functions penv)

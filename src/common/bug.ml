@@ -293,7 +293,7 @@ let report_bug (bug : bug) : unit =
     "BUG: "
     ^ pr_bug_type ~detailed:false bug.bug_type
     ^ "\n" ^ location ^ reason in
-  print_endline ("\n" ^ msg)
+  print ~marker:false ("\n" ^ msg)
 ;;
 
 let report_bug_stats (bugs : bug list) : unit =

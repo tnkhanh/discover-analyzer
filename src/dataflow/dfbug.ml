@@ -40,12 +40,12 @@ let check_bug_integer_overflow (pdata : program_data) bug : bug option =
             | Bottom -> None
             | Range r ->
               let ub =
-                BInt.compute_upper_bound_two_complement iof.iof_bitwidth in
-              if RG.ID.compare_bound r.range_ub (BInt ub) > 0
+                EInt.compute_upper_bound_two_complement iof.iof_bitwidth in
+              if RG.ID.compare_bound r.range_ub (EInt ub) > 0
               then (
                 let reason =
                   "Expression " ^ LI.pr_value iof.iof_expr
-                  ^ " can only take the maximum value of: " ^ BInt.pr_bint ub
+                  ^ " can only take the maximum value of: " ^ EInt.pr_eint ub
                   ^ ", but is assigned with: " ^ RG.ID.pr_bound r.range_ub
                   ^ "." in
                 return (mk_real_bug ~analysis:"RangeAnalysis" ~reason bug))
@@ -56,8 +56,9 @@ let check_bug_integer_overflow (pdata : program_data) bug : bug option =
 ;;
 
 let find_bug_integer_overflow (pdata : program_data) =
-  if !bug_all || !bug_memory_all || !bug_buffer_overflow
+  if !bug_all || !bug_integer_all || !bug_integer_overflow
   then
+    let _ = debug "Find Bug: Integer Overflow..." in
     pdata.pdata_potential_bugs
     |> List.map ~f:(check_bug_integer_overflow pdata)
     |> List.filter_opt
@@ -88,12 +89,12 @@ let check_bug_integer_underflow (pdata : program_data) bug : bug option =
             | Bottom -> None
             | Range r ->
               let lb =
-                BInt.compute_lower_bound_two_complement iuf.iuf_bitwidth in
-              if RG.ID.compare_bound r.range_lb (BInt lb) < 0
+                EInt.compute_lower_bound_two_complement iuf.iuf_bitwidth in
+              if RG.ID.compare_bound r.range_lb (EInt lb) < 0
               then (
                 let reason =
                   "Expression " ^ LI.pr_value iuf.iuf_expr
-                  ^ " can only take the minimum value of: " ^ BInt.pr_bint lb
+                  ^ " can only take the minimum value of: " ^ EInt.pr_eint lb
                   ^ ", but is assigned with: " ^ RG.ID.pr_bound r.range_lb
                   ^ "." in
                 return (mk_real_bug ~analysis:"RangeAnalysis" ~reason bug))
@@ -104,8 +105,9 @@ let check_bug_integer_underflow (pdata : program_data) bug : bug option =
 ;;
 
 let find_bug_integer_underflow (pdata : program_data) =
-  if !bug_all || !bug_memory_all || !bug_buffer_overflow
+  if !bug_all || !bug_integer_all || !bug_integer_underflow
   then
+    let _ = debug "Find Bug: Integer Underflow..." in
     pdata.pdata_potential_bugs
     |> List.map ~f:(check_bug_integer_underflow pdata)
     |> List.filter_opt
@@ -190,6 +192,7 @@ let check_bug_buffer_overflow (pdata : program_data) bug : bug option =
 let find_bug_buffer_overflow (pdata : program_data) : bug list =
   if !bug_all || !bug_memory_all || !bug_buffer_overflow
   then
+    let _ = debug "Find Bug: Buffer Overflow..." in
     pdata.pdata_potential_bugs
     |> List.map ~f:(check_bug_buffer_overflow pdata)
     |> List.filter_opt
@@ -211,6 +214,7 @@ let check_bug_memory_leak (pdata : program_data) bug : bug option =
 let find_bug_memory_leak (pdata : program_data) : bug list =
   if !bug_all || !bug_memory_all || !bug_memory_leak
   then
+    let _ = debug "Find Bug: Memory Leak..." in
     pdata.pdata_potential_bugs
     |> List.map ~f:(check_bug_memory_leak pdata)
     |> List.filter_opt
