@@ -3735,7 +3735,7 @@ end
  ** Main analysis module
  *******************************************************************)
 
-module PointerAnalysis = struct
+module Analysis = struct
   include PointerTransfer
   include DF.ForwardDataFlow (PointerTransfer)
 end

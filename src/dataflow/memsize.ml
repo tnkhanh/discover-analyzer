@@ -249,7 +249,7 @@ end
  ** Main analysis module
  *******************************************************************)
 
-module MemsizeAnalysis = struct
+module Analysis = struct
   include SizeTransfer
   include DF.ForwardDataFlow (SizeTransfer)
   module SD = SizeDomain

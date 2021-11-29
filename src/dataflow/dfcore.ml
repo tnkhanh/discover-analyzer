@@ -10,10 +10,10 @@ module LO = Llvm.Opcode
 module LC = Llvm.Icmp
 module LI = Llir
 module BG = Bug
-module PA = Pointer.PointerAnalysis
-module MS = Memsize.MemsizeAnalysis
-module RG = Range.RangeAnalysis
-module UA = Undef.UndefAnalysis
+module PA = Pointer.Analysis
+module MS = Memsize.Analysis
+module RG = Range.Analysis
+module UA = Undef.Analysis
 
 (*******************************************************************
  ** Data structures

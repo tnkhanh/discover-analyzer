@@ -234,7 +234,7 @@ end
  ** Main analysis module
  *******************************************************************)
 
-module UndefAnalysis = struct
+module Analysis = struct
   include UndefTransfer
   include DF.ForwardDataFlow (UndefTransfer)
 end

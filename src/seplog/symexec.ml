@@ -99,13 +99,13 @@ let compile_sep_logic (filename : string) : SI.program =
   cprog
 ;;
 
-let analyze_program_seplog (prog : SI.program) : unit =
+let verify_program (prog : SI.program) : unit =
   let _ = debug (SI.pr_program prog) in
   let _ = debug "\n===================================\n" in
   List.iter ~f:(process_command prog) prog.prog_commands
 ;;
 
-let analyze_program_llvm (prog : LI.program) : unit =
+let analyze_program (prog : LI.program) : unit =
   let _ = print "Analyze program by Separation Logic" in
   let _ = Verifier.lib_core := compile_lib_seplog () in
   Verifier.verify_program prog

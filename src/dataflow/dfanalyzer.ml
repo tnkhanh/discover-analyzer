@@ -6,17 +6,14 @@
  ********************************************************************)
 
 open Dcore
-open Dfcore
 open Dfbug
-module LL = Llvm
-module LO = Llvm.Opcode
-module LC = Llvm.Icmp
+open Dfcore
 module LI = Llir
 module BG = Bug
-module PA = Pointer.PointerAnalysis
-module MS = Memsize.MemsizeAnalysis
-module RG = Range.RangeAnalysis
-module UA = Undef.UndefAnalysis
+module PA = Pointer.Analysis
+module MS = Memsize.Analysis
+module RG = Range.Analysis
+module UA = Undef.Analysis
 
 (*******************************************************************
  ** Supporting functions
@@ -124,12 +121,12 @@ let report_analysis_stats (pdata : program_data) : unit =
  ** Analysis functions
  *******************************************************************)
 
-let analyze_program_llvm (prog : LI.program) : unit =
+let analyze_program (prog : LI.program) : unit =
   let _ = hprint ~ruler:`Long "Analyze program by " pr_dfa_mode !dfa_mode in
   let pdata =
     prog |> mk_program_data |> perform_pre_analysis_passes
     |> perform_main_analysis_passes in
   let _ = report_analysis_stats pdata in
   let _ = check_assertions pdata in
-  find_all_bugs pdata
+  find_bugs pdata
 ;;

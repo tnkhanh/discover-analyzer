@@ -9,13 +9,7 @@ open Dcore
 open Dfcore
 open Bug
 module LL = Llvm
-module LO = Llvm.Opcode
-module LC = Llvm.Icmp
 module LI = Llir
-module PA = Pointer.PointerAnalysis
-module MS = Memsize.MemsizeAnalysis
-module RG = Range.RangeAnalysis
-module UA = Undef.UndefAnalysis
 
 (*******************************************************************
  ** Integer bugs
@@ -227,7 +221,7 @@ let find_bug_memory_leak (pdata : program_data) : bug list =
     - Indetify the type of bugs will be checked
     - Determine which analyeses need to be performed. *)
 
-let find_all_bugs (pdata : program_data) : unit =
+let find_bugs (pdata : program_data) : unit =
   let _ = println "Checking Bugs..." in
   let _ =
     hddebug ~header:true "Annotated potential bugs: " pr_potential_bugs

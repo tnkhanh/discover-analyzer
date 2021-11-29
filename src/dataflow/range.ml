@@ -987,7 +987,7 @@ end
  ** Main analysis module
  *******************************************************************)
 
-module RangeAnalysis = struct
+module Analysis = struct
   include RangeTransfer
   include DF.ForwardDataFlow (RangeTransfer)
   module ID = IntervalDomain

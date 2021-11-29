@@ -126,13 +126,13 @@ let analyze_program (prog : CI.program) : unit =
     let num_assertions = AS.count_all_assertions prog in
     let _ = print ("Found total assertions: " ^ pr_int num_assertions) in
     (match !work_mode with
-    | WkmDFA -> DA.analyze_program_llvm prog
-    (* | WkmDFA -> DAP.analyze_program_llvm prog *)
-    (* | WkmDFA -> DAO.analyze_program_llvm prog *)
-    | WkmSymExec -> SE.analyze_program_llvm prog
+    | WkmDFA -> DA.analyze_program prog
+    (* | WkmDFA -> DAP.analyze_program prog *)
+    (* | WkmDFA -> DAO.analyze_program prog *)
+    | WkmSymExec -> SE.analyze_program prog
     | WkmNoAnalysis -> print "No analysis mode is performed!"
     | _ -> ())
-  | CI.Slprog prog -> SE.analyze_program_seplog prog
+  | CI.Slprog prog -> SE.verify_program prog
 ;;
 
 let analyze_input_file (filename : string) : unit =
