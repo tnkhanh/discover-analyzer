@@ -2958,7 +2958,7 @@ struct
       let callee = callee_of_instr_func_call instr in
       let is_pointer_library_func func =
         let candidate_funcs =
-          [ is_alias_check_func;
+          [ is_discover_assertion_func;
             is_func_malloc;
             is_func_free;
             is_func_cpp_new;

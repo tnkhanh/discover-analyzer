@@ -1975,7 +1975,7 @@ functor
               if List.is_empty callees
               then (* (input, false) *)
                 input, true
-              else if List.exists ~f:is_built_in_func callees
+              else if List.exists ~f:is_lib_no_source_func callees
               then input, true
               else (
                 let res, time =

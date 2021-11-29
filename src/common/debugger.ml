@@ -96,7 +96,7 @@ let debug_core
     let msg =
       if header
       then (
-        let prefix = String.suffix_if_not_empty prefix ~suffix:"\n\n" in
+        let prefix = String.suffix_if_not_empty prefix ~suffix:"\n" in
         "\n" ^ String.make 68 '*' ^ "\n" ^ str_marker ^ prefix ^ msg)
       else (
         match ruler with

@@ -85,24 +85,22 @@ let print_analysis_summary () =
   | WkmNoAnalysis -> ()
   | _ ->
     let detailed_runtime =
-      if not !mode_debug
+      if (not !mode_debug) || List.is_empty !detailed_task_time
       then ""
       else
         List.fold_left
           ~f:(fun acc (task, time) ->
             acc ^ "\n- " ^ task ^ ": " ^ Printf.sprintf "%.2fs" time)
           ~init:"\n\nDetailed runtime:" !detailed_task_time in
-    let summary =
-      [ "Summary:";
-        "- Input file: " ^ !input_file;
-        "- Valid assertions: " ^ pr_int !num_valid_asserts;
-        "- Invalid assertions: " ^ pr_int !num_invalid_asserts;
-        "- Analysis time: " ^ sprintf "%.2fs" !analysis_time;
-        "- Total runtime: " ^ sprintf "%.2fs" !total_time;
-        detailed_runtime
-      ] in
-    let msg = String.concat ~sep:"\n" summary in
-    println ~always:true ~autoformat:false ~ruler:`Long msg
+    let msg =
+      "Summary:\n"
+      ^ sprintf "- Input file: %s\n" !input_file
+      ^ sprintf "- Valid assertions: %d\n" !num_valid_asserts
+      ^ sprintf "- Invalid assertions: %d\n" !num_invalid_asserts
+      ^ sprintf "- Analysis time: %.2fs\n" !analysis_time
+      ^ sprintf "- Total runtime: %.2fs" !total_time
+      ^ detailed_runtime in
+    println ~marker:false ~always:true ~autoformat:false ~ruler:`Long msg
 ;;
 
 let handle_system_signals () =

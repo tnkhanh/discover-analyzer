@@ -71,7 +71,9 @@ and arguments_raw =
       "Print instrumented bitcode",
       Arg.Set print_instrumented );
     [ "--pap" ], "Print analyzed program", Arg.Set print_analyzed_prog;
-    [ "--psp" ], "Print statistics of program", Arg.Set print_stats_prog;
+    ( [ "--psp"; "--print-prog-stats" ],
+      "Print statistics of program",
+      Arg.Set print_stats_prog );
     [ "--type" ], "Print type information of variables", Arg.Set print_type;
     ( [ "--dis-pap" ],
       "Turn off printing analyzed programs",

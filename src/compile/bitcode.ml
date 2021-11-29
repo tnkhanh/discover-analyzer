@@ -46,7 +46,7 @@ let process_module (input_file : string) (modul : LL.llmodule) : LI.program =
       "CORE BITCODE PROGRAM" LI.pr_program prog in
   let _ =
     hdebug ~header:true ~enable:!llvm_print_prog_info
-      "PROGRAM STATISTIC INFORMATION" LI.pr_program_stats prog in
+      "PROGRAM STATISTIC INFORMATION" LI.pr_program_info prog in
   prog
 ;;
 
