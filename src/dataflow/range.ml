@@ -208,6 +208,11 @@ module IntervalDomain = struct
     add_bound a neg_b
   ;;
 
+  let udiv_bound (a : bound) (b : bound) : bound =
+    (*TO DO *)
+    PInf
+  ;;
+
   let mult_int_bound (i : int64) (b : bound) =
     match b with
     | PInf ->
@@ -295,6 +300,13 @@ module IntervalDomain = struct
     let ub = sub_bound a.range_ub b.range_lb in
     let ui = a.range_ub_incl && b.range_lb_incl in
     mk_range lb ub ~li ~ui
+  ;;
+
+  let udiv_range (a : range) (b : range) =
+    (* TO TEST *)
+    let lb = udiv_bound a.range_lb b.range_lb in
+    let ub = udiv_bound a.range_ub b.range_ub in
+    mk_range lb ub
   ;;
 
   let mult_range (a : range) (b : range) =
@@ -394,6 +406,13 @@ module IntervalDomain = struct
     | Bottom, _ -> Bottom
     | _, Bottom -> Bottom
     | Range ra, Range rb -> Range (mult_range ra rb)
+  ;;
+
+  let udiv_interval (a : interval) (b : interval) =
+    match a, b with
+    | Bottom, _ -> Bottom
+    | _, Bottom -> Bottom
+    | Range ra, Range rb -> Range (udiv_range ra rb)
   ;;
 
   let intersect_interval (a : interval) (b : interval) : interval =
@@ -813,8 +832,13 @@ struct
       let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
       let itv = mult_interval itv0 itv1 in
       replace_interval expr itv input
-    | LO.UDiv | LO.SDiv ->
+    | LO.UDiv  ->
       (* TODO: need to handle Div *)
+      let opr0, opr1 = expr_operand instr 0, expr_operand instr 1 in
+      let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
+      let itv = udiv_interval itv0 itv1 in
+      replace_interval expr itv input
+    | LO.SDiv ->
       input
     | LO.PHI ->
       let opr0 = expr_operand instr 0 in
