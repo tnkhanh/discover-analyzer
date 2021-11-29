@@ -338,9 +338,11 @@ type program =
   { prog_globals : global list;
     prog_struct_types : lltype list;
     (* program functions  *)
-    prog_lib_funcs : func list;
+    prog_all_funcs : func list;
+    prog_built_in_funcs : func list;
     prog_testing_funcs : func list;
     prog_init_funcs : func list;
+    (* prog_internal_funcs : func list; *)
     prog_user_funcs : func list;
     prog_entry_funcs : func list;
     (* program data *)
@@ -1759,7 +1761,7 @@ let is_func_llvm_debug_value (f : func) : bool =
   String.equal (func_name f) "llvm.dbg.value"
 ;;
 
-let is_library_function (f : func) : bool =
+let is_built_in_func (f : func) : bool =
   List.is_empty (blocks_of_func f)
   || is_func_free f || is_func_malloc f || is_func_realloc f
   || is_func_nondet f
@@ -1790,7 +1792,7 @@ let is_user_func (f : func) : bool =
   let v = llvalue_of_func f in
   match LL.classify_value v with
   | LV.Function ->
-    (not (is_library_function f))
+    (not (is_built_in_func f))
     && (not (is_assert_func f))
     && not (is_init_func f)
   | _ -> false
@@ -1839,13 +1841,17 @@ let local_vars_of_func (f : func) : instr list =
     ~init:[] f
 ;;
 
-let get_library_functions (m : llmodule) =
+let get_all_funcs (m : llmodule) =
+  fold_left_functions ~f:(fun acc f -> acc @ [ f ]) ~init:[] m
+;;
+
+let get_built_in_funcs (m : llmodule) =
   fold_left_functions
-    ~f:(fun acc f -> if is_library_function f then acc @ [ f ] else acc)
+    ~f:(fun acc f -> if is_built_in_func f then acc @ [ f ] else acc)
     ~init:[] m
 ;;
 
-let get_user_functions (m : llmodule) =
+let get_user_funcs (m : llmodule) =
   fold_left_functions
     ~f:(fun acc f -> if is_user_func f then acc @ [ f ] else acc)
     ~init:[] m
@@ -1857,7 +1863,7 @@ let get_auxiliary_funcs (m : llmodule) =
     ~init:[] m
 ;;
 
-let get_initilization_funcs (m : llmodule) =
+let get_init_funcs (m : llmodule) =
   fold_left_functions
     ~f:(fun acc f -> if is_init_func f then acc @ [ f ] else acc)
     ~init:[] m
@@ -3039,10 +3045,11 @@ let mk_program (filename : string) (m : llmodule) : program =
     LL.fold_left_globals (fun acc g -> acc @ [ mk_global g ]) [] m in
   { prog_globals = globals;
     prog_struct_types = [];
-    prog_lib_funcs = get_library_functions m;
-    prog_user_funcs = get_user_functions m;
+    prog_all_funcs = get_all_funcs m;
+    prog_built_in_funcs = get_built_in_funcs m;
+    prog_user_funcs = get_user_funcs m;
     prog_testing_funcs = get_auxiliary_funcs m;
-    prog_init_funcs = get_initilization_funcs m;
+    prog_init_funcs = get_init_funcs m;
     prog_entry_funcs = [];
     prog_meta_data = mk_program_meta_data filename m;
     prog_func_data = mk_program_func_data m;
@@ -3157,7 +3164,7 @@ let pr_func_call_info (prog : program) : unit =
 
 let pr_program_stats (prog : program) : string =
   sprintf "- Init functions: %s\n" (func_names prog.prog_init_funcs)
-  ^ sprintf "- Library functions: %s\n" (func_names prog.prog_lib_funcs)
+  ^ sprintf "- Library functions: %s\n" (func_names prog.prog_built_in_funcs)
   ^ sprintf "- User functions: %s\n" (func_names prog.prog_user_funcs)
   ^ sprintf "- Entry functions: %s\n" (func_names prog.prog_entry_funcs)
   ^ sprintf "\n"

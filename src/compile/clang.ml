@@ -6,17 +6,10 @@
  ********************************************************************)
 
 open Dcore
-module AG = Arguments
-module AS = Assertion
-module BG = Bug
-module CI = Commonir
-module DA = Dfanalyzer
-module DF = Dataflow
 module BC = Bitcode
 module LI = Llir
 module LL = Llvm
 module LT = Llinstrument
-module LU = Llutils
 module PS = Process
 
 let find_entry_functions (prog : LI.program) : LI.funcs =

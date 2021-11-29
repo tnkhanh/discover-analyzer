@@ -6,19 +6,11 @@
  ********************************************************************)
 
 open Dcore
-module AG = Arguments
-module AS = Assertion
-module BG = Bug
-module CI = Commonir
-module DA = Dfanalyzer
-module DF = Dataflow
 module BC = Bitcode
+module FN = Filename
 module LI = Llir
 module LL = Llvm
-module LT = Llinstrument
-module LU = Llutils
 module PS = Process
-module FN = Filename
 
 let find_entry_functions (prog : LI.program) : LI.funcs =
   List.fold_left
@@ -35,11 +27,11 @@ let preprocess_program (prog : LI.program) : LI.program =
   prog
 ;;
 
-let compile_program (filename : string) : LI.program =
-  let _ = debug ("Compiling file: " ^ filename) in
-  let contract_name = FN.basename filename in
+let compile_program (input_file : string) : LI.program =
+  let _ = debug ("Compiling file: " ^ input_file) in
+  let contract_name = FN.basename input_file in
   let output_dir =
-    FN.dirname filename ^ FN.dir_sep ^ "logs" ^ FN.dir_sep ^ contract_name
+    FN.dirname input_file ^ FN.dir_sep ^ "logs" ^ FN.dir_sep ^ contract_name
   in
   let _ = debug2 "Output dir: " output_dir in
   let _ = Sys.remove_dir output_dir in
@@ -50,7 +42,7 @@ let compile_program (filename : string) : LI.program =
       then []
       else String.split ~on:' ' !solang_user_options in
     let cmd =
-      [ !solang_exe; filename ] @ [ "--emit"; "llvm-bc" ]
+      [ !solang_exe; input_file ] @ [ "--emit"; "llvm-bc" ]
       @ [ "-O"; "none"; "--target"; "ewasm" ]
       @ [ "--no-constant-folding"; "--no-strength-reduce" ]
       @ [ "--no-dead-storage"; "--no-vector-to-slice" ]

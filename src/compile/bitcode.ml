@@ -7,11 +7,9 @@
 
 open Dcore
 module LL = Llvm
-module OC = Llvm.Opcode
 module LI = Llir
 module LU = Llutils
 module LN = Llnormalize
-module LT = Llinstrument
 module LP = Llpass
 module PS = Process
 
