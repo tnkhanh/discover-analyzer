@@ -3653,7 +3653,7 @@ struct
   ;;
 
   let check_assertion (fenvs : func_env list) (ast : AS.assertion)
-      : bool option
+      : bool_result
     =
     let instr = ast.AS.ast_instr in
     match ast.AS.ast_type with

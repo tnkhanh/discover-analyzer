@@ -57,11 +57,11 @@ let process_command (prog : SI.program) (cmd : SI.command) : unit =
   | SI.ProveEntails ents ->
     print_endline ("\n[+] ProveEntails:\n" ^ SI.pr_ents ents);
     let res = PV.prove_entailments prog ents in
-    print_endline ("\n ==> Result: " ^ pr_bresult res ^ "\n")
+    print_endline ("\n ==> Result: " ^ pr_bool_result res ^ "\n")
   | SI.InferFrame ent ->
     print_endline ("\n[+] InferFrame: " ^ SI.pr_ent ent);
     let res, frame = PV.infer_entailment_frame prog ent in
-    print_endline ("\n ==> Result: " ^ pr_bresult res);
+    print_endline ("\n ==> Result: " ^ pr_bool_result res);
     print_endline ("\n ==> Frame: " ^ SI.pr_fs frame ^ "\n")
 ;;
 

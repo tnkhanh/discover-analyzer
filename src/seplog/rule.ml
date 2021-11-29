@@ -34,7 +34,9 @@ let choose_rule_all_pure prog goal : rule list =
   then (
     let ents = get_entailments_of_goal goal in
     let res, _ = SMT.check_sat_horn ents in
-    if is_true res then [ mk_rule_all_pure goal.gl_entail_cores ] else [])
+    if is_bool_result_true res
+    then [ mk_rule_all_pure goal.gl_entail_cores ]
+    else [])
   else []
 ;;
 
@@ -45,7 +47,8 @@ let choose_rule_invalid_entail prog goal : rule list =
         ~f:(fun enc ->
           let lhs, rhs = enc.enc_lhs, enc.enc_rhs in
           match lhs, rhs with
-          | Pure plhs, Pure prhs -> is_false (SMT.check_imply plhs prhs)
+          | Pure plhs, Pure prhs ->
+            is_bool_result_false (SMT.check_imply plhs prhs)
           | _ -> false)
         goal.gl_entail_cores in
     [ mk_rule_invalid_entail enc ]
@@ -74,7 +77,7 @@ let choose_rule_valid_entails prog goal : rule list =
         then (
           let plhs = extract_pure_form lhs in
           let prhs = extract_pure_form rhs in
-          is_true (SMT.check_imply plhs prhs))
+          is_bool_result_true (SMT.check_imply plhs prhs))
         else false)
       goal.gl_entail_cores in
   if encs != [] then [ mk_rule_valid_entails encs ] else []
@@ -87,7 +90,7 @@ let choose_rule_infer_frame prog goal : rule list =
     then (
       let plhs = encode_formula_to_pure enc.enc_lhs in
       let prhs = extract_pure_form enc.enc_rhs in
-      if is_true (SMT.check_imply plhs prhs)
+      if is_bool_result_true (SMT.check_imply plhs prhs)
       then [ mk_rule_infer_frame enc ]
       else [])
     else []

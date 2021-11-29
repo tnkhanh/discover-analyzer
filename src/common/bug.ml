@@ -68,7 +68,7 @@ type bug =
   { bug_instr : instr;
     bug_func : func;
     bug_type : bug_type;
-    bug_status : bool option;
+    bug_status : bool_result;
     (* None means Unknown *)
     bug_analysis : string option;
     bug_reason : string option
