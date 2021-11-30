@@ -176,16 +176,27 @@ let pr_integer_underflow_info ?(detailed = true) (iuf : integer_underflow) : str
  * Print bug information
  *-----------------------*)
 
+let pr_bug_cwe (btype: bug_type) : string =
+  match btype with
+  | MemoryLeak _ -> ""
+  | NullPointerDeref -> ""
+  | BufferOverflow _ -> ""
+  | IntegerOverflow _ -> "CWE-190"
+  | IntegerUnderflow _ -> "CWE-191"
+  | IntegerCoercionError _ -> "CWE-192"
+  | NumericTruncationError _ -> "CWE-197"
+  | DivisionByZero _ -> "CWE-369"
+
 let pr_bug_type ?(detailed = true) (btype : bug_type) : string =
   match btype with
   | MemoryLeak _ -> "Memory Leak"
   | NullPointerDeref -> "Null Pointer Dereference"
   | BufferOverflow _ -> "Buffer Overflow"
-  | IntegerOverflow _ -> "Integer Overflow (CWE-190)"
-  | IntegerUnderflow _ -> "Integer Underflow (CWE-191)"
-  | IntegerCoercionError _ -> "Integer Coercion Error (CWE-192)"
-  | NumericTruncationError _ -> "Numeric Truncation Error (CWE-197)"
-  | DivisionByZero _ -> "Division By Zero (CWE-369)"
+  | IntegerOverflow _ -> "Integer Overflow"
+  | IntegerUnderflow _ -> "Integer Underflow"
+  | IntegerCoercionError _ -> "Integer Coercion Error"
+  | NumericTruncationError _ -> "Numeric Truncation Error"
+  | DivisionByZero _ -> "Division By Zero"
 ;;
 
 let pr_bug_details (bug: bug) : string =
@@ -211,6 +222,10 @@ let pr_potential_bugs (pbugs : potential_bug list) : string =
 ;;
 
 let pr_bug (bug : bug) : string =
+  let bug_type_info =
+    let btype = pr_bug_type bug.bug_type in
+    let cwe = pr_bug_cwe bug.bug_type in
+    btype ^ String.surround_if_not_empty ~prefix:" (" ~suffix:")" cwe in
   let location =
     match !llvm_orig_source_name with
     | false -> ""
@@ -218,7 +233,7 @@ let pr_bug (bug : bug) : string =
       (match LD.position_of_instr bug.bug_instr with
       | None -> ""
       | Some p -> "  " ^ pr_file_position_and_excerpt p ^ "\n") in
-  "BUG: " ^ pr_bug_type bug.bug_type ^ "\n" ^ location
+  "BUG: " ^ bug_type_info ^ "\n" ^ location
   ^ String.indent 2 (String.align_line "Reason: " bug.bug_reason)
 ;;
 
