@@ -209,8 +209,21 @@ module IntervalDomain = struct
   ;;
 
   let udiv_bound (a : bound) (b : bound) : bound =
-    (*TO DO *)
-    PInf
+    match a, b with
+    | PInf, PInf -> error "udiv_bound: undefined for PInf / PInf"
+    | NInf, _ | _, NInf -> error "udiv_bound: does not work with NInf"
+    | PInf, _ -> PInf
+    | _, PInf -> BInt BInt.zero
+    (* Int64, BInt, EInt *)
+    | Int64 x, Int64 y -> Int64 (Int64.( / ) x y)
+    | Int64 x, EInt y -> EInt (EInt.div (EInt.of_int64 x) y)
+    | Int64 x, BInt y -> BInt (BInt.div (BInt.of_int64 x) y)
+    | EInt x, Int64 y -> EInt (EInt.div x (EInt.of_int64 y))
+    | EInt x, EInt y -> EInt (EInt.div x y)
+    | EInt x, BInt y -> EInt (EInt.div x (EInt.of_bint y))
+    | BInt x, Int64 y -> BInt (BInt.div x (BInt.of_int64 y))
+    | BInt x, EInt y -> EInt (EInt.div (EInt.of_bint x) y)
+    | BInt x, BInt y -> BInt (BInt.div x y)
   ;;
 
   let mult_int_bound (i : int64) (b : bound) =
@@ -303,8 +316,10 @@ module IntervalDomain = struct
   ;;
 
   let udiv_range (a : range) (b : range) =
-    (* TO TEST *)
-    let lb = udiv_bound a.range_lb b.range_lb in
+    (* TODO: Add inclusive, add Division-by-zero  *)
+(*    let anew =
+      if a.range_lb_incl *)
+    let lb = udiv_bound a.range_lb b.range_ub in
     let ub = udiv_bound a.range_ub b.range_ub in
     mk_range lb ub
   ;;
