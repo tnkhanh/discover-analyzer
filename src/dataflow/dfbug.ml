@@ -46,10 +46,9 @@ let check_bug_integer_overflow (pdata : program_data) (pbug : potential_bug)
               if RG.ID.compare_bound r.range_ub (EInt ub) > 0
               then (
                 let reason =
-                  "Expression " ^ LI.pr_value iof.iof_expr
-                  ^ " can only take the maximum value of: " ^ EInt.pr_eint ub
-                  ^ ", but is assigned with: " ^ RG.ID.pr_bound r.range_ub
-                  ^ "." in
+                  ("Variable " ^ LI.pr_value iof.iof_expr ^ " can take only ")
+                  ^ ("the maximum value of: " ^ EInt.pr_eint ub ^ ",\n")
+                  ^ "but is assigned with: " ^ RG.pr_bound r.range_ub ^ ".\n" in
                 return (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
               else None))
         ~init:None fenvs_rng)
@@ -97,10 +96,9 @@ let check_bug_integer_underflow (pdata : program_data) (pbug : potential_bug)
               if RG.ID.compare_bound r.range_lb (EInt lb) < 0
               then (
                 let reason =
-                  "Expression " ^ LI.pr_value iuf.iuf_expr
-                  ^ " can only take the minimum value of: " ^ EInt.pr_eint lb
-                  ^ ", but is assigned with: " ^ RG.ID.pr_bound r.range_lb
-                  ^ "." in
+                  ("Variable " ^ LI.pr_value iuf.iuf_expr ^ " can take only ")
+                  ^ ("the minimum value of: " ^ EInt.pr_eint lb ^ ",\n")
+                  ^ "but is assigned with: " ^ RG.pr_bound r.range_lb ^ ".\n" in
                 return (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
               else None))
         ~init:None fenvs_rng)
@@ -240,7 +238,7 @@ let find_bugs (pdata : program_data) : unit =
     @ find_bug_buffer_overflow pdata
     @ find_bug_integer_overflow pdata
     @ find_bug_integer_underflow pdata in
-  let _ = List.iter ~f:(fun bug -> print (pr_bug bug)) bugs in
+  let _ = List.iter ~f:(fun bug -> print ~marker:false (pr_bug bug)) bugs in
   let _ = num_of_bugs := List.length bugs in
   report_bug_stats bugs
 ;;

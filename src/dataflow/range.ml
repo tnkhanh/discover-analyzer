@@ -1022,7 +1022,8 @@ module Analysis = struct
   module RT = RangeTransfer
 
   let get_interval (e : expr) (d : t) : ID.interval = RU.get_interval e d
-  let pr_interval = ID.pr_interval
+  let pr_interval (i : ID.interval) = ID.pr_interval i
+  let pr_bound (b : ID.bound) : string = ID.pr_bound b
 
   let pr_interval_concise (i : ID.interval) : string =
     match i with

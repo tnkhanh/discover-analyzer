@@ -28,18 +28,27 @@ type bug_type =
   | BufferOverflow of buffer_overflow
   | IntegerOverflow of integer_overflow
   | IntegerUnderflow of integer_underflow
+  | IntegerCoercionError of integer_coercion_error
   | DivisionByZero
 
+(* Integer overflow: https://cwe.mitre.org/data/definitions/190.html *)
 and integer_overflow =
   { iof_expr : llvalue;
     iof_bitwidth : int;
     iof_instr : instr
   }
 
+(* Integer underflow: https://cwe.mitre.org/data/definitions/191.html *)
 and integer_underflow =
   { iuf_expr : llvalue;
     iuf_bitwidth : int;
     iuf_instr : instr
+  }
+
+(* Integer Coercion: https://cwe.mitre.org/data/definitions/192.html *)
+and integer_coercion_error =
+  { ice_expr : llvalue;
+    ice_instr : instr
   }
 
 and buffer_size =
@@ -150,17 +159,19 @@ let pr_bug_type ?(detailed = true) (btype : bug_type) : string =
   | BufferOverflow _ -> "Buffer Overflow"
   | IntegerOverflow _ -> "Integer Overflow"
   | IntegerUnderflow _ -> "Integer Underflow"
+  | IntegerCoercionError _ -> "Integer Coercion Error"
   | DivisionByZero -> "Division By Zero"
 ;;
 
 let pr_bug_details (bug: bug) : string =
   match bug.bug_type with
   | MemoryLeak mlk -> pr_memory_leak_info mlk
-  | NullPointerDeref -> "(TODO: implement later)"
+  | NullPointerDeref -> "(TODO: NullPointerDeref: implement later)"
   | BufferOverflow bof -> pr_buffer_overflow_info bof
   | IntegerOverflow iof -> pr_integer_overflow_info iof
   | IntegerUnderflow iuf -> pr_integer_underflow_info iuf
-  | DivisionByZero -> "(TODO: implement later)"
+  | IntegerCoercionError _ -> "(TODO: IntegerCoercionError: implement later)"
+  | DivisionByZero -> "(TODO: DivisionByZero: implement later)"
 
 
 let pr_potential_bug (pbug : potential_bug) : string =
@@ -182,7 +193,7 @@ let pr_bug (bug : bug) : string =
       | None -> ""
       | Some p -> "  " ^ pr_file_position_and_excerpt p ^ "\n") in
   "BUG: " ^ pr_bug_type bug.bug_type ^ "\n" ^ location
-  ^ String.indent 2 (sprintf "Reason: %s\n" bug.bug_reason)
+  ^ String.indent 2 (String.align_line "Reason: " bug.bug_reason)
 ;;
 
 let pr_bug_name (bug : bug) : string = pr_bug_type ~detailed:false bug.bug_type
