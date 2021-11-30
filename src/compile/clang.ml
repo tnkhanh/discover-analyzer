@@ -18,10 +18,13 @@ let find_entry_functions (prog : LI.program) : LI.funcs =
     ~init:[] prog.LI.prog_user_funcs
 ;;
 
-let preprocess_program (prog : LI.program) : LI.program =
-  let _ = debug "Preprocess C/C++ program..." in
+let post_process_program (prog : LI.program) : LI.program =
+  let _ = debug "Post-procedssing C/C++ program..." in
   let entry_funcs = find_entry_functions prog in
   let prog = { prog with LI.prog_entry_funcs = entry_funcs } in
+  let _ =
+    hdebug ~header:true ~enable:!llvm_print_prog_info
+      "PROGRAM INFORMATION AFTER POST-PROCESSING" LI.pr_program_info prog in
   prog
 ;;
 
@@ -66,5 +69,5 @@ let compile_program (input_file : string) : LI.program =
         close_out instrued_file in
       BC.process_bitcode instrued_filename)
     else BC.process_bitcode output_filename in
-  preprocess_program prog
+  post_process_program prog
 ;;

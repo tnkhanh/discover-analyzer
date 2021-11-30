@@ -3170,14 +3170,14 @@ let pr_func_call_info (prog : program) : unit =
 ;;
 
 let pr_program_info (prog : program) : string =
-  sprintf "- Init functions: %s\n" (func_names prog.prog_init_funcs)
-  ^ sprintf "- Library (no source code) functions: %s\n"
+  sprintf " - Init functions: %s\n" (func_names prog.prog_init_funcs)
+  ^ sprintf " - Library (no source code) functions: %s\n"
       (func_names prog.prog_lib_no_source_funcs)
-  ^ sprintf "- Library (has source code) functions: %s\n"
+  ^ sprintf " - Library (has source code) functions: %s\n"
       (func_names prog.prog_lib_has_source_funcs)
-  ^ sprintf "- User functions: %s\n" (func_names prog.prog_user_funcs)
-  ^ sprintf "- Entry functions: %s\n" (func_names prog.prog_entry_funcs)
-  ^ sprintf "\n"
-  ^ sprintf "  - Function call information: %s\n %s" (pr_caller_info prog)
-      (pr_callee_info prog)
+  ^ sprintf " - User functions: %s\n" (func_names prog.prog_user_funcs)
+  ^ sprintf " - Entry functions: %s\n" (func_names prog.prog_entry_funcs)
+  ^ sprintf " - Function call information: \n%s\n%s"
+      (String.hindent 4 pr_caller_info prog)
+      (String.hindent 4 pr_callee_info prog)
 ;;

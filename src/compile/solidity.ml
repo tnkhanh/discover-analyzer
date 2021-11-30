@@ -20,10 +20,13 @@ let find_entry_functions (prog : LI.program) : LI.funcs =
     ~init:[] prog.LI.prog_user_funcs
 ;;
 
-let preprocess_program (prog : LI.program) : LI.program =
-  let _ = debug "Preprocess Solidity program..." in
+let post_process_program (prog : LI.program) : LI.program =
+  let _ = debug "Post-procesing Solidity program..." in
   let entry_funcs = find_entry_functions prog in
   let prog = { prog with LI.prog_entry_funcs = entry_funcs } in
+  let _ =
+    hdebug ~header:true ~enable:!llvm_print_prog_info
+      "PROGRAM INFORMATION AFTER POST-PROCESSING" LI.pr_program_info prog in
   prog
 ;;
 
@@ -58,5 +61,5 @@ let compile_program (input_file : string) : LI.program =
     let output_file = output_dir ^ FN.dir_sep ^ deploy_file in
     let _ = print2 "Output file: " output_file in
     let prog = BC.process_bitcode output_file in
-    preprocess_program prog
+    post_process_program prog
 ;;
