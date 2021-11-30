@@ -23,39 +23,26 @@ module LA = List.Assoc
  *----------*)
 
 type bug_type =
+  (* memory bugs *)
   | MemoryLeak of memory_leak
   | NullPointerDeref
   | BufferOverflow of buffer_overflow
+  (* numerical bugs *)
   | IntegerOverflow of integer_overflow
   | IntegerUnderflow of integer_underflow
   | IntegerCoercionError of integer_coercion_error
-  | DivisionByZero
+  | NumericTruncationError of numeric_truncation_error
+  | DivisionByZero of division_by_zero
 
-(* Integer overflow: https://cwe.mitre.org/data/definitions/190.html *)
-and integer_overflow =
-  { iof_expr : llvalue;
-    iof_bitwidth : int;
-    iof_instr : instr
-  }
-
-(* Integer underflow: https://cwe.mitre.org/data/definitions/191.html *)
-and integer_underflow =
-  { iuf_expr : llvalue;
-    iuf_bitwidth : int;
-    iuf_instr : instr
-  }
-
-(* Integer Coercion: https://cwe.mitre.org/data/definitions/192.html *)
-and integer_coercion_error =
-  { ice_expr : llvalue;
-    ice_instr : instr
-  }
+(*--------------
+ * Memory bugs
+ *-------------*)
 
 and buffer_size =
   (* FIXME: need to change name of this variant type *)
   | NumElem of (int64 * lltype) (* number of element of type lltype *)
   | MemSizeOf of llvalue
-(* size of allocated memory of pointer *)
+  (* size of allocated memory of pointer *)
 
 and buffer_overflow =
   { bof_pointer : llvalue;
@@ -67,6 +54,43 @@ and buffer_overflow =
 and memory_leak =
   { mlk_pointer : llvalue;
     mlk_size : int option
+  }
+
+(*-----------------
+ * Numerical bugs
+ *----------------*)
+
+(* Integer Overflow: https://cwe.mitre.org/data/definitions/190.html *)
+and integer_overflow =
+  { iof_expr : llvalue;
+    iof_bitwidth : int;
+    iof_instr : instr
+  }
+
+(* Integer Underflow: https://cwe.mitre.org/data/definitions/191.html *)
+and integer_underflow =
+  { iuf_expr : llvalue;
+    iuf_bitwidth : int;
+    iuf_instr : instr
+  }
+
+(* Integer Coercion Error: https://cwe.mitre.org/data/definitions/192.html *)
+(* TODO: fill more details later *)
+and integer_coercion_error =
+  { ice_expr : llvalue;
+    ice_instr : instr
+  }
+
+(* Numeric Truncation Error: https://cwe.mitre.org/data/definitions/197.html *)
+and numeric_truncation_error =
+  { nte_expr : llvalue;
+    nte_instr : instr
+  }
+
+(* Division by Zero: https://cwe.mitre.org/data/definitions/369.html *)
+and division_by_zero =
+  { dbz_expr : llvalue;
+    dbz_instr : instr
   }
 
 (*------
@@ -157,10 +181,11 @@ let pr_bug_type ?(detailed = true) (btype : bug_type) : string =
   | MemoryLeak _ -> "Memory Leak"
   | NullPointerDeref -> "Null Pointer Dereference"
   | BufferOverflow _ -> "Buffer Overflow"
-  | IntegerOverflow _ -> "Integer Overflow"
-  | IntegerUnderflow _ -> "Integer Underflow"
-  | IntegerCoercionError _ -> "Integer Coercion Error"
-  | DivisionByZero -> "Division By Zero"
+  | IntegerOverflow _ -> "Integer Overflow (CWE-190)"
+  | IntegerUnderflow _ -> "Integer Underflow (CWE-191)"
+  | IntegerCoercionError _ -> "Integer Coercion Error (CWE-192)"
+  | NumericTruncationError _ -> "Numeric Truncation Error (CWE-197)"
+  | DivisionByZero _ -> "Division By Zero (CWE-369)"
 ;;
 
 let pr_bug_details (bug: bug) : string =
@@ -171,7 +196,8 @@ let pr_bug_details (bug: bug) : string =
   | IntegerOverflow iof -> pr_integer_overflow_info iof
   | IntegerUnderflow iuf -> pr_integer_underflow_info iuf
   | IntegerCoercionError _ -> "(TODO: IntegerCoercionError: implement later)"
-  | DivisionByZero -> "(TODO: DivisionByZero: implement later)"
+  | NumericTruncationError _ -> "(TODO: NumericTruncationError: implement later)"
+  | DivisionByZero _ -> "(TODO: DivisionByZero: implement later)"
 
 
 let pr_potential_bug (pbug : potential_bug) : string =
