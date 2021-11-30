@@ -23,7 +23,7 @@ module UD = Undef.Analysis
 
 type program_data =
   { pdata_program : LI.program;
-    pdata_potential_bugs : BG.bug list;
+    pdata_potential_bugs : BG.potential_bugs;
     pdata_env_memsize : MS.prog_env option;
     pdata_env_pointer : PT.prog_env option;
     pdata_env_range : RG.prog_env option;

@@ -31,9 +31,9 @@ let is_analysis_enabled (analysis : dfa_analysis) : bool =
 let annotate_potential_bugs (pdata : program_data) : program_data =
   let _ = ddebug "Annotating Potential Bug..." in
   let prog = pdata.pdata_program in
-  let bugs = BG.annotate_potential_bugs prog in
-  let _ = hddebug "Potential Bugs:" BG.pr_potential_bugs bugs in
-  { pdata with pdata_potential_bugs = bugs }
+  let pbugs = BG.annotate_potential_bugs prog in
+  let _ = hddebug "Potential Bugs:" BG.pr_potential_bugs pbugs in
+  { pdata with pdata_potential_bugs = pbugs }
 ;;
 
 let perform_pre_analysis_passes (pdata : program_data) : program_data =
