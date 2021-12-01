@@ -6,15 +6,7 @@
  ********************************************************************)
 
 open Dcore
-module AG = Arguments
-module BG = Bug
-module BR = Llvm_bitreader
-module CI = Commonir
-module DF = Dataflow
 module LI = Llir
-module LL = Llvm
-module NO = Normalize
-module PS = Process
 module PV = Prover
 module SA = Slast
 module SI = Slir

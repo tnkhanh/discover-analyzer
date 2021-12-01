@@ -6,7 +6,7 @@
  ********************************************************************)
 
 open Dcore
-module AG = Arguments
+module AG = Argument
 module AS = Assertion
 module CI = Commonir
 module DA = Dfanalyzer

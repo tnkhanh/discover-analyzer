@@ -16,7 +16,7 @@ module LD = Lldebug
 module OC = Llvm.Opcode
 module LTD = Llvm_target.DataLayout
 module NO = Normalize
-module AG = Arguments
+module AG = Argument
 module SMT = Smt.SmtSL
 
 (*******************************************************************
