@@ -399,31 +399,29 @@ module IntervalDomain = struct
       if compare_bound b1 b2 < 0
       then b1
       else b2 in
-    let alow = a.range_lb in
-    let aup = a.range_ub in
-    let blow = b.range_lb in
-    let bup = b.range_ub in
-    let bound1 = sdiv_bound alow blow in
-    let bound2 = sdiv_bound alow bup in
-    let bound3 = sdiv_bound aup blow in
-    let bound4 = sdiv_bound aup bup in
+    let a_lb, a_ub = a.range_lb, a.range_ub in
+    let b_lb, b_ub = b.range_lb, b.range_ub in
+    let b1 = sdiv_bound a_lb b_lb in
+    let b2 = sdiv_bound a_lb b_ub in
+    let b3 = sdiv_bound a_ub b_lb in
+    let b4 = sdiv_bound a_ub b_ub in
     let lb = 
-      bound1
-      |> min_bound bound2
-      |> min_bound bound3
-      |> min_bound bound4 in
+      b1
+      |> min_bound b2
+      |> min_bound b3
+      |> min_bound b4 in
     let ub =
-      bound1
-      |> max_bound bound2
-      |> max_bound bound3
-      |> max_bound bound4 in
+      b1
+      |> max_bound b2
+      |> max_bound b3
+      |> max_bound b4 in
     mk_range lb ub ~li:true ~ui:true
   ;;
 
   let rec sdiv_range (a : range) (b : range) : range =
     (* TODO: Add inclusive, Division-by-zero *)
     let bzero = BInt BInt.zero in
-    let one_sign_a =
+    let one_sign_a () =
       if compare_bound b.range_ub bzero < 0 then 
         sdiv_range_one_sign a b
       else
@@ -434,10 +432,10 @@ module IntervalDomain = struct
         error "Division-by-zero" in
 
     if compare_bound a.range_ub bzero < 0 then (* a is negative *)
-      one_sign_a
+      one_sign_a ()
     else
     if compare_bound a.range_lb bzero > 0 then (* a is positive *)
-      one_sign_a
+      one_sign_a ()
     else
       union_range 
         (union_range (range_of_bound bzero) (sdiv_range (pos_int_range a) b) )
