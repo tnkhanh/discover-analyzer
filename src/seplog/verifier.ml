@@ -14,9 +14,7 @@ module LL = Llvm
 module LI = Llir
 module LD = Lldebug
 module OC = Llvm.Opcode
-module LTD = Llvm_target.DataLayout
 module NO = Normalize
-module AG = Argument
 module SMT = Smt.SmtSL
 
 (*******************************************************************
@@ -38,8 +36,6 @@ type program_state =
     pgs_entails : entailments
   }
 
-type program_states = program_state list
-
 type verifier_state =
   { vrs_core_prog : program;
     vrs_llvm_prog : LI.program;
@@ -59,7 +55,7 @@ let mk_verifier_state (prog : LI.program) =
  ** global variables
  *******************************************************************)
 
-let lib_core = ref (mk_program_empty ())
+let lib_core : program option ref = ref None
 
 (*******************************************************************
  ** printers and constructors
@@ -295,14 +291,17 @@ let check_integer_overflow instr pstate ptr : bool =
  *******************************************************************)
 
 let find_lib_proc pname : proc_defn option =
-  let procs =
-    List.filter
-      ~f:(fun p -> String.equal p.procd_name pname)
-      !lib_core.prog_proc_defns in
-  match procs with
-  | [] -> None
-  | [ p ] -> Some p
-  | _ -> error ("lib_core has duplicated procedures named: " ^ pname)
+  match !lib_core with
+  | None -> None
+  | Some prog ->
+    let procs =
+      List.filter
+        ~f:(fun p -> String.equal p.procd_name pname)
+        prog.prog_proc_defns in
+    (match procs with
+    | [] -> None
+    | [ p ] -> Some p
+    | _ -> error ("lib_core has duplicated procedures named: " ^ pname))
 ;;
 
 let encode_block_pre_state blk : view_form =

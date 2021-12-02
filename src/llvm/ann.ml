@@ -32,6 +32,7 @@ let pr_pos_ann ann =
 
 type program = mark list
 
+(* FIXME: need to use the function pr_bug_type *)
 let str_of_bug_group b =
   match b with
   | MemoryLeak -> "MemoryLeak"

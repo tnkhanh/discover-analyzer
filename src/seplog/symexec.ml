@@ -57,21 +57,24 @@ let process_command (prog : SI.program) (cmd : SI.command) : unit =
     print_endline ("\n ==> Frame: " ^ SI.pr_fs frame ^ "\n")
 ;;
 
-let compile_lib_seplog () =
-  let ilib = parse_program_seplog !lib_core_file in
-  let _ =
-    debug ~ruler:`Medium ~enable:!print_input_prog
-      ("INPUT LIBS:\n\n" ^ SA.pr_program ilib ^ "\n\n") in
-  let ilib = TI.infer_typ_program ilib in
-  let _ =
-    debug ~ruler:`Medium
-      ~enable:(!print_input_prog && !print_type)
-      ("TYPED LIBS:\n\n" ^ SA.pr_program ilib ^ "\n\n") in
-  let clib = TF.transform_program ilib in
-  let _ =
-    debug ~ruler:`Medium ~enable:!print_core_prog
-      ("CORE LIBS:\n\n" ^ SI.pr_program clib ^ "\n\n") in
-  clib
+let compile_lib_seplog () : unit =
+  match !Verifier.lib_core with
+  | Some _ -> ()
+  | None ->
+    let ilib = parse_program_seplog !lib_core_file in
+    let _ =
+      debug ~ruler:`Medium ~enable:!print_input_prog
+        ("INPUT LIBS:\n\n" ^ SA.pr_program ilib ^ "\n\n") in
+    let ilib = TI.infer_typ_program ilib in
+    let _ =
+      debug ~ruler:`Medium
+        ~enable:(!print_input_prog && !print_type)
+        ("TYPED LIBS:\n\n" ^ SA.pr_program ilib ^ "\n\n") in
+    let clib = TF.transform_program ilib in
+    let _ =
+      debug ~ruler:`Medium ~enable:!print_core_prog
+        ("CORE LIBS:\n\n" ^ SI.pr_program clib ^ "\n\n") in
+    ignore (Verifier.lib_core := Some clib)
 ;;
 
 let compile_sep_logic (filename : string) : SI.program =
@@ -99,6 +102,6 @@ let verify_program (prog : SI.program) : unit =
 
 let analyze_program (prog : LI.program) : unit =
   let _ = print "Analyze program by Separation Logic" in
-  let _ = Verifier.lib_core := compile_lib_seplog () in
+  let _ = compile_lib_seplog () in
   Verifier.verify_program prog
 ;;
