@@ -151,7 +151,14 @@ struct
 
   let is_data_satisfied_predicate (d : t) (p : predicate) : bool = true
   let refine_data_by_predicate ?(widen = false) (d : t) (p : predicate) : t = d
-  let prepare_callee_input penv instr callee args input : t = input
+
+  let prepare_entry_func_input (penv : prog_env) func (input : t) : t =
+    input
+  ;;
+
+  let prepare_callee_input penv instr callee (args : llvalues) (input : t) : t =
+    input
+  ;;
 
   let compute_callee_output_exns penv instr callee args input fsum : t * exns =
     input, []
@@ -234,7 +241,7 @@ end
  ** Main analysis module
  *******************************************************************)
 
-module UndefAnalysis = struct
+module Analysis = struct
   include UndefTransfer
   include DF.ForwardDataFlow (UndefTransfer)
 end

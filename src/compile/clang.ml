@@ -6,17 +6,10 @@
  ********************************************************************)
 
 open Dcore
-module AG = Arguments
-module AS = Assertion
-module BG = Bug
-module CI = Commonir
-module DA = Dfanalyzer
-module DF = Dataflow
 module BC = Bitcode
 module LI = Llir
 module LL = Llvm
 module LT = Llinstrument
-module LU = Llutils
 module PS = Process
 
 let find_entry_functions (prog : LI.program) : LI.funcs =
@@ -25,10 +18,13 @@ let find_entry_functions (prog : LI.program) : LI.funcs =
     ~init:[] prog.LI.prog_user_funcs
 ;;
 
-let preprocess_program (prog : LI.program) : LI.program =
-  let _ = debug "Preprocess C/C++ program..." in
+let post_process_program (prog : LI.program) : LI.program =
+  let _ = debug "Post-procedssing C/C++ program..." in
   let entry_funcs = find_entry_functions prog in
   let prog = { prog with LI.prog_entry_funcs = entry_funcs } in
+  let _ =
+    hdebug ~header:true ~enable:!llvm_print_prog_info
+      "PROGRAM INFORMATION AFTER POST-PROCESSING" LI.pr_program_info prog in
   prog
 ;;
 
@@ -52,23 +48,26 @@ let compile_program (input_file : string) : LI.program =
       @ String.split ~on:' ' !clang_user_options in
     let _ = debug (String.concat ~sep:" " cmd) in
     PS.run_command cmd in
-  if !enable_instrument
-  then (
-    let ann_marks = LT.extract_ann_marks input_file in
-    let llcontext = LL.create_context () in
-    let llmem = LL.MemoryBuffer.of_file output_filename in
-    let modul = Llvm_bitreader.parse_bitcode llcontext llmem in
-    let _ = LT.instrument_bitcode ann_marks input_file modul in
-    let instrued_filename = dirname ^ Filename.dir_sep ^ basename ^ ".ins.bc" in
-    let _ = LL.set_module_identifer modul instrued_filename in
-    let _ =
-      if !print_instrumented
-      then debug2 ~ruler:`Long "Changed name: " (LL.string_of_llmodule modul)
-    in
-    let _ =
-      let instrued_file = open_out instrued_filename in
-      let _ = Llvm_bitwriter.output_bitcode instrued_file modul in
-      close_out instrued_file in
-    BC.process_bitcode instrued_filename)
-  else BC.process_bitcode output_filename
+  let prog =
+    if !enable_instrument
+    then (
+      let ann_marks = LT.extract_ann_marks input_file in
+      let llcontext = LL.create_context () in
+      let llmem = LL.MemoryBuffer.of_file output_filename in
+      let modul = Llvm_bitreader.parse_bitcode llcontext llmem in
+      let _ = LT.instrument_bitcode ann_marks input_file modul in
+      let instrued_filename =
+        dirname ^ Filename.dir_sep ^ basename ^ ".ins.bc" in
+      let _ = LL.set_module_identifer modul instrued_filename in
+      let _ =
+        if !print_instrumented
+        then debug2 ~ruler:`Long "Changed name: " (LL.string_of_llmodule modul)
+      in
+      let _ =
+        let instrued_file = open_out instrued_filename in
+        let _ = Llvm_bitwriter.output_bitcode instrued_file modul in
+        close_out instrued_file in
+      BC.process_bitcode instrued_filename)
+    else BC.process_bitcode output_filename in
+  post_process_program prog
 ;;

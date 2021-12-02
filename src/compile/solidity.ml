@@ -6,19 +6,11 @@
  ********************************************************************)
 
 open Dcore
-module AG = Arguments
-module AS = Assertion
-module BG = Bug
-module CI = Commonir
-module DA = Dfanalyzer
-module DF = Dataflow
 module BC = Bitcode
+module FN = Filename
 module LI = Llir
 module LL = Llvm
-module LT = Llinstrument
-module LU = Llutils
 module PS = Process
-module FN = Filename
 
 let find_entry_functions (prog : LI.program) : LI.funcs =
   List.fold_left
@@ -28,18 +20,21 @@ let find_entry_functions (prog : LI.program) : LI.funcs =
     ~init:[] prog.LI.prog_user_funcs
 ;;
 
-let preprocess_program (prog : LI.program) : LI.program =
-  let _ = debug "Preprocess Solidity program..." in
+let post_process_program (prog : LI.program) : LI.program =
+  let _ = debug "Post-procesing Solidity program..." in
   let entry_funcs = find_entry_functions prog in
   let prog = { prog with LI.prog_entry_funcs = entry_funcs } in
+  let _ =
+    hdebug ~header:true ~enable:!llvm_print_prog_info
+      "PROGRAM INFORMATION AFTER POST-PROCESSING" LI.pr_program_info prog in
   prog
 ;;
 
-let compile_program (filename : string) : LI.program =
-  let _ = debug ("Compiling file: " ^ filename) in
-  let contract_name = FN.basename filename in
+let compile_program (input_file : string) : LI.program =
+  let _ = debug ("Compiling file: " ^ input_file) in
+  let contract_name = FN.basename input_file in
   let output_dir =
-    FN.dirname filename ^ FN.dir_sep ^ "logs" ^ FN.dir_sep ^ contract_name
+    FN.dirname input_file ^ FN.dir_sep ^ "logs" ^ FN.dir_sep ^ contract_name
   in
   let _ = debug2 "Output dir: " output_dir in
   let _ = Sys.remove_dir output_dir in
@@ -50,10 +45,8 @@ let compile_program (filename : string) : LI.program =
       then []
       else String.split ~on:' ' !solang_user_options in
     let cmd =
-      [ !solang_exe; filename ] @ [ "--emit"; "llvm-bc" ]
+      [ !solang_exe; input_file ] @ [ "--emit"; "llvm-bc" ]
       @ [ "-O"; "none"; "--target"; "ewasm" ]
-      @ [ "--no-constant-folding"; "--no-strength-reduce" ]
-      @ [ "--no-dead-storage"; "--no-vector-to-slice" ]
       @ [ "-o"; output_dir ] @ user_options in
     PS.run_command cmd in
   let generated_files = Sys.ls_dir output_dir in
@@ -66,5 +59,5 @@ let compile_program (filename : string) : LI.program =
     let output_file = output_dir ^ FN.dir_sep ^ deploy_file in
     let _ = print2 "Output file: " output_file in
     let prog = BC.process_bitcode output_file in
-    preprocess_program prog
+    post_process_program prog
 ;;

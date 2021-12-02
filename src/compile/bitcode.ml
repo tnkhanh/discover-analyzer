@@ -7,11 +7,9 @@
 
 open Dcore
 module LL = Llvm
-module OC = Llvm.Opcode
 module LI = Llir
 module LU = Llutils
 module LN = Llnormalize
-module LT = Llinstrument
 module LP = Llpass
 module PS = Process
 
@@ -46,9 +44,6 @@ let process_module (input_file : string) (modul : LL.llmodule) : LI.program =
     hdebug ~header:true
       ~enable:((not !print_concise_output) && !print_core_prog)
       "CORE BITCODE PROGRAM" LI.pr_program prog in
-  let _ =
-    hdebug ~header:true ~enable:!llvm_print_prog_info
-      "PROGRAM STATISTIC INFORMATION" LI.pr_program_stats prog in
   prog
 ;;
 

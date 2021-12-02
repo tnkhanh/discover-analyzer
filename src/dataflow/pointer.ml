@@ -2958,7 +2958,7 @@ struct
       let callee = callee_of_instr_func_call instr in
       let is_pointer_library_func func =
         let candidate_funcs =
-          [ is_alias_check_func;
+          [ is_discover_assertion_func;
             is_func_malloc;
             is_func_free;
             is_func_cpp_new;
@@ -3187,6 +3187,10 @@ struct
   (*******************************************************************
    ** Core analysis functions
    *******************************************************************)
+
+  let prepare_entry_func_input (penv : prog_env) func (input : t) : t =
+    input
+  ;;
 
   let prepare_callee_input penv instr callee args (input : t) : t =
     let args = List.map ~f:get_bitcast_alias_of_llvalue args in
@@ -3735,7 +3739,7 @@ end
  ** Main analysis module
  *******************************************************************)
 
-module PointerAnalysis = struct
+module Analysis = struct
   include PointerTransfer
   include DF.ForwardDataFlow (PointerTransfer)
 end

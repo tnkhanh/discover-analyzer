@@ -338,8 +338,12 @@ type program =
   { prog_globals : global list;
     prog_struct_types : lltype list;
     (* program functions  *)
-    prog_lib_funcs : func list;
-    prog_testing_funcs : func list;
+    prog_all_funcs : func list;
+    (* TODO: what are better names for prog_lib_no_source_funcs and
+       prog_lib_has_source_funcs? *)
+    prog_lib_no_source_funcs : func list;
+    prog_lib_has_source_funcs : func list;
+    prog_discover_funcs : func list;
     prog_init_funcs : func list;
     prog_user_funcs : func list;
     prog_entry_funcs : func list;
@@ -1474,19 +1478,19 @@ let is_expr_var (e : expr) : bool =
   | _ -> false
 ;;
 
-let is_integer_expr (e : expr) : bool =
+let is_expr_int64_const (e : expr) : bool =
   match e with
   | Int64 _ -> true
   | _ -> false
 ;;
 
-let is_float_expr (e : expr) : bool =
+let is_expr_float_const (e : expr) : bool =
   match e with
-  | Int64 _ -> true
+  | Float _ -> true
   | _ -> false
 ;;
 
-let is_constant_expr (e : expr) : bool =
+let is_expr_const (e : expr) : bool =
   match e with
   | Int64 _ | Float _ -> true
   | _ -> false
@@ -1759,26 +1763,24 @@ let is_func_llvm_debug_value (f : func) : bool =
   String.equal (func_name f) "llvm.dbg.value"
 ;;
 
-let is_library_function (f : func) : bool =
+let is_lib_no_source_func (f : func) : bool =
   List.is_empty (blocks_of_func f)
   || is_func_free f || is_func_malloc f || is_func_realloc f
   || is_func_nondet f
 ;;
 
-let is_assert_func (f : func) : bool =
+let is_lib_has_source_func (f : func) : bool =
+  let v = llvalue_of_func f in
+  match LL.classify_value v with
+  | LV.Function ->
+    LL.visibility v == LL.Visibility.Hidden
+  | _ -> false
+;;
+
+let is_discover_assertion_func (f : func) : bool =
   let fname = func_name f in
   String.is_substring ~substring:__assert fname
   || String.is_substring ~substring:__refute fname
-;;
-
-let is_alias_check_func (f : func) : bool =
-  let fname = func_name f in
-  String.is_substring ~substring:__assert_no_alias fname
-  || String.is_substring ~substring:__assert_may_alias fname
-  || String.is_substring ~substring:__assert_must_alias fname
-  || String.is_substring ~substring:__refute_no_alias fname
-  || String.is_substring ~substring:__refute_may_alias fname
-  || String.is_substring ~substring:__refute_must_alias fname
 ;;
 
 let is_init_func (f : func) : bool =
@@ -1790,9 +1792,9 @@ let is_user_func (f : func) : bool =
   let v = llvalue_of_func f in
   match LL.classify_value v with
   | LV.Function ->
-    (not (is_library_function f))
-    && (not (is_assert_func f))
-    && not (is_init_func f)
+    not
+      (is_init_func f || is_lib_no_source_func f || is_lib_has_source_func f
+      || is_discover_assertion_func f)
   | _ -> false
 ;;
 
@@ -1839,25 +1841,35 @@ let local_vars_of_func (f : func) : instr list =
     ~init:[] f
 ;;
 
-let get_library_functions (m : llmodule) =
+let get_all_funcs (m : llmodule) =
+  fold_left_functions ~f:(fun acc f -> acc @ [ f ]) ~init:[] m
+;;
+
+let get_lib_no_source_funcs (m : llmodule) =
   fold_left_functions
-    ~f:(fun acc f -> if is_library_function f then acc @ [ f ] else acc)
+    ~f:(fun acc f -> if is_lib_no_source_func f then acc @ [ f ] else acc)
     ~init:[] m
 ;;
 
-let get_user_functions (m : llmodule) =
+let get_lib_has_source_funcs (m : llmodule) =
+  fold_left_functions
+    ~f:(fun acc f -> if is_lib_has_source_func f then acc @ [ f ] else acc)
+    ~init:[] m
+;;
+
+let get_user_funcs (m : llmodule) =
   fold_left_functions
     ~f:(fun acc f -> if is_user_func f then acc @ [ f ] else acc)
     ~init:[] m
 ;;
 
-let get_auxiliary_funcs (m : llmodule) =
+let get_discover_funcs (m : llmodule) =
   fold_left_functions
-    ~f:(fun acc f -> if is_assert_func f then acc @ [ f ] else acc)
+    ~f:(fun acc f -> if is_discover_assertion_func f then acc @ [ f ] else acc)
     ~init:[] m
 ;;
 
-let get_initilization_funcs (m : llmodule) =
+let get_init_funcs (m : llmodule) =
   fold_left_functions
     ~f:(fun acc f -> if is_init_func f then acc @ [ f ] else acc)
     ~init:[] m
@@ -3034,21 +3046,23 @@ let mk_program_block_data (modul : llmodule) : program_block_data =
   }
 ;;
 
-let mk_program (filename : string) (m : llmodule) : program =
+let mk_program (filename : string) (modul : llmodule) : program =
   let globals =
-    LL.fold_left_globals (fun acc g -> acc @ [ mk_global g ]) [] m in
+    LL.fold_left_globals (fun acc g -> acc @ [ mk_global g ]) [] modul in
   { prog_globals = globals;
     prog_struct_types = [];
-    prog_lib_funcs = get_library_functions m;
-    prog_user_funcs = get_user_functions m;
-    prog_testing_funcs = get_auxiliary_funcs m;
-    prog_init_funcs = get_initilization_funcs m;
+    prog_all_funcs = get_all_funcs modul;
+    prog_discover_funcs = get_discover_funcs modul;
+    prog_lib_no_source_funcs = get_lib_no_source_funcs modul;
+    prog_lib_has_source_funcs = get_lib_has_source_funcs modul;
+    prog_user_funcs = get_user_funcs modul;
+    prog_init_funcs = get_init_funcs modul;
     prog_entry_funcs = [];
-    prog_meta_data = mk_program_meta_data filename m;
-    prog_func_data = mk_program_func_data m;
-    prog_loop_data = mk_program_loop_data m;
-    prog_block_data = mk_program_block_data m;
-    prog_module_data = m
+    prog_meta_data = mk_program_meta_data filename modul;
+    prog_func_data = mk_program_func_data modul;
+    prog_loop_data = mk_program_loop_data modul;
+    prog_block_data = mk_program_block_data modul;
+    prog_module_data = modul
   }
 ;;
 
@@ -3155,12 +3169,15 @@ let pr_func_call_info (prog : program) : unit =
   debug callers_info
 ;;
 
-let pr_program_stats (prog : program) : string =
-  sprintf "- Init functions: %s\n" (func_names prog.prog_init_funcs)
-  ^ sprintf "- Library functions: %s\n" (func_names prog.prog_lib_funcs)
-  ^ sprintf "- User functions: %s\n" (func_names prog.prog_user_funcs)
-  ^ sprintf "- Entry functions: %s\n" (func_names prog.prog_entry_funcs)
-  ^ sprintf "\n"
-  ^ sprintf "  - Function call information: %s\n %s" (pr_caller_info prog)
-      (pr_callee_info prog)
+let pr_program_info (prog : program) : string =
+  sprintf " - Init functions: %s\n" (func_names prog.prog_init_funcs)
+  ^ sprintf " - Library (no source code) functions: %s\n"
+      (func_names prog.prog_lib_no_source_funcs)
+  ^ sprintf " - Library (has source code) functions: %s\n"
+      (func_names prog.prog_lib_has_source_funcs)
+  ^ sprintf " - User functions: %s\n" (func_names prog.prog_user_funcs)
+  ^ sprintf " - Entry functions: %s\n" (func_names prog.prog_entry_funcs)
+  ^ sprintf " - Function call information: \n%s\n%s"
+      (String.hindent 4 pr_caller_info prog)
+      (String.hindent 4 pr_callee_info prog)
 ;;

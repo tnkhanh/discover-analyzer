@@ -46,6 +46,8 @@ Coding convention
 - Coding standards follow the book `Real World Ocaml
   <https://dev.realworldocaml.org/index.html>`_ (free, online).
 
+- Every module must be accompanied by an ``*.mli`` interface file.
+
 - Some general rules to write concise and readable code:
 
   + Use 2-white-space indentation style.

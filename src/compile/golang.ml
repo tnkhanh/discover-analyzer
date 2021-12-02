@@ -6,25 +6,9 @@
  ********************************************************************)
 
 open Dcore
-module AG = Arguments
-module AS = Assertion
-module BG = Bug
 module BC = Bitcode
-module CI = Commonir
-module DA = Dfanalyzer
-module DF = Dataflow
 module LI = Llir
-module LL = Llvm
-module LU = Llutils
-module NO = Normalize
 module PS = Process
-module PV = Prover
-module SA = Slast
-module SE = Symexec
-module SI = Slir
-module TF = Transform
-module TI = Typeinfer
-module VS = Version
 
 let config_golang_compiler () =
   if String.equal !gollvm_path ""
@@ -38,17 +22,17 @@ let config_golang_compiler () =
   then gollvm_path := !gollvm_path ^ "/"
 ;;
 
-let compile_program (filename : string) : LI.program =
-  let _ = debug2 "Compiling Go file: " filename in
+let compile_program (input_file : string) : LI.program =
+  let _ = debug2 "Compiling Go file: " input_file in
   let _ = debug2 "gollvm_path: " !gollvm_path in
-  let dirname = Filename.dirname filename ^ Filename.dir_sep ^ "logs" in
+  let dirname = Filename.dirname input_file ^ Filename.dir_sep ^ "logs" in
   let _ = Sys.make_dir dirname in
-  let bitcode_filename = dirname ^ Filename.dir_sep ^ filename ^ ".raw.bc" in
+  let bitcode_filename = dirname ^ Filename.dir_sep ^ input_file ^ ".raw.bc" in
   (* Code to compile Go file in OCaml
 
   let exec_filename = dirname ^ Filename.dir_sep ^ "a.out" in
   let go_build_cmd = [!gollvm_path ^ "go"; "build"; "-a"; "-work"; "-x";
-                      "-o"; exec_filename; filename] in
+                      "-o"; exec_filename; input_file] in
   let go_build_output = PS.run_command_get_output go_build_cmd in
   match go_build_output with
   | POutput go_build_output_str ->
@@ -84,11 +68,11 @@ let compile_program (filename : string) : LI.program =
 
   *)
   let script_name = project_path ^ Filename.dir_sep ^ "gobuild.sh" in
-  let go_build_output = dirname ^ Filename.dir_sep ^ filename ^ ".txt" in
+  let go_build_output = dirname ^ Filename.dir_sep ^ input_file ^ ".txt" in
   let _ =
     PS.run_command
       [ script_name;
-        filename;
+        input_file;
         bitcode_filename;
         !gollvm_path ^ "go";
         go_build_output

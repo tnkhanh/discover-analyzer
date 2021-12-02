@@ -17,7 +17,7 @@ contract IntegerOverflowMultiTxMultiFuncFeasible {
         initialized = 1;
     }
 
-    function run(uint256 input) {
+    function run(uint256 input) public {
         if (initialized == 0) {
             return;
         }

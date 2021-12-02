@@ -19,7 +19,6 @@ include Liblist
 include Libmath
 include Libstring
 include Libsys
-include Libbool
 
 (*---------------------
  * Discover's modules

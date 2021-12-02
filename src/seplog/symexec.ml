@@ -6,15 +6,7 @@
  ********************************************************************)
 
 open Dcore
-module AG = Arguments
-module BG = Bug
-module BR = Llvm_bitreader
-module CI = Commonir
-module DF = Dataflow
 module LI = Llir
-module LL = Llvm
-module NO = Normalize
-module PS = Process
 module PV = Prover
 module SA = Slast
 module SI = Slir
@@ -57,11 +49,11 @@ let process_command (prog : SI.program) (cmd : SI.command) : unit =
   | SI.ProveEntails ents ->
     print_endline ("\n[+] ProveEntails:\n" ^ SI.pr_ents ents);
     let res = PV.prove_entailments prog ents in
-    print_endline ("\n ==> Result: " ^ pr_bresult res ^ "\n")
+    print_endline ("\n ==> Result: " ^ pr_bool_option res ^ "\n")
   | SI.InferFrame ent ->
     print_endline ("\n[+] InferFrame: " ^ SI.pr_ent ent);
     let res, frame = PV.infer_entailment_frame prog ent in
-    print_endline ("\n ==> Result: " ^ pr_bresult res);
+    print_endline ("\n ==> Result: " ^ pr_bool_option res);
     print_endline ("\n ==> Frame: " ^ SI.pr_fs frame ^ "\n")
 ;;
 
@@ -99,13 +91,13 @@ let compile_sep_logic (filename : string) : SI.program =
   cprog
 ;;
 
-let analyze_program_seplog (prog : SI.program) : unit =
+let verify_program (prog : SI.program) : unit =
   let _ = debug (SI.pr_program prog) in
   let _ = debug "\n===================================\n" in
   List.iter ~f:(process_command prog) prog.prog_commands
 ;;
 
-let analyze_program_llvm (prog : LI.program) : unit =
+let analyze_program (prog : LI.program) : unit =
   let _ = print "Analyze program by Separation Logic" in
   let _ = Verifier.lib_core := compile_lib_seplog () in
   Verifier.verify_program prog

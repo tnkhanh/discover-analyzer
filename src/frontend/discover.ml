@@ -6,7 +6,7 @@
  ********************************************************************)
 
 open Dcore
-module AG = Arguments
+module AG = Argument
 module AS = Assertion
 module CI = Commonir
 module DA = Dfanalyzer
@@ -85,24 +85,22 @@ let print_analysis_summary () =
   | WkmNoAnalysis -> ()
   | _ ->
     let detailed_runtime =
-      if not !mode_debug
+      if (not !mode_debug) || List.is_empty !detailed_task_time
       then ""
       else
         List.fold_left
           ~f:(fun acc (task, time) ->
             acc ^ "\n- " ^ task ^ ": " ^ Printf.sprintf "%.2fs" time)
           ~init:"\n\nDetailed runtime:" !detailed_task_time in
-    let summary =
-      [ "Summary:";
-        "- Input file: " ^ !input_file;
-        "- Valid assertions: " ^ pr_int !num_valid_asserts;
-        "- Invalid assertions: " ^ pr_int !num_invalid_asserts;
-        "- Analysis time: " ^ sprintf "%.2fs" !analysis_time;
-        "- Total runtime: " ^ sprintf "%.2fs" !total_time;
-        detailed_runtime
-      ] in
-    let msg = String.concat ~sep:"\n" summary in
-    println ~always:true ~format:false ~ruler:`Long msg
+    let msg =
+      "Summary:\n"
+      ^ sprintf "- Input file: %s\n" !input_file
+      ^ sprintf "- Valid assertions: %d\n" !num_valid_asserts
+      ^ sprintf "- Invalid assertions: %d\n" !num_invalid_asserts
+      ^ sprintf "- Analysis time: %.2fs\n" !analysis_time
+      ^ sprintf "- Total runtime: %.2fs" !total_time
+      ^ detailed_runtime in
+    println ~marker:false ~always:true ~autoformat:false ~ruler:`Long msg
 ;;
 
 let handle_system_signals () =
@@ -126,13 +124,13 @@ let analyze_program (prog : CI.program) : unit =
     let num_assertions = AS.count_all_assertions prog in
     let _ = print ("Found total assertions: " ^ pr_int num_assertions) in
     (match !work_mode with
-    | WkmDFA -> DA.analyze_program_llvm prog
-    (* | WkmDFA -> DAP.analyze_program_llvm prog *)
-    (* | WkmDFA -> DAO.analyze_program_llvm prog *)
-    | WkmSymExec -> SE.analyze_program_llvm prog
+    | WkmDFA -> DA.analyze_program prog
+    (* | WkmDFA -> DAP.analyze_program prog *)
+    (* | WkmDFA -> DAO.analyze_program prog *)
+    | WkmSymExec -> SE.analyze_program prog
     | WkmNoAnalysis -> print "No analysis mode is performed!"
     | _ -> ())
-  | CI.Slprog prog -> SE.analyze_program_seplog prog
+  | CI.Slprog prog -> SE.verify_program prog
 ;;
 
 let analyze_input_file (filename : string) : unit =

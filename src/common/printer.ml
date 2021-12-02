@@ -38,6 +38,16 @@ let pr_str : string -> string = fun s -> s
  * Print to string
  *-----------------*)
 
+(** print option *)
+let pr_option ~(f : 'a -> string) (x : 'a option) =
+  match x with
+  | Some v -> "Some(" ^ f v ^ ")"
+  | None -> "None"
+;;
+
+let pr_bool_option (x: bool option) =
+  pr_option ~f:pr_bool x
+
 (** print a list to string *)
 let pr_list
     ?(sep = ", ")
@@ -75,7 +85,7 @@ let pr_list_curly = pr_list ~obrace:"{" ~cbrace:"}"
 let pr_list_paren = pr_list ~obrace:"(" ~cbrace:")"
 let pr_list_plain = pr_list ~obrace:"" ~cbrace:""
 
-(** print a list of items to string in itemized format *)
+(** print a list of items to string in itemized autoformat *)
 let pr_items
     ?(bullet = "-")
     ?(obrace = "")
@@ -149,39 +159,44 @@ let print_core
     ?(prefix = "")
     ?(indent = 0)
     ?(always = false)
+    ?(marker = true)
     ?(enable = true)
-    ?(format = true)
+    ?(autoformat = true)
     msg
     : unit
   =
   if ((not !no_print) && enable) || always
   then (
+    let str_marker = if marker then "[info] " else "" in
     let msg =
       if header
       then (
         let msg = if String.is_empty msg then msg else "\n\n" ^ msg ^ "\n\n" in
-        "\n" ^ String.make 68 '*' ^ "\n" ^ prefix ^ msg)
+        "\n" ^ String.make 68 '*' ^ "\n" ^ str_marker ^ prefix ^ msg)
       else (
         match ruler with
-        | `Long -> "\n" ^ String.make 68 '*' ^ "\n" ^ prefix ^ msg
-        | `Medium -> "\n" ^ String.make 36 '=' ^ "\n" ^ prefix ^ msg
-        | `Short -> "\n" ^ String.make 21 '-' ^ "\n" ^ prefix ^ msg
+        | `Long -> "\n" ^ String.make 68 '*' ^ "\n" ^ str_marker ^ prefix ^ msg
+        | `Medium ->
+          "\n" ^ String.make 36 '=' ^ "\n" ^ str_marker ^ prefix ^ msg
+        | `Short ->
+          "\n" ^ String.make 21 '-' ^ "\n" ^ str_marker ^ prefix ^ msg
         | `None ->
-          let msg = "[info] " ^ msg in
-          if not format
+          if not autoformat
           then msg
           else if String.is_prefix ~prefix:"\n" msg
                   || (String.length prefix > 1
                      && String.is_suffix ~suffix:"\n" prefix)
           then (
             let indent = String.count_indent prefix + 2 + indent in
-            prefix ^ String.indent indent msg)
+            str_marker ^ prefix ^ String.indent indent msg)
           else if String.length prefix > 12
                   && String.exists ~f:(fun c -> c == '\n') msg
           then (
             let indent = String.count_indent prefix + 2 + indent in
-            prefix ^ "\n" ^ String.indent indent msg)
-          else String.indent indent (String.align_line prefix msg)) in
+            str_marker ^ prefix ^ "\n" ^ String.indent indent msg)
+          else
+            String.indent indent (String.align_line (str_marker ^ prefix) msg))
+    in
     print_endline msg)
   else ()
 ;;
@@ -193,11 +208,12 @@ let print
     ?(indent = 0)
     ?(always = false)
     ?(enable = true)
-    ?(format = true)
+    ?(marker = true)
+    ?(autoformat = true)
     (msg : string)
     : unit
   =
-  print_core ~header ~ruler ~indent ~always ~enable ~format msg
+  print_core ~header ~ruler ~indent ~always ~enable ~marker ~autoformat msg
 ;;
 
 (** print 2 messages *)
@@ -207,12 +223,14 @@ let print2
     ?(indent = 0)
     ?(always = false)
     ?(enable = true)
-    ?(format = true)
+    ?(marker = true)
+    ?(autoformat = true)
     (msg1 : string)
     (msg2 : string)
     : unit
   =
-  print_core ~header ~ruler ~indent ~always ~enable ~format (msg1 ^ msg2)
+  let msg = msg1 ^ msg2 in
+  print_core ~header ~ruler ~indent ~always ~enable ~marker ~autoformat msg
 ;;
 
 (** print a list of messages *)
@@ -222,12 +240,13 @@ let printl
     ?(indent = 0)
     ?(always = false)
     ?(enable = true)
-    ?(format = true)
+    ?(marker = true)
+    ?(autoformat = true)
     (msgs : string list)
     : unit
   =
-  print_core ~header ~ruler ~indent ~always ~enable ~format
-    (String.concat msgs)
+  let msg = (String.concat msgs) in
+  print_core ~header ~ruler ~indent ~always ~enable ~marker ~autoformat msg
 ;;
 
 (** print a message and a newline character *)
@@ -237,11 +256,13 @@ let println
     ?(indent = 0)
     ?(always = false)
     ?(enable = true)
-    ?(format = true)
+    ?(marker = true)
+    ?(autoformat = true)
     (msg : string)
     : unit
   =
-  print_core ~header ~ruler ~indent ~always ~enable ~format (msg ^ "\n")
+  let msg = (msg ^ "\n") in
+  print_core ~header ~ruler ~indent ~always ~enable ~marker ~autoformat msg
 ;;
 
 (** high-order print a message *)
@@ -251,12 +272,14 @@ let hprint
     ?(indent = 0)
     ?(always = false)
     ?(enable = true)
-    ?(format = true)
+    ?(marker = true)
+    ?(autoformat = true)
     (prefix : string)
     (f : 'a -> string)
     (v : 'a)
   =
-  print_core ~header ~ruler ~indent ~prefix ~always ~enable ~format (f v)
+  let msg = f v in
+  print_core ~header ~ruler ~indent ~prefix ~always ~enable ~marker ~autoformat msg
 ;;
 
 let nprint _ = ()

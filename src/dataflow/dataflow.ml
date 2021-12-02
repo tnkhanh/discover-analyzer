@@ -376,6 +376,12 @@ module type ForwardDataTransfer = sig
   val is_data_satisfied_predicate : t -> predicate -> bool
   val refine_data_by_predicate : ?widen:bool -> t -> predicate -> t
 
+  val prepare_entry_func_input
+    :  prog_env ->
+    func ->
+    t ->
+    t
+
   val prepare_callee_input
     :  prog_env ->
     instr ->
@@ -947,7 +953,7 @@ functor
         ^ sprintf "  #Sparse Pointer Vars: %d\n" !num_pointer_vars
         ^ sprintf "  #Sparse Struct Vars: %d\n" !num_struct_vars
         ^ sprintf "  #Sparse Array Vars: %d\n" !num_array_vars in
-      print ~format:false ~always:true stats
+      print ~autoformat:false ~always:true stats
     ;;
 
     let export_debugging_info_to_file (penv : T.prog_env) : unit =
@@ -1975,7 +1981,7 @@ functor
               if List.is_empty callees
               then (* (input, false) *)
                 input, true
-              else if List.exists ~f:is_library_function callees
+              else if List.exists ~f:is_lib_no_source_func callees
               then input, true
               else (
                 let res, time =
@@ -2812,6 +2818,7 @@ functor
             (* prepare environment and input *)
             let _ = initialize_analysis penv f in
             let input = penv.penv_global_env.genv_globals_data in
+            let input = T.prepare_entry_func_input penv f input in
             let wf = mk_working_func f input [] in
             (* then analyze *)
             let _ = analyze_function penv wf in
@@ -2833,6 +2840,7 @@ functor
             let _ = initialize_analysis penv f in
             let _ = analyze_globals penv in
             let input = penv.penv_global_env.genv_globals_data in
+            let input = T.prepare_entry_func_input penv f input in
             let wf = mk_working_func f input [] in
             let _ = enqueue_to_analyze_func ~msg:"entry" penv wf in
             analyze_functions penv)
@@ -2881,7 +2889,7 @@ functor
 
     let report_analysis_stats (penv : T.prog_env) : unit =
       (* if not !print_concise_output || !print_concise_debug then *)
-      println ~format:false (* ~always:true *)
+      println ~autoformat:false (* ~always:true *)
         (("\nStatistics of " ^ name_of_dfa analysis ^ ": \n")
         ^ pr_analysis_stats penv)
     ;;

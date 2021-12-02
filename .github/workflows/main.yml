@@ -35,6 +35,6 @@ jobs:
 
       - run: opam exec -- dune build @fmt
 
-      - run: opam exec -- dune build src/Discover.exe
+      # - run: opam exec -- dune build src/Discover.exe
 
       # - run: opam exec -- dune runtest

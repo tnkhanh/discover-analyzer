@@ -6,15 +6,10 @@
  ********************************************************************)
 
 open Dcore
-module LL = Llvm
+module BC = Bitcode
 module CI = Commonir
-module OC = Llvm.Opcode
-module LI = Llir
-module LU = Llutils
-module LP = Llpass
 module PS = Process
 module SE = Symexec
-module BC = Bitcode
 
 (*********************************************************
  * LLVM PROGRAM

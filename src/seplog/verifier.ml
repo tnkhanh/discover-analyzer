@@ -16,7 +16,7 @@ module LD = Lldebug
 module OC = Llvm.Opcode
 module LTD = Llvm_target.DataLayout
 module NO = Normalize
-module AG = Arguments
+module AG = Argument
 module SMT = Smt.SmtSL
 
 (*******************************************************************
@@ -271,7 +271,7 @@ let check_buffer_overflow vstate instr pstate ptr size index : bool =
   let prog = vstate.vrs_llvm_prog in
   let pf = NO.encode_formula_to_pure pstate.pgs_formula in
   let overflow_cond = mk_ge index size in
-  if is_true (SMT.check_imply pf overflow_cond)
+  if SMT.check_imply pf overflow_cond == Some true
   then (
     let buggy_exps = find_source_pointers pstate [ ptr ] @ [ ptr ] in
     report_bug prog "BUFFER OVERFLOW" buggy_exps instr)
@@ -483,7 +483,7 @@ let process_one_state_inst_load vstate instr src dst pstate =
   let ent = mk_entailment pstate.pgs_formula (mk_f_exists evs curr_data) in
   let _ = hdebug "LOAD: Prove Pre-Condition By Frame:\n\n" pr_ent ent in
   let res, frames = PV.infer_entailment_frame vstate.vrs_core_prog ent in
-  let _ = hdebug "==> Result: " pr_bresult res in
+  let _ = hdebug "==> Result: " pr_bool_option res in
   let _ = hdebug "==> Frame: " pr_fs frames in
   match res, frames with
   | Some true, [ frame ] ->
@@ -529,7 +529,7 @@ let process_one_state_instr_store vstate instr dst new_val pstate =
   let ent = mk_entailment pstate.pgs_formula (mk_f_exists evs curr_data) in
   let _ = hdebug "STORE: Entailment:\n" pr_ent ent in
   let res, frames = PV.infer_entailment_frame vstate.vrs_core_prog ent in
-  let _ = hdebug "==> Result: " pr_bresult res in
+  let _ = hdebug "==> Result: " pr_bool_option res in
   let _ = hdebug "==> Frame: " pr_fs frames in
   match res, frames with
   | Some true, [ frame ] ->
@@ -786,7 +786,7 @@ let process_one_state_instr_call vstate instr pstate func args return =
   let ent = mk_entailment pstate.pgs_formula (mk_f_exists evs precond) in
   let _ = hdebug "CALL: Prove Pre-Condition By Frame:\n\n" pr_ent ent in
   let res, frames = PV.infer_entailment_frame vstate.vrs_core_prog ent in
-  let _ = hdebug "==> Result: " pr_bresult res in
+  let _ = hdebug "==> Result: " pr_bool_option res in
   let _ = hdebug "==> Frame: " pr_fs frames in
   match res, frames with
   | Some true, [ frame ] ->
