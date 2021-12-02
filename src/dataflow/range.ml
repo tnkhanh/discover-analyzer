@@ -209,11 +209,44 @@ module IntervalDomain = struct
   ;;
 
   let udiv_bound (a : bound) (b : bound) : bound =
+    (*TODO: Division by zero, unsigned div *)
     match a, b with
     | PInf, PInf -> error "udiv_bound: undefined for PInf / PInf"
     | NInf, _ | _, NInf -> error "udiv_bound: does not work with NInf"
     | PInf, _ -> PInf
     | _, PInf -> BInt BInt.zero
+    (* Int64, BInt, EInt *)
+    | Int64 x, Int64 y -> Int64 (Int64.( / ) x y)
+    | Int64 x, EInt y -> EInt (EInt.div (EInt.of_int64 x) y)
+    | Int64 x, BInt y -> BInt (BInt.div (BInt.of_int64 x) y)
+    | EInt x, Int64 y -> EInt (EInt.div x (EInt.of_int64 y))
+    | EInt x, EInt y -> EInt (EInt.div x y)
+    | EInt x, BInt y -> EInt (EInt.div x (EInt.of_bint y))
+    | BInt x, Int64 y -> BInt (BInt.div x (BInt.of_int64 y))
+    | BInt x, EInt y -> EInt (EInt.div (EInt.of_bint x) y)
+    | BInt x, BInt y -> BInt (BInt.div x y)
+  ;;
+
+  let sdiv_bound (a : bound) (b : bound) : bound =
+    (*TODO: Division by zero *)
+    match a, b with
+    | PInf, PInf -> error "sdiv_bound: undefined for PInf / PInf"
+    | PInf, NInf -> error "sdiv_bound: undefined for PInf / NInf"
+    | NInf, PInf -> error "sdiv_bound: undefined for NInf / PInf"
+    | NInf, NInf -> error "sdiv_bound: undefined for NInf / NInf"
+    | _, PInf | _, NInf -> BInt BInt.zero
+    | PInf, _ ->
+      let cmp = compare_bound b (BInt BInt.zero) in
+      if cmp > 0 then PInf
+      else
+      if cmp < 0 then NInf
+      else error "sdiv_bound: undefined for PInf / 0"
+    | NInf, _ ->
+      let cmp = compare_bound b (BInt BInt.zero) in
+      if cmp > 0 then NInf
+      else
+      if cmp < 0 then PInf
+      else error "sdiv_bound: undefined for NInf / 0"
     (* Int64, BInt, EInt *)
     | Int64 x, Int64 y -> Int64 (Int64.( / ) x y)
     | Int64 x, EInt y -> EInt (EInt.div (EInt.of_int64 x) y)
@@ -299,6 +332,24 @@ module IntervalDomain = struct
     | _, BInt x -> mult_bint_bound x a
   ;;
 
+  let union_range (a : range) (b : range) : range =
+    let lb, li =
+      let cmp = compare_bound a.range_lb b.range_lb in
+      if cmp < 0
+      then a.range_lb, a.range_lb_incl
+      else if cmp > 0
+      then b.range_lb, b.range_lb_incl
+      else a.range_lb, a.range_lb_incl && b.range_lb_incl in
+    let ub, ui =
+      let cmp = compare_bound a.range_ub b.range_ub in
+      if cmp > 0
+      then a.range_ub, a.range_ub_incl
+      else if cmp < 0
+      then b.range_ub, b.range_ub_incl
+      else a.range_ub, a.range_ub_incl && b.range_ub_incl in
+    mk_range lb ub ~li ~ui
+  ;;
+
   let add_range (a : range) (b : range) =
     let lb = add_bound a.range_lb b.range_lb in
     let li = a.range_lb_incl && b.range_lb_incl in
@@ -316,12 +367,81 @@ module IntervalDomain = struct
   ;;
 
   let udiv_range (a : range) (b : range) =
-    (* TODO: Add inclusive, add Division-by-zero  *)
+    (* TODO: Add inclusive, Division-by-zero, unsigned ranges are incorrect *)
 (*    let anew =
       if a.range_lb_incl *)
     let lb = udiv_bound a.range_lb b.range_ub in
     let ub = udiv_bound a.range_ub b.range_ub in
-    mk_range lb ub
+    mk_range lb ub ~li:true ~ui:true
+  ;;
+
+  let pos_int_range (r : range) : range =
+    if compare_bound r.range_ub (BInt BInt.zero) <= 0 then 
+      range_of_bound (BInt BInt.zero) (* implies no positive *)
+    else
+      mk_range (BInt BInt.one) r.range_ub ~li:true ~ui:true
+  ;;
+
+  let neg_int_range (r : range) : range =
+    if compare_bound r.range_lb (BInt BInt.zero) >= 0 then 
+      range_of_bound (BInt BInt.zero) (* implies no negative *)
+    else
+      mk_range r.range_lb (BInt BInt.minus_one) ~li:true ~ui:true
+  ;;
+
+  (*both a and b are only-positive or only-negative *)
+  let sdiv_range_one_sign (a : range) (b : range) : range = 
+    let max_bound b1 b2 =
+      if compare_bound b1 b2 > 0
+      then b1
+      else b2 in
+    let min_bound b1 b2 =
+      if compare_bound b1 b2 < 0
+      then b1
+      else b2 in
+    let alow = a.range_lb in
+    let aup = a.range_ub in
+    let blow = b.range_lb in
+    let bup = b.range_ub in
+    let bound1 = sdiv_bound alow blow in
+    let bound2 = sdiv_bound alow bup in
+    let bound3 = sdiv_bound aup blow in
+    let bound4 = sdiv_bound aup bup in
+    let lb = 
+      bound1
+      |> min_bound bound2
+      |> min_bound bound3
+      |> min_bound bound4 in
+    let ub =
+      bound1
+      |> max_bound bound2
+      |> max_bound bound3
+      |> max_bound bound4 in
+    mk_range lb ub ~li:true ~ui:true
+  ;;
+
+  let rec sdiv_range (a : range) (b : range) : range =
+    (* TODO: Add inclusive, Division-by-zero *)
+    let bzero = BInt BInt.zero in
+    let one_sign_a =
+      if compare_bound b.range_ub bzero < 0 then 
+        sdiv_range_one_sign a b
+      else
+      if compare_bound b.range_lb bzero > 0 then
+        sdiv_range_one_sign a b
+      else
+        (*for now, throws whenever range b includes 0 *)
+        error "Division-by-zero" in
+
+    if compare_bound a.range_ub bzero < 0 then (* a is negative *)
+      one_sign_a
+    else
+    if compare_bound a.range_lb bzero > 0 then (* a is positive *)
+      one_sign_a
+    else
+      union_range 
+        (union_range (range_of_bound bzero) (sdiv_range (pos_int_range a) b) )
+        (sdiv_range (neg_int_range a) b)
   ;;
 
   let mult_range (a : range) (b : range) =
@@ -359,24 +479,6 @@ module IntervalDomain = struct
       |> get_upper_bound (b2, i2)
       |> get_upper_bound (b3, i3)
       |> get_upper_bound (b4, i4) in
-    mk_range lb ub ~li ~ui
-  ;;
-
-  let union_range (a : range) (b : range) : range =
-    let lb, li =
-      let cmp = compare_bound a.range_lb b.range_lb in
-      if cmp < 0
-      then a.range_lb, a.range_lb_incl
-      else if cmp > 0
-      then b.range_lb, b.range_lb_incl
-      else a.range_lb, a.range_lb_incl && b.range_lb_incl in
-    let ub, ui =
-      let cmp = compare_bound a.range_ub b.range_ub in
-      if cmp > 0
-      then a.range_ub, a.range_ub_incl
-      else if cmp < 0
-      then b.range_ub, b.range_ub_incl
-      else a.range_ub, a.range_ub_incl && b.range_ub_incl in
     mk_range lb ub ~li ~ui
   ;;
 
@@ -428,6 +530,13 @@ module IntervalDomain = struct
     | Bottom, _ -> Bottom
     | _, Bottom -> Bottom
     | Range ra, Range rb -> Range (udiv_range ra rb)
+  ;;
+
+  let sdiv_interval (a: interval) (b : interval) =
+    match a, b with
+    | Bottom, _ -> Bottom
+    | _, Bottom -> Bottom
+    | Range ra, Range rb -> Range (sdiv_range ra rb)
   ;;
 
   let intersect_interval (a : interval) (b : interval) : interval =
@@ -881,7 +990,10 @@ struct
       let itv = udiv_interval itv0 itv1 in
       replace_interval expr itv input
     | LO.SDiv ->
-      input
+      let opr0, opr1 = expr_operand instr 0, expr_operand instr 1 in
+      let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
+      let itv = sdiv_interval itv0 itv1 in
+      replace_interval expr itv input
     | LO.PHI ->
       let opr0 = expr_operand instr 0 in
       let itv = ref (get_interval opr0 input) in
