@@ -28,10 +28,14 @@ type tagged_ins =
     tagx_ins : instr
   }
 
-let make_tagged_ins pos_ tag_ ins_ = { tagx_pos = pos_; tagx_tag = tag_; tagx_ins = ins_ }
+let make_tagged_ins pos_ tag_ ins_ =
+  { tagx_pos = pos_; tagx_tag = tag_; tagx_ins = ins_ }
+;;
 
 let less_than ins ann =
-  if Poly.((ins.tagx_pos.pos_line_end, ins.tagx_pos.pos_col_end) < Ann.pos_of_ann ann)
+  if Poly.(
+       (ins.tagx_pos.pos_line_end, ins.tagx_pos.pos_col_end)
+       < Ann.pos_of_ann ann)
   then true
   else false
 ;;
@@ -53,7 +57,9 @@ let max_lc lcx lcy = if lc_comp lcx lcy = 1 then lcx else lcy
 let min_lc lcx lcy = if lc_comp lcx lcy = 1 then lcy else lcx
 
 let less_than ins ann =
-  if Poly.((ins.tagx_pos.pos_line_end, ins.tagx_pos.pos_col_end) < Ann.pos_of_ann ann)
+  if Poly.(
+       (ins.tagx_pos.pos_line_end, ins.tagx_pos.pos_col_end)
+       < Ann.pos_of_ann ann)
   then true
   else false
 ;;
@@ -199,7 +205,8 @@ let rec update (ins : tagged_ins) anns =
           let end_comp = lc_comp old_end cend in
           if start_comp < 0
              || (start_comp = 0 && end_comp > 0)
-             || (start_comp = 0 && end_comp = 0 && old_ins.tagx_tag < ins.tagx_tag)
+             || (start_comp = 0 && end_comp = 0
+                && old_ins.tagx_tag < ins.tagx_tag)
           then old_ins
           else ins in
         (ann, Some choose_ins) :: update ins tl))
@@ -325,7 +332,8 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
           else (
             match acc with
             | [] -> make_tagged_ins pos 1 instr :: acc
-            | hd :: tl -> make_tagged_ins pos (hd.tagx_tag + 1) instr :: acc)) in
+            | hd :: tl -> make_tagged_ins pos (hd.tagx_tag + 1) instr :: acc))
+  in
   let tagged_ins = deep_fold_module ~finstr [] modul in
   let compare ins1 ins2 =
     let p1 = ins1.tagx_pos.pos_line_end, ins1.tagx_pos.pos_col_end in
