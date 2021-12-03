@@ -33,7 +33,7 @@ let export_bitcode_to_file (input_file : string) (modul : LL.llmodule) =
 ;;
 
 let process_module (input_file : string) (modul : LL.llmodule) : LI.program =
-  let _ = print2 "Normalize bitcode: " input_file in
+  let _ = print ("Normalize bitcode: " ^ input_file) in
   let _ = LN.rename_vars_and_params modul in
   let _ = if !llvm_simplify then LN.normalize_module input_file modul in
   let _ = if !export_bitcode then export_bitcode_to_file input_file modul in
@@ -54,7 +54,7 @@ let disassemble_bitcode (filename : string) : unit =
 
 (** Optimize LLVM bitcode by running the LLVM's opt tool *)
 let optimize_bitcode (input_file : string) : string =
-  let _ = print2 "Optimize bitcode file: " input_file in
+  let _ = print ("Optimize bitcode file: " ^ input_file) in
   let basename = Filename.chop_extension (Filename.basename input_file) in
   let dirname = Filename.dirname input_file in
   let _ = Sys.make_dir dirname in
@@ -79,7 +79,7 @@ let optimize_bitcode (input_file : string) : string =
 
 (** Normalize LLVM bitcode by running the Discover's llvm-normalizer tool *)
 let normalize_bitcode (input_file : string) : string =
-  let _ = print2 "Normalize bitcode file: " input_file in
+  let _ = print ("Normalize bitcode file: " ^ input_file) in
   let basename = Filename.chop_extension (Filename.basename input_file) in
   let dirname = Filename.dirname input_file in
   let _ = Sys.make_dir dirname in

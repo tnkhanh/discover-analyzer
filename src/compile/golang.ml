@@ -23,8 +23,8 @@ let config_golang_compiler () =
 ;;
 
 let compile_program (input_file : string) : LI.program =
-  let _ = debug2 "Compiling Go file: " input_file in
-  let _ = debug2 "gollvm_path: " !gollvm_path in
+  let _ = debug ("Compiling Go file: " ^ input_file) in
+  let _ = debug ("gollvm_path: " ^ !gollvm_path) in
   let dirname = Filename.dirname input_file ^ Filename.dir_sep ^ "logs" in
   let _ = Sys.make_dir dirname in
   let bitcode_filename = dirname ^ Filename.dir_sep ^ input_file ^ ".raw.bc" in

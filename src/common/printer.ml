@@ -218,39 +218,6 @@ let print
   print_core ~header ~ruler ~indent ~always ~enable ~marker ~autoformat msg
 ;;
 
-(** print 2 messages *)
-let print2
-    ?(header = false)
-    ?(ruler = `None)
-    ?(indent = 0)
-    ?(always = false)
-    ?(enable = true)
-    ?(marker = true)
-    ?(autoformat = true)
-    (msg1 : string)
-    (msg2 : string)
-    : unit
-  =
-  let msg = msg1 ^ msg2 in
-  print_core ~header ~ruler ~indent ~always ~enable ~marker ~autoformat msg
-;;
-
-(** print a list of messages *)
-let printl
-    ?(header = false)
-    ?(ruler = `None)
-    ?(indent = 0)
-    ?(always = false)
-    ?(enable = true)
-    ?(marker = true)
-    ?(autoformat = true)
-    (msgs : string list)
-    : unit
-  =
-  let msg = String.concat msgs in
-  print_core ~header ~ruler ~indent ~always ~enable ~marker ~autoformat msg
-;;
-
 (** print a message and a newline character *)
 let println
     ?(header = false)
@@ -286,8 +253,6 @@ let hprint
 ;;
 
 let nprint _ = ()
-let nprint2 _ = ()
-let nprintl _ = ()
 let nprintln _ = ()
 let nhprint _ _ = ()
 

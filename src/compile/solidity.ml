@@ -36,7 +36,7 @@ let compile_program (input_file : string) : LI.program =
   let output_dir =
     FN.dirname input_file ^ FN.dir_sep ^ "logs" ^ FN.dir_sep ^ contract_name
   in
-  let _ = debug2 "Output dir: " output_dir in
+  let _ = debug ("Output dir: " ^ output_dir) in
   let _ = Sys.remove_dir output_dir in
   let _ = Sys.make_dir output_dir in
   let _ =
@@ -58,7 +58,7 @@ let compile_program (input_file : string) : LI.program =
   | None -> error "compile_program: no output file generated!"
   | Some deploy_file ->
     let output_file = output_dir ^ FN.dir_sep ^ deploy_file in
-    let _ = print2 "Output file: " output_file in
+    let _ = print ("Output file: " ^ output_file) in
     let prog = BC.process_bitcode output_file in
     post_process_program prog
 ;;

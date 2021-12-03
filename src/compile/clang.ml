@@ -61,7 +61,7 @@ let compile_program (input_file : string) : LI.program =
       let _ = LL.set_module_identifer modul instrued_filename in
       let _ =
         if !print_instrumented_prog
-        then debug2 ~ruler:`Long "Changed name: " (LL.string_of_llmodule modul)
+        then hdebug ~ruler:`Long "Changed name: " LL.string_of_llmodule modul
       in
       let _ =
         let instrued_file = open_out instrued_filename in

@@ -148,33 +148,6 @@ let debug
   debug_core ~header ~ruler ~indent ~enable ~prefix (fun () -> msg)
 ;;
 
-(** print 2 messages *)
-let debug2
-    ?(header = false)
-    ?(ruler = `None)
-    ?(indent = 0)
-    ?(always = false)
-    ?(enable = true)
-    ?(marker = true)
-    (msg1 : string)
-    (msg2 : string)
-    : unit
-  =
-  debug ~header ~ruler ~indent ~always ~enable ~marker (msg1 ^ msg2)
-;;
-
-(** print a list of messages *)
-let debugl
-    ?(ruler = `None)
-    ?(indent = 0)
-    ?(always = false)
-    ?(enable = true)
-    ?(marker = true)
-    (msgs : string list)
-    : unit
-  =
-  debug ~ruler ~indent ~always ~enable ~marker (String.concat msgs)
-;;
 
 (*** deep debugging printers ***)
 
@@ -192,33 +165,6 @@ let ddebug
   let enable = enable && (not !no_debug) && (!mode_deep_debug || always) in
   let printer () = msg in
   debug_core ~header ~ruler ~indent ~enable ~prefix:msg ~marker printer
-;;
-
-let ddebug2
-    ?(header = false)
-    ?(ruler = `None)
-    ?(indent = 0)
-    ?(always = false)
-    ?(enable = true)
-    ?(marker = true)
-    (msg1 : string)
-    (msg2 : string)
-    : unit
-  =
-  ddebug ~header ~ruler ~indent ~always ~enable ~marker (msg1 ^ msg2)
-;;
-
-let ddebugl
-    ?(header = false)
-    ?(ruler = `None)
-    ?(indent = 0)
-    ?(always = false)
-    ?(enable = true)
-    ?(marker = true)
-    (msgs : string list)
-    : unit
-  =
-  ddebug ~header ~ruler ~indent ~always ~enable ~marker (String.concat msgs)
 ;;
 
 (*** higher order debugging printer ***)
@@ -262,8 +208,6 @@ let hddebug
 (*** disable debugging printers ***)
 
 let ndebug _ = ()
-let ndebug2 _ = ()
-let ndebugl _ = ()
 let nhdebug _ _ _ = ()
 let nhddebug _ _ _ = ()
 

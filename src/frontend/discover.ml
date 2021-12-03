@@ -34,7 +34,7 @@ let init_solvers () =
     match PS.run_command_get_output [ !Z3.z3cmd; "--version" ] with
     | Ok res -> Z3.z3version := res
     | Error msg ->
-      let _ = debug2 "Checking Z3 command: " !Z3.z3cmd in
+      let _ = debug ("Checking Z3 command: " ^ !Z3.z3cmd) in
       error "Z3 solver not found!" in
   ()
 ;;

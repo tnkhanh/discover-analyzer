@@ -299,7 +299,7 @@ let instrument_bug_annotation annots source_name (modul : LL.llmodule) : unit =
      for how to manipulating LLVM bitcode *)
   let _ =
     if !print_instrumented_prog
-    then debug2 ~ruler:`Long "Uninstrumented: " (LL.string_of_llmodule modul)
+    then hdebug ~ruler:`Long "Uninstrumented: " LL.string_of_llmodule modul
   in
   let finstr =
     Some
@@ -323,7 +323,7 @@ let instrument_bug_annotation annots source_name (modul : LL.llmodule) : unit =
   let sorted_ins = List.stable_sort ~compare tagged_instr in
   let _ = resolve annots sorted_ins [] modul in
   if !print_instrumented_prog
-  then debug2 ~ruler:`Long "Instrumented" (LL.string_of_llmodule modul)
+  then hdebug ~ruler:`Long "Instrumented" LL.string_of_llmodule modul
 ;;
 
 (*we need source_name to ignore instructions with location outside the source file *)
