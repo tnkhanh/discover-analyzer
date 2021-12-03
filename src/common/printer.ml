@@ -11,6 +11,9 @@ open Core
 open Global
 open Libstring
 
+module FM = CamlinternalFormat
+module FB = CamlinternalFormatBasics
+
 type ruler =
   | RlLong
   | RlShort
@@ -298,40 +301,49 @@ let eprintf = Printf.eprintf
  *******************************************************************)
 
 (** report a warning message *)
-let warning msg =
+let warning (msg: string) : unit =
   let msg = "[warning] " ^ msg in
   if not !print_concise_output then prerr_endline msg
 ;;
 
 (** report 2 warning messages *)
-let warning2 (msg1 : string) (msg2 : string) = warning (msg1 ^ msg2)
-
-(** report a list of warning messages *)
-let warningl (msgs : string list) = warning (String.concat ~sep:"" msgs)
+let warning2 (msg1 : string) (msg2 : string) : unit = warning (msg1 ^ msg2)
 
 (** high-order report a warning message *)
-let hwarning (msg : string) (f : 'a -> string) (x : 'a) = warning (msg ^ f x)
+let hwarning (msg : string) (f : 'a -> string) (x : 'a) : unit =
+  warning (msg ^ f x)
+;;
 
 (** report an error message *)
-let error ?(log = "") (msg : string) = raise (EError (msg, log))
+let error ?(log = "") (msg : string) : 't =
+  raise (EError (msg, log))
+;;
 
 (** report 2 error messages *)
-let error2 ?(log = "") (msg1 : string) (msg2 : string) =
+let error2 ?(log = "") (msg1 : string) (msg2 : string) : 't =
   let msg = msg1 ^ msg2 in
   error ~log msg
 ;;
 
-(** report a list of error messages *)
-let errorl ?(log = "") (msgs : string list) =
-  let msg = String.concat ~sep:"" msgs in
+(** high-order report an error message *)
+let herror ?(log = "") (msg : string) (f : 'a -> string) (x : 'a) : 't =
+  let msg = msg ^ f x in
   error ~log msg
 ;;
 
-(** high-order report an error message *)
-let herror (msg : string) (f : 'a -> string) (x : 'a) =
-  let msg = msg ^ f x in
-  error msg
-;;
+(* TODO: how to implement an errorf function that can exit program *)
+
+(* let kesprintf k (FB.Format (fmt, _)) = *)
+(*   let k' acc = *)
+(*     let buf = Buffer.create 64 in *)
+(*     FM.strput_acc buf acc; *)
+(*     k (Buffer.contents buf) in *)
+(*   FM.make_printf k' End_of_acc fmt *)
+
+(* let errorf fmt = *)
+(*   let _ = prerr_string "ERROR: " in *)
+(*   kesprintf (fun s -> s) fmt *)
+
 
 (*******************************************************************
  ** Override default printing function to throw some warning

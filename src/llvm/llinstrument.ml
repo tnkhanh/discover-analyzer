@@ -222,54 +222,26 @@ let rec update (instr : tagged_instr) anns =
         (ann, Some choose_ins) :: update instr tl))
 ;;
 
-let apply_hd_bug
-    end_ann
+let apply_bug_annotation
+    (ann_type : annot_type)
+    (end_ann : LA.bug_annot)
     (matched_anns : (LA.bug_annot * tagged_instr option) list)
-    modul
+    (modul : LL.llmodule)
   =
   match matched_anns with
   | [] ->
-    raise
-      (AnnotFormat ("Error: Bug_end without start at " ^ LA.pr_pos_ann end_ann))
+    herror "Bug annotation: ending without start at " LA.pr_pos_ann end_ann
   | (ann, ins_op) :: tl ->
     (match ann with
     | Bug_start ((line, col), bugs) ->
       (match ins_op with
       | None ->
-        raise
-          (AnnotFormat ("Error: No instr for annot at " ^ LA.pr_pos_ann end_ann))
+        herror "Bug annotation: no instr for annot at " LA.pr_pos_ann end_ann
       | Some instr ->
-        let _ = apply_annotation Bug instr bugs modul in
+        let _ = apply_annotation ann_type instr bugs modul in
         tl)
     | Bug_end _ | Safe_start _ | Safe_end _ | Skip ->
-      raise
-        (AnnotFormat
-           ("Error: no Bug_start matching Bug_end at " ^ LA.pr_pos_ann end_ann)))
-;;
-
-let apply_hd_safe
-    end_ann
-    (matched_anns : (LA.bug_annot * tagged_instr option) list)
-    modul
-  =
-  match matched_anns with
-  | [] ->
-    raise
-      (AnnotFormat ("Error: Safe_end without start at " ^ LA.pr_pos_ann end_ann))
-  | (ann, ins_op) :: tl ->
-    (match ann with
-    | Safe_start ((line, col), bugs) ->
-      (match ins_op with
-      | None ->
-        raise
-          (AnnotFormat ("Error: No instr for annot at " ^ LA.pr_pos_ann end_ann))
-      | Some instr ->
-        let _ = apply_annotation Safe instr bugs modul in
-        tl)
-    | Bug_start _ | Bug_end _ | Safe_end _ | Skip ->
-      raise
-        (AnnotFormat
-           ("Error: no Safe_start matching Safe_end at" ^ LA.pr_pos_ann end_ann)))
+      herror "Bug annotation: unmatch ending at " LA.pr_pos_ann end_ann)
 ;;
 
 let rec resolve
@@ -285,10 +257,9 @@ let rec resolve
     | Bug_start ((line, col), bugs) | Safe_start ((line, col), bugs) ->
       (match instrs with
       | [] ->
-        raise
-          (AnnotFormat
-             ("Error: no matching instruction for bug annotation at "
-            ^ pr_int line ^ " " ^ pr_int col))
+        error
+          ("Bug annotation: no matching instruction for annotation at: "
+         ^ pr_int line ^ ":" ^ pr_int col)
       | instr :: tl_ins ->
         if less_than instr hd_ann
         then resolve annots tl_ins (update instr matched_anns) modul
@@ -296,24 +267,28 @@ let rec resolve
     | Bug_end (line, col) ->
       (match instrs with
       | [] ->
-        let updated_matched_anns = apply_hd_bug hd_ann matched_anns modul in
+        let updated_matched_anns =
+          apply_bug_annotation Bug hd_ann matched_anns modul in
         resolve tl_anns instrs updated_matched_anns modul
       | hd_ins :: tl_ins ->
         if less_than hd_ins hd_ann
         then resolve annots tl_ins (update hd_ins matched_anns) modul
         else (
-          let updated_matched_anns = apply_hd_bug hd_ann matched_anns modul in
+          let updated_matched_anns =
+            apply_bug_annotation Bug hd_ann matched_anns modul in
           resolve tl_anns instrs updated_matched_anns modul))
     | Safe_end (line, col) ->
       (match instrs with
       | [] ->
-        let updated_matched_anns = apply_hd_safe hd_ann matched_anns modul in
+        let updated_matched_anns =
+          apply_bug_annotation Safe hd_ann matched_anns modul in
         resolve tl_anns instrs updated_matched_anns modul
       | hd_ins :: tl_ins ->
         if less_than hd_ins hd_ann
         then resolve annots tl_ins (update hd_ins matched_anns) modul
         else (
-          let updated_matched_anns = apply_hd_safe hd_ann matched_anns modul in
+          let updated_matched_anns =
+            apply_bug_annotation Safe hd_ann matched_anns modul in
           resolve tl_anns instrs updated_matched_anns modul))
     | Skip -> resolve tl_anns instrs matched_anns modul)
 ;;
