@@ -184,7 +184,9 @@ let pr_bug_cwe (btype : bug_type) : string =
   match btype with
   | MemoryLeak _ -> ""
   | NullPointerDeref _ -> "CWE-??? (npe)"
-  | BufferOverflow _ -> "CWE-??? (bufferovew)"
+  (* FIXME: Khanh, please help to determine CWE-number based on this
+     classification: https://cwe.mitre.org/data/definitions/787.html *)
+  | BufferOverflow _ -> "CWE-???"
   | IntegerOverflow _ -> "CWE-190"
   | IntegerUnderflow _ -> "CWE-191"
   | IntegerCoercionError _ -> "CWE-192"
