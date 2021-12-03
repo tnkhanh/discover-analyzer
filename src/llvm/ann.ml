@@ -57,9 +57,3 @@ let str_of_mark m =
   | Safe_end (x, y) -> "Safe_end " ^ pr_int x ^ " " ^ pr_int y
   | Skip -> "Skip_"
 ;;
-
-(*let list_of_prog (p:prog) =
-  List.fold p ~init:[] ~f:(fun acc m -> (str_of_mark m)::acc)
-
-let str_of_prog (p:prog) =
-  String.concat ~sep:" " (list_of_prog p) *)
