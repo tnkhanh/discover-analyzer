@@ -22,14 +22,14 @@ type ann_type =
   | Bug
   | Safe
 
-type tagged_ins =
+type tagged_instr =
   { tagx_pos : position;
     tagx_tag : int;
-    tagx_ins : instr
+    tagx_instr : instr
   }
 
-let make_tagged_ins pos_ tag_ ins_ =
-  { tagx_pos = pos_; tagx_tag = tag_; tagx_ins = ins_ }
+let make_tagged_instr pos_ tag_ instr_ =
+  { tagx_pos = pos_; tagx_tag = tag_; tagx_instr = instr_ }
 ;;
 
 let less_than ins ann =
@@ -154,17 +154,17 @@ let get_func_args (bug : Ann.bug_group) ins llctx =
 
 let apply_annotation
     (anntyp : ann_type)
-    (instr : tagged_ins)
+    (instr : tagged_instr)
     (bugs : Ann.bug_group list)
     (modul : llmodule)
   =
-  match instr.tagx_ins with
+  match instr.tagx_instr with
   | Instr inx ->
     (* if ins is store and first operand is trunc *)
     let actual_ins =
-      if is_instr_store instr.tagx_ins
+      if is_instr_store instr.tagx_instr
       then (
-        let first_opr = operand instr.tagx_ins 0 in
+        let first_opr = operand instr.tagx_instr 0 in
         match LL.instr_opcode first_opr with
         | LO.Trunc -> first_opr
         | _ -> inx)
@@ -189,7 +189,7 @@ let apply_annotation
         ())
 ;;
 
-let rec update (ins : tagged_ins) anns =
+let rec update (ins : tagged_instr) anns =
   match anns with
   | [] -> []
   | hd_match :: tl ->
@@ -199,8 +199,8 @@ let rec update (ins : tagged_ins) anns =
       | None -> (ann, Some ins) :: update ins tl
       | Some old_ins ->
         let choose_ins =
-          let old_start, old_end = get_coverage old_ins.tagx_ins in
-          let cstart, cend = get_coverage ins.tagx_ins in
+          let old_start, old_end = get_coverage old_ins.tagx_instr in
+          let cstart, cend = get_coverage ins.tagx_instr in
           let start_comp = lc_comp old_start cstart in
           let end_comp = lc_comp old_end cend in
           if start_comp < 0
@@ -214,7 +214,7 @@ let rec update (ins : tagged_ins) anns =
 
 let apply_hd_bug
     end_ann
-    (matched_anns : (Ann.mark * tagged_ins option) list)
+    (matched_anns : (Ann.mark * tagged_instr option) list)
     modul
   =
   match matched_anns with
@@ -239,7 +239,7 @@ let apply_hd_bug
 
 let apply_hd_safe
     end_ann
-    (matched_anns : (Ann.mark * tagged_ins option) list)
+    (matched_anns : (Ann.mark * tagged_instr option) list)
     modul
   =
   match matched_anns with
@@ -266,7 +266,7 @@ let apply_hd_safe
 
 let rec resolve
     (ann_marks : Ann.mark list)
-    (instrs : tagged_ins list)
+    (instrs : tagged_instr list)
     matched_anns
     modul
   =
@@ -331,15 +331,15 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
           then acc
           else (
             match acc with
-            | [] -> make_tagged_ins pos 1 instr :: acc
-            | hd :: tl -> make_tagged_ins pos (hd.tagx_tag + 1) instr :: acc))
+            | [] -> make_tagged_instr pos 1 instr :: acc
+            | hd :: tl -> make_tagged_instr pos (hd.tagx_tag + 1) instr :: acc))
   in
-  let tagged_ins = deep_fold_module ~finstr [] modul in
+  let tagged_instr = deep_fold_module ~finstr [] modul in
   let compare ins1 ins2 =
     let p1 = ins1.tagx_pos.pos_line_end, ins1.tagx_pos.pos_col_end in
     let p2 = ins2.tagx_pos.pos_line_end, ins2.tagx_pos.pos_col_end in
     if Poly.(p1 > p2) then 1 else if Poly.(p1 < p2) then -1 else 0 in
-  let sorted_ins = List.stable_sort ~compare tagged_ins in
+  let sorted_ins = List.stable_sort ~compare tagged_instr in
   let _ = resolve ann_marks sorted_ins [] modul in
   (* Code to debug instructions *)
   (* let _ = debug ~ruler:`Short "Sorted_ins" in *)
