@@ -45,7 +45,8 @@ let compile_program (input_file : string) : LI.program =
       then []
       else String.split ~on:' ' !solang_user_options in
     let cmd =
-      [ !solang_exe; input_file ] @ [ "--emit"; "llvm-bc" ]
+      [ !solang_exe; input_file ]
+      @ [ "--emit"; "llvm-bc" ]
       @ [ "-O"; "none"; "--target"; "ewasm" ]
       @ [ "-o"; output_dir ] @ user_options in
     PS.run_command cmd in

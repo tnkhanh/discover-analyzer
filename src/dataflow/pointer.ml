@@ -3188,9 +3188,7 @@ struct
    ** Core analysis functions
    *******************************************************************)
 
-  let prepare_entry_func_input (penv : prog_env) func (input : t) : t =
-    input
-  ;;
+  let prepare_entry_func_input (penv : prog_env) func (input : t) : t = input
 
   let prepare_callee_input penv instr callee args (input : t) : t =
     let args = List.map ~f:get_bitcast_alias_of_llvalue args in

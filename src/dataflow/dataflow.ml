@@ -375,12 +375,7 @@ module type ForwardDataTransfer = sig
   val clean_info_of_vars : t -> llvalues -> t
   val is_data_satisfied_predicate : t -> predicate -> bool
   val refine_data_by_predicate : ?widen:bool -> t -> predicate -> t
-
-  val prepare_entry_func_input
-    :  prog_env ->
-    func ->
-    t ->
-    t
+  val prepare_entry_func_input : prog_env -> func -> t -> t
 
   val prepare_callee_input
     :  prog_env ->

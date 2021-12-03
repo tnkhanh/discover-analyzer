@@ -34,9 +34,7 @@ let choose_rule_all_pure prog goal : rule list =
   then (
     let ents = get_entailments_of_goal goal in
     let res, _ = SMT.check_sat_horn ents in
-    if res == Some true
-    then [ mk_rule_all_pure goal.gl_entail_cores ]
-    else [])
+    if res == Some true then [ mk_rule_all_pure goal.gl_entail_cores ] else [])
   else []
 ;;
 
@@ -47,8 +45,7 @@ let choose_rule_invalid_entail prog goal : rule list =
         ~f:(fun enc ->
           let lhs, rhs = enc.enc_lhs, enc.enc_rhs in
           match lhs, rhs with
-          | Pure plhs, Pure prhs ->
-            SMT.check_imply plhs prhs == Some false
+          | Pure plhs, Pure prhs -> SMT.check_imply plhs prhs == Some false
           | _ -> false)
         goal.gl_entail_cores in
     [ mk_rule_invalid_entail enc ]

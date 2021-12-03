@@ -15,12 +15,19 @@ module LV = Llvm.ValueKind
 module SP = Set.Poly
 module LP = Llloop
 module LG = Llcallgraph
+module LA = Llannot
+module BG = Bug
 
 exception AnnotFormat of string
 
-type ann_type =
+type annot_type =
   | Bug
   | Safe
+
+type linecol =
+  { line : int;
+    col : int
+  }
 
 type tagged_instr =
   { tagx_pos : position;
@@ -28,22 +35,17 @@ type tagged_instr =
     tagx_instr : instr
   }
 
-let make_tagged_instr pos_ tag_ instr_ =
-  { tagx_pos = pos_; tagx_tag = tag_; tagx_instr = instr_ }
+let mk_tagged_instr (pos : position) (tag : int) instr =
+  { tagx_pos = pos; tagx_tag = tag; tagx_instr = instr }
 ;;
 
-let less_than ins ann =
+let less_than instr ann =
   if Poly.(
-       (ins.tagx_pos.pos_line_end, ins.tagx_pos.pos_col_end)
-       < Ann.pos_of_ann ann)
+       (instr.tagx_pos.pos_line_end, instr.tagx_pos.pos_col_end)
+       < LA.pos_of_annot ann)
   then true
   else false
 ;;
-
-type linecol =
-  { line : int;
-    col : int
-  }
 
 let make_linecol line_ col_ = { line = line_; col = col_ }
 
@@ -56,10 +58,10 @@ let lc_comp lcx lcy =
 let max_lc lcx lcy = if lc_comp lcx lcy = 1 then lcx else lcy
 let min_lc lcx lcy = if lc_comp lcx lcy = 1 then lcy else lcx
 
-let less_than ins ann =
+let less_than instr ann =
   if Poly.(
-       (ins.tagx_pos.pos_line_end, ins.tagx_pos.pos_col_end)
-       < Ann.pos_of_ann ann)
+       (instr.tagx_pos.pos_line_end, instr.tagx_pos.pos_col_end)
+       < LA.pos_of_annot ann)
   then true
   else false
 ;;
@@ -99,68 +101,77 @@ let rec get_coverage instr =
   | Some cover -> cover
 ;;
 
-let extract_ann_marks (filename : string) =
-  let inx = In_channel.create filename in
+let extract_bug_annotations (input_file : string) : LA.bug_annots =
+  let inx = In_channel.create input_file in
   let lexbuf = Lexing.from_channel inx in
   let rev_mark_list =
-    try Annparser.prog Annlexer.read lexbuf
-    with Annparser.Error ->
+    try Llannot_parser.prog Llannot_lexer.read lexbuf
+    with Llannot_parser.Error ->
       let _ =
-        debug ("Parsing failed. Annotations ignored in file: " ^ filename)
+        debug ("Parsing failed. Annotations ignored in file: " ^ input_file)
       in
       [] in
   (*print all marks*)
-  let _ = if !print_instrumented then debug ~ruler:`Short "Annotations" in
+  let _ = if !print_instrumented_prog then debug ~ruler:`Short "Annotations" in
   let _ =
-    if !print_instrumented
+    if !print_instrumented_prog
     then
-      List.iter (List.rev (List.map rev_mark_list ~f:Ann.str_of_mark)) ~f:debug
+      List.iter (List.rev (List.map rev_mark_list ~f:LA.pr_bug_annot)) ~f:debug
   in
   List.rev rev_mark_list
 ;;
 
-let get_func_name anntyp (bug : Ann.bug_group) ins_type =
+let generate_instrumented_func_name anntyp (bug : BG.bug_type) ins_type =
   let base_name =
     match anntyp with
     | Bug ->
       (match bug with
-      | MemoryLeak -> "__assert_memory_leak"
-      | NullPointerDeref -> "__assert_null_pointer_deref"
-      | BufferOverflow -> "__assert_buffer_overflow"
-      | IntegerOverflow -> "__assert_bug_integer_overflow"
-      | IntegerUnderflow -> "__assert_integer_underflow"
-      | DivisionByZero -> "__assert_division_by_zero"
-      | NewType t -> "__assert_unnamed_bug")
+      | MemoryLeak _ -> "__assert_memory_leak"
+      | NullPointerDeref _ -> "__assert_null_pointer_deref"
+      | BufferOverflow _ -> "__assert_buffer_overflow"
+      | IntegerOverflow _ -> "__assert_bug_integer_overflow"
+      | IntegerUnderflow _ -> "__assert_integer_underflow"
+      | DivisionByZero _ -> "__assert_division_by_zero"
+      | _ ->
+        let _ =
+          hwarning
+            "generate_instrumented_func_name: bug type not yet supported: "
+            BG.pr_bug_type bug in
+        "__assert_unsupported_instrumented_func")
     | Safe ->
       (match bug with
-      | MemoryLeak -> "__refute_memory_leak"
-      | NullPointerDeref -> "__refute_null_pointer_deref"
-      | BufferOverflow -> "__refute_buffer_overflow"
-      | IntegerOverflow -> "__refute_bug_integer_overflow"
-      | IntegerUnderflow -> "__refute_integer_underflow"
-      | DivisionByZero -> "__refute_division_by_zero"
-      | NewType t -> "__refute_unnamed_bug") in
+      | MemoryLeak _ -> "__refute_memory_leak"
+      | NullPointerDeref _ -> "__refute_null_pointer_deref"
+      | BufferOverflow _ -> "__refute_buffer_overflow"
+      | IntegerOverflow _ -> "__refute_bug_integer_overflow"
+      | IntegerUnderflow _ -> "__refute_integer_underflow"
+      | DivisionByZero _ -> "__refute_division_by_zero"
+      | _ ->
+        let _ =
+          hwarning
+            "generate_instrumented_func_name: bug type not yet supported: "
+            BG.pr_bug_type bug in
+        "__refute_unsupported_instrumented_func") in
   let tail = LL.string_of_lltype ins_type in
   base_name ^ "_" ^ tail
 ;;
 
-let get_func_args (bug : Ann.bug_group) ins llctx =
+let generate_instrumented_func_args (bug : BG.bug_type) (instr : llvalue)
+    : llvalue array
+  =
   match bug with
-  (*  | IntegerOverflow -> *)
-  (*  let width = LL.integer_bitwidth (LL.type_of ins) in*)
-  (*  [| ins; LL.const_int (LL.i32_type llctx) width |] *)
-  | _ -> [| ins |]
+  | _ -> [| instr |]
 ;;
 
 let apply_annotation
-    (anntyp : ann_type)
+    (anntyp : annot_type)
     (instr : tagged_instr)
-    (bugs : Ann.bug_group list)
+    (bugs : BG.bug_types)
     (modul : llmodule)
   =
   match instr.tagx_instr with
   | Instr inx ->
-    (* if ins is store and first operand is trunc *)
+    (* if instr is store and first operand is trunc *)
     let actual_ins =
       if is_instr_store instr.tagx_instr
       then (
@@ -174,7 +185,7 @@ let apply_annotation
     let builder = LL.builder_at llctx insert_pos in
     let ins_type = LL.type_of actual_ins in
     List.iter bugs ~f:(fun bug ->
-        let func_name = get_func_name anntyp bug ins_type in
+        let func_name = generate_instrumented_func_name anntyp bug ins_type in
         let assert_func_opt = LL.lookup_function func_name modul in
         let assert_func =
           match assert_func_opt with
@@ -184,93 +195,90 @@ let apply_annotation
             let func = LL.declare_function func_name func_type modul in
             func
           | Some func -> func in
-        let args = get_func_args bug actual_ins llctx in
-        let _ = LL.build_call assert_func args "" builder in
-        ())
+        let args = generate_instrumented_func_args bug actual_ins in
+        ignore (LL.build_call assert_func args "" builder))
 ;;
 
-let rec update (ins : tagged_instr) anns =
+let rec update (instr : tagged_instr) anns =
   match anns with
   | [] -> []
   | hd_match :: tl ->
     (match hd_match with
     | ann, ins_op ->
       (match ins_op with
-      | None -> (ann, Some ins) :: update ins tl
+      | None -> (ann, Some instr) :: update instr tl
       | Some old_ins ->
         let choose_ins =
           let old_start, old_end = get_coverage old_ins.tagx_instr in
-          let cstart, cend = get_coverage ins.tagx_instr in
+          let cstart, cend = get_coverage instr.tagx_instr in
           let start_comp = lc_comp old_start cstart in
           let end_comp = lc_comp old_end cend in
           if start_comp < 0
              || (start_comp = 0 && end_comp > 0)
              || (start_comp = 0 && end_comp = 0
-                && old_ins.tagx_tag < ins.tagx_tag)
+                && old_ins.tagx_tag < instr.tagx_tag)
           then old_ins
-          else ins in
-        (ann, Some choose_ins) :: update ins tl))
+          else instr in
+        (ann, Some choose_ins) :: update instr tl))
 ;;
 
 let apply_hd_bug
     end_ann
-    (matched_anns : (Ann.mark * tagged_instr option) list)
+    (matched_anns : (LA.bug_annot * tagged_instr option) list)
     modul
   =
   match matched_anns with
   | [] ->
     raise
-      (AnnotFormat ("Error: Bug_end without start at " ^ Ann.pr_pos_ann end_ann))
+      (AnnotFormat ("Error: Bug_end without start at " ^ LA.pr_pos_ann end_ann))
   | (ann, ins_op) :: tl ->
     (match ann with
     | Bug_start ((line, col), bugs) ->
       (match ins_op with
       | None ->
         raise
-          (AnnotFormat ("Error: No ins for annot at " ^ Ann.pr_pos_ann end_ann))
-      | Some ins ->
-        let _ = apply_annotation Bug ins bugs modul in
+          (AnnotFormat ("Error: No instr for annot at " ^ LA.pr_pos_ann end_ann))
+      | Some instr ->
+        let _ = apply_annotation Bug instr bugs modul in
         tl)
     | Bug_end _ | Safe_start _ | Safe_end _ | Skip ->
       raise
         (AnnotFormat
-           ("Error: no Bug_start matching Bug_end at " ^ Ann.pr_pos_ann end_ann)))
+           ("Error: no Bug_start matching Bug_end at " ^ LA.pr_pos_ann end_ann)))
 ;;
 
 let apply_hd_safe
     end_ann
-    (matched_anns : (Ann.mark * tagged_instr option) list)
+    (matched_anns : (LA.bug_annot * tagged_instr option) list)
     modul
   =
   match matched_anns with
   | [] ->
     raise
-      (AnnotFormat
-         ("Error: Safe_end without start at " ^ Ann.pr_pos_ann end_ann))
+      (AnnotFormat ("Error: Safe_end without start at " ^ LA.pr_pos_ann end_ann))
   | (ann, ins_op) :: tl ->
     (match ann with
     | Safe_start ((line, col), bugs) ->
       (match ins_op with
       | None ->
         raise
-          (AnnotFormat ("Error: No ins for annot at " ^ Ann.pr_pos_ann end_ann))
-      | Some ins ->
-        let _ = apply_annotation Safe ins bugs modul in
+          (AnnotFormat ("Error: No instr for annot at " ^ LA.pr_pos_ann end_ann))
+      | Some instr ->
+        let _ = apply_annotation Safe instr bugs modul in
         tl)
     | Bug_start _ | Bug_end _ | Safe_end _ | Skip ->
       raise
         (AnnotFormat
-           ("Error: no Safe_start matching Safe_end at"
-          ^ Ann.pr_pos_ann end_ann)))
+           ("Error: no Safe_start matching Safe_end at" ^ LA.pr_pos_ann end_ann)))
 ;;
 
 let rec resolve
-    (ann_marks : Ann.mark list)
+    (annots : LA.bug_annot list)
     (instrs : tagged_instr list)
     matched_anns
     modul
   =
-  match ann_marks with
+  match annots with
   | [] -> ()
   | hd_ann :: tl_anns ->
     (match hd_ann with
@@ -281,9 +289,9 @@ let rec resolve
           (AnnotFormat
              ("Error: no matching instruction for bug annotation at "
             ^ pr_int line ^ " " ^ pr_int col))
-      | ins :: tl_ins ->
-        if less_than ins hd_ann
-        then resolve ann_marks tl_ins (update ins matched_anns) modul
+      | instr :: tl_ins ->
+        if less_than instr hd_ann
+        then resolve annots tl_ins (update instr matched_anns) modul
         else resolve tl_anns instrs ((hd_ann, None) :: matched_anns) modul)
     | Bug_end (line, col) ->
       (match instrs with
@@ -292,7 +300,7 @@ let rec resolve
         resolve tl_anns instrs updated_matched_anns modul
       | hd_ins :: tl_ins ->
         if less_than hd_ins hd_ann
-        then resolve ann_marks tl_ins (update hd_ins matched_anns) modul
+        then resolve annots tl_ins (update hd_ins matched_anns) modul
         else (
           let updated_matched_anns = apply_hd_bug hd_ann matched_anns modul in
           resolve tl_anns instrs updated_matched_anns modul))
@@ -303,21 +311,19 @@ let rec resolve
         resolve tl_anns instrs updated_matched_anns modul
       | hd_ins :: tl_ins ->
         if less_than hd_ins hd_ann
-        then resolve ann_marks tl_ins (update hd_ins matched_anns) modul
+        then resolve annots tl_ins (update hd_ins matched_anns) modul
         else (
           let updated_matched_anns = apply_hd_safe hd_ann matched_anns modul in
           resolve tl_anns instrs updated_matched_anns modul))
     | Skip -> resolve tl_anns instrs matched_anns modul)
 ;;
 
-let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
-    : unit
-  =
+let instrument_bug_annotation annots source_name (modul : LL.llmodule) : unit =
   (* TODO: fill code here.
      See module llsimp.ml, function elim_instr_intrinsic_lifetime ...
      for how to manipulating LLVM bitcode *)
   let _ =
-    if !print_instrumented
+    if !print_instrumented_prog
     then debug2 ~ruler:`Long "Uninstrumented: " (LL.string_of_llmodule modul)
   in
   let finstr =
@@ -331,8 +337,8 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
           then acc
           else (
             match acc with
-            | [] -> make_tagged_instr pos 1 instr :: acc
-            | hd :: tl -> make_tagged_instr pos (hd.tagx_tag + 1) instr :: acc))
+            | [] -> mk_tagged_instr pos 1 instr :: acc
+            | hd :: tl -> mk_tagged_instr pos (hd.tagx_tag + 1) instr :: acc))
   in
   let tagged_instr = deep_fold_module ~finstr [] modul in
   let compare ins1 ins2 =
@@ -340,54 +346,12 @@ let instrument_bug_annotation ann_marks source_name (modul : LL.llmodule)
     let p2 = ins2.tagx_pos.pos_line_end, ins2.tagx_pos.pos_col_end in
     if Poly.(p1 > p2) then 1 else if Poly.(p1 < p2) then -1 else 0 in
   let sorted_ins = List.stable_sort ~compare tagged_instr in
-  let _ = resolve ann_marks sorted_ins [] modul in
-  (* Code to debug instructions *)
-  (* let _ = debug ~ruler:`Short "Sorted_ins" in *)
-  (*let tagnew = deep_fold_module ~finstr [] modul in *)
-  (*let _ = *)
-  (*  List.iter tagnew ~f:(fun ins -> *)
-  (*      let ins_str = *)
-  (*        match ins.ins with *)
-  (*        | Instr inx -> LL.string_of_llvalue inx in *)
-  (*      let cover = *)
-  (*        match Hashtbl.find coverage ins.ins with *)
-  (*        | None -> "None" *)
-  (*        | Some (lc_start, lc_end) -> *)
-  (*          (pr_int lc_start.line ^ " ") *)
-  (*          ^ (pr_int lc_start.col ^ " ") *)
-  (*          ^ (pr_int lc_end.line ^ " ") *)
-  (*          ^ pr_int lc_end.col in *)
-  (*      let llins = llvalue_of_instr ins.ins in *)
-  (*            let args = *)
-  (*        let num_args = LL.num_operands llins in *)
-  (*        let rec fold_oprs acc idx = *)
-  (*          if idx >= num_args *)
-  (*          then acc ^ "\n" *)
-  (*          else ( *)
-  (*            let opr = LL.string_of_llvalue (LL.operand llins idx in) *)
-  (*            fold_oprs (acc ^ "." ^ opr ) (idx + 1)) in *)
-  (*        fold_oprs "" 0 in *)
-  (*      let instype = LL.string_of_lltype (LL.type_of llins) in *)
-  (*      debug2 "Ins: " (ins_str ^ "..Type: " ^ instype ^ ".." ^ cover)) in *)
-  (*  Code to debug coverage *)
-  (* let strhash = Hashtbl.fold coverage ~init:"" ~f:(fun ~key ~data acc -> *)
-  (*   let findx = Hashtbl.find coverage key in *)
-  (*   let findstr = match findx with *)
-  (*   | None -> "None" *)
-  (*   | Some _ -> "Some" in *)
-  (*   acc ^ (LL.string_of_llvalue (llvalue_of_instr key)) ^ " " ^ *)
-  (*     (match data with *)
-  (*     | (st, fn) -> *)
-  (*       pr_int st.line ^ " " ^ pr_int st.col ^ " " ^ *)
-  (*       pr_int fn.line ^ " " ^ pr_int fn.col *)
-  (*   ) ^ " " ^ findstr ^ "\n" *)
-  (* ) in *)
-  (* let _ = debug2 ~ruler:`Long "Hashtbl" strhash in *)
-  if !print_instrumented
+  let _ = resolve annots sorted_ins [] modul in
+  if !print_instrumented_prog
   then debug2 ~ruler:`Long "Instrumented" (LL.string_of_llmodule modul)
 ;;
 
 (*we need source_name to ignore instructions with location outside the source file *)
-let instrument_bitcode ann_marks source_name (modul : LL.llmodule) : unit =
-  instrument_bug_annotation ann_marks source_name modul
+let instrument_bitcode annots source_name (modul : LL.llmodule) : unit =
+  instrument_bug_annotation annots source_name modul
 ;;

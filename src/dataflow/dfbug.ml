@@ -24,7 +24,7 @@ let check_bug_integer_overflow (pdata : program_data) (pbug : potential_bug)
   =
   let open Option.Let_syntax in
   match pbug.pbug_type with
-  | IntegerOverflow iof ->
+  | IntegerOverflow (Some iof) ->
     if !bug_integer_all || !bug_integer_overflow
     then (
       let _ = hdebug "Checking Potential Bug: " pr_potential_bug pbug in
@@ -48,7 +48,8 @@ let check_bug_integer_overflow (pdata : program_data) (pbug : potential_bug)
                 let reason =
                   ("Variable " ^ LI.pr_value iof.iof_expr ^ " can take only ")
                   ^ ("the maximum value of: " ^ EInt.pr_eint ub ^ ",\n")
-                  ^ "but is assigned with: " ^ RG.pr_bound r.range_ub ^ ".\n" in
+                  ^ "but is assigned with: " ^ RG.pr_bound r.range_ub ^ ".\n"
+                in
                 return (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
               else None))
         ~init:None fenvs_rng)
@@ -58,11 +59,11 @@ let check_bug_integer_overflow (pdata : program_data) (pbug : potential_bug)
 
 let find_bug_integer_overflow (pdata : program_data) =
   if !bug_all || !bug_integer_all || !bug_integer_overflow
-  then
+  then (
     let _ = debug "Finding All Integer Overflow Bugs..." in
     pdata.pdata_potential_bugs
     |> List.map ~f:(check_bug_integer_overflow pdata)
-    |> List.filter_opt
+    |> List.filter_opt)
   else []
 ;;
 
@@ -75,7 +76,7 @@ let check_bug_integer_underflow (pdata : program_data) (pbug : potential_bug)
   =
   let open Option.Let_syntax in
   match pbug.pbug_type with
-  | IntegerUnderflow iuf ->
+  | IntegerUnderflow (Some iuf) ->
     if !bug_integer_all || !bug_integer_overflow
     then (
       let func = LI.func_of_instr iuf.iuf_instr in
@@ -98,7 +99,8 @@ let check_bug_integer_underflow (pdata : program_data) (pbug : potential_bug)
                 let reason =
                   ("Variable " ^ LI.pr_value iuf.iuf_expr ^ " can take only ")
                   ^ ("the minimum value of: " ^ EInt.pr_eint lb ^ ",\n")
-                  ^ "but is assigned with: " ^ RG.pr_bound r.range_lb ^ ".\n" in
+                  ^ "but is assigned with: " ^ RG.pr_bound r.range_lb ^ ".\n"
+                in
                 return (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
               else None))
         ~init:None fenvs_rng)
@@ -108,11 +110,11 @@ let check_bug_integer_underflow (pdata : program_data) (pbug : potential_bug)
 
 let find_bug_integer_underflow (pdata : program_data) =
   if !bug_all || !bug_integer_all || !bug_integer_underflow
-  then
+  then (
     let _ = debug "Finding All Integer Underflow Bugs..." in
     pdata.pdata_potential_bugs
     |> List.map ~f:(check_bug_integer_underflow pdata)
-    |> List.filter_opt
+    |> List.filter_opt)
   else []
 ;;
 
@@ -129,7 +131,7 @@ let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
   =
   let open Option.Let_syntax in
   match pbug.pbug_type with
-  | BufferOverflow bof ->
+  | BufferOverflow (Some bof) ->
     let ptr = bof.bof_pointer in
     let func = LI.func_of_instr bof.bof_instr in
     let%bind penv_rng = pdata.pdata_env_range in
@@ -192,11 +194,11 @@ let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
 
 let find_bug_buffer_overflow (pdata : program_data) : bug list =
   if !bug_all || !bug_memory_all || !bug_buffer_overflow
-  then
+  then (
     let _ = debug "Finding All Buffer Overflow Bugs..." in
     pdata.pdata_potential_bugs
     |> List.map ~f:(check_bug_buffer_overflow pdata)
-    |> List.filter_opt
+    |> List.filter_opt)
   else []
 ;;
 
@@ -208,7 +210,7 @@ let check_bug_memory_leak (pdata : program_data) (pbug : potential_bug)
     : bug option
   =
   match pbug.pbug_type with
-  | MemoryLeak mlk ->
+  | MemoryLeak (Some mlk) ->
     let _ = print "check_bug_memory_leak: TO IMPLEMENT CHECK MEMORY LEAK" in
     None
   | _ -> None
@@ -216,11 +218,11 @@ let check_bug_memory_leak (pdata : program_data) (pbug : potential_bug)
 
 let find_bug_memory_leak (pdata : program_data) : bug list =
   if !bug_all || !bug_memory_all || !bug_memory_leak
-  then
+  then (
     let _ = debug "Finding All Memory Leak Bugs..." in
     pdata.pdata_potential_bugs
     |> List.map ~f:(check_bug_memory_leak pdata)
-    |> List.filter_opt
+    |> List.filter_opt)
   else []
 ;;
 

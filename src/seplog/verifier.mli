@@ -6,5 +6,4 @@
  ********************************************************************)
 
 val lib_core : Slir.program option ref
-
 val verify_program : Llir.program -> unit

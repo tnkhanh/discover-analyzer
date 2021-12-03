@@ -45,8 +45,7 @@ let pr_option ~(f : 'a -> string) (x : 'a option) =
   | None -> "None"
 ;;
 
-let pr_bool_option (x: bool option) =
-  pr_option ~f:pr_bool x
+let pr_bool_option (x : bool option) = pr_option ~f:pr_bool x
 
 (** print a list to string *)
 let pr_list
@@ -245,7 +244,7 @@ let printl
     (msgs : string list)
     : unit
   =
-  let msg = (String.concat msgs) in
+  let msg = String.concat msgs in
   print_core ~header ~ruler ~indent ~always ~enable ~marker ~autoformat msg
 ;;
 
@@ -261,7 +260,7 @@ let println
     (msg : string)
     : unit
   =
-  let msg = (msg ^ "\n") in
+  let msg = msg ^ "\n" in
   print_core ~header ~ruler ~indent ~always ~enable ~marker ~autoformat msg
 ;;
 
@@ -279,7 +278,8 @@ let hprint
     (v : 'a)
   =
   let msg = f v in
-  print_core ~header ~ruler ~indent ~prefix ~always ~enable ~marker ~autoformat msg
+  print_core ~header ~ruler ~indent ~prefix ~always ~enable ~marker ~autoformat
+    msg
 ;;
 
 let nprint _ = ()

@@ -1772,8 +1772,7 @@ let is_lib_no_source_func (f : func) : bool =
 let is_lib_has_source_func (f : func) : bool =
   let v = llvalue_of_func f in
   match LL.classify_value v with
-  | LV.Function ->
-    LL.visibility v == LL.Visibility.Hidden
+  | LV.Function -> LL.visibility v == LL.Visibility.Hidden
   | _ -> false
 ;;
 

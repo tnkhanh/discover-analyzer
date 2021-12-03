@@ -151,10 +151,7 @@ struct
 
   let is_data_satisfied_predicate (d : t) (p : predicate) : bool = true
   let refine_data_by_predicate ?(widen = false) (d : t) (p : predicate) : t = d
-
-  let prepare_entry_func_input (penv : prog_env) func (input : t) : t =
-    input
-  ;;
+  let prepare_entry_func_input (penv : prog_env) func (input : t) : t = input
 
   let prepare_callee_input penv instr callee (args : llvalues) (input : t) : t =
     input

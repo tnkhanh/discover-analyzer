@@ -5,12 +5,10 @@
 ;; All rights reserved.
 ;;---------------------------------------------------------------------
 
-;; lexer
+;; parser and lexer for annotations
 
 (ocamllex
- (modules annlexer))
-
-;; parser for entailments
+ (modules llannot_lexer))
 
 (menhir
- (modules annparser))
+ (modules llannot_parser))

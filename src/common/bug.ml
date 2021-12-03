@@ -18,47 +18,46 @@ module LA = List.Assoc
  ** Data structure
  *******************************************************************)
 
-(*-----------
- * Bug type
- *----------*)
+(*------------------------------------------------------
+ * Bug type, used by bug detection and instrumentation
+ *-----------------------------------------------------*)
 
 type bug_type =
   (* memory bugs *)
-  | MemoryLeak of memory_leak
-  | NullPointerDeref
-  | BufferOverflow of buffer_overflow
+  | MemoryLeak of memory_leak option
+  | NullPointerDeref of null_pointer_deref option
+  | BufferOverflow of buffer_overflow option
   (* numerical bugs *)
-  | IntegerOverflow of integer_overflow
-  | IntegerUnderflow of integer_underflow
-  | IntegerCoercionError of integer_coercion_error
-  | NumericTruncationError of numeric_truncation_error
-  | DivisionByZero of division_by_zero
+  | IntegerOverflow of integer_overflow option
+  | IntegerUnderflow of integer_underflow option
+  | IntegerCoercionError of integer_coercion_error option
+  | NumericTruncationError of numeric_truncation_error option
+  | DivisionByZero of division_by_zero option
 
-(*--------------
- * Memory bugs
- *-------------*)
-
-and buffer_size =
-  (* FIXME: need to change name of this variant type *)
-  | NumElem of (int64 * lltype) (* number of element of type lltype *)
-  | MemSizeOf of llvalue
-  (* size of allocated memory of pointer *)
-
-and buffer_overflow =
-  { bof_pointer : llvalue;
-    bof_elem_index : llvalue;
-    bof_buff_size : buffer_size;
-    bof_instr : instr
-  }
-
+(*** Memory bug informations ***)
 and memory_leak =
   { mlk_pointer : llvalue;
     mlk_size : int option
   }
 
-(*-----------------
- * Numerical bugs
- *----------------*)
+and null_pointer_deref = { npe_pointer : llvalue }
+
+and buffer_size =
+  (* FIXME: need to change name of this variant type *)
+  | NumElem of (int64 * lltype) (* number of element of type lltype *)
+  | MemSizeOf of llvalue
+(* size of allocated memory of pointer *)
+
+and buffer_overflow =
+  { bof_pointer : llvalue;
+    bof_elem_index : llvalue;
+    bof_buff_size : buffer_size;
+    bof_write_operation : bool;
+    bof_stack_based : bool;
+    bof_instr : instr
+  }
+
+(*** Numerical bug information ***)
 
 (* Integer Overflow: https://cwe.mitre.org/data/definitions/190.html *)
 and integer_overflow =
@@ -93,6 +92,8 @@ and division_by_zero =
     dbz_instr : instr
   }
 
+type bug_types = bug_type list
+
 (*------
  * Bug
  *-----*)
@@ -108,7 +109,7 @@ type bug =
     bug_func : func;
     bug_type : bug_type;
     bug_checker : string;
-    bug_reason : string;
+    bug_reason : string
   }
 
 type potential_bugs = potential_bug list
@@ -134,8 +135,7 @@ let pr_instr_location_and_code_excerpt instr =
  * Memory bugs
  *-------------*)
 
-let pr_buffer_overflow_info (bof : buffer_overflow) : string
-  =
+let pr_buffer_overflow_info (bof : buffer_overflow) : string =
   sprintf "Root pointer: %s, " (pr_value bof.bof_pointer)
   ^ sprintf "accessing index: %s" (pr_value bof.bof_elem_index)
 ;;
@@ -158,14 +158,18 @@ let pr_llvalue_name (v : LL.llvalue) : string =
   | None -> pr_value v
 ;;
 
-let pr_integer_overflow_info ?(detailed = true) (iof : integer_overflow) : string =
+let pr_integer_overflow_info ?(detailed = true) (iof : integer_overflow)
+    : string
+  =
   let bug_info = "Integer Overflow" in
   if detailed
   then bug_info ^ "\n" ^ pr_instr_location_and_code_excerpt iof.iof_instr
   else bug_info
 ;;
 
-let pr_integer_underflow_info ?(detailed = true) (iuf : integer_underflow) : string =
+let pr_integer_underflow_info ?(detailed = true) (iuf : integer_underflow)
+    : string
+  =
   let bug_info = "Integer Underflow" in
   if detailed
   then bug_info ^ "\n" ^ pr_instr_location_and_code_excerpt iuf.iuf_instr
@@ -176,21 +180,22 @@ let pr_integer_underflow_info ?(detailed = true) (iuf : integer_underflow) : str
  * Print bug information
  *-----------------------*)
 
-let pr_bug_cwe (btype: bug_type) : string =
+let pr_bug_cwe (btype : bug_type) : string =
   match btype with
   | MemoryLeak _ -> ""
-  | NullPointerDeref -> ""
-  | BufferOverflow _ -> ""
+  | NullPointerDeref _ -> "CWE-??? (npe)"
+  | BufferOverflow _ -> "CWE-??? (bufferovew)"
   | IntegerOverflow _ -> "CWE-190"
   | IntegerUnderflow _ -> "CWE-191"
   | IntegerCoercionError _ -> "CWE-192"
   | NumericTruncationError _ -> "CWE-197"
   | DivisionByZero _ -> "CWE-369"
+;;
 
 let pr_bug_type ?(detailed = true) (btype : bug_type) : string =
   match btype with
   | MemoryLeak _ -> "Memory Leak"
-  | NullPointerDeref -> "Null Pointer Dereference"
+  | NullPointerDeref _ -> "Null Pointer Dereference"
   | BufferOverflow _ -> "Buffer Overflow"
   | IntegerOverflow _ -> "Integer Overflow"
   | IntegerUnderflow _ -> "Integer Underflow"
@@ -198,18 +203,6 @@ let pr_bug_type ?(detailed = true) (btype : bug_type) : string =
   | NumericTruncationError _ -> "Numeric Truncation Error"
   | DivisionByZero _ -> "Division By Zero"
 ;;
-
-let pr_bug_details (bug: bug) : string =
-  match bug.bug_type with
-  | MemoryLeak mlk -> pr_memory_leak_info mlk
-  | NullPointerDeref -> "(TODO: NullPointerDeref: implement later)"
-  | BufferOverflow bof -> pr_buffer_overflow_info bof
-  | IntegerOverflow iof -> pr_integer_overflow_info iof
-  | IntegerUnderflow iuf -> pr_integer_underflow_info iuf
-  | IntegerCoercionError _ -> "(TODO: IntegerCoercionError: implement later)"
-  | NumericTruncationError _ -> "(TODO: NumericTruncationError: implement later)"
-  | DivisionByZero _ -> "(TODO: DivisionByZero: implement later)"
-
 
 let pr_potential_bug (pbug : potential_bug) : string =
   (pr_bug_type ~detailed:false pbug.pbug_type ^ "\n")
@@ -245,14 +238,29 @@ let pr_bugs (bugs : bug list) : string = pr_items ~f:pr_bug bugs
  *******************************************************************)
 
 (*-------------------------------------------
+ * Bug annotation
+ *------------------------------------------*)
+
+(*** memory bugs ***)
+
+let mk_bug_type_memory_leak () : bug_type = MemoryLeak None
+let mk_bug_type_null_pointer_deref () : bug_type = NullPointerDeref None
+let mk_bug_type_buffer_overflow_deref () : bug_type = NullPointerDeref None
+
+(*** integer bugs ***)
+
+let mk_bug_type_integer_overflow () : bug_type = IntegerOverflow None
+let mk_bug_type_integer_underflow () : bug_type = IntegerUnderflow None
+let mk_bug_type_coercion_error () : bug_type = IntegerCoercionError None
+let mk_bug_type_truncation_error () : bug_type = NumericTruncationError None
+let mk_bug_type_division_by_zero () : bug_type = DivisionByZero None
+
+(*-------------------------------------------
  * Potential bugs
  *------------------------------------------*)
 
 let mk_potential_bug (instr : instr) (btype : bug_type) : potential_bug =
-  { pbug_instr = instr;
-    pbug_func = func_of_instr instr;
-    pbug_type = btype;
-  }
+  { pbug_instr = instr; pbug_func = func_of_instr instr; pbug_type = btype }
 ;;
 
 (*-------------------------------------------
@@ -266,7 +274,7 @@ let mk_potential_integer_overflow (instr : instr) : potential_bug =
       iof_bitwidth = LL.integer_bitwidth (LL.type_of expr);
       iof_instr = instr
     } in
-  mk_potential_bug instr (IntegerOverflow iof)
+  mk_potential_bug instr (IntegerOverflow (Some iof))
 ;;
 
 let mk_potential_integer_underflow (instr : instr) : potential_bug =
@@ -276,7 +284,7 @@ let mk_potential_integer_underflow (instr : instr) : potential_bug =
       iuf_bitwidth = LL.integer_bitwidth (LL.type_of expr);
       iuf_instr = instr
     } in
-  mk_potential_bug instr (IntegerUnderflow iuf)
+  mk_potential_bug instr (IntegerUnderflow (Some iuf))
 ;;
 
 (*-------------------------------------------
@@ -307,15 +315,17 @@ let mk_potential_buffer_overflow (instr : instr) : potential_bug =
       { bof_instr = instr;
         bof_pointer = ptr;
         bof_buff_size = size;
-        bof_elem_index = index
+        bof_elem_index = index;
+        bof_write_operation = false;   (* FIXME: Khanh, please help to compute *)
+        bof_stack_based = false;       (* FIXME: Khanh, please help to compute *)
       }
     | _ -> error "mk_buffer_overflow: expect GetElementPtr" in
-  mk_potential_bug instr (BufferOverflow bof)
+  mk_potential_bug instr (BufferOverflow (Some bof))
 ;;
 
 let mk_potential_memory_leak (instr : instr) : potential_bug =
   let mlk = { mlk_pointer = llvalue_of_instr instr; mlk_size = None } in
-  mk_potential_bug instr (MemoryLeak mlk)
+  mk_potential_bug instr (MemoryLeak (Some mlk))
 ;;
 
 (*-------------------------------------------

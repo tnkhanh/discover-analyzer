@@ -46,8 +46,7 @@ let pr_predicateicate (pred : predicate) : string =
   match pred with
   | NoAlias (u, v) -> "NoAlias(" ^ pr_value u ^ ", " ^ pr_value v ^ ")"
   | MayAlias (u, v) -> "MayAlias(" ^ pr_value u ^ ", " ^ pr_value v ^ ")"
-  | MustAlias (u, v) ->
-    "MustAlias(" ^ pr_value u ^ ", " ^ pr_value v ^ ")"
+  | MustAlias (u, v) -> "MustAlias(" ^ pr_value u ^ ", " ^ pr_value v ^ ")"
   | _ -> "pr_predicateicate: to implement"
 ;;
 
