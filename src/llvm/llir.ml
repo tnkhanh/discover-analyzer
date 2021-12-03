@@ -336,8 +336,7 @@ type program_meta_data =
 
 type program =
   { prog_globals : global list;
-    prog_struct_types : lltype list;
-    (* program functions  *)
+    prog_struct_types : lltype list; (* program functions  *)
     prog_all_funcs : func list;
     (* TODO: what are better names for prog_lib_no_source_funcs and
        prog_lib_has_source_funcs? *)

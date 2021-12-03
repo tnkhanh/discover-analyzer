@@ -88,10 +88,14 @@ bug:
 
 ann_begin:
   | ANNSTART; OBRAC; a = ATYPE; COLON; b = bugs; ASTER; p = SLASH
-      { if String.equal a "Bug" then Bug_start (p, b)
-        else Safe_start (p, b) };
+      { let line, col = p in
+        let pos = Llannot.mk_annot_position line col in
+        if String.equal a "Bug" then Bug_start (pos, b)
+        else Safe_start (pos, b) };
 
 ann_end:
   | p = ANNSTART; COLON; a = ATYPE; CBRAC; ASTER; SLASH
-      { if String.equal a "Bug" then Bug_end p
-        else Safe_end p };
+      { let line, col = p in
+        let pos = Llannot.mk_annot_position line col in
+        if String.equal a "Bug" then Bug_end pos
+        else Safe_end pos };
