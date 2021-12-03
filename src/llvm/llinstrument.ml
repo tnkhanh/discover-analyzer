@@ -257,9 +257,9 @@ let rec resolve
     | Bug_start ((line, col), bugs) | Safe_start ((line, col), bugs) ->
       (match instrs with
       | [] ->
-        error
-          ("Bug annotation: no matching instruction for annotation at: "
-         ^ pr_int line ^ ":" ^ pr_int col)
+        errorf
+          "Bug annotation: no matching instruction for annotation at: %d:%d"
+          line col
       | instr :: tl_ins ->
         if less_than instr hd_ann
         then resolve annots tl_ins (update instr matched_anns) modul

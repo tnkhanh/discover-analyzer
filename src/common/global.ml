@@ -52,7 +52,6 @@ type input_mode =
 
 exception EInt of int
 exception EBool of bool
-exception EError of (string * string)
 exception EString of string
 exception ESkip
 exception EDone

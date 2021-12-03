@@ -291,13 +291,9 @@ let nprintl _ = ()
 let nprintln _ = ()
 let nhprint _ _ = ()
 
-(** Print error *)
-
-let eprint (msg : string) : unit = prerr_endline msg
-let eprintf = Printf.eprintf
 
 (*******************************************************************
- ** Warning and error
+ ** Warning printing
  *******************************************************************)
 
 (** report a warning message *)
@@ -314,35 +310,49 @@ let hwarning (msg : string) (f : 'a -> string) (x : 'a) : unit =
   warning (msg ^ f x)
 ;;
 
-(** report an error message *)
-let error ?(log = "") (msg : string) : 't =
-  raise (EError (msg, log))
+(*******************************************************************
+ ** Error printing
+ *******************************************************************)
+
+let print_error_log (log : string) : unit =
+  if (not !release_mode) && String.not_empty log
+  then print_endline ("\n[Error log]\n" ^ String.indent 2 log)
+  else ()
 ;;
 
-(** report 2 error messages *)
+(** Report an error message and exit the program. *)
+let error ?(log = "") (msg : string) : 't =
+  let _ = print_endline ("ERROR: " ^ msg) in
+  let _ = print_error_log log in
+  exit 1
+;;
+
+(** Report 2 error messages and exit the program. *)
 let error2 ?(log = "") (msg1 : string) (msg2 : string) : 't =
   let msg = msg1 ^ msg2 in
   error ~log msg
 ;;
 
-(** high-order report an error message *)
+(** High-order report an error message and exit the program. *)
 let herror ?(log = "") (msg : string) (f : 'a -> string) (x : 'a) : 't =
   let msg = msg ^ f x in
   error ~log msg
 ;;
 
-(* TODO: how to implement an errorf function that can exit program *)
-
-(* let kesprintf k (FB.Format (fmt, _)) = *)
-(*   let k' acc = *)
-(*     let buf = Buffer.create 64 in *)
-(*     FM.strput_acc buf acc; *)
-(*     k (Buffer.contents buf) in *)
-(*   FM.make_printf k' End_of_acc fmt *)
-
-(* let errorf fmt = *)
-(*   let _ = prerr_string "ERROR: " in *)
-(*   kesprintf (fun s -> s) fmt *)
+(** Report error using output format template similar to printf,
+    and exit the program. *)
+let errorf ?(log = "") fmt =
+  let _ = print_string "ERROR: " in
+  let keprintf k o (FB.Format (fmt, _)) =
+    let output_acc_and_exit o acc =
+      let _ = FM.output_acc o acc in
+      let _ = print_error_log log in
+      ignore (exit 1) in
+    FM.make_printf
+      (fun acc -> output_acc_and_exit o acc; k o)
+      FM.End_of_acc fmt in
+  keprintf ignore stdout fmt
+;;
 
 
 (*******************************************************************
