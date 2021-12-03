@@ -296,18 +296,24 @@ let nhprint _ _ = ()
  ** Warning printing
  *******************************************************************)
 
-(** report a warning message *)
+(** Print a warning message *)
 let warning (msg: string) : unit =
   let msg = "[warning] " ^ msg in
   if not !print_concise_output then prerr_endline msg
 ;;
 
-(** report 2 warning messages *)
-let warning2 (msg1 : string) (msg2 : string) : unit = warning (msg1 ^ msg2)
-
-(** high-order report a warning message *)
+(** High-order print a warning message *)
 let hwarning (msg : string) (f : 'a -> string) (x : 'a) : unit =
   warning (msg ^ f x)
+;;
+
+(** Print a warning message using output format template similar to printf. *)
+let warningf fmt =
+  let _ = print_string "[warning] " in
+  let kwprintf k o (FB.Format (fmt, _)) =
+    FM.make_printf (fun acc -> FM.output_acc o acc; k o) FM.End_of_acc fmt
+  in
+  kwprintf ignore stdout fmt
 ;;
 
 (*******************************************************************
@@ -327,12 +333,6 @@ let error ?(log = "") (msg : string) : 't =
   exit 1
 ;;
 
-(** Report 2 error messages and exit the program. *)
-let error2 ?(log = "") (msg1 : string) (msg2 : string) : 't =
-  let msg = msg1 ^ msg2 in
-  error ~log msg
-;;
-
 (** High-order report an error message and exit the program. *)
 let herror ?(log = "") (msg : string) (f : 'a -> string) (x : 'a) : 't =
   let msg = msg ^ f x in
@@ -344,12 +344,12 @@ let herror ?(log = "") (msg : string) (f : 'a -> string) (x : 'a) : 't =
 let errorf ?(log = "") fmt =
   let _ = print_string "ERROR: " in
   let keprintf k o (FB.Format (fmt, _)) =
-    let output_acc_and_exit o acc =
+    let print_error_and_exit o acc =
       let _ = FM.output_acc o acc in
       let _ = print_error_log log in
       ignore (exit 1) in
     FM.make_printf
-      (fun acc -> output_acc_and_exit o acc; k o)
+      (fun acc -> print_error_and_exit o acc; k o)
       FM.End_of_acc fmt in
   keprintf ignore stdout fmt
 ;;

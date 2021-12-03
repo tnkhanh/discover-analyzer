@@ -52,23 +52,23 @@ let get_os_type () =
 let verify_llvm_compiler () =
   let _ =
     match PS.run_command_get_output [ !clang_exe; "--version" ] with
-    | Error msg -> error2 "Failed to check Clang version: " msg
+    | Error msg -> error ("Failed to check Clang version: " ^ msg)
     | Ok output ->
       if String.is_substring ~substring:("version " ^ llvm_version) output
       then ()
       else
-        error2
-          ("Expect Clang " ^ llvm_version ^ " but found: \n")
-          (String.indent 2 output) in
+        error
+          ("Expect Clang " ^ llvm_version ^ " but found: \n"
+         ^ String.indent 2 output) in
   match PS.run_command_get_output [ !opt_exe; "--version" ] with
-  | Error msg -> error2 "Failed to check LLVM Opt version: " msg
+  | Error msg -> error ("Failed to check LLVM Opt version: " ^ msg)
   | Ok output ->
     if String.is_substring ~substring:("version " ^ llvm_version) output
     then ()
     else
-      error2
-        ("Expect LLVM Opt " ^ llvm_version ^ " but found: \n")
-        (String.indent 2 output)
+      error
+        ("Expect LLVM Opt " ^ llvm_version ^ " but found: \n"
+       ^ String.indent 2 output)
 ;;
 
 let config_llvm_normalizer () =
@@ -112,5 +112,5 @@ let compile_input_file (filename : string) : CI.program =
   | InpCCpp -> filename |> Clang.compile_program |> CI.mk_llvm_prog
   | InpGolang -> filename |> Golang.compile_program |> CI.mk_llvm_prog
   | InpSolidity -> filename |> Solidity.compile_program |> CI.mk_llvm_prog
-  | InpUnkn -> error2 "Unknown input type: " filename
+  | InpUnkn -> error ("Unknown input type: " ^ filename)
 ;;
