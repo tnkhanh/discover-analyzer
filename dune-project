@@ -18,7 +18,8 @@
           llvm
           yaml
           ezjsonm
-          ocamlformat
+          ; ocamlformat
+          (ocamlformat :dev)  ;; use developing version of Ocamlformat
           ppx_deriving
           ppx_sexp_conv
           ppx_compare

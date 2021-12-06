@@ -75,6 +75,12 @@ Autoformat project using Dune
 - Require ``ocamlformat`` to be installed and the configuration file
   ``.ocamlformat`` at the project's root directory.
 
+  Install the newest ``ocamlformat`` from its GitHub development repository:
+
+  .. code-block:: sh
+
+     opam pin --dev-repo ocamlformat
+
 - Formatting the project by running ``dune``:
 
   .. code-block:: sh
@@ -98,7 +104,6 @@ Autoformat project using Dune
      let x = 1 in
      let b = 2 in
      let x = 1 in
-
 
 - Read more at this `formatting project tutorial
   <https://dune.readthedocs.io/en/stable/formatting.html>.`_
