@@ -418,9 +418,9 @@ module IntervalDomain = struct
     mk_range lb ub ~li:true ~ui:true
   ;;
 
-  let rec sdiv_range (a : range) (b : range) : range =
-    (* TODO: Add inclusive, Division-by-zero *)
-    let bzero = BInt BInt.zero in
+  let sdiv_range (a : range) (b : range) : range =
+    (* TODO: Add inclusive, Division-by-zero, div_bound can also have 0 *)
+(*    let bzero = BInt BInt.zero in
     let one_sign_a () =
       if compare_bound b.range_ub bzero < 0 then 
         sdiv_range_one_sign a b
@@ -439,7 +439,44 @@ module IntervalDomain = struct
     else
       union_range 
         (union_range (range_of_bound bzero) (sdiv_range (pos_int_range a) b) )
-        (sdiv_range (neg_int_range a) b)
+        (sdiv_range (neg_int_range a) b) *)
+    let max_bound b1 b2 =
+      if compare_bound b1 b2 > 0
+      then b1
+      else b2 in
+    let min_bound b1 b2 =
+      if compare_bound b1 b2 < 0
+      then b1
+      else b2 in
+    let a_lb, a_ub = a.range_lb, a.range_ub in
+    let b_lb, b_ub = b.range_lb, b.range_ub in
+    let b1 = sdiv_bound a_lb b_lb in
+    let b2 = sdiv_bound a_lb b_ub in
+    let b3 = sdiv_bound a_ub b_lb in
+    let b4 = sdiv_bound a_ub b_ub in
+    let bounds = [b1; b2; b3; b4] in
+    let b_one = BInt BInt.one in
+    let b_minus_one = BInt BInt.minus_one in
+    let all_bounds =
+      bounds 
+      |> (fun acc -> 
+            if (compare_bound b_one b_lb >=0 && 
+                compare_bound b_one b_ub <=0) 
+            then
+              (sdiv_bound a_lb b_one)::(sdiv_bound a_ub b_one)::acc
+            else
+              acc)
+      |> (fun acc ->
+            if (compare_bound b_minus_one b_lb >=0 && 
+                compare_bound b_minus_one b_ub <=0) 
+            then
+              (sdiv_bound a_lb b_minus_one)::(sdiv_bound a_ub b_minus_one)::acc
+            else
+              acc) in
+
+    let lb = List.fold all_bounds ~init:b1 ~f:min_bound in
+    let ub = List.fold all_bounds ~init:b1 ~f:max_bound in
+    mk_range lb ub ~li:true ~ui:true
   ;;
 
   let mult_range (a : range) (b : range) =
