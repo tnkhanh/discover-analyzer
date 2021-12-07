@@ -209,12 +209,13 @@ module IntervalDomain = struct
   ;;
 
   let udiv_bound (a : bound) (b : bound) : bound =
-    (*TODO: Division by zero, unsigned div *)
+    (* TODO: Division by zero, unsigned div *)
+    (* TODO: Handle udiv with negative numbers *)
     match a, b with
     | PInf, PInf -> error "udiv_bound: undefined for PInf / PInf"
     | NInf, _ | _, NInf -> error "udiv_bound: does not work with NInf"
     | PInf, _ -> PInf
-    | _, PInf -> BInt BInt.zero
+    | _, PInf -> Int64 Int64.zero
     (* Int64, BInt, EInt *)
     | Int64 x, Int64 y -> Int64 (Int64.( / ) x y)
     | Int64 x, EInt y -> EInt (EInt.div (EInt.of_int64 x) y)
@@ -228,24 +229,23 @@ module IntervalDomain = struct
   ;;
 
   let sdiv_bound (a : bound) (b : bound) : bound =
-    (*TODO: Division by zero *)
+    (* TODO: Division by zero *)
     match a, b with
     | PInf, PInf -> error "sdiv_bound: undefined for PInf / PInf"
     | PInf, NInf -> error "sdiv_bound: undefined for PInf / NInf"
     | NInf, PInf -> error "sdiv_bound: undefined for NInf / PInf"
     | NInf, NInf -> error "sdiv_bound: undefined for NInf / NInf"
-    | _, PInf | _, NInf -> BInt BInt.zero
+    | _, PInf | _, NInf -> Int64 Int64.zero
     | PInf, _ ->
-      let cmp = compare_bound b (BInt BInt.zero) in
+      let cmp = compare_bound b (Int64 Int64.zero) in
       if cmp > 0 then PInf
       else
       if cmp < 0 then NInf
       else error "sdiv_bound: undefined for PInf / 0"
     | NInf, _ ->
-      let cmp = compare_bound b (BInt BInt.zero) in
+      let cmp = compare_bound b (Int64 Int64.zero) in
       if cmp > 0 then NInf
-      else
-      if cmp < 0 then PInf
+      else if cmp < 0 then PInf
       else error "sdiv_bound: undefined for NInf / 0"
     (* Int64, BInt, EInt *)
     | Int64 x, Int64 y -> Int64 (Int64.( / ) x y)
@@ -368,130 +368,77 @@ module IntervalDomain = struct
 
   let udiv_range (a : range) (b : range) =
     (* TODO: Add inclusive, Division-by-zero, unsigned ranges are incorrect *)
-(*    let anew =
-      if a.range_lb_incl *)
     let lb = udiv_bound a.range_lb b.range_ub in
     let ub = udiv_bound a.range_ub b.range_ub in
     mk_range lb ub ~li:true ~ui:true
   ;;
 
-  let pos_int_range (r : range) : range =
-    if compare_bound r.range_ub (BInt BInt.zero) <= 0 then 
-      range_of_bound (BInt BInt.zero) (* implies no positive *)
-    else
-      mk_range (BInt BInt.one) r.range_ub ~li:true ~ui:true
+  let max_bound (b1 : bound) (b2 : bound) : bound =
+    if compare_bound b1 b2 > 0
+    then b1
+    else b2
   ;;
 
-  let neg_int_range (r : range) : range =
-    if compare_bound r.range_lb (BInt BInt.zero) >= 0 then 
-      range_of_bound (BInt BInt.zero) (* implies no negative *)
-    else
-      mk_range r.range_lb (BInt BInt.minus_one) ~li:true ~ui:true
+  let min_bound (b1 : bound) (b2 : bound) : bound =
+    if compare_bound b1 b2 < 0
+    then b1
+    else b2
   ;;
 
-  (*both a and b are only-positive or only-negative *)
-  let sdiv_range_one_sign (a : range) (b : range) : range = 
-    let max_bound b1 b2 =
-      if compare_bound b1 b2 > 0
-      then b1
-      else b2 in
-    let min_bound b1 b2 =
-      if compare_bound b1 b2 < 0
-      then b1
-      else b2 in
-    let a_lb, a_ub = a.range_lb, a.range_ub in
-    let b_lb, b_ub = b.range_lb, b.range_ub in
-    let b1 = sdiv_bound a_lb b_lb in
-    let b2 = sdiv_bound a_lb b_ub in
-    let b3 = sdiv_bound a_ub b_lb in
-    let b4 = sdiv_bound a_ub b_ub in
-    let lb = 
-      b1
-      |> min_bound b2
-      |> min_bound b3
-      |> min_bound b4 in
-    let ub =
-      b1
-      |> max_bound b2
-      |> max_bound b3
-      |> max_bound b4 in
-    mk_range lb ub ~li:true ~ui:true
-  ;;
+  let get_upper_bound (b1, i1) (b2, i2) =
+    if compare_bound b1 b2 > 0
+    then b1, i1
+    else if compare_bound b1 b2 < 0
+    then b2, i2
+    else b1, i1 || i2 
+
+  let get_lower_bound (b1, i1) (b2, i2) =
+    if compare_bound b1 b2 < 0
+    then b1, i1
+    else if compare_bound b1 b2 > 0
+    then b2, i2
+    else b1, i1 || i2
 
   let sdiv_range (a : range) (b : range) : range =
     (* TODO: Add inclusive, Division-by-zero, div_bound can also have 0 *)
-(*    let bzero = BInt BInt.zero in
-    let one_sign_a () =
-      if compare_bound b.range_ub bzero < 0 then 
-        sdiv_range_one_sign a b
+    let one = Int64 Int64.one in
+    let minus_one = Int64 Int64.minus_one in
+    let a_lb = 
+      if a.range_lb_incl then a.range_lb
       else
-      if compare_bound b.range_lb bzero > 0 then
-        sdiv_range_one_sign a b
+        add_bound a.range_lb one in
+    let a_ub =
+      if a.range_ub_incl then a.range_ub
       else
-        (*for now, throws whenever range b includes 0 *)
-        error "Division-by-zero" in
-
-    if compare_bound a.range_ub bzero < 0 then (* a is negative *)
-      one_sign_a ()
-    else
-    if compare_bound a.range_lb bzero > 0 then (* a is positive *)
-      one_sign_a ()
-    else
-      union_range 
-        (union_range (range_of_bound bzero) (sdiv_range (pos_int_range a) b) )
-        (sdiv_range (neg_int_range a) b) *)
-    let max_bound b1 b2 =
-      if compare_bound b1 b2 > 0
-      then b1
-      else b2 in
-    let min_bound b1 b2 =
-      if compare_bound b1 b2 < 0
-      then b1
-      else b2 in
-    let a_lb, a_ub = a.range_lb, a.range_ub in
-    let b_lb, b_ub = b.range_lb, b.range_ub in
+        add_bound a.range_ub minus_one in
+    let b_lb =
+      if b.range_lb_incl then b.range_lb
+      else
+        add_bound b.range_lb one in
+    let b_ub =
+      if b.range_ub_incl then b.range_ub
+      else
+        add_bound b.range_ub minus_one in
     let b1 = sdiv_bound a_lb b_lb in
     let b2 = sdiv_bound a_lb b_ub in
     let b3 = sdiv_bound a_ub b_lb in
     let b4 = sdiv_bound a_ub b_ub in
     let bounds = [b1; b2; b3; b4] in
-    let b_one = BInt BInt.one in
-    let b_minus_one = BInt BInt.minus_one in
-    let all_bounds =
-      bounds 
-      |> (fun acc -> 
-            if (compare_bound b_one b_lb >=0 && 
-                compare_bound b_one b_ub <=0) 
-            then
-              (sdiv_bound a_lb b_one)::(sdiv_bound a_ub b_one)::acc
-            else
-              acc)
-      |> (fun acc ->
-            if (compare_bound b_minus_one b_lb >=0 && 
-                compare_bound b_minus_one b_ub <=0) 
-            then
-              (sdiv_bound a_lb b_minus_one)::(sdiv_bound a_ub b_minus_one)::acc
-            else
-              acc) in
-
+    let bounds_one = 
+       if (compare_bound one b_lb >=0 && compare_bound one b_ub <=0) 
+       then [sdiv_bound a_lb one; sdiv_bound a_ub one]
+       else [] in
+    let bounds_minus_one = 
+       if (compare_bound minus_one b_lb >=0 && compare_bound minus_one b_ub <=0) 
+       then [sdiv_bound a_lb minus_one; sdiv_bound a_ub minus_one]
+       else [] in
+    let all_bounds = bounds @ bounds_one @ bounds_minus_one in
     let lb = List.fold all_bounds ~init:b1 ~f:min_bound in
     let ub = List.fold all_bounds ~init:b1 ~f:max_bound in
     mk_range lb ub ~li:true ~ui:true
   ;;
 
   let mult_range (a : range) (b : range) =
-    let get_upper_bound (b1, i1) (b2, i2) =
-      if compare_bound b1 b2 > 0
-      then b1, i1
-      else if compare_bound b1 b2 < 0
-      then b2, i2
-      else b1, i1 || i2 in
-    let get_lower_bound (b1, i1) (b2, i2) =
-      if compare_bound b1 b2 < 0
-      then b1, i1
-      else if compare_bound b1 b2 > 0
-      then b2, i2
-      else b1, i1 || i2 in
     let b1, i1 =
       mult_bound a.range_lb b.range_lb, a.range_lb_incl && b.range_lb_incl
     in
