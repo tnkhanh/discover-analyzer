@@ -5,8 +5,8 @@
  * All rights reserved.
  ********************************************************************)
 
-(* Printer module *)
 
+(* Printer module *)
 open Core
 open Libstring
 

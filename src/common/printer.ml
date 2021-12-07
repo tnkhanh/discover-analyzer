@@ -14,13 +14,6 @@ open Libstring
 module FM = CamlinternalFormat
 module FB = CamlinternalFormatBasics
 
-type ruler =
-  | RlLong
-  | RlShort
-  | RlMedium
-  | RlHeader
-  | RlNone
-
 let no_print = ref false
 
 (*******************************************************************

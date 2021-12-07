@@ -8,9 +8,9 @@
 open Dcore
 open Source
 open Slir
-open Bug
 module PV = Prover
 module LL = Llvm
+module LO = Llvm.Opcode
 module LI = Llir
 module LD = Lldebug
 module OC = Llvm.Opcode
