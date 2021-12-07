@@ -32,7 +32,7 @@ type llmodules = llmodule list
  *******************************************************************)
 
 (* function *)
-type func = Func of llvalue
+type func = FuncH of llvalue
 
 (* callable: function or function pointer *)
 type callable =
@@ -46,10 +46,10 @@ type block = llblock
 type param = Param of llvalue
 
 (* instruction *)
-type instr = Instr of llvalue
+type instr = InstrH of llvalue
 
 (* global variable *)
-type global = Global of llvalue
+type global = GlobalH of llvalue
 
 (* constant expression *)
 type const = Constant of llvalue
@@ -116,10 +116,10 @@ type loop =
 type loops = loop list
 
 (*******************************************************************
- ** wrapping modules for LLVM data structures
+ ** Wrapping modules of data structures used for Hashtbl
  *******************************************************************)
 
-module Lltype = struct
+module TypeH = struct
   type t = lltype
 
   let to_string _ = "(lltype)"
@@ -128,7 +128,7 @@ module Lltype = struct
   let compare = Poly.compare
 end
 
-module Llvalue = struct
+module ValueH = struct
   type t = llvalue
 
   let to_string _ = "(llvalue)"
@@ -137,7 +137,7 @@ module Llvalue = struct
   let compare = Poly.compare
 end
 
-module Instr = struct
+module InstrH = struct
   type t = instr
 
   let to_string _ = "(instr)"
@@ -146,7 +146,7 @@ module Instr = struct
   let compare = Poly.compare
 end
 
-module Global = struct
+module GlobalH = struct
   type t = global
 
   let to_string _ = "(global)"
@@ -155,7 +155,7 @@ module Global = struct
   let compare = Poly.compare
 end
 
-module Func = struct
+module FuncH = struct
   type t = func
 
   let to_string _ = "(func)"
@@ -164,7 +164,8 @@ module Func = struct
   let compare = Poly.compare
 end
 
-module Callable = struct
+module CallableH = struct
+  (* FIXME: should t be llvalue??? *)
   type t = func
 
   let to_string _ = "(callable)"
@@ -173,7 +174,7 @@ module Callable = struct
   let compare = Poly.compare
 end
 
-module Expr = struct
+module ExprH = struct
   type t = expr
 
   let to_string _ = "(expr)"
@@ -182,7 +183,7 @@ module Expr = struct
   let compare = Poly.compare
 end
 
-module Block = struct
+module BlockH = struct
   type t = llblock
 
   let to_string _ = "(block)"
@@ -203,7 +204,7 @@ module CallGraph = struct
 
     let equal f1 f2 =
       match f1, f2 with
-      | Func v1, Func v2 -> v1 == v2
+      | FuncH v1, FuncH v2 -> v1 == v2
     ;;
 
     let hash = Hashtbl.hash
@@ -560,10 +561,10 @@ let pr_type (t : lltype) : string = String.strip (Llvm.string_of_lltype t)
 
 let mk_func (v : llvalue) : func =
   match LL.classify_value v with
-  | LV.Function -> Func v
-  | LV.Instruction _ -> Func v
-  | LV.Argument _ -> Func v
-  | _ -> Func v
+  | LV.Function -> FuncH v
+  | LV.Instruction _ -> FuncH v
+  | LV.Argument _ -> FuncH v
+  | _ -> FuncH v
 ;;
 
 (* herror "mk_func: not a function or func pointer: " pr_value_detail v *)
@@ -576,13 +577,13 @@ let mk_param (v : llvalue) : param =
 
 let mk_instr (v : llvalue) : instr =
   match LL.classify_value v with
-  | LV.Instruction _ -> Instr v
+  | LV.Instruction _ -> InstrH v
   | _ -> herror "mk_instr: not an instruction: " pr_value_detail v
 ;;
 
 let mk_global (v : llvalue) : global =
   match LL.classify_value v with
-  | LV.GlobalVariable -> Global v
+  | LV.GlobalVariable -> GlobalH v
   | _ -> herror "mk_global: not a global variable: " pr_value_detail v
 ;;
 
@@ -596,7 +597,7 @@ let mk_const (v : llvalue) : const =
 
 let llvalue_of_global (g : global) : llvalue =
   match g with
-  | Global v -> v
+  | GlobalH v -> v
 ;;
 
 let llvalues_of_globals (gs : globals) : llvalues =
@@ -610,12 +611,12 @@ let llvalue_of_const (c : const) : llvalue =
 
 let llvalue_of_instr (i : instr) : llvalue =
   match i with
-  | Instr v -> v
+  | InstrH v -> v
 ;;
 
 let llvalue_of_func (f : func) : llvalue =
   match f with
-  | Func v -> v
+  | FuncH v -> v
 ;;
 
 let llvalue_of_param (p : param) : llvalue =
@@ -693,7 +694,7 @@ let equal_llfcmp (c1 : llfcmp) (c2 : llfcmp) : bool = c1 == c2
 
 let equal_func (f1 : func) (f2 : func) : bool =
   match f1, f2 with
-  | Func v1, Func v2 -> equal_llvalue v1 v2
+  | FuncH v1, FuncH v2 -> equal_llvalue v1 v2
 ;;
 
 let equal_block (b1 : block) (b2 : block) : bool = equal_llblock b1 b2
@@ -705,12 +706,12 @@ let equal_param (p1 : param) (p2 : param) : bool =
 
 let equal_instr (i1 : instr) (i2 : instr) : bool =
   match i1, i2 with
-  | Instr v1, Instr v2 -> equal_llvalue v1 v2
+  | InstrH v1, InstrH v2 -> equal_llvalue v1 v2
 ;;
 
 let equal_global (g1 : global) (g2 : global) : bool =
   match g1, g2 with
-  | Global v1, Global v2 -> equal_llvalue v1 v2
+  | GlobalH v1, GlobalH v2 -> equal_llvalue v1 v2
 ;;
 
 let equal_const (c1 : const) (c2 : const) : bool =
@@ -755,7 +756,7 @@ let equal_loop (lp1 : loop) (lp2 : loop) : bool =
 
 let pr_instr (i : instr) : string =
   match i with
-  | Instr v -> pr_value_detail v
+  | InstrH v -> pr_value_detail v
 ;;
 
 let pr_param ?(detailed = false) (p : param) : string =
@@ -770,7 +771,7 @@ let pr_typed_param (p : param) : string =
 
 let pr_global ?(detailed = false) (g : global) : string =
   match g with
-  | Global v -> if detailed then pr_value_detail v else pr_value v
+  | GlobalH v -> if detailed then pr_value_detail v else pr_value v
 ;;
 
 let rec pr_expr (e : expr) : string =
@@ -809,7 +810,7 @@ let block_names (blks : block list) : string = pr_list ~f:block_name blks
 
 let pr_prec_block (pblk : prec_block) : string =
   let blk, p = pblk.pblk_block, pblk.pblk_pathcond in
-  "Preceding Block: { " ^ block_name blk ^ "; " ^ pr_predicate p ^ "}"
+  "Preceding BlockH: { " ^ block_name blk ^ "; " ^ pr_predicate p ^ "}"
 ;;
 
 let pr_prec_blocks (pblks : prec_block list) : string =
@@ -818,7 +819,7 @@ let pr_prec_blocks (pblks : prec_block list) : string =
 
 let pr_succ_block (sblk : succ_block) : string =
   let blk, p = sblk.sblk_block, sblk.sblk_pathcond in
-  "Succeeding Block: { " ^ block_name blk ^ "; " ^ pr_predicate p ^ "}"
+  "Succeeding BlockH: { " ^ block_name blk ^ "; " ^ pr_predicate p ^ "}"
 ;;
 
 (*******************************************************************
@@ -3034,32 +3035,32 @@ let mk_program_meta_data (filename : string) (modul : llmodule)
 ;;
 
 let mk_program_func_data (modul : llmodule) : program_func_data =
-  { pfd_return_instr = Hashtbl.create (module Func);
-    pfd_callers = Hashtbl.create (module Func);
-    pfd_callees = Hashtbl.create (module Callable);
-    pfd_reachable_funcs = Hashtbl.create (module Func);
-    pfd_loops = Hashtbl.create (module Func);
-    pfd_used_globals = Hashtbl.create (module Func);
+  { pfd_return_instr = Hashtbl.create (module FuncH);
+    pfd_callers = Hashtbl.create (module FuncH);
+    pfd_callees = Hashtbl.create (module CallableH);
+    pfd_reachable_funcs = Hashtbl.create (module FuncH);
+    pfd_loops = Hashtbl.create (module FuncH);
+    pfd_used_globals = Hashtbl.create (module FuncH);
     pfd_func_call_graph = CG.create ();
-    pfd_block_graph = Hashtbl.create (module Func);
-    pfd_funcs_of_pointer = Hashtbl.create (module Llvalue);
-    pfd_funcs_of_type = Hashtbl.create (module Lltype)
+    pfd_block_graph = Hashtbl.create (module FuncH);
+    pfd_funcs_of_pointer = Hashtbl.create (module ValueH);
+    pfd_funcs_of_type = Hashtbl.create (module TypeH)
   }
 ;;
 
 let mk_program_loop_data (modul : llmodule) : program_loop_data =
-  { pld_loop_updated_instr = Hashtbl.create (module Instr);
-    pld_loop_head_instr = Hashtbl.create (module Instr);
-    pld_innermost_loop_containing_block = Hashtbl.create (module Block);
-    pld_innermost_loop_containing_value = Hashtbl.create (module Llvalue)
+  { pld_loop_updated_instr = Hashtbl.create (module InstrH);
+    pld_loop_head_instr = Hashtbl.create (module InstrH);
+    pld_innermost_loop_containing_block = Hashtbl.create (module BlockH);
+    pld_innermost_loop_containing_value = Hashtbl.create (module ValueH)
   }
 ;;
 
 let mk_program_block_data (modul : llmodule) : program_block_data =
-  { pbd_preceding_blocks = Hashtbl.create (module Block);
-    pbd_succeeding_blocks = Hashtbl.create (module Block);
-    pbd_incoming_pathcond = Hashtbl.create (module Block);
-    pbd_reachable_blocks = Hashtbl.create (module Block)
+  { pbd_preceding_blocks = Hashtbl.create (module BlockH);
+    pbd_succeeding_blocks = Hashtbl.create (module BlockH);
+    pbd_incoming_pathcond = Hashtbl.create (module BlockH);
+    pbd_reachable_blocks = Hashtbl.create (module BlockH)
   }
 ;;
 

@@ -58,7 +58,7 @@ let is_instr_before_annotation (instr : tagged_instr) (ann : bug_annot) : bool =
   Poly.((instr_line, instr_col) < (annot_line, annot_col))
 ;;
 
-let coverage = Hashtbl.create (module Instr)
+let coverage = Hashtbl.create (module InstrH)
 
 let rec get_coverage instr =
   match Hashtbl.find coverage instr with
@@ -163,7 +163,7 @@ let apply_annotation
     (modul : llmodule)
   =
   match instr.tagx_instr with
-  | Instr inx ->
+  | InstrH inx ->
     (* if instr is store and first operand is trunc *)
     let actual_ins =
       if is_instr_store instr.tagx_instr

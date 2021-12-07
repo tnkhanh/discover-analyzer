@@ -1043,8 +1043,8 @@ module PointerDomain = struct
 
   type vpair = PV.t * PV.t (* vertex pair *)
 
-  let must_alias_cache : (expr, exprs) Hashtbl.t = Hashtbl.create (module Expr)
-  let may_alias_cache : (expr, exprs) Hashtbl.t = Hashtbl.create (module Expr)
+  let must_alias_cache : (expr, exprs) Hashtbl.t = Hashtbl.create (module ExprH)
+  let may_alias_cache : (expr, exprs) Hashtbl.t = Hashtbl.create (module ExprH)
 
   (* printing *)
 
@@ -1871,7 +1871,7 @@ module PointerDomain = struct
   ;;
 
   let merge_alias_vertices (g : pgraph) : pgraph * (expr, expr) Hashtbl.t =
-    let tbl_merged_vertices = Hashtbl.create (module Expr) in
+    let tbl_merged_vertices = Hashtbl.create (module ExprH) in
     g, tbl_merged_vertices
   ;;
 

@@ -939,7 +939,7 @@ functor
         ^ sprintf "  #Sparse User funcs: %d\n" !num_user_funcs
         ^ sprintf "  #Sparse Blocks: %d\n" !num_blks
         ^ sprintf "  #Sparse Instrs: %d\n" !num_instrs
-        ^ sprintf "  #Sparse Func calls: %d\n" !num_func_calls
+        ^ sprintf "  #Sparse FuncH calls: %d\n" !num_func_calls
         ^ sprintf "  #Sparse Pointer Vars: %d\n" !num_pointer_vars
         ^ sprintf "  #Sparse Struct Vars: %d\n" !num_struct_vars
         ^ sprintf "  #Sparse Array Vars: %d\n" !num_array_vars in
@@ -1121,7 +1121,7 @@ functor
     ;;
 
     let mk_global_env () =
-      { genv_global_output = Hashtbl.create (module Global);
+      { genv_global_output = Hashtbl.create (module GlobalH);
         genv_globals_data = T.least_data
       }
     ;;
@@ -1137,12 +1137,12 @@ functor
         fenv_func = func;
         fenv_callsites = callsites;
         fenv_prog = prog;
-        fenv_instr_output = Hashtbl.create (module Instr);
-        fenv_block_input = Hashtbl.create (module Block);
+        fenv_instr_output = Hashtbl.create (module InstrH);
+        fenv_block_input = Hashtbl.create (module BlockH);
         fenv_input = input;
         fenv_output = None;
-        fenv_thrown_exn = Hashtbl.create (module Llvalue);
-        fenv_landing_exns = Hashtbl.create (module Llvalue);
+        fenv_thrown_exn = Hashtbl.create (module ValueH);
+        fenv_landing_exns = Hashtbl.create (module ValueH);
         fenv_deref_params = [];
         fenv_deref_globals = [];
         fenv_working_blocks = [];
@@ -1153,24 +1153,24 @@ functor
     let mk_prog_env (prog : program) : T.prog_env =
       { penv_prog = prog;
         penv_global_env = mk_global_env ();
-        penv_func_envs = Hashtbl.create (module Func);
-        penv_func_summaries = Hashtbl.create (module Func);
-        penv_sparse_llvalue = Hashtbl.create (module Llvalue);
-        penv_sparse_block = Hashtbl.create (module Block);
-        penv_sparse_func = Hashtbl.create (module Func);
-        penv_sparse_used_globals = Hashtbl.create (module Func);
-        penv_block_sparse_instrs = Hashtbl.create (module Block);
-        penv_sparse_precedings_block = Hashtbl.create (module Block);
-        penv_sparse_succeedings_block = Hashtbl.create (module Block);
-        penv_sparse_reachable_blocks = Hashtbl.create (module Block);
-        penv_func_analyzed_times = Hashtbl.create (module Func);
-        penv_block_local_analyzed_times = Hashtbl.create (module Block);
-        penv_block_total_analyzed_times = Hashtbl.create (module Block);
+        penv_func_envs = Hashtbl.create (module FuncH);
+        penv_func_summaries = Hashtbl.create (module FuncH);
+        penv_sparse_llvalue = Hashtbl.create (module ValueH);
+        penv_sparse_block = Hashtbl.create (module BlockH);
+        penv_sparse_func = Hashtbl.create (module FuncH);
+        penv_sparse_used_globals = Hashtbl.create (module FuncH);
+        penv_block_sparse_instrs = Hashtbl.create (module BlockH);
+        penv_sparse_precedings_block = Hashtbl.create (module BlockH);
+        penv_sparse_succeedings_block = Hashtbl.create (module BlockH);
+        penv_sparse_reachable_blocks = Hashtbl.create (module BlockH);
+        penv_func_analyzed_times = Hashtbl.create (module FuncH);
+        penv_block_local_analyzed_times = Hashtbl.create (module BlockH);
+        penv_block_total_analyzed_times = Hashtbl.create (module BlockH);
         penv_working_funcs = [];
         penv_goal_funcs = [];
-        penv_func_analyzed_inputs = Hashtbl.create (module Func);
+        penv_func_analyzed_inputs = Hashtbl.create (module FuncH);
         penv_func_analysis_stack = Stack.create ();
-        penv_block_analyzed_squence = Hashtbl.create (module Func)
+        penv_block_analyzed_squence = Hashtbl.create (module FuncH)
       }
     ;;
 
@@ -1248,7 +1248,7 @@ functor
       let _ =
         match res with
         | None ->
-          hdebug ~always:true ~indent:4 "Func summary NOT FOUND: " func_name
+          hdebug ~always:true ~indent:4 "FuncH summary NOT FOUND: " func_name
             func
         | Some fsum ->
           hdebug ~always:true ~indent:4 "Found func summary:\n" pr_func_summary
@@ -2026,7 +2026,7 @@ functor
           let binput = wb.wb_instr_input in
           let _ = T.set_block_input fenv blk binput in
           let _ = debug ~marker:false " - Starting from the block's entry. " in
-          hdebug ~marker:false "    Block input: " T.pr_data binput)
+          hdebug ~marker:false "    BlockH input: " T.pr_data binput)
         else hdebug " - Continuing from instruction: " pr_instr wb.wb_instr
       in
       let _ = update_block_analyzed_stats penv func blk in
@@ -2420,7 +2420,7 @@ functor
             (" - Time analyzing function: " ^ fname ^ ": ")
             (sprintf "%.3fs") time in
         (* let _ = if Float.(>) time 15. then
-         *     hprint "TOO SLOW... Func env: " (pr_func_env penv) fenv in *)
+         *     hprint "TOO SLOW... FuncH env: " (pr_func_env penv) fenv in *)
         let _ = hdebug "Analysis output updated: " pr_bool env_updated in
         let _ =
           if need_reanalyze
