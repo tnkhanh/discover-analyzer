@@ -184,7 +184,7 @@ module EInt = struct
 
   let div (x : eint) (y : eint) : eint =
     let bx, by = to_bint x, to_bint y in
-    let c = BInt.add bx by in
+    let c = BInt.div bx by in
     let res = [], c in
     res
   ;;
