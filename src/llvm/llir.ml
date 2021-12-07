@@ -671,85 +671,47 @@ let elemptr_of_global (g : global) (idxs : expr list) =
   mk_expr_elemptr (expr_of_global g) gtyp idxs
 ;;
 
-(* loop *)
-
-let mk_loop ~(head : block) ~(body : block list) ~(exit : block list) =
-  { loop_head = head;
-    loop_body = body;
-    loop_exit = exit;
-    loop_exit_reachables = [];
-    loop_inners = [];
-    loop_outers = None
-  }
-;;
-
 (*******************************************************************
  ** Equality comparison
  *******************************************************************)
 
-let equal_llvalue (v1 : llvalue) (v2 : llvalue) : bool = v1 == v2
-let equal_lltype (t1 : lltype) (t2 : lltype) : bool = t1 == t2
-let equal_llblock (b1 : llblock) (b2 : llblock) = b1 == b2
-let equal_llicmp (c1 : llicmp) (c2 : llicmp) : bool = c1 == c2
-let equal_llfcmp (c1 : llfcmp) (c2 : llfcmp) : bool = c1 == c2
+module Equal = struct
+  let equal_llvalue (v1 : llvalue) (v2 : llvalue) : bool = v1 == v2
+  let equal_lltype (t1 : lltype) (t2 : lltype) : bool = t1 == t2
+  let equal_llblock (b1 : llblock) (b2 : llblock) = b1 == b2
+  let equal_llicmp (c1 : llicmp) (c2 : llicmp) : bool = c1 == c2
+  let equal_llfcmp (c1 : llfcmp) (c2 : llfcmp) : bool = c1 == c2
+  let equal_type (t1 : lltype) (t2 : lltype) = equal_lltype t1 t2
 
-let equal_func (f1 : func) (f2 : func) : bool =
-  match f1, f2 with
-  | FuncH v1, FuncH v2 -> equal_llvalue v1 v2
-;;
+  let equal_func (f1 : func) (f2 : func) : bool =
+    match f1, f2 with
+    | FuncH v1, FuncH v2 -> equal_llvalue v1 v2
+  ;;
 
-let equal_block (b1 : block) (b2 : block) : bool = equal_llblock b1 b2
+  let equal_param (p1 : param) (p2 : param) : bool =
+    match p1, p2 with
+    | Param v1, Param v2 -> equal_llvalue v1 v2
+  ;;
 
-let equal_param (p1 : param) (p2 : param) : bool =
-  match p1, p2 with
-  | Param v1, Param v2 -> equal_llvalue v1 v2
-;;
+  let equal_global (g1 : global) (g2 : global) : bool =
+    match g1, g2 with
+    | GlobalH v1, GlobalH v2 -> equal_llvalue v1 v2
+  ;;
 
-let equal_instr (i1 : instr) (i2 : instr) : bool =
-  match i1, i2 with
-  | InstrH v1, InstrH v2 -> equal_llvalue v1 v2
-;;
+  let equal_instr (i1 : instr) (i2 : instr) : bool =
+    match i1, i2 with
+    | InstrH v1, InstrH v2 -> equal_llvalue v1 v2
+  ;;
 
-let equal_global (g1 : global) (g2 : global) : bool =
-  match g1, g2 with
-  | GlobalH v1, GlobalH v2 -> equal_llvalue v1 v2
-;;
+  let equal_block (b1 : block) (b2 : block) : bool = equal_llblock b1 b2
 
-let equal_const (c1 : const) (c2 : const) : bool =
-  match c1, c2 with
-  | Constant v1, Constant v2 -> equal_llvalue v1 v2
-;;
+  let equal_const (c1 : const) (c2 : const) : bool =
+    match c1, c2 with
+    | Constant v1, Constant v2 -> equal_llvalue v1 v2
+  ;;
+end
 
-let rec equal_expr (e1 : expr) (e2 : expr) : bool =
-  match e1, e2 with
-  | Undef t1, Undef t2 -> equal_lltype t1 t2
-  | Undef _, _ -> false
-  | Int64 i1, Int64 i2 -> Int64.equal i1 i2
-  | Int64 _, _ -> false
-  | Float f1, Float f2 -> Float.equal f1 f2
-  | Float _, _ -> false
-  | String s1, String s2 -> String.equal s1 s2
-  | String _, _ -> false
-  | Var v1, Var v2 -> equal_llvalue v1 v2
-  | Var _, _ -> false
-  | OldE e1, OldE e2 -> equal_expr e1 e2
-  | OldE _, _ -> false
-  | Deref e1, Deref e2 -> equal_expr e1 e2
-  | Deref _, _ -> false
-  | ElemPtr (e1, t1, es1), ElemPtr (e2, t2, es2) ->
-    equal_expr e1 e2 && equal_lltype t1 t2 && List.equal equal_expr es1 es2
-  | ElemPtr _, _ -> false
-  | Malloc e1, Malloc e2 -> equal_expr e1 e2
-  | Malloc _, _ -> false
-  | FuncRes f1, FuncRes f2 -> equal_func f1 f2
-  | FuncRes _, _ -> false
-  | Exn e1, Exn e2 -> equal_expr e1 e2
-  | Exn _, _ -> false
-;;
-
-let equal_loop (lp1 : loop) (lp2 : loop) : bool =
-  equal_block lp1.loop_head lp2.loop_head
-;;
+include Equal
 
 (*******************************************************************
  ** printing of new structured types
@@ -881,7 +843,8 @@ let func_of_instr (i : instr) : func =
 let type_of_func (f : func) : lltype = LL.type_of (llvalue_of_func f)
 
 (** Iteration over LLVM data structures *)
-module LlirIter = struct
+
+module IterSimple = struct
   let iter_instrs ~(f : instr -> unit) (blk : block) : unit =
     let ff v = f (mk_instr v) in
     LL.iter_instrs ff blk
@@ -908,7 +871,8 @@ module LlirIter = struct
 end
 
 (** Mapping over LLVM data structures *)
-module LlirMap = struct
+
+module MapSimple = struct
   let map_instrs ~(f : instr -> 'a) (blk : block) : 'a list =
     let ff acc v = acc @ [ f (mk_instr v) ] in
     LL.fold_left_instrs ff [] blk
@@ -936,7 +900,8 @@ module LlirMap = struct
 end
 
 (** Folding over LLVM data structures *)
-module LlirFold = struct
+
+module FoldSimple = struct
   let fold_left_instrs ~(f : 'a -> instr -> 'a) ~(init : 'a) (blk : block) : 'a
     =
     let ff acc v = f acc (mk_instr v) in
@@ -969,12 +934,13 @@ module LlirFold = struct
   ;;
 end
 
-include LlirIter
-include LlirMap
-include LlirFold
+include IterSimple
+include MapSimple
+include FoldSimple
 
 (** Iteration LLVM data structures by following AST structure *)
-module LlirIterAst = struct
+
+module IterAst = struct
   let iter_ast_instr ?(finstr : (instr -> unit) option = None) (instr : instr)
       : unit
     =
@@ -1069,7 +1035,8 @@ module LlirIterAst = struct
 end
 
 (** Fold LLVM data structures by following AST structure *)
-module LlirFoldAst = struct
+
+module FoldAst = struct
   let fold_ast_instr
       ?(finstr : ('a -> instr -> 'a) option = None)
       (acc : 'a)
@@ -1190,8 +1157,8 @@ module LlirFoldAst = struct
   ;;
 end
 
-include LlirIterAst
-include LlirFoldAst
+include IterAst
+include FoldAst
 
 (*******************************************************************
  ** transformation
@@ -1215,335 +1182,224 @@ let string_of_const (v : llvalue) : string option = LL.string_of_const v
  * lltype
  *-----------------------------------------*)
 
-let equal_type (t1 : lltype) (t2 : lltype) = equal_lltype t1 t2
+module Lltype = struct
+  let is_type_void (typ : lltype) : bool =
+    match LL.classify_type typ with
+    | LT.Void -> true
+    | _ -> false
+  ;;
 
-let is_type_void (typ : lltype) : bool =
-  match LL.classify_type typ with
-  | LT.Void -> true
-  | _ -> false
-;;
+  let is_type_integer (typ : lltype) : bool =
+    match LL.classify_type typ with
+    | LT.Integer -> true
+    | _ -> false
+  ;;
 
-let is_type_integer (typ : lltype) : bool =
-  match LL.classify_type typ with
-  | LT.Integer -> true
-  | _ -> false
-;;
+  let is_type_array (typ : lltype) : bool =
+    match LL.classify_type typ with
+    | LT.Array -> true
+    | _ -> false
+  ;;
 
-let is_type_array (typ : lltype) : bool =
-  match LL.classify_type typ with
-  | LT.Array -> true
-  | _ -> false
-;;
+  let is_type_string (typ : lltype) : bool =
+    match LL.classify_type typ with
+    | LT.Array ->
+      let elemtyp = LL.element_type typ in
+      (match LL.classify_type elemtyp with
+      | LT.Integer -> LL.integer_bitwidth elemtyp = 8
+      | _ -> false)
+    | _ -> false
+  ;;
 
-let is_type_string (typ : lltype) : bool =
-  match LL.classify_type typ with
-  | LT.Array ->
-    let elemtyp = LL.element_type typ in
-    (match LL.classify_type elemtyp with
-    | LT.Integer -> LL.integer_bitwidth elemtyp = 8
-    | _ -> false)
-  | _ -> false
-;;
+  let is_type_struct (typ : lltype) : bool =
+    match LL.classify_type typ with
+    | LT.Struct -> true
+    | _ -> false
+  ;;
 
-let is_type_struct (typ : lltype) : bool =
-  match LL.classify_type typ with
-  | LT.Struct -> true
-  | _ -> false
-;;
+  let is_type_pointer (typ : lltype) : bool =
+    match LL.classify_type typ with
+    | LT.Pointer -> true
+    | _ -> false
+  ;;
 
-let is_type_pointer (typ : lltype) : bool =
-  match LL.classify_type typ with
-  | LT.Pointer -> true
-  | _ -> false
-;;
+  let rec is_type_contain_pointer (typ : lltype) : bool =
+    match LL.classify_type typ with
+    | LT.Pointer -> true
+    | LT.Struct ->
+      let elem_types = Array.to_list (LL.struct_element_types typ) in
+      List.exists ~f:is_type_contain_pointer elem_types
+    | _ -> false
+  ;;
 
-let rec is_type_contain_pointer (typ : lltype) : bool =
-  match LL.classify_type typ with
-  | LT.Pointer -> true
-  | LT.Struct ->
-    let elem_types = Array.to_list (LL.struct_element_types typ) in
-    List.exists ~f:is_type_contain_pointer elem_types
-  | _ -> false
-;;
+  let is_type_func (typ : lltype) : bool =
+    match LL.classify_type typ with
+    | LT.Function -> true
+    | _ -> false
+  ;;
 
-let is_type_func (typ : lltype) : bool =
-  match LL.classify_type typ with
-  | LT.Function -> true
-  | _ -> false
-;;
+  let is_type_pointer_to_func (typ : lltype) : bool =
+    match LL.classify_type typ with
+    | LT.Pointer -> is_type_func (LL.element_type typ)
+    | _ -> false
+  ;;
 
-let is_type_pointer_to_func (typ : lltype) : bool =
-  match LL.classify_type typ with
-  | LT.Pointer -> is_type_func (LL.element_type typ)
-  | _ -> false
-;;
+  (** Memory size in bytes of an element of type `typ' *)
 
-(** Memory size in bytes of an element of type `typ' *)
+  let memsize_of_type (typ : lltype) : int64 =
+    match LL.classify_type typ with
+    | LT.Integer -> Int64.of_int (LL.integer_bitwidth typ / 8)
+    | _ -> herror "memsize_of_size: need to implement: " pr_type typ
+  ;;
 
-let memsize_of_type (typ : lltype) : int64 =
-  match LL.classify_type typ with
-  | LT.Integer -> Int64.of_int (LL.integer_bitwidth typ / 8)
-  | _ -> herror "memsize_of_size: need to implement: " pr_type typ
-;;
+  let rec get_elemptr_typ (typ : lltype) (idxs : expr list) : lltype =
+    match idxs with
+    | [] -> typ
+    | idx :: nidxs ->
+      let ntyp =
+        match LL.classify_type typ with
+        | LT.Struct ->
+          let fld_idx =
+            match idx with
+            | Int64 i -> Int64.to_int_exn i
+            | _ -> error "get_elemptr_typ: can't get struct field idx" in
+          Array.get (LL.subtypes typ) fld_idx
+        | LT.Array -> LL.element_type typ
+        | LT.Pointer -> LL.element_type typ
+        | _ -> herror "get_elemptr_typ: need to handle type: " pr_type typ
+      in
+      get_elemptr_typ ntyp nidxs
+  ;;
 
-let rec get_elemptr_typ (typ : lltype) (idxs : expr list) : lltype =
-  match idxs with
-  | [] -> typ
-  | idx :: nidxs ->
-    let ntyp =
-      match LL.classify_type typ with
-      | LT.Struct ->
-        let fld_idx =
-          match idx with
-          | Int64 i -> Int64.to_int_exn i
-          | _ -> error "get_elemptr_typ: can't get struct field idx" in
-        Array.get (LL.subtypes typ) fld_idx
-      | LT.Array -> LL.element_type typ
-      | LT.Pointer -> LL.element_type typ
-      | _ -> herror "get_elemptr_typ: need to handle type: " pr_type typ in
-    get_elemptr_typ ntyp nidxs
-;;
+  let rec check_equiv_type (t1 : lltype) (t2 : lltype) : bool =
+    if equal_type t1 t2
+    then true
+    else (
+      match LL.classify_type t1, LL.classify_type t2 with
+      | LT.Struct, LT.Struct ->
+        let etypes1 = LL.struct_element_types t1 in
+        let etypes2 = LL.struct_element_types t2 in
+        if Array.length etypes1 = Array.length etypes2
+        then
+          (* let ts1 = Array.to_list etypes1 in
+           * let ts2 = Array.to_list etypes2 in *)
+          Array.for_all2_exn ~f:check_equiv_type etypes1 etypes2
+        else false
+      | LT.Array, LT.Array ->
+        check_equiv_type (LL.element_type t1) (LL.element_type t2)
+      | LT.Pointer, LT.Pointer ->
+        check_equiv_type (LL.element_type t1) (LL.element_type t2)
+      | LT.Vector, LT.Vector ->
+        check_equiv_type (LL.element_type t1) (LL.element_type t2)
+      | _ -> true)
+  ;;
+end
 
-let rec check_equiv_type (t1 : lltype) (t2 : lltype) : bool =
-  if equal_type t1 t2
-  then true
-  else (
-    match LL.classify_type t1, LL.classify_type t2 with
-    | LT.Struct, LT.Struct ->
-      let etypes1 = LL.struct_element_types t1 in
-      let etypes2 = LL.struct_element_types t2 in
-      if Array.length etypes1 = Array.length etypes2
-      then
-        (* let ts1 = Array.to_list etypes1 in
-         * let ts2 = Array.to_list etypes2 in *)
-        Array.for_all2_exn ~f:check_equiv_type etypes1 etypes2
-      else false
-    | LT.Array, LT.Array ->
-      check_equiv_type (LL.element_type t1) (LL.element_type t2)
-    | LT.Pointer, LT.Pointer ->
-      check_equiv_type (LL.element_type t1) (LL.element_type t2)
-    | LT.Vector, LT.Vector ->
-      check_equiv_type (LL.element_type t1) (LL.element_type t2)
-    | _ -> true)
-;;
+include Lltype
 
 (*-----------------------------------------
  * llvalue
  *-----------------------------------------*)
 
-let equal_value (v1 : llvalue) (v2 : llvalue) : bool = equal_llvalue v1 v2
+(** Module contains operations over llvalue *)
+module Llvalue = struct
+  let equal_value (v1 : llvalue) (v2 : llvalue) : bool = equal_llvalue v1 v2
 
-let is_llvalue_empty_name (v : llvalue) : bool =
-  String.is_empty (LL.value_name v)
-;;
+  let is_llvalue_empty_name (v : llvalue) : bool =
+    String.is_empty (LL.value_name v)
+  ;;
 
-let is_llvalue_void (v : llvalue) : bool = is_type_void (Llvm.type_of v)
+  let is_llvalue_void (v : llvalue) : bool = is_type_void (Llvm.type_of v)
 
-let is_llvalue_undef (v : llvalue) : bool =
-  match LL.classify_value v with
-  | LV.UndefValue -> true
-  | _ -> false
-;;
+  let is_llvalue_undef (v : llvalue) : bool =
+    match LL.classify_value v with
+    | LV.UndefValue -> true
+    | _ -> false
+  ;;
 
-let is_llvalue_pointer (v : llvalue) : bool = is_type_pointer (LL.type_of v)
+  let is_llvalue_pointer (v : llvalue) : bool = is_type_pointer (LL.type_of v)
 
-let is_llvalue_contain_pointer (v : llvalue) : bool =
-  is_type_contain_pointer (LL.type_of v)
-;;
+  let is_llvalue_contain_pointer (v : llvalue) : bool =
+    is_type_contain_pointer (LL.type_of v)
+  ;;
 
-let is_llvalue_pointer_to_function (v : llvalue) : bool =
-  let typ = LL.type_of v in
-  is_type_pointer typ && is_type_pointer (LL.element_type typ)
-;;
+  let is_llvalue_pointer_to_function (v : llvalue) : bool =
+    let typ = LL.type_of v in
+    is_type_pointer typ && is_type_pointer (LL.element_type typ)
+  ;;
 
-let is_llvalue_param (v : llvalue) : bool =
-  match LL.classify_value v with
-  | LV.Argument _ -> true
-  | _ -> false
-;;
+  let is_llvalue_param (v : llvalue) : bool =
+    match LL.classify_value v with
+    | LV.Argument _ -> true
+    | _ -> false
+  ;;
 
-let is_llvalue_instr (v : llvalue) : bool =
-  match LL.classify_value v with
-  | LV.Instruction _ -> true
-  | _ -> false
-;;
+  let is_llvalue_instr (v : llvalue) : bool =
+    match LL.classify_value v with
+    | LV.Instruction _ -> true
+    | _ -> false
+  ;;
 
-let is_llvalue_instr_phi (v : llvalue) : bool =
-  match LL.classify_value v with
-  | LV.Instruction LO.PHI -> true
-  | _ -> false
-;;
+  let is_llvalue_instr_phi (v : llvalue) : bool =
+    match LL.classify_value v with
+    | LV.Instruction LO.PHI -> true
+    | _ -> false
+  ;;
 
-let is_llvalue_callable_instr (v : llvalue) : bool =
-  match LL.classify_value v with
-  | LV.Instruction LO.Call -> true
-  | LV.Instruction LO.Invoke -> true
-  | _ -> false
-;;
+  let is_llvalue_callable_instr (v : llvalue) : bool =
+    match LL.classify_value v with
+    | LV.Instruction LO.Call -> true
+    | LV.Instruction LO.Invoke -> true
+    | _ -> false
+  ;;
 
-let is_llvalue_instr_gep (v : llvalue) : bool =
-  match LL.classify_value v with
-  | LV.Instruction LO.GetElementPtr -> true
-  | _ -> false
-;;
+  let is_llvalue_instr_gep (v : llvalue) : bool =
+    match LL.classify_value v with
+    | LV.Instruction LO.GetElementPtr -> true
+    | _ -> false
+  ;;
 
-let is_local_llvalue (v : llvalue) : bool = is_llvalue_instr v
+  let is_local_llvalue (v : llvalue) : bool = is_llvalue_instr v
 
-let is_llvalue_constant_expr (v : llvalue) : bool =
-  match LL.classify_value v with
-  | LV.ConstantExpr -> true
-  | _ -> false
-;;
+  let is_llvalue_constant_expr (v : llvalue) : bool =
+    match LL.classify_value v with
+    | LV.ConstantExpr -> true
+    | _ -> false
+  ;;
 
-let is_llvalue_null_constant (v : llvalue) : bool = LL.is_null v
+  let is_llvalue_null_constant (v : llvalue) : bool = LL.is_null v
 
-let is_llvalue_integer_constant (v : llvalue) : bool =
-  if LL.is_constant v
-  then (
-    match LL.classify_type (LL.type_of v) with
-    | LT.Integer -> true
-    | _ -> false)
-  else false
-;;
+  let is_llvalue_integer_constant (v : llvalue) : bool =
+    if LL.is_constant v
+    then (
+      match LL.classify_type (LL.type_of v) with
+      | LT.Integer -> true
+      | _ -> false)
+    else false
+  ;;
 
-let is_llvalue_argument (v : llvalue) : bool =
-  match LL.classify_value v with
-  | LV.Argument -> true
-  | _ -> false
-;;
+  let is_llvalue_argument (v : llvalue) : bool =
+    match LL.classify_value v with
+    | LV.Argument -> true
+    | _ -> false
+  ;;
 
-let is_llvalue_global (v : llvalue) : bool =
-  match LL.classify_value v with
-  | LV.GlobalVariable -> true
-  | _ -> false
-;;
+  let is_llvalue_global (v : llvalue) : bool =
+    match LL.classify_value v with
+    | LV.GlobalVariable -> true
+    | _ -> false
+  ;;
 
-let is_llvalue_function (v : llvalue) : bool =
-  match LL.classify_value v with
-  | LV.Function -> true
-  | _ -> false
-;;
+  let is_llvalue_function (v : llvalue) : bool =
+    match LL.classify_value v with
+    | LV.Function -> true
+    | _ -> false
+  ;;
 
-let type_of_llvalue (v : llvalue) : lltype = LL.type_of v
+  let type_of_llvalue (v : llvalue) : lltype = LL.type_of v
+end
 
-(*-----------------------------------------
- * expression
- *-----------------------------------------*)
-
-let is_expr_null (e : expr) : bool =
-  match e with
-  | Var v -> LL.is_null v
-  | _ -> false
-;;
-
-let is_expr_global (e : expr) : bool =
-  match e with
-  | Var v -> is_llvalue_global v
-  | _ -> false
-;;
-
-let is_expr_function (e : expr) : bool =
-  match e with
-  | Var v -> is_llvalue_function v
-  | _ -> false
-;;
-
-let is_expr_func_res (e : expr) : bool =
-  match e with
-  | FuncRes _ -> true
-  | _ -> false
-;;
-
-let is_expr_undef (e : expr) : bool =
-  match e with
-  | Var v -> is_llvalue_undef v
-  | _ -> false
-;;
-
-let is_expr_deref (e : expr) : bool =
-  match e with
-  | Deref _ -> true
-  | _ -> false
-;;
-
-let is_expr_elemptr (e : expr) : bool =
-  match e with
-  | ElemPtr _ -> true
-  | _ -> false
-;;
-
-let is_expr_malloc (e : expr) : bool =
-  match e with
-  | Malloc _ -> true
-  | _ -> false
-;;
-
-let is_expr_var (e : expr) : bool =
-  match e with
-  | Var v -> true
-  | _ -> false
-;;
-
-let is_expr_int64_const (e : expr) : bool =
-  match e with
-  | Int64 _ -> true
-  | _ -> false
-;;
-
-let is_expr_float_const (e : expr) : bool =
-  match e with
-  | Float _ -> true
-  | _ -> false
-;;
-
-let is_expr_const (e : expr) : bool =
-  match e with
-  | Int64 _ | Float _ -> true
-  | _ -> false
-;;
-
-let is_zero_expr (e : expr) : bool =
-  match e with
-  | Int64 i -> Int64.( = ) i Int64.zero
-  | _ -> false
-;;
-
-let is_symbolic_expr (e : expr) : bool =
-  match e with
-  | Int64 _ | Float _ -> false
-  | Var v -> not (LL.is_constant v)
-  | _ -> false
-;;
-
-let rec get_expr_depth (e : expr) : int =
-  match e with
-  | Undef _ | Int64 _ | Float _ | String _ | Var _ | OldE _ | FuncRes _ -> 1
-  | Deref ne | ElemPtr (ne, _, _) | Malloc ne | Exn ne -> get_expr_depth ne + 1
-;;
-
-let rec is_sub_expr (e : expr) ~(sub : expr) : bool =
-  match e with
-  | Undef _ | Int64 _ | Float _ | String _ | Var _ | OldE _ | FuncRes _ ->
-    false
-  | Deref ne | ElemPtr (ne, _, _) | Malloc ne | Exn ne ->
-    equal_expr ne sub || is_sub_expr ne ~sub
-;;
-
-let rec type_of_expr (e : expr) : lltype =
-  let llcontext = LL.global_context () in
-  match e with
-  | Undef t -> t
-  | Int64 _ -> LL.integer_type llcontext 64
-  | Float _ -> LL.float_type llcontext
-  | String s -> LL.type_of (LL.const_string llcontext s)
-  | Var v -> LL.type_of v
-  | OldE e -> type_of_expr e
-  | Deref e' -> LL.element_type (type_of_expr e')
-  | ElemPtr (root, rtyp, idxs) -> get_elemptr_typ rtyp idxs
-  | Malloc e -> type_of_expr e
-  | FuncRes f -> LL.return_type (LL.type_of (llvalue_of_func f))
-  | Exn e -> type_of_expr e
-;;
+include Llvalue
 
 (*-----------------------------------------
  * predicate
@@ -1565,7 +1421,7 @@ let equal_pred_simple (p1 : predicate) (p2 : predicate) =
   match p1, p2 with
   | PBool b1, PBool b2 -> b1 == b2
   | PIcmp (cmp1, lhs1, rhs1), PIcmp (cmp2, lhs2, rhs2) ->
-    cmp1 == cmp2 && equal_value lhs1 lhs2 && equal_value rhs1 rhs2
+    cmp1 == cmp2 && equal_llvalue lhs1 lhs2 && equal_llvalue rhs1 rhs2
   | _ -> false
 ;;
 
@@ -1580,465 +1436,661 @@ let global_names (gs : globals) : string = pr_args ~f:global_name gs
  * instruction
  *-----------------------------------------*)
 
-let is_instr_load (i : instr) : bool =
-  match instr_opcode i with
-  | LO.Load -> true
-  | _ -> false
-;;
+module Instr = struct
+  let is_instr_load (i : instr) : bool =
+    match instr_opcode i with
+    | LO.Load -> true
+    | _ -> false
+  ;;
 
-let is_instr_store (i : instr) : bool =
-  match instr_opcode i with
-  | LO.Store -> true
-  | _ -> false
-;;
+  let is_instr_store (i : instr) : bool =
+    match instr_opcode i with
+    | LO.Store -> true
+    | _ -> false
+  ;;
 
-let is_instr_gep (i : instr) : bool =
-  match instr_opcode i with
-  | LO.GetElementPtr -> true
-  | _ -> false
-;;
+  let is_instr_gep (i : instr) : bool =
+    match instr_opcode i with
+    | LO.GetElementPtr -> true
+    | _ -> false
+  ;;
 
-let is_instr_extractvalue (i : instr) : bool =
-  match instr_opcode i with
-  | LO.ExtractValue -> true
-  | _ -> false
-;;
+  let is_instr_extractvalue (i : instr) : bool =
+    match instr_opcode i with
+    | LO.ExtractValue -> true
+    | _ -> false
+  ;;
 
-let is_instr_call (i : instr) : bool =
-  match instr_opcode i with
-  | LO.Call -> true
-  | _ -> false
-;;
+  let is_instr_call (i : instr) : bool =
+    match instr_opcode i with
+    | LO.Call -> true
+    | _ -> false
+  ;;
 
-let is_instr_invoke (i : instr) : bool =
-  match instr_opcode i with
-  | LO.Invoke -> true
-  | _ -> false
-;;
+  let is_instr_invoke (i : instr) : bool =
+    match instr_opcode i with
+    | LO.Invoke -> true
+    | _ -> false
+  ;;
 
-let is_instr_call_invoke (i : instr) : bool =
-  match instr_opcode i with
-  | LO.Call | LO.CallBr | LO.Invoke -> true
-  | _ -> false
-;;
+  let is_instr_call_invoke (i : instr) : bool =
+    match instr_opcode i with
+    | LO.Call | LO.CallBr | LO.Invoke -> true
+    | _ -> false
+  ;;
 
-let is_instr_return (i : instr) : bool =
-  match instr_opcode i with
-  | LO.Ret -> true
-  | _ -> false
-;;
+  let is_instr_return (i : instr) : bool =
+    match instr_opcode i with
+    | LO.Ret -> true
+    | _ -> false
+  ;;
 
-let is_instr_bitcast (i : instr) : bool =
-  match instr_opcode i with
-  | LO.BitCast -> true
-  | _ -> false
-;;
+  let is_instr_bitcast (i : instr) : bool =
+    match instr_opcode i with
+    | LO.BitCast -> true
+    | _ -> false
+  ;;
 
-let is_instr_br_or_switch (i : instr) : bool =
-  match instr_opcode i with
-  | LO.Br | LO.IndirectBr | LO.Switch -> true
-  | _ -> false
-;;
+  let is_instr_br_or_switch (i : instr) : bool =
+    match instr_opcode i with
+    | LO.Br | LO.IndirectBr | LO.Switch -> true
+    | _ -> false
+  ;;
 
-let is_instr_unreachable (i : instr) : bool =
-  match instr_opcode i with
-  | LO.Unreachable -> true
-  | _ -> false
-;;
+  let is_instr_unreachable (i : instr) : bool =
+    match instr_opcode i with
+    | LO.Unreachable -> true
+    | _ -> false
+  ;;
 
-let is_instr_same_block (i1 : instr) (i2 : instr) : bool =
-  let blk1 = block_of_instr i1 in
-  let blk2 = block_of_instr i2 in
-  equal_block blk1 blk2
-;;
+  let is_instr_same_block (i1 : instr) (i2 : instr) : bool =
+    let blk1 = block_of_instr i1 in
+    let blk2 = block_of_instr i2 in
+    equal_block blk1 blk2
+  ;;
 
-let instr_succ (i : instr) : instr option =
-  match LL.instr_succ (llvalue_of_instr i) with
-  | LL.At_end _ -> None
-  | LL.Before v -> Some (mk_instr v)
-;;
+  let instr_succ (i : instr) : instr option =
+    match LL.instr_succ (llvalue_of_instr i) with
+    | LL.At_end _ -> None
+    | LL.Before v -> Some (mk_instr v)
+  ;;
 
-let instr_pred (i : instr) : instr option =
-  match LL.instr_pred (llvalue_of_instr i) with
-  | LL.At_start _ -> None
-  | LL.After v -> Some (mk_instr v)
-;;
+  let instr_pred (i : instr) : instr option =
+    match LL.instr_pred (llvalue_of_instr i) with
+    | LL.At_start _ -> None
+    | LL.After v -> Some (mk_instr v)
+  ;;
 
-let instr_begin (blk : block) : instr option =
-  match LL.instr_begin blk with
-  | LL.At_end _ -> None
-  | LL.Before v -> Some (mk_instr v)
-;;
+  let instr_begin (blk : block) : instr option =
+    match LL.instr_begin blk with
+    | LL.At_end _ -> None
+    | LL.Before v -> Some (mk_instr v)
+  ;;
+end
 
 (*-----------------------------------------
  * function and parameters
  *-----------------------------------------*)
 
-let func_name (f : func) : string =
-  let v = llvalue_of_func f in
-  match LL.classify_value v with
-  | LV.Function -> LL.value_name v
-  | LV.Instruction _ -> LL.value_name v
-  | LV.Argument _ -> LL.value_name v
-  | _ -> LL.value_name v
-;;
+module Func = struct
+  let func_name (f : func) : string =
+    let v = llvalue_of_func f in
+    match LL.classify_value v with
+    | LV.Function -> LL.value_name v
+    | LV.Instruction _ -> LL.value_name v
+    | LV.Argument _ -> LL.value_name v
+    | _ -> LL.value_name v
+  ;;
 
-(* herror "func_name: not a function or pointer: " pr_value_detail v *)
+  let param_name (p : param) : string = pr_value (llvalue_of_param p)
+  let param_names (ps : params) : string = pr_args ~f:param_name ps
 
-let param_name (p : param) : string = pr_value (llvalue_of_param p)
-let param_names (ps : params) : string = pr_args ~f:param_name ps
+  let func_name_and_params (f : func) : string =
+    let v = llvalue_of_func f in
+    match LL.classify_value v with
+    | LV.Function ->
+      let params = Array.to_list (LL.params v) in
+      LL.value_name v ^ "(" ^ pr_args ~f:pr_value_detail params ^ ")"
+    | _ -> herror "func_name_and_params: not a function: " pr_value_detail v
+  ;;
 
-let func_name_and_params (f : func) : string =
-  let v = llvalue_of_func f in
-  match LL.classify_value v with
-  | LV.Function ->
-    let params = Array.to_list (LL.params v) in
-    LL.value_name v ^ "(" ^ pr_args ~f:pr_value_detail params ^ ")"
-  | _ -> herror "func_name_and_params: not a function: " pr_value_detail v
-;;
+  let func_names (fs : func list) : string = pr_list ~f:func_name fs
 
-let func_names (fs : func list) : string = pr_list ~f:func_name fs
+  let func_params (f : func) : param list =
+    let v = llvalue_of_func f in
+    match LL.classify_value v with
+    | LV.Function ->
+      let vparams = Array.to_list (LL.params v) in
+      List.map ~f:mk_param vparams
+    | _ -> herror "func_params: not a function: " pr_value_detail v
+  ;;
 
-let func_params (f : func) : param list =
-  let v = llvalue_of_func f in
-  match LL.classify_value v with
-  | LV.Function ->
-    let vparams = Array.to_list (LL.params v) in
-    List.map ~f:mk_param vparams
-  | _ -> herror "func_params: not a function: " pr_value_detail v
-;;
+  let func_type (f : func) : lltype =
+    LL.return_type (LL.type_of (llvalue_of_func f))
+  ;;
 
-let func_type (f : func) : lltype =
-  LL.return_type (LL.type_of (llvalue_of_func f))
-;;
+  let func_param_types (f : func) : lltype list =
+    Array.to_list (LL.param_types (func_type f))
+  ;;
 
-let func_param_types (f : func) : lltype list =
-  Array.to_list (LL.param_types (func_type f))
-;;
+  let func_return_type (f : func) : lltype = LL.return_type (func_type f)
 
-let func_return_type (f : func) : lltype = LL.return_type (func_type f)
+  let blocks_of_func (f : func) : blocks =
+    let v = llvalue_of_func f in
+    LL.fold_left_blocks (fun acc blk -> acc @ [ blk ]) [] v
+  ;;
 
-let blocks_of_func (f : func) : blocks =
-  let v = llvalue_of_func f in
-  LL.fold_left_blocks (fun acc blk -> acc @ [ blk ]) [] v
-;;
+  let is_func_free (f : func) : bool = String.equal (func_name f) "free"
+  let is_func_malloc (f : func) : bool = String.equal (func_name f) "malloc"
+  let is_func_realloc (f : func) : bool = String.equal (func_name f) "realloc"
+  let is_func_nondet (f : func) : bool = String.equal (func_name f) "__nondet"
 
-let is_func_free (f : func) : bool = String.equal (func_name f) "free"
-let is_func_malloc (f : func) : bool = String.equal (func_name f) "malloc"
-let is_func_realloc (f : func) : bool = String.equal (func_name f) "realloc"
-let is_func_nondet (f : func) : bool = String.equal (func_name f) "__nondet"
+  let is_func_handling_exception (f : func) : bool =
+    let fname = func_name f in
+    String.equal fname "__cxa_allocate_exception"
+    || String.equal fname "__cxa_throw"
+    || String.equal fname "__cxa_begin_catch"
+    || String.equal fname "__cxa_end_catch"
+    || String.equal fname "llvm.eh.typeid.for"
+  ;;
 
-let is_func_handling_exception (f : func) : bool =
-  let fname = func_name f in
-  String.equal fname "__cxa_allocate_exception"
-  || String.equal fname "__cxa_throw"
-  || String.equal fname "__cxa_begin_catch"
-  || String.equal fname "__cxa_end_catch"
-  || String.equal fname "llvm.eh.typeid.for"
-;;
+  let is_func_memcpy (f : func) : bool =
+    String.is_prefix (func_name f) ~prefix:"llvm.memcpy"
+  ;;
 
-let is_func_memcpy (f : func) : bool =
-  String.is_prefix (func_name f) ~prefix:"llvm.memcpy"
-;;
+  let is_func_memmove (f : func) : bool =
+    String.is_prefix (func_name f) ~prefix:"llvm.memmove"
+  ;;
 
-let is_func_memmove (f : func) : bool =
-  String.is_prefix (func_name f) ~prefix:"llvm.memmove"
-;;
+  let is_func_scanf (f : func) : bool =
+    let fname = func_name f in
+    String.equal fname "__isoc99_scanf"
+  ;;
 
-let is_func_scanf (f : func) : bool =
-  let fname = func_name f in
-  String.equal fname "__isoc99_scanf"
-;;
+  let is_func_dynamic_cast (f : func) : bool =
+    String.equal (func_name f) "__dynamic_cast"
+  ;;
 
-let is_func_dynamic_cast (f : func) : bool =
-  String.equal (func_name f) "__dynamic_cast"
-;;
+  let is_func_clang_call_terminate (f : func) : bool =
+    String.equal (func_name f) "__clang_call_terminate"
+  ;;
 
-let is_func_clang_call_terminate (f : func) : bool =
-  String.equal (func_name f) "__clang_call_terminate"
-;;
+  let is_func_cpp_new (f : func) : bool = String.equal (func_name f) "_Znwm"
 
-let is_func_cpp_new (f : func) : bool = String.equal (func_name f) "_Znwm"
-let is_func_cpp_delete (f : func) : bool = String.equal (func_name f) "_ZdlPv"
-let is_func_main (f : func) : bool = String.equal (func_name f) "main"
+  let is_func_cpp_delete (f : func) : bool =
+    String.equal (func_name f) "_ZdlPv"
+  ;;
 
-let is_func_llvm_debug (f : func) : bool =
-  let fname = func_name f in
-  String.equal fname "llvm.dbg.declare" || String.equal fname "llvm.dbg.value"
-;;
+  let is_func_main (f : func) : bool = String.equal (func_name f) "main"
 
-let is_func_llvm_debug_declare (f : func) : bool =
-  String.equal (func_name f) "llvm.dbg.declare"
-;;
+  let is_func_llvm_debug (f : func) : bool =
+    let fname = func_name f in
+    String.equal fname "llvm.dbg.declare"
+    || String.equal fname "llvm.dbg.value"
+  ;;
 
-let is_func_llvm_debug_value (f : func) : bool =
-  String.equal (func_name f) "llvm.dbg.value"
-;;
+  let is_func_llvm_debug_declare (f : func) : bool =
+    String.equal (func_name f) "llvm.dbg.declare"
+  ;;
 
-let is_lib_no_source_func (f : func) : bool =
-  List.is_empty (blocks_of_func f)
-  || is_func_free f || is_func_malloc f || is_func_realloc f
-  || is_func_nondet f
-;;
+  let is_func_llvm_debug_value (f : func) : bool =
+    String.equal (func_name f) "llvm.dbg.value"
+  ;;
 
-let is_lib_has_source_func (f : func) : bool =
-  let v = llvalue_of_func f in
-  match LL.classify_value v with
-  | LV.Function -> LL.visibility v == LL.Visibility.Hidden
-  | _ -> false
-;;
+  let is_lib_no_source_func (f : func) : bool =
+    List.is_empty (blocks_of_func f)
+    || is_func_free f || is_func_malloc f || is_func_realloc f
+    || is_func_nondet f
+  ;;
 
-let is_discover_assertion_func (f : func) : bool =
-  let fname = func_name f in
-  String.is_substring ~substring:__assert fname
-  || String.is_substring ~substring:__refute fname
-;;
+  let is_lib_has_source_func (f : func) : bool =
+    let v = llvalue_of_func f in
+    match LL.classify_value v with
+    | LV.Function -> LL.visibility v == LL.Visibility.Hidden
+    | _ -> false
+  ;;
 
-let is_init_func (f : func) : bool =
-  let fname = func_name f in
-  String.is_prefix ~prefix:__init fname
-;;
+  let is_discover_assertion_func (f : func) : bool =
+    let fname = func_name f in
+    String.is_substring ~substring:__assert fname
+    || String.is_substring ~substring:__refute fname
+  ;;
 
-let is_user_func (f : func) : bool =
-  let v = llvalue_of_func f in
-  match LL.classify_value v with
-  | LV.Function ->
-    not
-      (is_init_func f || is_lib_no_source_func f || is_lib_has_source_func f
-      || is_discover_assertion_func f)
-  | _ -> false
-;;
+  let is_init_func (f : func) : bool =
+    let fname = func_name f in
+    String.is_prefix ~prefix:__init fname
+  ;;
 
-let is_func_throw_exception (f : func) : bool =
-  let fname = func_name f in
-  String.equal fname "__cxa_throw"
-;;
+  let is_user_func (f : func) : bool =
+    let v = llvalue_of_func f in
+    match LL.classify_value v with
+    | LV.Function ->
+      not
+        (is_init_func f || is_lib_no_source_func f || is_lib_has_source_func f
+        || is_discover_assertion_func f)
+    | _ -> false
+  ;;
 
-let is_func_begin_catch_exception (f : func) : bool =
-  let fname = func_name f in
-  String.equal fname "__cxa_begin_catch"
-;;
+  let is_func_throw_exception (f : func) : bool =
+    let fname = func_name f in
+    String.equal fname "__cxa_throw"
+  ;;
 
-let is_func_eh_typeid_for (f : func) : bool =
-  let fname = func_name f in
-  String.equal fname "llvm.eh.typeid.for"
-;;
+  let is_func_begin_catch_exception (f : func) : bool =
+    let fname = func_name f in
+    String.equal fname "__cxa_begin_catch"
+  ;;
 
-let is_func_pointer (f : func) : bool =
-  let v = llvalue_of_func f in
-  match LL.classify_value v with
-  | LV.Instruction _ -> true
-  | _ -> false
-;;
+  let is_func_eh_typeid_for (f : func) : bool =
+    let fname = func_name f in
+    String.equal fname "llvm.eh.typeid.for"
+  ;;
 
-let is_func_real_func (f : func) : bool =
-  let v = llvalue_of_func f in
-  match LL.classify_value v with
-  | LV.Function _ -> true
-  | _ -> false
-;;
+  let is_func_pointer (f : func) : bool =
+    let v = llvalue_of_func f in
+    match LL.classify_value v with
+    | LV.Instruction _ -> true
+    | _ -> false
+  ;;
 
-let local_vars_of_func (f : func) : instr list =
-  fold_left_blocks
-    ~f:(fun acc1 blk ->
-      let allocas =
-        fold_left_instrs
-          ~f:(fun acc2 instr ->
-            match instr_opcode instr with
-            | LO.Alloca -> acc2 @ [ instr ]
-            | _ -> acc2)
-          ~init:[] blk in
-      acc1 @ allocas)
-    ~init:[] f
-;;
+  let is_func_real_func (f : func) : bool =
+    let v = llvalue_of_func f in
+    match LL.classify_value v with
+    | LV.Function _ -> true
+    | _ -> false
+  ;;
 
-let get_all_funcs (m : llmodule) =
-  fold_left_functions ~f:(fun acc f -> acc @ [ f ]) ~init:[] m
-;;
+  let local_vars_of_func (f : func) : instr list =
+    fold_left_blocks
+      ~f:(fun acc1 blk ->
+        let allocas =
+          fold_left_instrs
+            ~f:(fun acc2 instr ->
+              match instr_opcode instr with
+              | LO.Alloca -> acc2 @ [ instr ]
+              | _ -> acc2)
+            ~init:[] blk in
+        acc1 @ allocas)
+      ~init:[] f
+  ;;
 
-let get_lib_no_source_funcs (m : llmodule) =
-  fold_left_functions
-    ~f:(fun acc f -> if is_lib_no_source_func f then acc @ [ f ] else acc)
-    ~init:[] m
-;;
+  let get_all_funcs (m : llmodule) =
+    fold_left_functions ~f:(fun acc f -> acc @ [ f ]) ~init:[] m
+  ;;
 
-let get_lib_has_source_funcs (m : llmodule) =
-  fold_left_functions
-    ~f:(fun acc f -> if is_lib_has_source_func f then acc @ [ f ] else acc)
-    ~init:[] m
-;;
+  let get_lib_no_source_funcs (m : llmodule) =
+    fold_left_functions
+      ~f:(fun acc f -> if is_lib_no_source_func f then acc @ [ f ] else acc)
+      ~init:[] m
+  ;;
 
-let get_user_funcs (m : llmodule) =
-  fold_left_functions
-    ~f:(fun acc f -> if is_user_func f then acc @ [ f ] else acc)
-    ~init:[] m
-;;
+  let get_lib_has_source_funcs (m : llmodule) =
+    fold_left_functions
+      ~f:(fun acc f -> if is_lib_has_source_func f then acc @ [ f ] else acc)
+      ~init:[] m
+  ;;
 
-let get_discover_funcs (m : llmodule) =
-  fold_left_functions
-    ~f:(fun acc f -> if is_discover_assertion_func f then acc @ [ f ] else acc)
-    ~init:[] m
-;;
+  let get_user_funcs (m : llmodule) =
+    fold_left_functions
+      ~f:(fun acc f -> if is_user_func f then acc @ [ f ] else acc)
+      ~init:[] m
+  ;;
 
-let get_init_funcs (m : llmodule) =
-  fold_left_functions
-    ~f:(fun acc f -> if is_init_func f then acc @ [ f ] else acc)
-    ~init:[] m
-;;
+  let get_discover_funcs (m : llmodule) =
+    fold_left_functions
+      ~f:(fun acc f ->
+        if is_discover_assertion_func f then acc @ [ f ] else acc)
+      ~init:[] m
+  ;;
 
-(*-----------------------------------------
- * callable
- *-----------------------------------------*)
-
-let callable_name (c : callable) : string =
-  match c with
-  | ClFunc f -> func_name f
-  | ClFPtr fp -> value_name fp
-;;
-
-let callable_of_func (f : func) : callable = ClFunc f
-let callable_of_func_pointer (fp : llvalue) : callable = ClFPtr fp
+  let get_init_funcs (m : llmodule) =
+    fold_left_functions
+      ~f:(fun acc f -> if is_init_func f then acc @ [ f ] else acc)
+      ~init:[] m
+  ;;
+end
 
 (*-----------------------------------------
- * block
+ * Callable: function or function pointer
  *-----------------------------------------*)
 
-let block_name_full (blk : block) : string =
-  let func = func_of_block blk in
-  func_name func ^ "_" ^ block_name blk
-;;
+module Callable = struct
+  let callable_name (c : callable) : string =
+    match c with
+    | ClFunc f -> Func.func_name f
+    | ClFPtr fp -> value_name fp
+  ;;
 
-let equal_block_name (blk1 : block) (blk2 : block) : bool =
-  let name1 = block_name blk1 in
-  let name2 = block_name blk2 in
-  String.equal name1 name2
-;;
+  let callable_of_func (f : func) : callable = ClFunc f
+  let callable_of_func_pointer (fp : llvalue) : callable = ClFPtr fp
+end
 
-let equal_block (blk1 : block) (blk2 : block) : bool = blk1 == blk2
-(* compare physical LLVM object *)
+(*-----------------------------------------
+ * Block
+ *-----------------------------------------*)
+
+module Block = struct
+  let block_name_full (blk : block) : string =
+    let func = func_of_block blk in
+    Func.func_name func ^ "_" ^ block_name blk
+  ;;
+
+  let equal_block_name (blk1 : block) (blk2 : block) : bool =
+    let name1 = block_name blk1 in
+    let name2 = block_name blk2 in
+    String.equal name1 name2
+  ;;
+
+  let equal_block (blk1 : block) (blk2 : block) : bool = blk1 == blk2
+  (* compare physical LLVM object *)
+end
+
+(*-----------------------------------------
+ * Loops
+ *-----------------------------------------*)
+
+(** Module contains operations over loops *)
+module Loop = struct
+  let equal_loop (lp1 : loop) (lp2 : loop) : bool =
+    equal_block lp1.loop_head lp2.loop_head
+  ;;
+
+  let mk_loop ~(head : block) ~(body : block list) ~(exit : block list) =
+    { loop_head = head;
+      loop_body = body;
+      loop_exit = exit;
+      loop_exit_reachables = [];
+      loop_inners = [];
+      loop_outers = None
+    }
+  ;;
+end
+
+include Loop
+
+(*-----------------------------------------
+ * Expression
+ *-----------------------------------------*)
+
+(** Module contains operations over expressions *)
+module Expr = struct
+  let rec equal_expr (e1 : expr) (e2 : expr) : bool =
+    match e1, e2 with
+    | Undef t1, Undef t2 -> equal_lltype t1 t2
+    | Undef _, _ -> false
+    | Int64 i1, Int64 i2 -> Int64.equal i1 i2
+    | Int64 _, _ -> false
+    | Float f1, Float f2 -> Float.equal f1 f2
+    | Float _, _ -> false
+    | String s1, String s2 -> String.equal s1 s2
+    | String _, _ -> false
+    | Var v1, Var v2 -> equal_llvalue v1 v2
+    | Var _, _ -> false
+    | OldE e1, OldE e2 -> equal_expr e1 e2
+    | OldE _, _ -> false
+    | Deref e1, Deref e2 -> equal_expr e1 e2
+    | Deref _, _ -> false
+    | ElemPtr (e1, t1, es1), ElemPtr (e2, t2, es2) ->
+      equal_expr e1 e2 && equal_lltype t1 t2 && List.equal equal_expr es1 es2
+    | ElemPtr _, _ -> false
+    | Malloc e1, Malloc e2 -> equal_expr e1 e2
+    | Malloc _, _ -> false
+    | FuncRes f1, FuncRes f2 -> equal_func f1 f2
+    | FuncRes _, _ -> false
+    | Exn e1, Exn e2 -> equal_expr e1 e2
+    | Exn _, _ -> false
+  ;;
+
+  let is_expr_null (e : expr) : bool =
+    match e with
+    | Var v -> LL.is_null v
+    | _ -> false
+  ;;
+
+  let is_expr_global (e : expr) : bool =
+    match e with
+    | Var v -> is_llvalue_global v
+    | _ -> false
+  ;;
+
+  let is_expr_function (e : expr) : bool =
+    match e with
+    | Var v -> is_llvalue_function v
+    | _ -> false
+  ;;
+
+  let is_expr_func_res (e : expr) : bool =
+    match e with
+    | FuncRes _ -> true
+    | _ -> false
+  ;;
+
+  let is_expr_undef (e : expr) : bool =
+    match e with
+    | Var v -> is_llvalue_undef v
+    | _ -> false
+  ;;
+
+  let is_expr_deref (e : expr) : bool =
+    match e with
+    | Deref _ -> true
+    | _ -> false
+  ;;
+
+  let is_expr_elemptr (e : expr) : bool =
+    match e with
+    | ElemPtr _ -> true
+    | _ -> false
+  ;;
+
+  let is_expr_malloc (e : expr) : bool =
+    match e with
+    | Malloc _ -> true
+    | _ -> false
+  ;;
+
+  let is_expr_var (e : expr) : bool =
+    match e with
+    | Var v -> true
+    | _ -> false
+  ;;
+
+  let is_expr_int64_const (e : expr) : bool =
+    match e with
+    | Int64 _ -> true
+    | _ -> false
+  ;;
+
+  let is_expr_float_const (e : expr) : bool =
+    match e with
+    | Float _ -> true
+    | _ -> false
+  ;;
+
+  let is_expr_const (e : expr) : bool =
+    match e with
+    | Int64 _ | Float _ -> true
+    | _ -> false
+  ;;
+
+  let is_zero_expr (e : expr) : bool =
+    match e with
+    | Int64 i -> Int64.( = ) i Int64.zero
+    | _ -> false
+  ;;
+
+  let is_symbolic_expr (e : expr) : bool =
+    match e with
+    | Int64 _ | Float _ -> false
+    | Var v -> not (LL.is_constant v)
+    | _ -> false
+  ;;
+
+  let rec get_expr_depth (e : expr) : int =
+    match e with
+    | Undef _ | Int64 _ | Float _ | String _ | Var _ | OldE _ | FuncRes _ -> 1
+    | Deref ne | ElemPtr (ne, _, _) | Malloc ne | Exn ne ->
+      get_expr_depth ne + 1
+  ;;
+
+  let rec is_sub_expr (e : expr) ~(sub : expr) : bool =
+    match e with
+    | Undef _ | Int64 _ | Float _ | String _ | Var _ | OldE _ | FuncRes _ ->
+      false
+    | Deref ne | ElemPtr (ne, _, _) | Malloc ne | Exn ne ->
+      equal_expr ne sub || is_sub_expr ne ~sub
+  ;;
+
+  let rec type_of_expr (e : expr) : lltype =
+    let llcontext = LL.global_context () in
+    match e with
+    | Undef t -> t
+    | Int64 _ -> LL.integer_type llcontext 64
+    | Float _ -> LL.float_type llcontext
+    | String s -> LL.type_of (LL.const_string llcontext s)
+    | Var v -> LL.type_of v
+    | OldE e -> type_of_expr e
+    | Deref e' -> LL.element_type (type_of_expr e')
+    | ElemPtr (root, rtyp, idxs) -> get_elemptr_typ rtyp idxs
+    | Malloc e -> type_of_expr e
+    | FuncRes f -> LL.return_type (LL.type_of (llvalue_of_func f))
+    | Exn e -> type_of_expr e
+  ;;
+end
+
+include Expr
+include Instr
+include Func
+include Callable
+include Block
 
 (*******************************************************************
  ** substitution
  *******************************************************************)
 
-type substv = (llvalue * llvalue) list (* old / new values*)
+(** Module contains function to process substitution *)
+module Substitution = struct
+  type substv = (llvalue * llvalue) list (* old / new values*)
 
-type substve = (llvalue * expr) list (* old / new values*)
+  type substve = (llvalue * expr) list (* old / new values*)
 
-type subste = (expr * expr) list (* old / new exprs*)
+  type subste = (expr * expr) list (* old / new exprs*)
 
-let pr_substv (sst : substv) : string =
-  pr_list ~f:(pr_pair ~f1:pr_value ~f2:pr_value) sst
-;;
+  let pr_substv (sst : substv) : string =
+    pr_list ~f:(pr_pair ~f1:pr_value ~f2:pr_value) sst
+  ;;
 
-let pr_subste (sst : subste) : string =
-  pr_list ~f:(pr_pair ~f1:pr_expr ~f2:pr_expr) sst
-;;
+  let pr_subste (sst : subste) : string =
+    pr_list ~f:(pr_pair ~f1:pr_expr ~f2:pr_expr) sst
+  ;;
 
-let init_substv () : substv = []
-let init_subste () : subste = []
+  let init_substv () : substv = []
+  let init_subste () : subste = []
 
-let extend_substv (sst : substv) oldv newv : substv =
-  if List.exists ~f:(fun (a, _) -> equal_llvalue oldv a) sst
-  then sst
-  else (oldv, newv) :: sst
-;;
+  let extend_substv (sst : substv) oldv newv : substv =
+    if List.exists ~f:(fun (a, _) -> equal_llvalue oldv a) sst
+    then sst
+    else (oldv, newv) :: sst
+  ;;
 
-let extend_subste (sst : subste) olde newe : subste =
-  if List.exists ~f:(fun (a, _) -> equal_expr olde a) sst
-  then sst
-  else (olde, newe) :: sst
-;;
+  let extend_subste (sst : subste) olde newe : subste =
+    if List.exists ~f:(fun (a, _) -> equal_expr olde a) sst
+    then sst
+    else (olde, newe) :: sst
+  ;;
 
-let extend_substve (sst : substve) oldv newe : substve =
-  if List.exists ~f:(fun (a, _) -> equal_llvalue oldv a) sst
-  then sst
-  else (oldv, newe) :: sst
-;;
+  let extend_substve (sst : substve) oldv newe : substve =
+    if List.exists ~f:(fun (a, _) -> equal_llvalue oldv a) sst
+    then sst
+    else (oldv, newe) :: sst
+  ;;
 
-let mk_substv ~(oldvs : llvalue list) ~(newvs : llvalue list) : substv =
-  try
-    List.fold2_exn
-      ~f:(fun acc ov nv -> extend_substv acc ov nv)
-      ~init:[] oldvs newvs
-  with _ -> []
-;;
+  let mk_substv ~(oldvs : llvalue list) ~(newvs : llvalue list) : substv =
+    try
+      List.fold2_exn
+        ~f:(fun acc ov nv -> extend_substv acc ov nv)
+        ~init:[] oldvs newvs
+    with _ -> []
+  ;;
 
-let mk_subste ~(oldes : expr list) ~(newes : expr list) : subste =
-  try
-    List.fold2_exn
-      ~f:(fun acc oe ne -> extend_subste acc oe ne)
-      ~init:[] oldes newes
-  with _ -> []
-;;
+  let mk_subste ~(oldes : expr list) ~(newes : expr list) : subste =
+    try
+      List.fold2_exn
+        ~f:(fun acc oe ne -> extend_subste acc oe ne)
+        ~init:[] oldes newes
+    with _ -> []
+  ;;
 
-let mk_substve ~(oldvs : llvalue list) ~(newes : expr list) : substve =
-  try
-    List.fold2_exn
-      ~f:(fun acc ov ne -> extend_substve acc ov ne)
-      ~init:[] oldvs newes
-  with _ -> []
-;;
+  let mk_substve ~(oldvs : llvalue list) ~(newes : expr list) : substve =
+    try
+      List.fold2_exn
+        ~f:(fun acc ov ne -> extend_substve acc ov ne)
+        ~init:[] oldvs newes
+    with _ -> []
+  ;;
 
-let subst_value (sst : substv) (v : llvalue) : llvalue =
-  let res = List.find ~f:(fun (a, b) -> equal_llvalue a v) sst in
-  match res with
-  | Some (_, b) -> b
-  | None -> v
-;;
+  let subst_value (sst : substv) (v : llvalue) : llvalue =
+    let res = List.find ~f:(fun (a, b) -> equal_llvalue a v) sst in
+    match res with
+    | Some (_, b) -> b
+    | None -> v
+  ;;
 
-let subst_value_expr (sst : substve) (v : llvalue) : expr =
-  let res = List.find ~f:(fun (a, b) -> equal_llvalue a v) sst in
-  match res with
-  | Some (_, b) -> b
-  | None -> Var v
-;;
+  let subst_value_expr (sst : substve) (v : llvalue) : expr =
+    let res = List.find ~f:(fun (a, b) -> equal_llvalue a v) sst in
+    match res with
+    | Some (_, b) -> b
+    | None -> Var v
+  ;;
 
-let subst_values (sst : substv) (vs : llvalue list) : llvalue list =
-  List.fold_left ~f:(fun acc v -> acc @ [ subst_value sst v ]) ~init:[] vs
-;;
+  let subst_values (sst : substv) (vs : llvalue list) : llvalue list =
+    List.fold_left ~f:(fun acc v -> acc @ [ subst_value sst v ]) ~init:[] vs
+  ;;
 
-let rec subst_expr
-    ?(sstv : substv = [])
-    ?(sstve : substve = [])
-    ?(sste : subste = [])
-    (e : expr)
-    : expr
-  =
-  (* first substitute expression *)
-  let res = List.find ~f:(fun (a, b) -> equal_expr a e) sste in
-  match res with
-  | Some (_, b) -> b
-  | None ->
-    if (* if not successful, substitute llvalue or llvalue/expr *)
-       List.not_empty sstv
-    then (
-      match e with
-      | Undef _ | Int64 _ | Float _ | String _ -> e
-      | Var v -> Var (subst_value sstv v)
-      | OldE e -> OldE (subst_expr ~sstv ~sstve ~sste e)
-      | Deref e -> Deref (subst_expr ~sstv ~sstve ~sste e)
-      | ElemPtr (root, rtyp, idxs) ->
-        let nroot = subst_expr ~sstv ~sstve ~sste root in
-        let nidxs = List.map ~f:(subst_expr ~sstv ~sstve ~sste) idxs in
-        ElemPtr (nroot, rtyp, nidxs)
-      | Malloc e -> Malloc (subst_expr ~sstv ~sstve ~sste e)
-      | FuncRes _ -> e
-      | Exn e -> Exn (subst_expr ~sstv ~sstve ~sste e))
-    else (
-      match e with
-      | Undef _ | Int64 _ | Float _ | String _ -> e
-      | Var v -> subst_value_expr sstve v
-      | OldE _ -> e
-      | Deref e -> Deref (subst_expr ~sstv ~sstve ~sste e)
-      | ElemPtr (root, rtyp, idxs) ->
-        let nroot = subst_expr ~sstv ~sstve ~sste root in
-        let nidxs = List.map ~f:(subst_expr ~sstv ~sstve ~sste) idxs in
-        ElemPtr (nroot, rtyp, nidxs)
-      | Malloc e -> Malloc (subst_expr ~sstv ~sstve ~sste e)
-      | FuncRes _ -> e
-      | Exn _ -> e)
-;;
+  let rec subst_expr
+      ?(sstv : substv = [])
+      ?(sstve : substve = [])
+      ?(sste : subste = [])
+      (e : expr)
+      : expr
+    =
+    (* first substitute expression *)
+    let res = List.find ~f:(fun (a, b) -> equal_expr a e) sste in
+    match res with
+    | Some (_, b) -> b
+    | None ->
+      if (* if not successful, substitute llvalue or llvalue/expr *)
+         List.not_empty sstv
+      then (
+        match e with
+        | Undef _ | Int64 _ | Float _ | String _ -> e
+        | Var v -> Var (subst_value sstv v)
+        | OldE e -> OldE (subst_expr ~sstv ~sstve ~sste e)
+        | Deref e -> Deref (subst_expr ~sstv ~sstve ~sste e)
+        | ElemPtr (root, rtyp, idxs) ->
+          let nroot = subst_expr ~sstv ~sstve ~sste root in
+          let nidxs = List.map ~f:(subst_expr ~sstv ~sstve ~sste) idxs in
+          ElemPtr (nroot, rtyp, nidxs)
+        | Malloc e -> Malloc (subst_expr ~sstv ~sstve ~sste e)
+        | FuncRes _ -> e
+        | Exn e -> Exn (subst_expr ~sstv ~sstve ~sste e))
+      else (
+        match e with
+        | Undef _ | Int64 _ | Float _ | String _ -> e
+        | Var v -> subst_value_expr sstve v
+        | OldE _ -> e
+        | Deref e -> Deref (subst_expr ~sstv ~sstve ~sste e)
+        | ElemPtr (root, rtyp, idxs) ->
+          let nroot = subst_expr ~sstv ~sstve ~sste root in
+          let nidxs = List.map ~f:(subst_expr ~sstv ~sstve ~sste) idxs in
+          ElemPtr (nroot, rtyp, nidxs)
+        | Malloc e -> Malloc (subst_expr ~sstv ~sstve ~sste e)
+        | FuncRes _ -> e
+        | Exn _ -> e)
+  ;;
+end
+
+include Substitution
 
 (*******************************************************************
  ** operations with llvalue
@@ -2261,666 +2313,688 @@ let compare_global_by_name blk1 blk2 : int =
 ;;
 
 (*******************************************************************
- ** operations with instructions
+ ** Utility functions to process instructions
  *******************************************************************)
 
-(* Alloca *)
+(** Module contains utility functions to process instructions *)
 
-let dst_of_instr_alloca (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.Alloca -> llvalue_of_instr i
-  | _ -> herror "dst_of_instr: not an instr Alloca: " pr_instr i
-;;
+module InstrUtility = struct
+  (* Alloca *)
 
-(* Store *)
+  let dst_of_instr_alloca (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.Alloca -> llvalue_of_instr i
+    | _ -> herror "dst_of_instr: not an instr Alloca: " pr_instr i
+  ;;
 
-let src_of_instr_store (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.Store -> operand i 0
-  | _ -> herror "src_of_instr: not an instr Store: " pr_instr i
-;;
+  (* Store *)
 
-let dst_of_instr_store (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.Store -> operand i 1
-  | _ -> herror "dst_of_instr: not an instr Store: " pr_instr i
-;;
+  let src_of_instr_store (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.Store -> operand i 0
+    | _ -> herror "src_of_instr: not an instr Store: " pr_instr i
+  ;;
 
-(* Load *)
+  let dst_of_instr_store (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.Store -> operand i 1
+    | _ -> herror "dst_of_instr: not an instr Store: " pr_instr i
+  ;;
 
-let src_of_instr_load (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.Load -> operand i 0
-  | _ -> herror "src_of_instr: not an instr Load: " pr_instr i
-;;
+  (* Load *)
 
-let dst_of_instr_load (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.Load -> llvalue_of_instr i
-  | _ -> herror "dst_of_instr: not an instr Load: " pr_instr i
-;;
+  let src_of_instr_load (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.Load -> operand i 0
+    | _ -> herror "src_of_instr: not an instr Load: " pr_instr i
+  ;;
 
-(* InsertValue *)
+  let dst_of_instr_load (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.Load -> llvalue_of_instr i
+    | _ -> herror "dst_of_instr: not an instr Load: " pr_instr i
+  ;;
 
-let src_of_instr_insertvalue (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.InsertValue -> operand i 1
-  | _ -> herror "src_of_instr: not an instr InsertValue: " pr_instr i
-;;
+  (* InsertValue *)
 
-let dst_of_instr_insertvalue (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.InsertValue -> operand i 0
-  | _ -> herror "dst_of_instr: not an instr InsertValue: " pr_instr i
-;;
+  let src_of_instr_insertvalue (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.InsertValue -> operand i 1
+    | _ -> herror "src_of_instr: not an instr InsertValue: " pr_instr i
+  ;;
 
-(* ExtractValue *)
+  let dst_of_instr_insertvalue (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.InsertValue -> operand i 0
+    | _ -> herror "dst_of_instr: not an instr InsertValue: " pr_instr i
+  ;;
 
-let src_of_instr_extractvalue (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.ExtractValue -> operand i 0
-  | _ -> herror "src_of_instr: not an instr ExtractValue: " pr_instr i
-;;
+  (* ExtractValue *)
 
-let dst_of_instr_extractvalue (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.ExtractValue -> llvalue_of_instr i
-  | _ -> herror "dst_of_instr: not an instr ExtractValue: " pr_instr i
-;;
+  let src_of_instr_extractvalue (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.ExtractValue -> operand i 0
+    | _ -> herror "src_of_instr: not an instr ExtractValue: " pr_instr i
+  ;;
 
-(* GetElementPointer *)
+  let dst_of_instr_extractvalue (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.ExtractValue -> llvalue_of_instr i
+    | _ -> herror "dst_of_instr: not an instr ExtractValue: " pr_instr i
+  ;;
 
-let src_of_instr_gep (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.GetElementPtr -> operand i 0
-  | _ -> herror "src_of_instr: not an instr GEP: " pr_instr i
-;;
+  (* GetElementPointer *)
 
-let dst_of_instr_gep (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.GetElementPtr -> llvalue_of_instr i
-  | _ -> herror "dst_of_instr: not an instr GEP: " pr_instr i
-;;
+  let src_of_instr_gep (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.GetElementPtr -> operand i 0
+    | _ -> herror "src_of_instr: not an instr GEP: " pr_instr i
+  ;;
 
-let indexes_of_instr_gep (i : instr) : llvalue list =
-  let indexes = ref [] in
-  for idx = 1 to num_operands i - 1 do
-    indexes := !indexes @ [ operand i idx ]
-  done;
-  !indexes
-;;
+  let dst_of_instr_gep (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.GetElementPtr -> llvalue_of_instr i
+    | _ -> herror "dst_of_instr: not an instr GEP: " pr_instr i
+  ;;
 
-(* GetElementPointer/ExtractValue *)
-
-let src_of_instr_gep_extract_value (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.GetElementPtr -> operand i 0
-  | LO.ExtractValue -> operand i 0
-  | _ -> herror "src_of_instr: not an instr GEP/ExtractValue: " pr_instr i
-;;
-
-let dst_of_instr_gep_extract_value (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.GetElementPtr -> llvalue_of_instr i
-  | LO.ExtractValue -> llvalue_of_instr i
-  | _ -> herror "dst_of_instr: not an instr GEP/ExtractValue: " pr_instr i
-;;
-
-let indexes_of_instr_gep_extract_value (i : instr) : llvalue list =
-  let indexes = ref [] in
-  for idx = 1 to num_operands i - 1 do
-    indexes := !indexes @ [ operand i idx ]
-  done;
-  !indexes
-;;
-
-(* BitCast *)
-
-let src_of_instr_bitcast (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.BitCast -> operand i 0
-  | _ -> herror "src_of_instr: not an instr BitCast: " pr_instr i
-;;
-
-let dst_of_instr_bitcast (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.BitCast -> llvalue_of_instr i
-  | _ -> herror "dst_of_instr: not an instr BitCast: " pr_instr i
-;;
-
-let rec get_root_src_of_bitcast (v : llvalue) : llvalue =
-  match LL.classify_value v with
-  | LV.Instruction LO.BitCast -> get_root_src_of_bitcast (LL.operand v 0)
-  | _ -> v
-;;
-
-(* FuncRes *)
-
-let src_of_instr_return (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.Ret -> operand i 0
-  | _ -> herror "src_of_instr: not an instr FuncRes: " pr_instr i
-;;
-
-(* SExt *)
-
-let src_of_instr_sext (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.SExt -> operand i 0
-  | _ -> herror "src_of_instr: not an instr SExt: " pr_instr i
-;;
-
-let dst_of_instr_sext (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.SExt -> llvalue_of_instr i
-  | _ -> herror "dst_of_instr: not an instr SExt: " pr_instr i
-;;
-
-(* ZExt *)
-
-let src_of_instr_zext (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.ZExt -> operand i 0
-  | _ -> herror "src_of_instr: not an instr ZExt: " pr_instr i
-;;
-
-let dst_of_instr_zext (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.ZExt -> llvalue_of_instr i
-  | _ -> herror "dst_of_instr: not an instr ZExt: " pr_instr i
-;;
-
-(* Call *)
-
-let num_args_of_instr_call (i : instr) : int =
-  match instr_opcode i with
-  | LO.Call -> LL.num_arg_operands (llvalue_of_instr i)
-  | _ -> herror "num_args_of: not an instr Call: " pr_instr i
-;;
-
-let callee_of_instr_call (i : instr) : func =
-  match instr_opcode i with
-  | LO.Call ->
-    let num_args = num_args_of_instr_call i in
-    mk_func (operand i num_args)
-  | _ -> herror "callee_of: not an instr Call: " pr_instr i
-;;
-
-let arg_of_instr_call (i : instr) (idx : int) : llvalue =
-  match instr_opcode i with
-  | LO.Call ->
-    if idx < num_args_of_instr_call i
-    then operand i idx
-    else herror "arg_of_instr_call: idx out of bound" pr_int idx
-  | _ -> herror "arg_of: not an instr Call: " pr_instr i
-;;
-
-let args_of_instr_call (i : instr) : llvalues =
-  match instr_opcode i with
-  | LO.Call ->
-    let args = ref [] in
-    let num_args = num_args_of_instr_call i in
-    for idx = 0 to num_args - 1 do
-      args := !args @ [ operand i idx ]
+  let indexes_of_instr_gep (i : instr) : llvalue list =
+    let indexes = ref [] in
+    for idx = 1 to num_operands i - 1 do
+      indexes := !indexes @ [ operand i idx ]
     done;
-    !args
-  | _ -> herror "operand_args: not an instr Call: " pr_instr i
-;;
+    !indexes
+  ;;
 
-(* CallBr *)
+  (* GetElementPointer/ExtractValue *)
 
-let num_args_of_instr_callbr (i : instr) : int =
-  match instr_opcode i with
-  | LO.CallBr -> LL.num_arg_operands (llvalue_of_instr i)
-  | _ -> herror "num_args_of: not an instr CallBr: " pr_instr i
-;;
+  let src_of_instr_gep_extract_value (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.GetElementPtr -> operand i 0
+    | LO.ExtractValue -> operand i 0
+    | _ -> herror "src_of_instr: not an instr GEP/ExtractValue: " pr_instr i
+  ;;
 
-let arg_of_instr_callbr (i : instr) (idx : int) : llvalue =
-  match instr_opcode i with
-  | LO.CallBr ->
-    if idx < num_args_of_instr_call i
-    then operand i idx
-    else herror "arg_of_instr_call: idx out of bound" pr_int idx
-  | _ -> herror "arg_of: not an instr Call: " pr_instr i
-;;
+  let dst_of_instr_gep_extract_value (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.GetElementPtr -> llvalue_of_instr i
+    | LO.ExtractValue -> llvalue_of_instr i
+    | _ -> herror "dst_of_instr: not an instr GEP/ExtractValue: " pr_instr i
+  ;;
 
-let args_of_instr_callbr (i : instr) : llvalues =
-  match instr_opcode i with
-  | LO.CallBr ->
-    let args = ref [] in
-    let num_args = num_args_of_instr_call i in
-    for idx = 0 to num_args - 1 do
-      args := !args @ [ operand i idx ]
+  let indexes_of_instr_gep_extract_value (i : instr) : llvalue list =
+    let indexes = ref [] in
+    for idx = 1 to num_operands i - 1 do
+      indexes := !indexes @ [ operand i idx ]
     done;
-    !args
-  | _ -> herror "operand_args: not an instr CallBr: " pr_instr i
-;;
+    !indexes
+  ;;
 
-let callee_of_instr_callbr (i : instr) : func =
-  match instr_opcode i with
-  | LO.CallBr ->
-    let num_args = num_args_of_instr_callbr i in
-    mk_func (operand i num_args)
-  | _ -> herror "callee_of: not an instr CallBr: " pr_instr i
-;;
+  (* BitCast *)
 
-(* Invoke *)
+  let src_of_instr_bitcast (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.BitCast -> operand i 0
+    | _ -> herror "src_of_instr: not an instr BitCast: " pr_instr i
+  ;;
 
-let num_args_of_instr_invoke (i : instr) : int =
-  match instr_opcode i with
-  | LO.Invoke -> LL.num_arg_operands (llvalue_of_instr i)
-  | _ -> herror "num_args_of: not an instr Invoke: " pr_instr i
-;;
+  let dst_of_instr_bitcast (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.BitCast -> llvalue_of_instr i
+    | _ -> herror "dst_of_instr: not an instr BitCast: " pr_instr i
+  ;;
 
-let callee_of_instr_invoke (i : instr) : func =
-  match instr_opcode i with
-  | LO.Invoke ->
-    let num_args = num_args_of_instr_invoke i in
-    mk_func (operand i (num_args + 2))
-  | _ -> herror "callee_of: not an instr Invoke: " pr_instr i
-;;
+  let rec get_root_src_of_bitcast (v : llvalue) : llvalue =
+    match LL.classify_value v with
+    | LV.Instruction LO.BitCast -> get_root_src_of_bitcast (LL.operand v 0)
+    | _ -> v
+  ;;
 
-let unwind_dest_of_instr_invoke (i : instr) : block =
-  match instr_opcode i with
-  | LO.Invoke -> LL.get_unwind_dest (llvalue_of_instr i)
-  | _ -> herror "unwind_dest_of: not an instr Invoke: " pr_instr i
-;;
+  (* FuncRes *)
 
-let normal_dest_of_instr_invoke (i : instr) : block =
-  match instr_opcode i with
-  | LO.Invoke -> LL.get_normal_dest (llvalue_of_instr i)
-  | _ -> herror "normal_dest_of: not an instr Invoke: " pr_instr i
-;;
+  let src_of_instr_return (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.Ret -> operand i 0
+    | _ -> herror "src_of_instr: not an instr FuncRes: " pr_instr i
+  ;;
 
-let arg_of_instr_invoke (i : instr) (idx : int) : llvalue =
-  match instr_opcode i with
-  | LO.Invoke ->
-    if idx < num_args_of_instr_call i
-    then operand i idx
-    else herror "arg_of_instr_invoke: idx out of bound" pr_int idx
-  | _ -> herror "arg_of: not an instr Invoke: " pr_instr i
-;;
+  (* SExt *)
 
-let args_of_instr_invoke (i : instr) : llvalues =
-  match instr_opcode i with
-  | LO.Invoke ->
-    let args = ref [] in
-    let num_args = num_args_of_instr_invoke i in
-    for idx = 0 to num_args - 1 do
-      args := !args @ [ operand i idx ]
-    done;
-    !args
-  | _ -> herror "operand_args: not an instr Invoke: " pr_instr i
-;;
+  let src_of_instr_sext (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.SExt -> operand i 0
+    | _ -> herror "src_of_instr: not an instr SExt: " pr_instr i
+  ;;
 
-(* Function application instructions are: Call, CallBr, Invoke *)
+  let dst_of_instr_sext (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.SExt -> llvalue_of_instr i
+    | _ -> herror "dst_of_instr: not an instr SExt: " pr_instr i
+  ;;
 
-let num_args_of_instr_func_app (i : instr) : int =
-  match instr_opcode i with
-  | LO.Call -> num_args_of_instr_call i
-  | LO.CallBr -> num_args_of_instr_call i
-  | LO.Invoke -> num_args_of_instr_invoke i
-  | _ -> herror "num_args_of_instr_func_app: not a callable instr: " pr_instr i
-;;
+  (* ZExt *)
 
-let callee_of_instr_func_call (i : instr) : func =
-  match instr_opcode i with
-  | LO.Call -> callee_of_instr_call i
-  | LO.CallBr -> callee_of_instr_callbr i
-  | LO.Invoke -> callee_of_instr_invoke i
-  | _ -> herror "callee_of_instr_func_call: not a callable instr: " pr_instr i
-;;
+  let src_of_instr_zext (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.ZExt -> operand i 0
+    | _ -> herror "src_of_instr: not an instr ZExt: " pr_instr i
+  ;;
 
-let arg_of_instr_func_app (i : instr) (idx : int) : llvalue =
-  match instr_opcode i with
-  | LO.Call -> arg_of_instr_call i idx
-  | LO.CallBr -> arg_of_instr_callbr i idx
-  | LO.Invoke -> arg_of_instr_invoke i idx
-  | _ -> herror "arg_of_instr_func_app: not a callable instr: " pr_instr i
-;;
+  let dst_of_instr_zext (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.ZExt -> llvalue_of_instr i
+    | _ -> herror "dst_of_instr: not an instr ZExt: " pr_instr i
+  ;;
 
-let args_of_instr_func_app (i : instr) : llvalues =
-  match instr_opcode i with
-  | LO.Call -> args_of_instr_call i
-  | LO.CallBr -> args_of_instr_callbr i
-  | LO.Invoke -> args_of_instr_invoke i
-  | _ -> herror "args_of_instr_func_app: not a callable instr: " pr_instr i
-;;
+  (* Call *)
 
-let get_origin_src_of_memcpy (i : instr) : llvalue =
-  let callee = callee_of_instr_func_call i in
-  if is_func_memcpy callee
-  then operand (mk_instr (operand i 0)) 0
-  else herror "get_origin_src_of_memcpy: not a memcopy Call: " pr_instr i
-;;
+  let num_args_of_instr_call (i : instr) : int =
+    match instr_opcode i with
+    | LO.Call -> LL.num_arg_operands (llvalue_of_instr i)
+    | _ -> herror "num_args_of: not an instr Call: " pr_instr i
+  ;;
 
-let get_origin_dst_of_memcpy (i : instr) : llvalue =
-  let callee = callee_of_instr_func_call i in
-  if is_func_memcpy callee
-  then operand (mk_instr (operand i 1)) 0
-  else herror "get_origin_dst_of_memcpy: not a memcopy Call: " pr_instr i
-;;
+  let callee_of_instr_call (i : instr) : func =
+    match instr_opcode i with
+    | LO.Call ->
+      let num_args = num_args_of_instr_call i in
+      mk_func (operand i num_args)
+    | _ -> herror "callee_of: not an instr Call: " pr_instr i
+  ;;
 
-(* Icmp *)
+  let arg_of_instr_call (i : instr) (idx : int) : llvalue =
+    match instr_opcode i with
+    | LO.Call ->
+      if idx < num_args_of_instr_call i
+      then operand i idx
+      else herror "arg_of_instr_call: idx out of bound" pr_int idx
+    | _ -> herror "arg_of: not an instr Call: " pr_instr i
+  ;;
 
-let predicate_of_instr_icmp (i : instr) : LL.Icmp.t option =
-  match instr_opcode i with
-  | LO.ICmp -> LL.icmp_predicate (llvalue_of_instr i)
-  | _ -> herror "predicate: not an instr Icmp: " pr_instr i
-;;
+  let args_of_instr_call (i : instr) : llvalues =
+    match instr_opcode i with
+    | LO.Call ->
+      let args = ref [] in
+      let num_args = num_args_of_instr_call i in
+      for idx = 0 to num_args - 1 do
+        args := !args @ [ operand i idx ]
+      done;
+      !args
+    | _ -> herror "operand_args: not an instr Call: " pr_instr i
+  ;;
 
-(* Fcmp *)
+  (* CallBr *)
 
-let predicate_of_instr_fcmp (i : instr) : LL.Fcmp.t option =
-  match instr_opcode i with
-  | LO.FCmp -> LL.fcmp_predicate (llvalue_of_instr i)
-  | _ -> herror "predicate: not an instr FCmp: " pr_instr i
-;;
+  let num_args_of_instr_callbr (i : instr) : int =
+    match instr_opcode i with
+    | LO.CallBr -> LL.num_arg_operands (llvalue_of_instr i)
+    | _ -> herror "num_args_of: not an instr CallBr: " pr_instr i
+  ;;
 
-(* Br *)
+  let arg_of_instr_callbr (i : instr) (idx : int) : llvalue =
+    match instr_opcode i with
+    | LO.CallBr ->
+      if idx < num_args_of_instr_call i
+      then operand i idx
+      else herror "arg_of_instr_call: idx out of bound" pr_int idx
+    | _ -> herror "arg_of: not an instr Call: " pr_instr i
+  ;;
 
-let branch_of_instr_br (i : instr) =
-  match instr_opcode i with
-  | LO.Br | LO.IndirectBr -> LL.get_branch (llvalue_of_instr i)
-  | _ -> herror "branch: not an instr Br: " pr_instr i
-;;
+  let args_of_instr_callbr (i : instr) : llvalues =
+    match instr_opcode i with
+    | LO.CallBr ->
+      let args = ref [] in
+      let num_args = num_args_of_instr_call i in
+      for idx = 0 to num_args - 1 do
+        args := !args @ [ operand i idx ]
+      done;
+      !args
+    | _ -> herror "operand_args: not an instr CallBr: " pr_instr i
+  ;;
 
-(* PHI Node *)
+  let callee_of_instr_callbr (i : instr) : func =
+    match instr_opcode i with
+    | LO.CallBr ->
+      let num_args = num_args_of_instr_callbr i in
+      mk_func (operand i num_args)
+    | _ -> herror "callee_of: not an instr CallBr: " pr_instr i
+  ;;
 
-let src_of_instr_phi (i : instr) : llvalues =
-  match instr_opcode i with
-  | LO.PHI ->
-    let operands = ref [] in
-    for idx = 0 to num_operands i - 1 do
-      operands := !operands @ [ operand i idx ]
-    done;
-    !operands
-  | _ -> herror "operands: not an instr PHI: " pr_instr i
-;;
+  (* Invoke *)
 
-let src_and_origin_of_instr_phi (i : instr) : (llvalue * block) list =
-  match instr_opcode i with
-  | LO.PHI -> LL.incoming (llvalue_of_instr i)
-  | _ -> herror "operands: not an instr PHI: " pr_instr i
-;;
+  let num_args_of_instr_invoke (i : instr) : int =
+    match instr_opcode i with
+    | LO.Invoke -> LL.num_arg_operands (llvalue_of_instr i)
+    | _ -> herror "num_args_of: not an instr Invoke: " pr_instr i
+  ;;
 
-let dst_of_instr_phi (i : instr) : llvalue =
-  match instr_opcode i with
-  | LO.PHI -> llvalue_of_instr i
-  | _ -> herror "dst_of_instr: not an instr PHI: " pr_instr i
-;;
+  let callee_of_instr_invoke (i : instr) : func =
+    match instr_opcode i with
+    | LO.Invoke ->
+      let num_args = num_args_of_instr_invoke i in
+      mk_func (operand i (num_args + 2))
+    | _ -> herror "callee_of: not an instr Invoke: " pr_instr i
+  ;;
 
-let is_phi_of_same_src_and_origin (i1 : instr) (i2 : instr) : bool =
-  let src_origin1 = src_and_origin_of_instr_phi i1 in
-  let src_origin2 = src_and_origin_of_instr_phi i2 in
-  if List.length src_origin1 = List.length src_origin2
-  then
-    List.for_all2_exn
-      ~f:(fun (v1, b1) (v2, b2) -> equal_value v1 v2 && equal_block b1 b2)
-      src_origin1 src_origin2
-  else false
-;;
+  let unwind_dest_of_instr_invoke (i : instr) : block =
+    match instr_opcode i with
+    | LO.Invoke -> LL.get_unwind_dest (llvalue_of_instr i)
+    | _ -> herror "unwind_dest_of: not an instr Invoke: " pr_instr i
+  ;;
+
+  let normal_dest_of_instr_invoke (i : instr) : block =
+    match instr_opcode i with
+    | LO.Invoke -> LL.get_normal_dest (llvalue_of_instr i)
+    | _ -> herror "normal_dest_of: not an instr Invoke: " pr_instr i
+  ;;
+
+  let arg_of_instr_invoke (i : instr) (idx : int) : llvalue =
+    match instr_opcode i with
+    | LO.Invoke ->
+      if idx < num_args_of_instr_call i
+      then operand i idx
+      else herror "arg_of_instr_invoke: idx out of bound" pr_int idx
+    | _ -> herror "arg_of: not an instr Invoke: " pr_instr i
+  ;;
+
+  let args_of_instr_invoke (i : instr) : llvalues =
+    match instr_opcode i with
+    | LO.Invoke ->
+      let args = ref [] in
+      let num_args = num_args_of_instr_invoke i in
+      for idx = 0 to num_args - 1 do
+        args := !args @ [ operand i idx ]
+      done;
+      !args
+    | _ -> herror "operand_args: not an instr Invoke: " pr_instr i
+  ;;
+
+  (* Function application instructions are: Call, CallBr, Invoke *)
+
+  let num_args_of_instr_func_app (i : instr) : int =
+    match instr_opcode i with
+    | LO.Call -> num_args_of_instr_call i
+    | LO.CallBr -> num_args_of_instr_call i
+    | LO.Invoke -> num_args_of_instr_invoke i
+    | _ ->
+      herror "num_args_of_instr_func_app: not a callable instr: " pr_instr i
+  ;;
+
+  let callee_of_instr_func_call (i : instr) : func =
+    match instr_opcode i with
+    | LO.Call -> callee_of_instr_call i
+    | LO.CallBr -> callee_of_instr_callbr i
+    | LO.Invoke -> callee_of_instr_invoke i
+    | _ ->
+      herror "callee_of_instr_func_call: not a callable instr: " pr_instr i
+  ;;
+
+  let arg_of_instr_func_app (i : instr) (idx : int) : llvalue =
+    match instr_opcode i with
+    | LO.Call -> arg_of_instr_call i idx
+    | LO.CallBr -> arg_of_instr_callbr i idx
+    | LO.Invoke -> arg_of_instr_invoke i idx
+    | _ -> herror "arg_of_instr_func_app: not a callable instr: " pr_instr i
+  ;;
+
+  let args_of_instr_func_app (i : instr) : llvalues =
+    match instr_opcode i with
+    | LO.Call -> args_of_instr_call i
+    | LO.CallBr -> args_of_instr_callbr i
+    | LO.Invoke -> args_of_instr_invoke i
+    | _ -> herror "args_of_instr_func_app: not a callable instr: " pr_instr i
+  ;;
+
+  let get_origin_src_of_memcpy (i : instr) : llvalue =
+    let callee = callee_of_instr_func_call i in
+    if is_func_memcpy callee
+    then operand (mk_instr (operand i 0)) 0
+    else herror "get_origin_src_of_memcpy: not a memcopy Call: " pr_instr i
+  ;;
+
+  let get_origin_dst_of_memcpy (i : instr) : llvalue =
+    let callee = callee_of_instr_func_call i in
+    if is_func_memcpy callee
+    then operand (mk_instr (operand i 1)) 0
+    else herror "get_origin_dst_of_memcpy: not a memcopy Call: " pr_instr i
+  ;;
+
+  (* Icmp *)
+
+  let predicate_of_instr_icmp (i : instr) : LL.Icmp.t option =
+    match instr_opcode i with
+    | LO.ICmp -> LL.icmp_predicate (llvalue_of_instr i)
+    | _ -> herror "predicate: not an instr Icmp: " pr_instr i
+  ;;
+
+  (* Fcmp *)
+
+  let predicate_of_instr_fcmp (i : instr) : LL.Fcmp.t option =
+    match instr_opcode i with
+    | LO.FCmp -> LL.fcmp_predicate (llvalue_of_instr i)
+    | _ -> herror "predicate: not an instr FCmp: " pr_instr i
+  ;;
+
+  (* Br *)
+
+  let branch_of_instr_br (i : instr) =
+    match instr_opcode i with
+    | LO.Br | LO.IndirectBr -> LL.get_branch (llvalue_of_instr i)
+    | _ -> herror "branch: not an instr Br: " pr_instr i
+  ;;
+
+  (* PHI Node *)
+
+  let src_of_instr_phi (i : instr) : llvalues =
+    match instr_opcode i with
+    | LO.PHI ->
+      let operands = ref [] in
+      for idx = 0 to num_operands i - 1 do
+        operands := !operands @ [ operand i idx ]
+      done;
+      !operands
+    | _ -> herror "operands: not an instr PHI: " pr_instr i
+  ;;
+
+  let src_and_origin_of_instr_phi (i : instr) : (llvalue * block) list =
+    match instr_opcode i with
+    | LO.PHI -> LL.incoming (llvalue_of_instr i)
+    | _ -> herror "operands: not an instr PHI: " pr_instr i
+  ;;
+
+  let dst_of_instr_phi (i : instr) : llvalue =
+    match instr_opcode i with
+    | LO.PHI -> llvalue_of_instr i
+    | _ -> herror "dst_of_instr: not an instr PHI: " pr_instr i
+  ;;
+
+  let is_phi_of_same_src_and_origin (i1 : instr) (i2 : instr) : bool =
+    let src_origin1 = src_and_origin_of_instr_phi i1 in
+    let src_origin2 = src_and_origin_of_instr_phi i2 in
+    if List.length src_origin1 = List.length src_origin2
+    then
+      List.for_all2_exn
+        ~f:(fun (v1, b1) (v2, b2) -> equal_value v1 v2 && equal_block b1 b2)
+        src_origin1 src_origin2
+    else false
+  ;;
+end
+
+include InstrUtility
 
 (*******************************************************************
  ** operations with blocks
  *******************************************************************)
 
-let index_of_block_name (blk : block) : int =
-  let bname = block_name blk in
-  if String.is_prefix bname ~prefix:"bb"
-  then (
-    let sindex = String.sub bname ~pos:2 ~len:(String.length bname - 2) in
-    try Int.of_string sindex with _ -> -1)
-  else -1
-;;
+(** Module contains utility functions for processing blocks *)
 
-let index_of_instr_in_block (instr : instr) (blk : block) : int option =
-  let rec traverse acc ins : int option =
-    if equal_instr ins instr
-    then Some acc
-    else (
-      match instr_succ ins with
-      | None -> None
-      | Some ins' -> traverse (acc + 1) ins') in
-  match instr_begin blk with
-  | None -> None
-  | Some ins -> traverse 0 ins
-;;
+module BlockUtility = struct
+  let index_of_block_name (blk : block) : int =
+    let bname = block_name blk in
+    if String.is_prefix bname ~prefix:"bb"
+    then (
+      let sindex = String.sub bname ~pos:2 ~len:(String.length bname - 2) in
+      try Int.of_string sindex with _ -> -1)
+    else -1
+  ;;
 
-let compare_block_by_name blk1 blk2 : int =
-  let idx1, idx2 = index_of_block_name blk1, index_of_block_name blk2 in
-  if idx1 < idx2 then -1 else if idx1 > idx2 then 1 else 0
-;;
+  let index_of_instr_in_block (instr : instr) (blk : block) : int option =
+    let rec traverse acc ins : int option =
+      if equal_instr ins instr
+      then Some acc
+      else (
+        match instr_succ ins with
+        | None -> None
+        | Some ins' -> traverse (acc + 1) ins') in
+    match instr_begin blk with
+    | None -> None
+    | Some ins -> traverse 0 ins
+  ;;
 
-let is_entry_block (blk : block) func : bool =
-  equal_block blk (LL.entry_block func)
-;;
+  let compare_block_by_name blk1 blk2 : int =
+    let idx1, idx2 = index_of_block_name blk1, index_of_block_name blk2 in
+    if idx1 < idx2 then -1 else if idx1 > idx2 then 1 else 0
+  ;;
 
-let last_instr_of_block (blk : block) : instr option =
-  match LL.instr_end blk with
-  | LL.At_start _ -> None
-  | LL.After v -> Some (mk_instr v)
-;;
+  let is_entry_block (blk : block) func : bool =
+    equal_block blk (LL.entry_block func)
+  ;;
 
-let first_instr_of_block (blk : block) : instr option =
-  match LL.instr_begin blk with
-  | LL.At_end _ -> None
-  | LL.Before v -> Some (mk_instr v)
-;;
+  let last_instr_of_block (blk : block) : instr option =
+    match LL.instr_end blk with
+    | LL.At_start _ -> None
+    | LL.After v -> Some (mk_instr v)
+  ;;
 
-let is_first_instr_of_block (instr : instr) : bool =
-  let blk = block_of_instr instr in
-  match first_instr_of_block blk with
-  | None -> false
-  | Some i -> equal_instr i instr
-;;
+  let first_instr_of_block (blk : block) : instr option =
+    match LL.instr_begin blk with
+    | LL.At_end _ -> None
+    | LL.Before v -> Some (mk_instr v)
+  ;;
 
-let is_entry_block_of_function (blk : block) : bool =
-  match LL.block_pred blk with
-  | LL.At_start _ -> true
-  | LL.After _ -> false
-;;
+  let is_first_instr_of_block (instr : instr) : bool =
+    let blk = block_of_instr instr in
+    match first_instr_of_block blk with
+    | None -> false
+    | Some i -> equal_instr i instr
+  ;;
 
-let block_of_prec_block (pblk : prec_block) : block = pblk.pblk_block
-let block_of_succ_block (sblk : succ_block) : block = sblk.sblk_block
+  let is_entry_block_of_function (blk : block) : bool =
+    match LL.block_pred blk with
+    | LL.At_start _ -> true
+    | LL.After _ -> false
+  ;;
 
-let get_preceding_blocks (prog : program) (blk : block) : prec_blocks =
-  let compute_blocks (blk : block) : prec_blocks =
-    let func = func_of_block blk in
-    fold_left_blocks
-      ~f:(fun acc1 blk1 ->
-        fold_left_instrs
-          ~f:(fun acc2 instr ->
-            match instr_opcode instr with
-            | LO.IndirectBr | LO.Br ->
-              (match get_branch instr with
-              | None -> acc2
-              | Some (`Unconditional blk2) ->
-                if equal_block blk blk2
+  let block_of_prec_block (pblk : prec_block) : block = pblk.pblk_block
+  let block_of_succ_block (sblk : succ_block) : block = sblk.sblk_block
+
+  let get_preceding_blocks (prog : program) (blk : block) : prec_blocks =
+    let compute_blocks (blk : block) : prec_blocks =
+      let func = func_of_block blk in
+      fold_left_blocks
+        ~f:(fun acc1 blk1 ->
+          fold_left_instrs
+            ~f:(fun acc2 instr ->
+              match instr_opcode instr with
+              | LO.IndirectBr | LO.Br ->
+                (match get_branch instr with
+                | None -> acc2
+                | Some (`Unconditional blk2) ->
+                  if equal_block blk blk2
+                  then acc2 @ [ mk_prec_block blk1 (mk_pred_true ()) ]
+                  else acc2
+                | Some (`Conditional (cond, blk21, blk22)) ->
+                  let pred = extract_br_cond_predicate cond in
+                  if equal_block blk blk21
+                  then acc2 @ [ mk_prec_block blk1 pred ]
+                  else if equal_block blk blk22
+                  then acc2 @ [ mk_prec_block blk1 (mk_pred_neg pred) ]
+                  else acc2)
+              | LO.Switch ->
+                let pblks = ref [] in
+                for i = 0 to (num_operands instr / 2) - 1 do
+                  let blk2 = LL.block_of_value (operand instr ((i * 2) + 1)) in
+                  if equal_block blk blk2
+                  then pblks := [ mk_prec_block blk (mk_pred_true ()) ]
+                done;
+                acc2 @ !pblks
+              | LO.Invoke ->
+                let blk21 = normal_dest_of_instr_invoke instr in
+                let blk22 = unwind_dest_of_instr_invoke instr in
+                if equal_block blk blk21
+                then acc2 @ [ mk_prec_block blk1 (mk_pred_true ()) ]
+                else if equal_block blk blk22
                 then acc2 @ [ mk_prec_block blk1 (mk_pred_true ()) ]
                 else acc2
-              | Some (`Conditional (cond, blk21, blk22)) ->
+              | _ -> acc2)
+            ~init:acc1 blk1)
+        ~init:[] func in
+    Hashtbl.find_or_compute prog.prog_block_data.pbd_preceding_blocks
+      ~f:(fun () -> compute_blocks blk)
+      ~key:blk
+  ;;
+
+  let get_succeeding_blocks (prog : program) (blk : block) : succ_blocks =
+    let compute_blocks (blk : block) : succ_blocks =
+      fold_left_instrs
+        ~f:(fun acc instr ->
+          match instr_opcode instr with
+          | LO.IndirectBr | LO.Br ->
+            let sblks =
+              match get_branch instr with
+              | None -> []
+              | Some (`Unconditional b) ->
+                [ mk_succ_block b (mk_pred_true ()) ]
+              | Some (`Conditional (cond, b1, b2)) ->
                 let pred = extract_br_cond_predicate cond in
-                if equal_block blk blk21
-                then acc2 @ [ mk_prec_block blk1 pred ]
-                else if equal_block blk blk22
-                then acc2 @ [ mk_prec_block blk1 (mk_pred_neg pred) ]
-                else acc2)
-            | LO.Switch ->
-              let pblks = ref [] in
-              for i = 0 to (num_operands instr / 2) - 1 do
-                let blk2 = LL.block_of_value (operand instr ((i * 2) + 1)) in
-                if equal_block blk blk2
-                then pblks := [ mk_prec_block blk (mk_pred_true ()) ]
-              done;
-              acc2 @ !pblks
-            | LO.Invoke ->
-              let blk21 = normal_dest_of_instr_invoke instr in
-              let blk22 = unwind_dest_of_instr_invoke instr in
-              if equal_block blk blk21
-              then acc2 @ [ mk_prec_block blk1 (mk_pred_true ()) ]
-              else if equal_block blk blk22
-              then acc2 @ [ mk_prec_block blk1 (mk_pred_true ()) ]
-              else acc2
-            | _ -> acc2)
-          ~init:acc1 blk1)
-      ~init:[] func in
-  Hashtbl.find_or_compute prog.prog_block_data.pbd_preceding_blocks
-    ~f:(fun () -> compute_blocks blk)
-    ~key:blk
-;;
+                let sblk1 = mk_succ_block b1 pred in
+                let sblk2 = mk_succ_block b2 (mk_pred_neg pred) in
+                [ sblk1; sblk2 ] in
+            acc @ sblks
+          | LO.Switch ->
+            let sblks = ref [] in
+            for i = 0 to (num_operands instr / 2) - 1 do
+              let blk = LL.block_of_value (operand instr ((i * 2) + 1)) in
+              let sblk = mk_succ_block blk (mk_pred_true ()) in
+              sblks := !sblks @ [ sblk ]
+            done;
+            acc @ !sblks
+          | LO.Invoke ->
+            let blk1 = normal_dest_of_instr_invoke instr in
+            let blk2 = unwind_dest_of_instr_invoke instr in
+            let sblk1 = mk_succ_block blk1 (mk_pred_true ()) in
+            let sblk2 = mk_succ_block blk2 (mk_pred_true ()) in
+            acc @ [ sblk1; sblk2 ]
+          | _ -> acc)
+        ~init:[] blk in
+    Hashtbl.find_or_compute prog.prog_block_data.pbd_succeeding_blocks
+      ~f:(fun () -> compute_blocks blk)
+      ~key:blk
+  ;;
 
-let get_succeeding_blocks (prog : program) (blk : block) : succ_blocks =
-  let compute_blocks (blk : block) : succ_blocks =
-    fold_left_instrs
-      ~f:(fun acc instr ->
-        match instr_opcode instr with
-        | LO.IndirectBr | LO.Br ->
-          let sblks =
-            match get_branch instr with
-            | None -> []
-            | Some (`Unconditional b) -> [ mk_succ_block b (mk_pred_true ()) ]
-            | Some (`Conditional (cond, b1, b2)) ->
-              let pred = extract_br_cond_predicate cond in
-              let sblk1 = mk_succ_block b1 pred in
-              let sblk2 = mk_succ_block b2 (mk_pred_neg pred) in
-              [ sblk1; sblk2 ] in
-          acc @ sblks
-        | LO.Switch ->
-          let sblks = ref [] in
-          for i = 0 to (num_operands instr / 2) - 1 do
-            let blk = LL.block_of_value (operand instr ((i * 2) + 1)) in
-            let sblk = mk_succ_block blk (mk_pred_true ()) in
-            sblks := !sblks @ [ sblk ]
-          done;
-          acc @ !sblks
-        | LO.Invoke ->
-          let blk1 = normal_dest_of_instr_invoke instr in
-          let blk2 = unwind_dest_of_instr_invoke instr in
-          let sblk1 = mk_succ_block blk1 (mk_pred_true ()) in
-          let sblk2 = mk_succ_block blk2 (mk_pred_true ()) in
-          acc @ [ sblk1; sblk2 ]
-        | _ -> acc)
-      ~init:[] blk in
-  Hashtbl.find_or_compute prog.prog_block_data.pbd_succeeding_blocks
-    ~f:(fun () -> compute_blocks blk)
-    ~key:blk
-;;
+  let has_unique_path_between_blocks prog (src : block) (dst : block) : bool =
+    let rec check_path blk =
+      if equal_block blk dst
+      then true
+      else (
+        match get_succeeding_blocks prog blk with
+        | [ sblk ] -> check_path sblk.sblk_block
+        | _ -> false) in
+    check_path src
+  ;;
 
-let has_unique_path_between_blocks prog (src : block) (dst : block) : bool =
-  let rec check_path blk =
-    if equal_block blk dst
-    then true
-    else (
-      match get_succeeding_blocks prog blk with
-      | [ sblk ] -> check_path sblk.sblk_block
-      | _ -> false) in
-  check_path src
-;;
+  let get_succeeding_only_blocks (prog : program) (blk : block) : blocks =
+    blk |> get_succeeding_blocks prog |> List.map ~f:(fun sb -> sb.sblk_block)
+  ;;
 
-let get_succeeding_only_blocks (prog : program) (blk : block) : blocks =
-  blk |> get_succeeding_blocks prog |> List.map ~f:(fun sb -> sb.sblk_block)
-;;
+  let get_pathcond_between_blocks prog (src : block) (dst : block)
+      : predicate option
+    =
+    let sblks = get_succeeding_blocks prog src in
+    let sblks =
+      List.filter ~f:(fun sblk -> equal_block sblk.sblk_block dst) sblks in
+    match sblks with
+    | [] -> None
+    | sblk :: _ -> Some sblk.sblk_pathcond
+  ;;
+end
 
-let get_pathcond_between_blocks prog (src : block) (dst : block)
-    : predicate option
-  =
-  let sblks = get_succeeding_blocks prog src in
-  let sblks =
-    List.filter ~f:(fun sblk -> equal_block sblk.sblk_block dst) sblks in
-  match sblks with
-  | [] -> None
-  | sblk :: _ -> Some sblk.sblk_pathcond
-;;
+include BlockUtility
 
 (*******************************************************************
  ** operations with functions and parameters
  *******************************************************************)
 
-(* formal parameters *)
-let formal_params_of_func (f : func) : param list =
-  let v = llvalue_of_func f in
-  match LL.classify_value v with
-  | LV.Function -> fold_left_params ~f:(fun acc p -> acc @ [ p ]) ~init:[] f
-  | _ -> herror "formal_params_of_func: not an actual function: " pr_value v
-;;
+(** Module contains utility functions for processing functions *)
+module FuncUtility = struct
+  (* formal parameters *)
+  let formal_params_of_func (f : func) : param list =
+    let v = llvalue_of_func f in
+    match LL.classify_value v with
+    | LV.Function -> fold_left_params ~f:(fun acc p -> acc @ [ p ]) ~init:[] f
+    | _ -> herror "formal_params_of_func: not an actual function: " pr_value v
+  ;;
 
-let entry_block (f : func) : block = LL.entry_block (llvalue_of_func f)
+  let entry_block (f : func) : block = LL.entry_block (llvalue_of_func f)
 
-let blocks_of_func (f : func) : blocks =
-  fold_left_blocks ~f:(fun acc blk -> acc @ [ blk ]) ~init:[] f
-;;
+  let blocks_of_func (f : func) : blocks =
+    fold_left_blocks ~f:(fun acc blk -> acc @ [ blk ]) ~init:[] f
+  ;;
 
-let delete_function (f : func) : unit = LL.delete_function (llvalue_of_func f)
+  let delete_function (f : func) : unit =
+    LL.delete_function (llvalue_of_func f)
+  ;;
 
-let first_block_of_func (f : func) : block option =
-  match LL.block_begin (llvalue_of_func f) with
-  | LL.At_end _ -> None
-  | LL.Before blk -> Some blk
-;;
+  let first_block_of_func (f : func) : block option =
+    match LL.block_begin (llvalue_of_func f) with
+    | LL.At_end _ -> None
+    | LL.Before blk -> Some blk
+  ;;
 
-let last_block_of_func (f : func) : block option =
-  match LL.block_end (llvalue_of_func f) with
-  | LL.At_start _ -> None
-  | LL.After blk -> Some blk
-;;
+  let last_block_of_func (f : func) : block option =
+    match LL.block_end (llvalue_of_func f) with
+    | LL.At_start _ -> None
+    | LL.After blk -> Some blk
+  ;;
 
-let is_first_block_of_func (blk : block) : bool =
-  let func = func_of_block blk in
-  match first_block_of_func func with
-  | None -> false
-  | Some b -> equal_block b blk
-;;
+  let is_first_block_of_func (blk : block) : bool =
+    let func = func_of_block blk in
+    match first_block_of_func func with
+    | None -> false
+    | Some b -> equal_block b blk
+  ;;
 
-let first_instr_of_func (f : func) : instr option =
-  match first_block_of_func f with
-  | None -> None
-  | Some b -> first_instr_of_block b
-;;
+  let first_instr_of_func (f : func) : instr option =
+    match first_block_of_func f with
+    | None -> None
+    | Some b -> first_instr_of_block b
+  ;;
 
-let get_pfd_callees (prog : program) (f : func) : funcs =
-  match Hashtbl.find prog.prog_func_data.pfd_callees f with
-  | None -> []
-  | Some callables ->
-    List.fold_right
-      ~f:(fun cl acc ->
-        match cl with
-        | ClFunc f -> f :: acc
-        | _ -> acc)
-      ~init:[] callables
-;;
+  let get_pfd_callees (prog : program) (f : func) : funcs =
+    match Hashtbl.find prog.prog_func_data.pfd_callees f with
+    | None -> []
+    | Some callables ->
+      List.fold_right
+        ~f:(fun cl acc ->
+          match cl with
+          | ClFunc f -> f :: acc
+          | _ -> acc)
+        ~init:[] callables
+  ;;
 
-let get_func_ptr_callees (prog : program) (f : func) : llvalues =
-  match Hashtbl.find prog.prog_func_data.pfd_callees f with
-  | None -> []
-  | Some callables ->
-    List.fold_right
-      ~f:(fun cl acc ->
-        match cl with
-        | ClFPtr vfp -> vfp :: acc
-        | _ -> acc)
-      ~init:[] callables
-;;
+  let get_func_ptr_callees (prog : program) (f : func) : llvalues =
+    match Hashtbl.find prog.prog_func_data.pfd_callees f with
+    | None -> []
+    | Some callables ->
+      List.fold_right
+        ~f:(fun cl acc ->
+          match cl with
+          | ClFPtr vfp -> vfp :: acc
+          | _ -> acc)
+        ~init:[] callables
+  ;;
 
-let get_pfd_callers (prog : program) (f : func) : funcs =
-  match Hashtbl.find prog.prog_func_data.pfd_callers f with
-  | None -> []
-  | Some fns -> fns
-;;
+  let get_pfd_callers (prog : program) (f : func) : funcs =
+    match Hashtbl.find prog.prog_func_data.pfd_callers f with
+    | None -> []
+    | Some fns -> fns
+  ;;
 
-let get_func_used_globals (prog : program) (f : func) : globals =
-  if is_user_func f || is_init_func f
-  then (
-    match Hashtbl.find prog.prog_func_data.pfd_used_globals f with
-    | None -> herror "get_func_used_globals: no infor of: " func_name f
-    | Some gs -> gs)
-  else []
-;;
+  let get_func_used_globals (prog : program) (f : func) : globals =
+    if is_user_func f || is_init_func f
+    then (
+      match Hashtbl.find prog.prog_func_data.pfd_used_globals f with
+      | None -> herror "get_func_used_globals: no infor of: " func_name f
+      | Some gs -> gs)
+    else []
+  ;;
 
-let has_call_to_user_funcs prog (f : func) : bool =
-  let callees = get_pfd_callees prog f in
-  List.exists ~f:(fun f -> is_user_func f || is_func_pointer f) callees
-;;
+  let has_call_to_user_funcs prog (f : func) : bool =
+    let callees = get_pfd_callees prog f in
+    List.exists ~f:(fun f -> is_user_func f || is_func_pointer f) callees
+  ;;
+end
+
+include FuncUtility
 
 (*******************************************************************
  ** more utility operations
@@ -3094,114 +3168,119 @@ let mk_program (filename : string) (modul : llmodule) : program =
  ** more advanced printing
  *******************************************************************)
 
-let pr_loop (l : loop) : string =
-  let loop_info =
-    [ "Loop: {head: " ^ block_name l.loop_head;
-      "body: " ^ pr_list ~f:block_name l.loop_body;
-      "exit: " ^ pr_list ~f:block_name l.loop_exit ^ "}"
-    ] in
-  String.concat ~sep:"; " loop_info
-;;
+module PrintProg = struct
+  let pr_loop (l : loop) : string =
+    let loop_info =
+      [ "Loop: {head: " ^ block_name l.loop_head;
+        "body: " ^ pr_list ~f:block_name l.loop_body;
+        "exit: " ^ pr_list ~f:block_name l.loop_exit ^ "}"
+      ] in
+    String.concat ~sep:"; " loop_info
+  ;;
 
-let pr_loops (ls : loop list) : string = pr_items ~f:pr_loop ls
+  let pr_loops (ls : loop list) : string = pr_items ~f:pr_loop ls
 
-let pr_block (blk : block) : string =
-  let blkname = block_name blk in
-  let sinstrs =
-    blk |> map_instrs ~f:(String.hindent 2 pr_instr) |> String.concat ~sep:"\n"
-  in
-  (" " ^ blkname ^ ":\n")
-  ^ String.replace_if_empty sinstrs ~replacer:"{Empty block}"
-;;
+  let pr_block (blk : block) : string =
+    let blkname = block_name blk in
+    let sinstrs =
+      blk
+      |> map_instrs ~f:(String.hindent 2 pr_instr)
+      |> String.concat ~sep:"\n" in
+    (" " ^ blkname ^ ":\n")
+    ^ String.replace_if_empty sinstrs ~replacer:"{Empty block}"
+  ;;
 
-let pr_func (f : func) : string =
-  let fname =
-    sprintf "Function: %s %s(%s)"
-      (pr_type (func_return_type f))
-      (func_name f)
-      (pr_args ~f:pr_typed_param (func_params f)) in
-  let sblks =
-    f |> map_blocks ~f:pr_block |> String.concat ~sep:"\n\n"
-    |> String.replace_if_empty ~replacer:"{Empty function}" in
-  fname ^ "\n" ^ sblks
-;;
+  let pr_func (f : func) : string =
+    let fname =
+      sprintf "Function: %s %s(%s)"
+        (pr_type (func_return_type f))
+        (func_name f)
+        (pr_args ~f:pr_typed_param (func_params f)) in
+    let sblks =
+      f |> map_blocks ~f:pr_block |> String.concat ~sep:"\n\n"
+      |> String.replace_if_empty ~replacer:"{Empty function}" in
+    fname ^ "\n" ^ sblks
+  ;;
 
-let pr_module (m : llmodule) : string = LL.string_of_llmodule m
+  let pr_module (m : llmodule) : string = LL.string_of_llmodule m
 
-let pr_program (prog : program) : string =
-  let sglobals =
-    prog.prog_globals
-    |> List.map ~f:(String.hindent 2 (pr_global ~detailed:true))
-    |> String.concat ~sep:"\n"
-    |> String.prefix_if_not_empty ~prefix:"Globals:\n" in
-  let sstructs =
-    prog.prog_struct_types
-    |> List.map ~f:(fun t -> "  " ^ pr_type t)
-    |> String.concat ~sep:"\n"
-    |> String.prefix_if_not_empty ~prefix:"Struct types:\n" in
-  let funcs = prog.prog_init_funcs @ prog.prog_user_funcs in
-  let sfuncs = funcs |> List.map ~f:pr_func |> String.concat ~sep:"\n\n" in
-  (sglobals |> String.suffix_if_not_empty ~suffix:"\n\n")
-  ^ (sstructs |> String.suffix_if_not_empty ~suffix:"\n\n")
-  ^ sfuncs
-;;
+  let pr_program (prog : program) : string =
+    let sglobals =
+      prog.prog_globals
+      |> List.map ~f:(String.hindent 2 (pr_global ~detailed:true))
+      |> String.concat ~sep:"\n"
+      |> String.prefix_if_not_empty ~prefix:"Globals:\n" in
+    let sstructs =
+      prog.prog_struct_types
+      |> List.map ~f:(fun t -> "  " ^ pr_type t)
+      |> String.concat ~sep:"\n"
+      |> String.prefix_if_not_empty ~prefix:"Struct types:\n" in
+    let funcs = prog.prog_init_funcs @ prog.prog_user_funcs in
+    let sfuncs = funcs |> List.map ~f:pr_func |> String.concat ~sep:"\n\n" in
+    (sglobals |> String.suffix_if_not_empty ~suffix:"\n\n")
+    ^ (sstructs |> String.suffix_if_not_empty ~suffix:"\n\n")
+    ^ sfuncs
+  ;;
 
-let pr_caller_info (prog : program) : string =
-  Hashtbl.fold
-    ~f:(fun ~key:func ~data:callers acc ->
-      let fname = func_name func in
-      let caller_names =
-        callers |> List.map ~f:func_name |> String.concat ~sep:", " in
-      acc ^ "\n  " ^ fname ^ " <-- [" ^ caller_names ^ "]")
-    ~init:"Caller graph:" prog.prog_func_data.pfd_callers
-;;
+  let pr_caller_info (prog : program) : string =
+    Hashtbl.fold
+      ~f:(fun ~key:func ~data:callers acc ->
+        let fname = func_name func in
+        let caller_names =
+          callers |> List.map ~f:func_name |> String.concat ~sep:", " in
+        acc ^ "\n  " ^ fname ^ " <-- [" ^ caller_names ^ "]")
+      ~init:"Caller graph:" prog.prog_func_data.pfd_callers
+  ;;
 
-let pr_callee_info (prog : program) : string =
-  Hashtbl.fold
-    ~f:(fun ~key:func ~data:callees acc ->
-      let fname = func_name func in
-      let callee_names =
-        callees |> List.map ~f:callable_name |> String.concat ~sep:", " in
-      acc ^ "\n  " ^ fname ^ " --> [" ^ callee_names ^ "]")
-    ~init:"Callee graph:" prog.prog_func_data.pfd_callees
-;;
+  let pr_callee_info (prog : program) : string =
+    Hashtbl.fold
+      ~f:(fun ~key:func ~data:callees acc ->
+        let fname = func_name func in
+        let callee_names =
+          callees |> List.map ~f:callable_name |> String.concat ~sep:", " in
+        acc ^ "\n  " ^ fname ^ " --> [" ^ callee_names ^ "]")
+      ~init:"Callee graph:" prog.prog_func_data.pfd_callees
+  ;;
 
-let pr_func_call_info (prog : program) : unit =
-  let pfd = prog.prog_func_data in
-  let callees_info =
-    "Function call information:\n"
-    ^ Hashtbl.fold
-        ~f:(fun ~key:f ~data:callees acc ->
-          if List.is_empty callees
-          then acc
-          else
-            (acc ^ "\n - " ^ func_name f ^ ":")
-            ^ pr_items ~bullet:"    ->" ~f:callable_name callees)
-        ~init:"" pfd.pfd_callees in
-  let _ = debug callees_info in
-  let callers_info =
-    "====================================\n"
-    ^ "* Information of function callers:\n"
-    ^ Hashtbl.fold
-        ~f:(fun ~key:f ~data:callers acc ->
-          if List.is_empty callers
-          then acc
-          else
-            (acc ^ "\n - " ^ func_name f ^ ":")
-            ^ pr_items ~bullet:"    <-" ~f:func_name callers)
-        ~init:"" pfd.pfd_callers in
-  debug callers_info
-;;
+  let pr_func_call_info (prog : program) : unit =
+    let pfd = prog.prog_func_data in
+    let callees_info =
+      "Function call information:\n"
+      ^ Hashtbl.fold
+          ~f:(fun ~key:f ~data:callees acc ->
+            if List.is_empty callees
+            then acc
+            else
+              (acc ^ "\n - " ^ func_name f ^ ":")
+              ^ pr_items ~bullet:"    ->" ~f:callable_name callees)
+          ~init:"" pfd.pfd_callees in
+    let _ = debug callees_info in
+    let callers_info =
+      "====================================\n"
+      ^ "* Information of function callers:\n"
+      ^ Hashtbl.fold
+          ~f:(fun ~key:f ~data:callers acc ->
+            if List.is_empty callers
+            then acc
+            else
+              (acc ^ "\n - " ^ func_name f ^ ":")
+              ^ pr_items ~bullet:"    <-" ~f:func_name callers)
+          ~init:"" pfd.pfd_callers in
+    debug callers_info
+  ;;
 
-let pr_program_info (prog : program) : string =
-  sprintf " - Init functions: %s\n" (func_names prog.prog_init_funcs)
-  ^ sprintf " - Library (no source code) functions: %s\n"
-      (func_names prog.prog_lib_no_source_funcs)
-  ^ sprintf " - Library (has source code) functions: %s\n"
-      (func_names prog.prog_lib_has_source_funcs)
-  ^ sprintf " - User functions: %s\n" (func_names prog.prog_user_funcs)
-  ^ sprintf " - Entry functions: %s\n" (func_names prog.prog_entry_funcs)
-  ^ sprintf " - Function call information: \n%s\n%s"
-      (String.hindent 4 pr_caller_info prog)
-      (String.hindent 4 pr_callee_info prog)
-;;
+  let pr_program_info (prog : program) : string =
+    sprintf " - Init functions: %s\n" (func_names prog.prog_init_funcs)
+    ^ sprintf " - Library (no source code) functions: %s\n"
+        (func_names prog.prog_lib_no_source_funcs)
+    ^ sprintf " - Library (has source code) functions: %s\n"
+        (func_names prog.prog_lib_has_source_funcs)
+    ^ sprintf " - User functions: %s\n" (func_names prog.prog_user_funcs)
+    ^ sprintf " - Entry functions: %s\n" (func_names prog.prog_entry_funcs)
+    ^ sprintf " - Function call information: \n%s\n%s"
+        (String.hindent 4 pr_caller_info prog)
+        (String.hindent 4 pr_callee_info prog)
+  ;;
+end
+
+include PrintProg
