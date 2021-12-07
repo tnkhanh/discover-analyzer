@@ -126,7 +126,38 @@ let check_bug_division_by_zero (pdata : program_data) (pbug : potential_bug)
   : bug option
   =
   (* TODO: @Khanh: implement from here *)
-  None
+  let open Option.Let_syntax in
+  match pbug.pbug_type with
+  | DivisionByZero None ->
+    if !bug_all
+    then (
+      let func = LI.func_of_instr pbug.pbug_instr in
+      let%bind penv_rng = pdata.pdata_env_range in
+      let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
+      List.fold_left
+        ~f:(fun acc fenv ->
+          if acc != None
+          then acc
+          else (
+            let%bind data = RG.get_instr_output fenv pbug.pbug_instr in
+            let divisor = LI.operand pbug.pbug_instr 2 in
+            let itv = RG.get_interval (LI.expr_of_llvalue divisor) data in
+            match itv with
+            | Bottom -> None
+            | Range r ->
+              if (RG.ID.compare_bound r.range_lb (Int64 Int64.zero) <= 0 &&
+                 RG.ID.compare_bound r.range_ub (Int64 Int64.zero) >= 0)
+              then (
+                let reason =
+                  ("Divisor " ^ LI.pr_value divisor ^ " can take values from")
+                  ^(RG.pr_bound r.range_lb ^ " to " ^ RG.pr_bound r.range_ub)
+                  ^ "and can be zero.\n"
+                in
+                return (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
+              else None))
+        ~init:None fenvs_rng)
+    else None
+  | _ -> None
 
 let find_bug_division_by_zero (pdata : program_data) : bugs =
   if !bug_all || !bug_integer_all || !bug_divizion_by_zero

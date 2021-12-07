@@ -266,6 +266,15 @@ let mk_potential_bug (instr : instr) (btype : bug_type) : potential_bug =
 ;;
 
 (*-------------------------------------------
+ * Potential division-by-zero bugs
+ *------------------------------------------*)
+
+let mk_potential_division_by_zero (instr : instr) : potential_bug =
+  mk_potential_bug instr (mk_bug_type_division_by_zero ())
+;;
+
+
+(*-------------------------------------------
  * Potential integer bugs
  *------------------------------------------*)
 
@@ -416,8 +425,9 @@ let annotate_potential_bugs (prog : program) : potential_bugs =
     | LO.SDiv | LO.UDiv ->
       (* TODO: annotate other kind of integer bugs like DivByZero *)
       acc
-      @ [ mk_potential_integer_overflow instr ]
-      @ [ mk_potential_integer_underflow instr ]
+      @ [ mk_potential_integer_overflow instr;
+          mk_potential_integer_underflow instr;
+          mk_potential_division_by_zero instr]
     | LO.GetElementPtr -> acc @ [ mk_potential_buffer_overflow instr ]
     | LO.Ret -> acc @ [ mk_potential_memory_leak instr ]
     | _ -> acc in
