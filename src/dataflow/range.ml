@@ -400,7 +400,7 @@ module IntervalDomain = struct
     else b1, i1 || i2
 
   let sdiv_range (a : range) (b : range) : range =
-    (* TODO: Add inclusive, Division-by-zero, div_bound can also have 0 *)
+    (* TODO: div_bound can also have 0 *)
     let one = Int64 Int64.one in
     let minus_one = Int64 Int64.minus_one in
     let a_lb = 
