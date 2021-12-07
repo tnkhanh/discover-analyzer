@@ -34,7 +34,7 @@ let start_solver () =
 ;;
 
 let stop_solver () =
-  PS.stop_process !proc;
+  PS.close_process !proc;
   proc := { !proc with PS.proc_pid = PS.pid_dummy }
 ;;
 

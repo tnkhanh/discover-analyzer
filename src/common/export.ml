@@ -6,9 +6,7 @@
  ********************************************************************)
 
 open Dcore
-module LL = Llvm
 module SI = Slir
-module LI = Llir
 
 module Entails = struct
   let dump_data_defn (d : SI.data_defn) : string = SI.pr_data_defn d

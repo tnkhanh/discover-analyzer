@@ -825,7 +825,7 @@ let pr_succ_block (sblk : succ_block) : string =
  ** wrapping of some core functions from LLVM to LLIR
  *******************************************************************)
 
-(* instruction *)
+(*** instruction ***)
 
 let instr_opcode (i : instr) : LO.t = LL.instr_opcode (llvalue_of_instr i)
 
@@ -859,7 +859,7 @@ let delete_instruction (i : instr) : unit =
   LL.delete_instruction (llvalue_of_instr i)
 ;;
 
-(* global variable *)
+(*** global variable ***)
 
 let global_operand (g : global) (idx : int) : llvalue =
   LL.operand (llvalue_of_global g) idx
@@ -867,7 +867,7 @@ let global_operand (g : global) (idx : int) : llvalue =
 
 let type_of_global (g : global) : lltype = LL.type_of (llvalue_of_global g)
 
-(* function *)
+(*** function ***)
 
 let func_of_block (blk : block) : func = mk_func (LL.block_parent blk)
 
@@ -878,7 +878,7 @@ let func_of_instr (i : instr) : func =
 
 let type_of_func (f : func) : lltype = LL.type_of (llvalue_of_func f)
 
-(* iteration *)
+(*** iteration ***)
 
 let iter_instrs ~(f : instr -> unit) (blk : block) : unit =
   let ff v = f (mk_instr v) in
@@ -904,7 +904,7 @@ let iter_functions ~(f : func -> unit) (m : llmodule) : unit =
   LL.iter_functions ff m
 ;;
 
-(* map *)
+(*** map ***)
 
 let map_instrs ~(f : instr -> 'a) (blk : block) : 'a list =
   let ff acc v = acc @ [ f (mk_instr v) ] in
@@ -1656,6 +1656,11 @@ let instr_pred (i : instr) : instr option =
   | LL.At_start _ -> None
   | LL.After v -> Some (mk_instr v)
 ;;
+
+let instr_begin (blk: block) : instr option =
+  match LL.instr_begin blk with
+  | LL.At_end _ -> None
+  | LL.Before v -> Some (mk_instr v)
 
 (*-----------------------------------------
  * function and parameters
@@ -2660,6 +2665,20 @@ let index_of_block_name (blk : block) : int =
     try Int.of_string sindex with _ -> -1)
   else -1
 ;;
+
+let index_of_instr_in_block (instr : instr) (blk : block) : int option =
+  let rec traverse acc ins : int option =
+    if equal_instr ins instr
+    then Some acc
+    else (
+      match instr_succ ins with
+      | None -> None
+      | Some ins' -> traverse (acc + 1) ins') in
+  match instr_begin blk with
+  | None -> None
+  | Some ins -> traverse 0 ins
+;;
+
 
 let compare_block_by_name blk1 blk2 : int =
   let idx1, idx2 = index_of_block_name blk1, index_of_block_name blk2 in

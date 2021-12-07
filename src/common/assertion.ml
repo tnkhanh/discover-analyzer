@@ -10,8 +10,6 @@ open Llir
 module LL = Llvm
 module LD = Lldebug
 module LO = Llvm.Opcode
-module LC = Llvm.Icmp
-module LA = List.Assoc
 
 (*******************************************************************
  ** data structure

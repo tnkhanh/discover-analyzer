@@ -613,14 +613,9 @@ functor
       let caller, instr = cs.cs_caller, cs.cs_instr_call in
       let blk = block_of_instr instr in
       let index =
-        try
-          let _ =
-            fold_left_instrs
-              ~f:(fun acc i ->
-                if equal_instr instr i then raise (EInt acc) else acc + 1)
-              ~init:1 blk in
-          -1
-        with EInt res -> res in
+        match index_of_instr_in_block instr blk with
+        | Some idx -> idx
+        | None -> -1 in
       func_name caller ^ ":" ^ block_name blk ^ ":" ^ pr_int index
     ;;
 
@@ -2108,22 +2103,7 @@ functor
         : (working_block * working_block list) option
       =
       let compare wblk1 wblk2 : int =
-        try
-          (* let _ = compare_block_by_sparse_reachability penv wblk1 wblk2 |>
-           *         (fun res -> if res != 0 then raise_int res) in
-           * let _ = compare_block_by_name penv wblk1 wblk2 |>
-           *         (fun res -> if res != 0 then raise_int res) in *)
-          (* let _ = compare_block_by_num_pair_pred_succ_blocks penv wblk1 wblk2 |>
-           *         (fun res -> if res != 0 then raise_int res) in
-           * let _ = compare_block_by_distance_from_entry penv wblk1 wblk2 |>
-           *         (fun res -> if res != 0 then raise_int res) in *)
-          let _ =
-            compare_block_by_analyzed_times penv wblk1 wblk2
-            |> fun res -> if res != 0 then raise_int res in
-          (* let _ = compare_block_by_name penv wblk1 wblk2 |>
-           *         (fun res -> if res != 0 then raise_int res) in *)
-          0
-        with EInt res -> res in
+        compare_block_by_analyzed_times penv wblk1 wblk2 in
       let blks = List.sort ~compare wblks in
       match blks with
       | [] -> None
@@ -2395,23 +2375,14 @@ functor
         : (working_func * working_func list) option
       =
       let compare (wf1 : working_func) (wf2 : working_func) : int =
-        try
-          let _ =
-            compare_func_main penv wf1 wf2
-            |> fun res -> if res != 0 then raise_int res in
-          let _ =
-            compare_func_call_order penv wf1 wf2
-            |> fun res -> if res != 0 then raise_int res in
-          let _ =
-            compare_func_call_stack penv wf1 wf2
-            |> fun res -> if res != 0 then raise_int res in
-          let _ =
-            compare_func_analyzed_times penv wf1 wf2
-            |> fun res -> if res != 0 then raise_int res in
-          (* let _ = compare_func_input penv wf1 wf2 |>
-           *         (fun res -> if res != 0 then raise_int res) in *)
-          0
-        with EInt res -> res in
+        List.eval_return_if
+          ~return:(fun x -> x != 0)
+          ~default:0
+          [ (fun () -> compare_func_main penv wf1 wf2);
+            (fun () -> compare_func_call_order penv wf1 wf2);
+            (fun () -> compare_func_call_stack penv wf1 wf2);
+            (fun () -> compare_func_analyzed_times penv wf1 wf2)
+          ] in
       let wfuncs = List.sorti ~compare penv.penv_working_funcs in
       (* let _ = hdebug ~always:false "Analyzed functions: " pr_analyzed_func_input penv in *)
       match is_interactive_mode () with
