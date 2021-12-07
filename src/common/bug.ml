@@ -422,6 +422,6 @@ let annotate_potential_bugs (prog : program) : potential_bugs =
   let funcs = prog.prog_user_funcs in
   List.fold_left
     ~f:(fun acc func ->
-      acc @ deep_fold_func ~finstr:(Some visit_instr) [] func)
+      acc @ fold_ast_func ~finstr:(Some visit_instr) [] func)
     ~init:[] funcs
 ;;

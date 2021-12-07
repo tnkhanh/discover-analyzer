@@ -337,7 +337,8 @@ type program_meta_data =
 
 type program =
   { prog_globals : global list;
-    prog_struct_types : lltype list; (* program functions  *)
+    prog_struct_types : lltype list;
+    (* program functions  *)
     prog_all_funcs : func list;
     (* TODO: what are better names for prog_lib_no_source_funcs and
        prog_lib_has_source_funcs? *)
@@ -879,313 +880,318 @@ let func_of_instr (i : instr) : func =
 
 let type_of_func (f : func) : lltype = LL.type_of (llvalue_of_func f)
 
-(*** iteration ***)
+(** Iteration over LLVM data structures *)
+module LlirIter = struct
+  let iter_instrs ~(f : instr -> unit) (blk : block) : unit =
+    let ff v = f (mk_instr v) in
+    LL.iter_instrs ff blk
+  ;;
 
-let iter_instrs ~(f : instr -> unit) (blk : block) : unit =
-  let ff v = f (mk_instr v) in
-  LL.iter_instrs ff blk
-;;
+  let iter_blocks ~(f : block -> unit) (func : func) : unit =
+    LL.iter_blocks f (llvalue_of_func func)
+  ;;
 
-let iter_blocks ~(f : block -> unit) (func : func) : unit =
-  LL.iter_blocks f (llvalue_of_func func)
-;;
+  let iter_params ~(f : param -> unit) (func : func) : unit =
+    let ff v = f (mk_param v) in
+    LL.iter_params ff (llvalue_of_func func)
+  ;;
 
-let iter_params ~(f : param -> unit) (func : func) : unit =
-  let ff v = f (mk_param v) in
-  LL.iter_params ff (llvalue_of_func func)
-;;
+  let iter_globals ~(f : global -> unit) (m : llmodule) : unit =
+    let ff v = f (mk_global v) in
+    LL.iter_globals ff m
+  ;;
 
-let iter_globals ~(f : global -> unit) (m : llmodule) : unit =
-  let ff v = f (mk_global v) in
-  LL.iter_globals ff m
-;;
+  let iter_functions ~(f : func -> unit) (m : llmodule) : unit =
+    let ff v = f (mk_func v) in
+    LL.iter_functions ff m
+  ;;
+end
 
-let iter_functions ~(f : func -> unit) (m : llmodule) : unit =
-  let ff v = f (mk_func v) in
-  LL.iter_functions ff m
-;;
+(** Mapping over LLVM data structures *)
+module LlirMap = struct
+  let map_instrs ~(f : instr -> 'a) (blk : block) : 'a list =
+    let ff acc v = acc @ [ f (mk_instr v) ] in
+    LL.fold_left_instrs ff [] blk
+  ;;
 
-(*** map ***)
+  let map_blocks ~(f : block -> 'a) (func : func) : 'a list =
+    let ff acc b = acc @ [ f b ] in
+    LL.fold_left_blocks ff [] (llvalue_of_func func)
+  ;;
 
-let map_instrs ~(f : instr -> 'a) (blk : block) : 'a list =
-  let ff acc v = acc @ [ f (mk_instr v) ] in
-  LL.fold_left_instrs ff [] blk
-;;
+  let map_params ~(f : param -> 'a) (func : func) : 'a list =
+    let ff acc v = acc @ [ f (mk_param v) ] in
+    LL.fold_left_params ff [] (llvalue_of_func func)
+  ;;
 
-let map_blocks ~(f : block -> 'a) (func : func) : 'a list =
-  let ff acc b = acc @ [ f b ] in
-  LL.fold_left_blocks ff [] (llvalue_of_func func)
-;;
+  let map_globals ~(f : global -> 'a) (m : llmodule) : 'a list =
+    let ff acc v = acc @ [ f (mk_global v) ] in
+    LL.fold_left_globals ff [] m
+  ;;
 
-let map_params ~(f : param -> 'a) (func : func) : 'a list =
-  let ff acc v = acc @ [ f (mk_param v) ] in
-  LL.fold_left_params ff [] (llvalue_of_func func)
-;;
+  let map_functions ~(f : func -> 'a) (m : llmodule) : 'a list =
+    let ff acc v = acc @ [ f (mk_func v) ] in
+    LL.fold_left_functions ff [] m
+  ;;
+end
 
-let map_globals ~(f : global -> 'a) (m : llmodule) : 'a list =
-  let ff acc v = acc @ [ f (mk_global v) ] in
-  LL.fold_left_globals ff [] m
-;;
+(** Folding over LLVM data structures *)
+module LlirFold = struct
+  let fold_left_instrs ~(f : 'a -> instr -> 'a) ~(init : 'a) (blk : block) : 'a
+    =
+    let ff acc v = f acc (mk_instr v) in
+    LL.fold_left_instrs ff init blk
+  ;;
 
-let map_functions ~(f : func -> 'a) (m : llmodule) : 'a list =
-  let ff acc v = acc @ [ f (mk_func v) ] in
-  LL.fold_left_functions ff [] m
-;;
+  let fold_left_blocks ~(f : 'a -> block -> 'a) ~(init : 'a) (func : func) : 'a
+    =
+    LL.fold_left_blocks f init (llvalue_of_func func)
+  ;;
 
-(* folding *)
+  let fold_left_params ~(f : 'a -> param -> 'a) ~(init : 'a) (func : func) : 'a
+    =
+    let ff acc v = f acc (mk_param v) in
+    LL.fold_left_params ff init (llvalue_of_func func)
+  ;;
 
-let fold_left_instrs ~(f : 'a -> instr -> 'a) ~(init : 'a) (blk : block) : 'a =
-  let ff acc v = f acc (mk_instr v) in
-  LL.fold_left_instrs ff init blk
-;;
+  let fold_left_globals ~(f : 'a -> global -> 'a) ~(init : 'a) (m : llmodule)
+      : 'a
+    =
+    let ff acc v = f acc (mk_global v) in
+    LL.fold_left_globals ff init m
+  ;;
 
-let fold_left_blocks ~(f : 'a -> block -> 'a) ~(init : 'a) (func : func) : 'a =
-  LL.fold_left_blocks f init (llvalue_of_func func)
-;;
+  let fold_left_functions ~(f : 'a -> func -> 'a) ~(init : 'a) (m : llmodule)
+      : 'a
+    =
+    let ff acc v = f acc (mk_func v) in
+    LL.fold_left_functions ff init m
+  ;;
+end
 
-let fold_left_params ~(f : 'a -> param -> 'a) ~(init : 'a) (func : func) : 'a =
-  let ff acc v = f acc (mk_param v) in
-  LL.fold_left_params ff init (llvalue_of_func func)
-;;
+include LlirIter
+include LlirMap
+include LlirFold
 
-let fold_left_globals ~(f : 'a -> global -> 'a) ~(init : 'a) (m : llmodule)
-    : 'a
-  =
-  let ff acc v = f acc (mk_global v) in
-  LL.fold_left_globals ff init m
-;;
+(** Iteration LLVM data structures by following AST structure *)
+module LlirIterAst = struct
+  let iter_ast_instr ?(finstr : (instr -> unit) option = None) (instr : instr)
+      : unit
+    =
+    match finstr with
+    | None -> ()
+    | Some f -> f instr
+  ;;
 
-let fold_left_functions ~(f : 'a -> func -> 'a) ~(init : 'a) (m : llmodule)
-    : 'a
-  =
-  let ff acc v = f acc (mk_func v) in
-  LL.fold_left_functions ff init m
-;;
+  let iter_ast_param ?(fparam : (param -> unit) option = None) (param : param)
+      : unit
+    =
+    match fparam with
+    | None -> ()
+    | Some f -> f param
+  ;;
 
-(*******************************************************************
- ** deep iteration functions
- *******************************************************************)
+  let iter_ast_global
+      ?(fglobal : (global -> unit) option = None)
+      (glob : global)
+      : unit
+    =
+    match fglobal with
+    | None -> ()
+    | Some f -> f glob
+  ;;
 
-type iter_instr = instr -> unit
-type iter_param = param -> unit
-type iter_global = global -> unit
-type iter_block = block -> unit option
-type iter_func = func -> unit option
+  let iter_ast_block
+      ?(fblock : (block -> unit option) option = None)
+      ?(finstr : (instr -> unit) option = None)
+      (blk : block)
+      : unit
+    =
+    let iter () =
+      LL.iter_instrs (fun i -> iter_ast_instr ~finstr (mk_instr i)) blk in
+    let open Option.Let_syntax in
+    let res =
+      let%bind f = fblock in
+      f blk in
+    Option.value res ~default:(iter ())
+  ;;
 
-let deep_iter_instr ?(finstr : iter_instr option = None) (instr : instr) : unit
-  =
-  match finstr with
-  | None -> ()
-  | Some f -> f instr
-;;
+  let iter_ast_func
+      ?(ffunc : (func -> unit option) option = None)
+      ?(fparam : (param -> unit) option = None)
+      ?(fblock : (block -> unit option) option = None)
+      ?(finstr : (instr -> unit) option = None)
+      (func : func)
+      : unit
+    =
+    let iter () =
+      let vfunc = llvalue_of_func func in
+      let _ =
+        LL.iter_params (fun p -> iter_ast_param ~fparam (mk_param p)) vfunc
+      in
+      LL.iter_blocks (iter_ast_block ~fblock ~finstr) vfunc in
+    let open Option.Let_syntax in
+    let res =
+      let%bind f = ffunc in
+      f func in
+    Option.value res ~default:(iter ())
+  ;;
 
-let deep_iter_param ?(fparam : iter_param option = None) (param : param) : unit
-  =
-  match fparam with
-  | None -> ()
-  | Some f -> f param
-;;
+  let iter_ast_module
+      ?(fglobal : (global -> unit) option = None)
+      ?(ffunc : (func -> unit option) option = None)
+      ?(fparam : (param -> unit) option = None)
+      ?(fblock : (block -> unit option) option = None)
+      ?(finstr : (instr -> unit) option = None)
+      (m : llmodule)
+      : unit
+    =
+    LL.iter_globals (fun g -> iter_ast_global ~fglobal (mk_global g)) m;
+    LL.iter_functions
+      (fun f -> iter_ast_func ~ffunc ~fparam ~fblock ~finstr (mk_func f))
+      m
+  ;;
 
-let deep_iter_global ?(fglobal : iter_global option = None) (glob : global)
-    : unit
-  =
-  match fglobal with
-  | None -> ()
-  | Some f -> f glob
-;;
+  let iter_ast_program
+      ?(fglobal : (global -> unit) option = None)
+      ?(ffunc : (func -> unit option) option = None)
+      ?(fparam : (param -> unit) option = None)
+      ?(fblock : (block -> unit option) option = None)
+      ?(finstr : (instr -> unit) option = None)
+      (prog : program)
+      : unit
+    =
+    List.iter ~f:(iter_ast_global ~fglobal) prog.prog_globals;
+    List.iter
+      ~f:(iter_ast_func ~ffunc ~fparam ~fblock ~finstr)
+      (prog.prog_init_funcs @ prog.prog_user_funcs)
+  ;;
+end
 
-let deep_iter_block
-    ?(fblock : iter_block option = None)
-    ?(finstr : iter_instr option = None)
-    (blk : block)
-    : unit
-  =
-  let iter () =
-    LL.iter_instrs (fun i -> deep_iter_instr ~finstr (mk_instr i)) blk in
-  let open Option.Let_syntax in
-  let res =
-    let%bind f = fblock in
-    f blk in
-  Option.value res ~default:(iter ())
-;;
+(** Fold LLVM data structures by following AST structure *)
+module LlirFoldAst = struct
+  let fold_ast_instr
+      ?(finstr : ('a -> instr -> 'a) option = None)
+      (acc : 'a)
+      (instr : instr)
+      : 'a
+    =
+    match finstr with
+    | None -> acc
+    | Some f -> f acc instr
+  ;;
 
-let deep_iter_func
-    ?(ffunc : iter_func option = None)
-    ?(fparam : iter_param option = None)
-    ?(fblock : iter_block option = None)
-    ?(finstr : iter_instr option = None)
-    (func : func)
-    : unit
-  =
-  let iter () =
-    let v = llvalue_of_func func in
-    LL.iter_params (fun p -> deep_iter_param ~fparam (mk_param p)) v;
-    LL.iter_blocks (deep_iter_block ~fblock ~finstr) v in
-  let open Option.Let_syntax in
-  let res =
-    let%bind f = ffunc in
-    f func in
-  Option.value res ~default:(iter ())
-;;
+  let fold_ast_param
+      ?(fparam : ('a -> param -> 'a) option = None)
+      (acc : 'a)
+      (param : param)
+      : 'a
+    =
+    match fparam with
+    | None -> acc
+    | Some f -> f acc param
+  ;;
 
-let deep_iter_module
-    ?(fglobal : iter_global option = None)
-    ?(ffunc : iter_func option = None)
-    ?(fparam : iter_param option = None)
-    ?(fblock : iter_block option = None)
-    ?(finstr : iter_instr option = None)
-    (m : llmodule)
-    : unit
-  =
-  LL.iter_globals (fun g -> deep_iter_global ~fglobal (mk_global g)) m;
-  LL.iter_functions
-    (fun f -> deep_iter_func ~ffunc ~fparam ~fblock ~finstr (mk_func f))
-    m
-;;
+  let fold_ast_global
+      ?(fglobal : ('a -> global -> 'a) option = None)
+      (acc : 'a)
+      (glob : global)
+      : 'a
+    =
+    match fglobal with
+    | None -> acc
+    | Some f -> f acc glob
+  ;;
 
-let deep_iter_program
-    ?(fglobal : iter_global option = None)
-    ?(ffunc : iter_func option = None)
-    ?(fparam : iter_param option = None)
-    ?(fblock : iter_block option = None)
-    ?(finstr : iter_instr option = None)
-    (prog : program)
-    : unit
-  =
-  List.iter ~f:(deep_iter_global ~fglobal) prog.prog_globals;
-  List.iter
-    ~f:(deep_iter_func ~ffunc ~fparam ~fblock ~finstr)
-    (prog.prog_init_funcs @ prog.prog_user_funcs)
-;;
+  let fold_ast_block
+      ?(fblock : ('a -> block -> 'a option) option = None)
+      ?(finstr : ('a -> instr -> 'a) option = None)
+      (acc : 'a)
+      (blk : block)
+      : 'a
+    =
+    let fold () =
+      LL.fold_left_instrs
+        (fun acc' instr -> fold_ast_instr ~finstr acc' (mk_instr instr))
+        acc blk in
+    let open Option.Let_syntax in
+    let res =
+      let%bind f = fblock in
+      f acc blk in
+    Option.value res ~default:(fold ())
+  ;;
 
-(*******************************************************************
- ** deep folding functions
- *******************************************************************)
+  let fold_ast_func
+      ?(ffunc : ('a -> func -> 'a option) option = None)
+      ?(fparam : ('a -> param -> 'a) option = None)
+      ?(fblock : ('a -> block -> 'a option) option = None)
+      ?(finstr : ('a -> instr -> 'a) option = None)
+      (acc : 'a)
+      (func : func)
+      : 'a
+    =
+    let fold () =
+      let vfunc = llvalue_of_func func in
+      let res =
+        LL.fold_left_params
+          (fun acc' param -> fold_ast_param ~fparam acc' (mk_param param))
+          acc vfunc in
+      LL.fold_left_blocks
+        (fun acc' blk -> fold_ast_block ~fblock ~finstr acc' blk)
+        res vfunc in
+    let open Option.Let_syntax in
+    let res =
+      let%bind f = ffunc in
+      f acc func in
+    Option.value res ~default:(fold ())
+  ;;
 
-type 'a fold_instr = 'a -> instr -> 'a
-type 'a fold_param = 'a -> param -> 'a
-type 'a fold_global = 'a -> global -> 'a
-type 'a fold_block = 'a -> block -> 'a option
-type 'a fold_func = 'a -> func -> 'a option
+  let fold_ast_module
+      ?(fglobal : ('a -> global -> 'a) option = None)
+      ?(ffunc : ('a -> func -> 'a option) option = None)
+      ?(fparam : ('a -> param -> 'a) option = None)
+      ?(fblock : ('a -> block -> 'a option) option = None)
+      ?(finstr : ('a -> instr -> 'a) option = None)
+      (acc : 'a)
+      (m : llmodule)
+      : 'a
+    =
+    let res =
+      LL.fold_left_globals
+        (fun acc' glob -> fold_ast_global ~fglobal acc' (mk_global glob))
+        acc m in
+    let res =
+      fold_left_functions
+        ~f:(fun acc' fn ->
+          fold_ast_func ~ffunc ~fparam ~fblock ~finstr acc' fn)
+        ~init:res m in
+    res
+  ;;
 
-let deep_fold_instr
-    ?(finstr : 'a fold_instr option = None)
-    (acc : 'a)
-    (instr : instr)
-    : 'a
-  =
-  match finstr with
-  | None -> acc
-  | Some f -> f acc instr
-;;
+  let fold_ast_program
+      ?(fglobal : ('a -> global -> 'a) option = None)
+      ?(ffunc : ('a -> func -> 'a option) option = None)
+      ?(fparam : ('a -> param -> 'a) option = None)
+      ?(fblock : ('a -> block -> 'a option) option = None)
+      ?(finstr : ('a -> instr -> 'a) option = None)
+      (acc : 'a)
+      (prog : program)
+      : 'a
+    =
+    let res =
+      List.fold_left ~f:(fold_ast_global ~fglobal) ~init:acc prog.prog_globals
+    in
+    let res =
+      List.fold_left
+        ~f:(fold_ast_func ~ffunc ~fparam ~fblock ~finstr)
+        ~init:res
+        (prog.prog_init_funcs @ prog.prog_user_funcs) in
+    res
+  ;;
+end
 
-let deep_fold_param
-    ?(fparam : 'a fold_param option = None)
-    (acc : 'a)
-    (param : param)
-    : 'a
-  =
-  match fparam with
-  | None -> acc
-  | Some f -> f acc param
-;;
-
-let deep_fold_global
-    ?(fglobal : 'a fold_global option = None)
-    (acc : 'a)
-    (glob : global)
-    : 'a
-  =
-  match fglobal with
-  | None -> acc
-  | Some f -> f acc glob
-;;
-
-let deep_fold_block
-    ?(fblock : 'a fold_block option = None)
-    ?(finstr : 'a fold_instr option = None)
-    (acc : 'a)
-    (blk : block)
-    : 'a
-  =
-  let fold () =
-    LL.fold_left_instrs
-      (fun acc' instr -> deep_fold_instr ~finstr acc' (mk_instr instr))
-      acc blk in
-  let open Option.Let_syntax in
-  let res =
-    let%bind f = fblock in
-    f acc blk in
-  Option.value res ~default:(fold ())
-;;
-
-let deep_fold_func
-    ?(ffunc : 'a fold_func option = None)
-    ?(fparam : 'a fold_param option = None)
-    ?(fblock : 'a fold_block option = None)
-    ?(finstr : 'a fold_instr option = None)
-    (acc : 'a)
-    (func : func)
-    : 'a
-  =
-  let fold () =
-    let v = llvalue_of_func func in
-    acc
-    |> fun x ->
-    LL.fold_left_params
-      (fun acc' param -> deep_fold_param ~fparam acc' (mk_param param))
-      x v
-    |> fun x ->
-    LL.fold_left_blocks
-      (fun acc' blk -> deep_fold_block ~fblock ~finstr acc' blk)
-      x v in
-  let open Option.Let_syntax in
-  let res =
-    let%bind f = ffunc in
-    f acc func in
-  Option.value res ~default:(fold ())
-;;
-
-let deep_fold_module
-    ?(fglobal : 'a fold_global option = None)
-    ?(ffunc : 'a fold_func option = None)
-    ?(fparam : 'a fold_param option = None)
-    ?(fblock : 'a fold_block option = None)
-    ?(finstr : 'a fold_instr option = None)
-    (acc : 'a)
-    (m : llmodule)
-    : 'a
-  =
-  acc
-  |> fun x ->
-  LL.fold_left_globals
-    (fun acc' glob -> deep_fold_global ~fglobal acc' (mk_global glob))
-    x m
-  |> fun x ->
-  fold_left_functions
-    ~f:(fun acc' fn -> deep_fold_func ~ffunc ~fparam ~fblock ~finstr acc' fn)
-    ~init:x m
-;;
-
-let deep_fold_program
-    ?(fglobal : 'a fold_global option = None)
-    ?(ffunc : 'a fold_func option = None)
-    ?(fparam : 'a fold_param option = None)
-    ?(fblock : 'a fold_block option = None)
-    ?(finstr : 'a fold_instr option = None)
-    (acc : 'a)
-    (prog : program)
-    : 'a
-  =
-  acc
-  |> fun x ->
-  List.fold_left ~f:(deep_fold_global ~fglobal) ~init:x prog.prog_globals
-  |> fun x ->
-  List.fold_left
-    ~f:(deep_fold_func ~ffunc ~fparam ~fblock ~finstr)
-    ~init:x
-    (prog.prog_init_funcs @ prog.prog_user_funcs)
-;;
+include LlirIterAst
+include LlirFoldAst
 
 (*******************************************************************
  ** transformation
@@ -1658,10 +1664,11 @@ let instr_pred (i : instr) : instr option =
   | LL.After v -> Some (mk_instr v)
 ;;
 
-let instr_begin (blk: block) : instr option =
+let instr_begin (blk : block) : instr option =
   match LL.instr_begin blk with
   | LL.At_end _ -> None
   | LL.Before v -> Some (mk_instr v)
+;;
 
 (*-----------------------------------------
  * function and parameters
@@ -2230,7 +2237,7 @@ let get_struct_types (m : llmodule) : lltype list =
   let visit_global g = collect_struct_type (LL.type_of (llvalue_of_global g)) in
   let visit_instr i = collect_struct_type (LL.type_of (llvalue_of_instr i)) in
   let _ =
-    deep_iter_module ~finstr:(Some visit_instr) ~fglobal:(Some visit_global) m
+    iter_ast_module ~finstr:(Some visit_instr) ~fglobal:(Some visit_global) m
   in
   Set.to_list !all_stypes
 ;;
@@ -2679,7 +2686,6 @@ let index_of_instr_in_block (instr : instr) (blk : block) : int option =
   | None -> None
   | Some ins -> traverse 0 ins
 ;;
-
 
 let compare_block_by_name blk1 blk2 : int =
   let idx1, idx2 = index_of_block_name blk1, index_of_block_name blk2 in

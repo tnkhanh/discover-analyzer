@@ -279,7 +279,7 @@ module MakeDefaultEnv (M : Data) = struct
     let visit_instr i =
       let vi = llvalue_of_instr i in
       Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:true in
-    deep_iter_program ~fglobal:(Some visit_global) ~finstr:(Some visit_instr)
+    iter_ast_program ~fglobal:(Some visit_global) ~finstr:(Some visit_instr)
       penv.penv_prog
   ;;
 
@@ -931,7 +931,7 @@ functor
           None)
         else Some () in
       let _ =
-        deep_iter_program ~fglobal:(Some visit_global) ~ffunc:(Some visit_func)
+        iter_ast_program ~fglobal:(Some visit_global) ~ffunc:(Some visit_func)
           ~fparam:(Some visit_param) ~fblock:(Some visit_block)
           ~finstr:(Some visit_instr) prog in
       let stats =
@@ -1317,8 +1317,8 @@ functor
                 raise (EBool false)
               | Some _ -> ()) in
           let _ =
-            deep_iter_func ~fblock:(Some visit_block)
-              ~finstr:(Some visit_instr) func in
+            iter_ast_func ~fblock:(Some visit_block) ~finstr:(Some visit_instr)
+              func in
           true
         with EBool res -> res in
       let _ = hdebug ~always:true " - Env completed: " pr_bool env_completed in
@@ -2577,7 +2577,7 @@ functor
                      && not (is_llvalue_pointer (src_of_instr_return instr))
                   then has_return_of_non_pointer := true
                 | _ -> num_sparse_instrs := !num_sparse_instrs + 1) in
-            let _ = deep_iter_func ~finstr:(Some visit_instr) f in
+            let _ = iter_ast_func ~finstr:(Some visit_instr) f in
             if !num_sparse_instrs == 0
                || (not !has_return_or_unreachable)
                || (!num_sparse_instrs == 1 && !has_return_of_non_pointer)
@@ -2618,7 +2618,7 @@ functor
                       then ()
                       else has_pointer_related_instr := true
                     | _ -> has_pointer_related_instr := true) in
-                let _ = deep_iter_func ~finstr:(Some visit_instr) f in
+                let _ = iter_ast_func ~finstr:(Some visit_instr) f in
                 if not !has_pointer_related_instr
                 then (
                   (* let _ = hprint "Set function to non-sparse: " func_name f in *)
@@ -2666,7 +2666,7 @@ functor
                            ~compare:Poly.compare
                   | _ -> ()
                 done in
-            let _ = deep_iter_func ~finstr:(Some visit_instr) func in
+            let _ = iter_ast_func ~finstr:(Some visit_instr) func in
             Hashtbl.set tbl_used_globals ~key:func ~data:!gs)
           prog.prog_user_funcs in
       let update_globals_of_all_funcs () =

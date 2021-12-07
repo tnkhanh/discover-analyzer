@@ -306,7 +306,7 @@ let instrument_bug_annotation annots source_name (modul : LL.llmodule) : unit =
             | [] -> mk_tagged_instr pos 1 instr :: acc
             | hd :: tl -> mk_tagged_instr pos (hd.tagx_tag + 1) instr :: acc))
   in
-  let tagged_instr = deep_fold_module ~finstr [] modul in
+  let tagged_instr = fold_ast_module ~finstr [] modul in
   let compare ins1 ins2 =
     let p1 = ins1.tagx_pos.pos_line_end, ins1.tagx_pos.pos_col_end in
     let p2 = ins2.tagx_pos.pos_line_end, ins2.tagx_pos.pos_col_end in
