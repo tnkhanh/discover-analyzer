@@ -108,12 +108,32 @@ let check_bug_integer_underflow (pdata : program_data) (pbug : potential_bug)
   | _ -> None
 ;;
 
-let find_bug_integer_underflow (pdata : program_data) =
+let find_bug_integer_underflow (pdata : program_data) : bugs =
   if !bug_all || !bug_integer_all || !bug_integer_underflow
   then (
     let _ = debug "Finding All Integer Underflow Bugs..." in
     pdata.pdata_potential_bugs
     |> List.map ~f:(check_bug_integer_underflow pdata)
+    |> List.filter_opt)
+  else []
+;;
+
+(*--------------------
+ * Division by Zero
+ *-------------------*)
+
+let check_bug_division_by_zero (pdata : program_data) (pbug : potential_bug)
+  : bug option
+  =
+  (* TODO: @Khanh: implement from here *)
+  None
+
+let find_bug_division_by_zero (pdata : program_data) : bugs =
+  if !bug_all || !bug_integer_all || !bug_divizion_by_zero
+  then (
+    let _ = debug "Finding All Division by Zero Bugs..." in
+    pdata.pdata_potential_bugs
+    |> List.map ~f:(check_bug_division_by_zero pdata)
     |> List.filter_opt)
   else []
 ;;
@@ -239,7 +259,8 @@ let find_bugs (pdata : program_data) : unit =
     find_bug_memory_leak pdata
     @ find_bug_buffer_overflow pdata
     @ find_bug_integer_overflow pdata
-    @ find_bug_integer_underflow pdata in
+    @ find_bug_integer_underflow pdata
+    @ find_bug_division_by_zero pdata in
   let _ = List.iter ~f:(fun bug -> print ~marker:false (pr_bug bug)) bugs in
   let _ = num_of_bugs := List.length bugs in
   report_bug_stats bugs
