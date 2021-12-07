@@ -129,7 +129,7 @@ let check_bug_division_by_zero (pdata : program_data) (pbug : potential_bug)
   let open Option.Let_syntax in
   match pbug.pbug_type with
   | DivisionByZero None ->
-    if !bug_all
+    if !bug_all || !bug_integer_all || !bug_divizion_by_zero
     then (
       let func = LI.func_of_instr pbug.pbug_instr in
       let%bind penv_rng = pdata.pdata_env_range in
