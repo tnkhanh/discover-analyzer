@@ -273,7 +273,6 @@ let mk_potential_division_by_zero (instr : instr) : potential_bug =
   mk_potential_bug instr (mk_bug_type_division_by_zero ())
 ;;
 
-
 (*-------------------------------------------
  * Potential integer bugs
  *------------------------------------------*)
@@ -327,8 +326,9 @@ let mk_potential_buffer_overflow (instr : instr) : potential_bug =
         bof_pointer = ptr;
         bof_buff_size = size;
         bof_elem_index = index;
-        bof_write_operation = false;   (* FIXME: Khanh, please help to compute *)
-        bof_stack_based = false;       (* FIXME: Khanh, please help to compute *)
+        bof_write_operation = false;
+        (* FIXME: Khanh, please help to compute *)
+        bof_stack_based = false (* FIXME: Khanh, please help to compute *)
       }
     | _ -> error "mk_buffer_overflow: expect GetElementPtr" in
   mk_potential_bug instr (BufferOverflow (Some bof))
@@ -427,7 +427,8 @@ let annotate_potential_bugs (prog : program) : potential_bugs =
       acc
       @ [ mk_potential_integer_overflow instr;
           mk_potential_integer_underflow instr;
-          mk_potential_division_by_zero instr]
+          mk_potential_division_by_zero instr
+        ]
     | LO.GetElementPtr -> acc @ [ mk_potential_buffer_overflow instr ]
     | LO.Ret -> acc @ [ mk_potential_memory_leak instr ]
     | _ -> acc in
