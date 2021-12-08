@@ -238,14 +238,17 @@ module IntervalDomain = struct
     | _, PInf | _, NInf -> Int64 Int64.zero
     | PInf, _ ->
       let cmp = compare_bound b (Int64 Int64.zero) in
-      if cmp > 0 then PInf
-      else
-      if cmp < 0 then NInf
+      if cmp > 0
+      then PInf
+      else if cmp < 0
+      then NInf
       else error "sdiv_bound: undefined for PInf / 0"
     | NInf, _ ->
       let cmp = compare_bound b (Int64 Int64.zero) in
-      if cmp > 0 then NInf
-      else if cmp < 0 then PInf
+      if cmp > 0
+      then NInf
+      else if cmp < 0
+      then PInf
       else error "sdiv_bound: undefined for NInf / 0"
     (* Int64, BInt, EInt *)
     | Int64 x, Int64 y -> Int64 (Int64.( / ) x y)
@@ -374,15 +377,11 @@ module IntervalDomain = struct
   ;;
 
   let max_bound (b1 : bound) (b2 : bound) : bound =
-    if compare_bound b1 b2 > 0
-    then b1
-    else b2
+    if compare_bound b1 b2 > 0 then b1 else b2
   ;;
 
   let min_bound (b1 : bound) (b2 : bound) : bound =
-    if compare_bound b1 b2 < 0
-    then b1
-    else b2
+    if compare_bound b1 b2 < 0 then b1 else b2
   ;;
 
   let get_upper_bound (b1, i1) (b2, i2) =
@@ -390,7 +389,8 @@ module IntervalDomain = struct
     then b1, i1
     else if compare_bound b1 b2 < 0
     then b2, i2
-    else b1, i1 || i2 
+    else b1, i1 || i2
+  ;;
 
   let get_lower_bound (b1, i1) (b2, i2) =
     if compare_bound b1 b2 < 0
@@ -398,40 +398,35 @@ module IntervalDomain = struct
     else if compare_bound b1 b2 > 0
     then b2, i2
     else b1, i1 || i2
+  ;;
 
   let sdiv_range (a : range) (b : range) : range =
     (* TODO: div_bound can also have 0 *)
     let one = Int64 Int64.one in
     let minus_one = Int64 Int64.minus_one in
-    let a_lb = 
-      if a.range_lb_incl then a.range_lb
-      else
-        add_bound a.range_lb one in
+    let a_lb =
+      if a.range_lb_incl then a.range_lb else add_bound a.range_lb one in
     let a_ub =
-      if a.range_ub_incl then a.range_ub
-      else
-        add_bound a.range_ub minus_one in
+      if a.range_ub_incl then a.range_ub else add_bound a.range_ub minus_one
+    in
     let b_lb =
-      if b.range_lb_incl then b.range_lb
-      else
-        add_bound b.range_lb one in
+      if b.range_lb_incl then b.range_lb else add_bound b.range_lb one in
     let b_ub =
-      if b.range_ub_incl then b.range_ub
-      else
-        add_bound b.range_ub minus_one in
+      if b.range_ub_incl then b.range_ub else add_bound b.range_ub minus_one
+    in
     let b1 = sdiv_bound a_lb b_lb in
     let b2 = sdiv_bound a_lb b_ub in
     let b3 = sdiv_bound a_ub b_lb in
     let b4 = sdiv_bound a_ub b_ub in
-    let bounds = [b1; b2; b3; b4] in
-    let bounds_one = 
-       if (compare_bound one b_lb >=0 && compare_bound one b_ub <=0) 
-       then [sdiv_bound a_lb one; sdiv_bound a_ub one]
-       else [] in
-    let bounds_minus_one = 
-       if (compare_bound minus_one b_lb >=0 && compare_bound minus_one b_ub <=0) 
-       then [sdiv_bound a_lb minus_one; sdiv_bound a_ub minus_one]
-       else [] in
+    let bounds = [ b1; b2; b3; b4 ] in
+    let bounds_one =
+      if compare_bound one b_lb >= 0 && compare_bound one b_ub <= 0
+      then [ sdiv_bound a_lb one; sdiv_bound a_ub one ]
+      else [] in
+    let bounds_minus_one =
+      if compare_bound minus_one b_lb >= 0 && compare_bound minus_one b_ub <= 0
+      then [ sdiv_bound a_lb minus_one; sdiv_bound a_ub minus_one ]
+      else [] in
     let all_bounds = bounds @ bounds_one @ bounds_minus_one in
     let lb = List.fold all_bounds ~init:b1 ~f:min_bound in
     let ub = List.fold all_bounds ~init:b1 ~f:max_bound in
@@ -514,7 +509,7 @@ module IntervalDomain = struct
     | Range ra, Range rb -> Range (udiv_range ra rb)
   ;;
 
-  let sdiv_interval (a: interval) (b : interval) =
+  let sdiv_interval (a : interval) (b : interval) =
     match a, b with
     | Bottom, _ -> Bottom
     | _, Bottom -> Bottom
@@ -965,7 +960,7 @@ struct
       let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
       let itv = mult_interval itv0 itv1 in
       replace_interval expr itv input
-    | LO.UDiv  ->
+    | LO.UDiv ->
       (* TODO: need to handle Div *)
       let opr0, opr1 = expr_operand instr 0, expr_operand instr 1 in
       let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in

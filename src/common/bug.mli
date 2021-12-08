@@ -5,28 +5,45 @@
  * All rights reserved.
  ********************************************************************)
 
-type bug_type =
-  | MemoryLeak of memory_leak option
-  | NullPointerDeref of null_pointer_deref option
-  | BufferOverflow of buffer_overflow option
-  | IntegerOverflow of integer_overflow option
-  | IntegerUnderflow of integer_underflow option
-  | IntegerCoercionError of integer_coercion_error option
-  | NumericTruncationError of numeric_truncation_error option
-  | DivisionByZero of division_by_zero option
+type integer_overflow =
+  { iof_expr : Llir.llvalue;
+    iof_bitwidth : int;
+    iof_instr : Llir.instr
+  }
 
-and memory_leak =
+type integer_underflow =
+  { iuf_expr : Llir.llvalue;
+    iuf_bitwidth : int;
+    iuf_instr : Llir.instr
+  }
+
+type integer_coercion_error =
+  { ice_expr : Llir.llvalue;
+    ice_instr : Llir.instr
+  }
+
+type numeric_truncation_error =
+  { nte_expr : Llir.llvalue;
+    nte_instr : Llir.instr
+  }
+
+type division_by_zero =
+  { dbz_expr : Llir.llvalue;
+    dbz_instr : Llir.instr
+  }
+
+type memory_leak =
   { mlk_pointer : Llir.llvalue;
     mlk_size : int option
   }
 
-and null_pointer_deref = { npe_pointer : Llir.llvalue }
+type null_pointer_deref = { npe_pointer : Llir.llvalue }
 
-and buffer_size =
+type buffer_size =
   | NumElem of (int64 * Llir.lltype)
   | MemSizeOf of Llir.llvalue
 
-and buffer_overflow =
+type buffer_overflow =
   { bof_pointer : Llir.llvalue;
     bof_elem_index : Llir.llvalue;
     bof_buff_size : buffer_size;
@@ -35,32 +52,21 @@ and buffer_overflow =
     bof_instr : Llir.instr
   }
 
-and integer_overflow =
-  { iof_expr : Llir.llvalue;
-    iof_bitwidth : int;
-    iof_instr : Llir.instr
+type resource_leak =
+  { rlk_pointer : Llir.llvalue;
+    rlk_file_resource : bool
   }
 
-and integer_underflow =
-  { iuf_expr : Llir.llvalue;
-    iuf_bitwidth : int;
-    iuf_instr : Llir.instr
-  }
-
-and integer_coercion_error =
-  { ice_expr : Llir.llvalue;
-    ice_instr : Llir.instr
-  }
-
-and numeric_truncation_error =
-  { nte_expr : Llir.llvalue;
-    nte_instr : Llir.instr
-  }
-
-and division_by_zero =
-  { dbz_expr : Llir.llvalue;
-    dbz_instr : Llir.instr
-  }
+type bug_type =
+  | IntegerOverflow of integer_overflow option
+  | IntegerUnderflow of integer_underflow option
+  | IntegerCoercionError of integer_coercion_error option
+  | NumericTruncationError of numeric_truncation_error option
+  | DivisionByZero of division_by_zero option
+  | MemoryLeak of memory_leak option
+  | NullPointerDeref of null_pointer_deref option
+  | BufferOverflow of buffer_overflow option
+  | ResourceLeak of resource_leak option
 
 type bug_types = bug_type list
 

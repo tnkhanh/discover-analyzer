@@ -20,75 +20,90 @@ module LO = Llvm.Opcode
  * Bug type, used by bug detection and instrumentation
  *-----------------------------------------------------*)
 
+(* Module containing definitions of arithmetic bugs *)
+module ArithmeticBug = struct
+  type integer_overflow =
+    { iof_expr : llvalue;
+      iof_bitwidth : int;
+      iof_instr : instr
+    }
+
+  type integer_underflow =
+    { iuf_expr : llvalue;
+      iuf_bitwidth : int;
+      iuf_instr : instr
+    }
+
+  type integer_coercion_error =
+    { ice_expr : llvalue;
+      ice_instr : instr
+    }
+
+  type numeric_truncation_error =
+    { nte_expr : llvalue;
+      nte_instr : instr
+    }
+
+  type division_by_zero =
+    { dbz_expr : llvalue;
+      dbz_instr : instr
+    }
+end
+
+(* Module containing definitions of memory bugs *)
+module MemoryBug = struct
+  type memory_leak =
+    { mlk_pointer : llvalue;
+      mlk_size : int option
+    }
+
+  type null_pointer_deref = { npe_pointer : llvalue }
+
+  type buffer_size =
+    (* FIXME: need to change name of this variant type *)
+    | NumElem of (int64 * lltype) (* number of element of type lltype *)
+    | MemSizeOf of llvalue
+  (* size of allocated memory of pointer *)
+
+  type buffer_overflow =
+    { bof_pointer : llvalue;
+      bof_elem_index : llvalue;
+      bof_buff_size : buffer_size;
+      bof_write_operation : bool;
+      bof_stack_based : bool;
+      bof_instr : instr
+    }
+end
+
+(* Module containing definitions of resource bugs *)
+module ResourceBug = struct
+  type resource_leak =
+    { rlk_pointer : llvalue;
+      rlk_file_resource : bool
+    }
+end
+
+include ArithmeticBug
+include MemoryBug
+include ResourceBug
+
 type bug_type =
-  (* memory bugs *)
-  | MemoryLeak of memory_leak option
-  | NullPointerDeref of null_pointer_deref option
-  | BufferOverflow of buffer_overflow option
-  (* numerical bugs *)
+  (* Numerical bugs *)
   | IntegerOverflow of integer_overflow option
   | IntegerUnderflow of integer_underflow option
   | IntegerCoercionError of integer_coercion_error option
   | NumericTruncationError of numeric_truncation_error option
   | DivisionByZero of division_by_zero option
-
-(*** Memory bug informations ***)
-and memory_leak =
-  { mlk_pointer : llvalue;
-    mlk_size : int option
-  }
-
-and null_pointer_deref = { npe_pointer : llvalue }
-
-and buffer_size =
-  (* FIXME: need to change name of this variant type *)
-  | NumElem of (int64 * lltype) (* number of element of type lltype *)
-  | MemSizeOf of llvalue
-(* size of allocated memory of pointer *)
-
-and buffer_overflow =
-  { bof_pointer : llvalue;
-    bof_elem_index : llvalue;
-    bof_buff_size : buffer_size;
-    bof_write_operation : bool;
-    bof_stack_based : bool;
-    bof_instr : instr
-  }
+  (* Memory bugs *)
+  | MemoryLeak of memory_leak option
+  | NullPointerDeref of null_pointer_deref option
+  | BufferOverflow of buffer_overflow option
+  (* Resources bugs *)
+  | ResourceLeak of resource_leak option
 
 (*** Numerical bug information ***)
 
-(* Integer Overflow: https://cwe.mitre.org/data/definitions/190.html *)
-and integer_overflow =
-  { iof_expr : llvalue;
-    iof_bitwidth : int;
-    iof_instr : instr
-  }
-
-(* Integer Underflow: https://cwe.mitre.org/data/definitions/191.html *)
-and integer_underflow =
-  { iuf_expr : llvalue;
-    iuf_bitwidth : int;
-    iuf_instr : instr
-  }
-
-(* Integer Coercion Error: https://cwe.mitre.org/data/definitions/192.html *)
-(* TODO: fill more details later *)
-and integer_coercion_error =
-  { ice_expr : llvalue;
-    ice_instr : instr
-  }
-
-(* Numeric Truncation Error: https://cwe.mitre.org/data/definitions/197.html *)
-and numeric_truncation_error =
-  { nte_expr : llvalue;
-    nte_instr : instr
-  }
-
-(* Division by Zero: https://cwe.mitre.org/data/definitions/369.html *)
-and division_by_zero =
-  { dbz_expr : llvalue;
-    dbz_instr : instr
-  }
+(*** Memory bug informations ***)
 
 type bug_types = bug_type list
 
@@ -180,28 +195,52 @@ let pr_integer_underflow_info ?(detailed = true) (iuf : integer_underflow)
 
 let pr_bug_cwe (btype : bug_type) : string =
   match btype with
-  | MemoryLeak _ -> ""
-  | NullPointerDeref _ -> "CWE-??? (npe)"
-  (* FIXME: Khanh, please help to determine CWE-number based on this
-     classification: https://cwe.mitre.org/data/definitions/787.html *)
-  | BufferOverflow _ -> "CWE-???"
-  | IntegerOverflow _ -> "CWE-190"
-  | IntegerUnderflow _ -> "CWE-191"
-  | IntegerCoercionError _ -> "CWE-192"
-  | NumericTruncationError _ -> "CWE-197"
-  | DivisionByZero _ -> "CWE-369"
+  (* Integer bugs *)
+  | IntegerOverflow _ -> "CWE-190 (Integer Overflow)"
+  | IntegerUnderflow _ -> "CWE-191 (Integer Underflow)"
+  | IntegerCoercionError _ -> "CWE-192 (Integer Coercion Error)"
+  | NumericTruncationError _ -> "CWE-197 (Numeric Truncation Error)"
+  | DivisionByZero _ -> "CWE-369 (Divide By Zero)"
+  (* Memory bugs *)
+  | MemoryLeak _ ->
+    "CWE-401 (Missing Release of Memory after Effective Lifetime)"
+  | NullPointerDeref _ -> "CWE-476 (NULL Pointer Dereference)"
+  | BufferOverflow bof_opt ->
+    (match bof_opt with
+    | None -> "CWE-805 (Buffer Access with Incorrect Length Value)"
+    | Some bof ->
+      if bof.bof_write_operation
+      then
+        if bof.bof_stack_based
+        then "CWE-121 (Stack-based Buffer Overflow)"
+        else "CWE-122 (Heap-based Buffer Overflow)"
+      else "CWE-125 (Out-of-bounds Read)")
+  (* Resource bugs *)
+  | ResourceLeak rlk_opt ->
+    (match rlk_opt with
+    | None -> "CWE-772 (Missing Release of Resource after Effective Lifetime)"
+    | Some rlk ->
+      if rlk.rlk_file_resource
+      then
+        "CWE-775 (Missing Release of File Descriptor or Handle"
+        ^ " after Effective Lifetime)"
+      else "CWE-772 (Missing Release of Resource after Effective Lifetime)")
 ;;
 
 let pr_bug_type ?(detailed = true) (btype : bug_type) : string =
   match btype with
-  | MemoryLeak _ -> "Memory Leak"
-  | NullPointerDeref _ -> "Null Pointer Dereference"
-  | BufferOverflow _ -> "Buffer Overflow"
+  (* Integer bugs *)
   | IntegerOverflow _ -> "Integer Overflow"
   | IntegerUnderflow _ -> "Integer Underflow"
   | IntegerCoercionError _ -> "Integer Coercion Error"
   | NumericTruncationError _ -> "Numeric Truncation Error"
   | DivisionByZero _ -> "Division By Zero"
+  (* Memory bugs *)
+  | MemoryLeak _ -> "Memory Leak"
+  | NullPointerDeref _ -> "Null Pointer Dereference"
+  | BufferOverflow _ -> "Buffer Overflow"
+  (* Resource bugs *)
+  | ResourceLeak _ -> "Resource Leak"
 ;;
 
 let pr_potential_bug (pbug : potential_bug) : string =
@@ -316,8 +355,9 @@ let mk_potential_buffer_overflow (instr : instr) : potential_bug =
         bof_pointer = ptr;
         bof_buff_size = size;
         bof_elem_index = index;
-        bof_write_operation = false;   (* FIXME: Khanh, please help to compute *)
-        bof_stack_based = false;       (* FIXME: Khanh, please help to compute *)
+        bof_write_operation = false;
+        (* FIXME: Khanh, please help to compute *)
+        bof_stack_based = false (* FIXME: Khanh, please help to compute *)
       }
     | _ -> error "mk_buffer_overflow: expect GetElementPtr" in
   mk_potential_bug instr (BufferOverflow (Some bof))
@@ -421,7 +461,6 @@ let annotate_potential_bugs (prog : program) : potential_bugs =
     | _ -> acc in
   let funcs = prog.prog_user_funcs in
   List.fold_left
-    ~f:(fun acc func ->
-      acc @ fold_ast_func ~finstr:(Some visit_instr) [] func)
+    ~f:(fun acc func -> acc @ fold_ast_func ~finstr:(Some visit_instr) [] func)
     ~init:[] funcs
 ;;
