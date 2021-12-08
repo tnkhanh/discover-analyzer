@@ -48,10 +48,36 @@ module ArithmeticBug = struct
     { dbz_expr : llvalue;
       dbz_instr : instr
     }
+
+  (*---------------
+   * Printing
+   *--------------*)
+
+  let pr_integer_overflow_info ?(detailed = true) (iof : integer_overflow)
+      : string
+    =
+    let bug_info = "Integer Overflow" in
+    if detailed
+    then bug_info ^ "\n" ^ LD.pr_instr_location_and_code_excerpt iof.iof_instr
+    else bug_info
+  ;;
+
+  let pr_integer_underflow_info ?(detailed = true) (iuf : integer_underflow)
+      : string
+    =
+    let bug_info = "Integer Underflow" in
+    if detailed
+    then bug_info ^ "\n" ^ LD.pr_instr_location_and_code_excerpt iuf.iuf_instr
+    else bug_info
+  ;;
 end
 
 (* Module containing definitions of memory bugs *)
 module MemoryBug = struct
+  (*---------------
+   * Data structures
+   *--------------*)
+
   type memory_leak =
     { mlk_pointer : llvalue;
       mlk_size : int option
@@ -73,6 +99,23 @@ module MemoryBug = struct
       bof_stack_based : bool;
       bof_instr : instr
     }
+
+  (*--------------
+   * Printing
+   *-------------*)
+
+  let pr_buffer_overflow_info (bof : buffer_overflow) : string =
+    sprintf "Root pointer: %s, " (pr_value bof.bof_pointer)
+    ^ sprintf "accessing index: %s" (pr_value bof.bof_elem_index)
+  ;;
+
+  let pr_memory_leak_info (mlk : memory_leak) : string =
+    let size =
+      match mlk.mlk_size with
+      | None -> "unknown"
+      | Some size -> pr_int size in
+    "Buffer of size " ^ size ^ " is not freed when the program exits."
+  ;;
 end
 
 (* Module containing definitions of resource bugs *)
@@ -101,16 +144,6 @@ type bug_type =
   (* Resources bugs *)
   | ResourceLeak of resource_leak option
 
-(*** Numerical bug information ***)
-
-(*** Memory bug informations ***)
-
-type bug_types = bug_type list
-
-(*------
- * Bug
- *-----*)
-
 type potential_bug =
   { pbug_instr : instr;
     pbug_func : func;
@@ -125,69 +158,13 @@ type bug =
     bug_reason : string
   }
 
+type bug_types = bug_type list
 type potential_bugs = potential_bug list
 type bugs = bug list
 
 (*******************************************************************
  ** Printing
  *******************************************************************)
-
-let pr_instr_location_and_code_excerpt instr =
-  let code_excerpt =
-    match LD.position_of_instr instr with
-    | None -> ""
-    | Some p -> "  Location: " ^ pr_file_position_and_excerpt p ^ "\n" in
-  if !location_source_code_only
-  then code_excerpt
-  else
-    "  Instruction: " ^ pr_instr instr
-    ^ String.prefix_if_not_empty ~prefix:"\n" code_excerpt
-;;
-
-(*--------------
- * Memory bugs
- *-------------*)
-
-let pr_buffer_overflow_info (bof : buffer_overflow) : string =
-  sprintf "Root pointer: %s, " (pr_value bof.bof_pointer)
-  ^ sprintf "accessing index: %s" (pr_value bof.bof_elem_index)
-;;
-
-let pr_memory_leak_info (mlk : memory_leak) : string =
-  let size =
-    match mlk.mlk_size with
-    | None -> "unknown"
-    | Some size -> pr_int size in
-  "Buffer of size " ^ size ^ " is not freed when the program exits."
-;;
-
-(*---------------
- * Integer bugs
- *--------------*)
-
-let pr_llvalue_name (v : LL.llvalue) : string =
-  match LD.get_original_name_of_llvalue v with
-  | Some str -> str
-  | None -> pr_value v
-;;
-
-let pr_integer_overflow_info ?(detailed = true) (iof : integer_overflow)
-    : string
-  =
-  let bug_info = "Integer Overflow" in
-  if detailed
-  then bug_info ^ "\n" ^ pr_instr_location_and_code_excerpt iof.iof_instr
-  else bug_info
-;;
-
-let pr_integer_underflow_info ?(detailed = true) (iuf : integer_underflow)
-    : string
-  =
-  let bug_info = "Integer Underflow" in
-  if detailed
-  then bug_info ^ "\n" ^ pr_instr_location_and_code_excerpt iuf.iuf_instr
-  else bug_info
-;;
 
 (*------------------------
  * Print bug information
@@ -275,10 +252,6 @@ let pr_bugs (bugs : bug list) : string = pr_items ~f:pr_bug bugs
 (*******************************************************************
  ** constructors
  *******************************************************************)
-
-(*-------------------------------------------
- * Bug annotation
- *------------------------------------------*)
 
 (*** memory bugs ***)
 
@@ -444,7 +417,7 @@ let is_bug_integer_underflow (bug : bug) =
       function --> a list of bugs
 *)
 
-let annotate_potential_bugs (prog : program) : potential_bugs =
+let record_potential_bugs (prog : program) : potential_bugs =
   let visit_instr acc instr =
     match instr_opcode instr with
     | LO.Add | LO.Sub | LO.Mul ->

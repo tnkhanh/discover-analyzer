@@ -6,6 +6,7 @@
  ********************************************************************)
 
 open Dcore
+open Source
 module LL = Llvm
 module LD = Llvm_debuginfo
 module LV = Llvm.ValueKind
@@ -64,4 +65,22 @@ let position_of_instr (instr : LI.instr) : position option =
       | Some file_md -> LD.di_file_get_filename ~file:file_md in
     (* let _ = hprint "Filename: " pr_id filename in *)
     Some (mk_position filename line line column column)
+;;
+
+let pr_llvalue_name (v : LL.llvalue) : string =
+  match get_original_name_of_llvalue v with
+  | Some str -> str
+  | None -> LI.pr_value v
+;;
+
+let pr_instr_location_and_code_excerpt instr =
+  let code_excerpt =
+    match position_of_instr instr with
+    | None -> ""
+    | Some p -> "  Location: " ^ pr_file_position_and_excerpt p ^ "\n" in
+  if !location_source_code_only
+  then code_excerpt
+  else
+    "  Instruction: " ^ LI.pr_instr instr
+    ^ String.prefix_if_not_empty ~prefix:"\n" code_excerpt
 ;;

@@ -90,13 +90,6 @@ type bugs = bug list
 
 (*** printing ***)
 
-val pr_instr_location_and_code_excerpt : Llir.instr -> string
-val pr_buffer_overflow_info : buffer_overflow -> string
-val pr_memory_leak_info : memory_leak -> string
-val pr_llvalue_name : Llvm.llvalue -> string
-val pr_integer_overflow_info : ?detailed:bool -> integer_overflow -> string
-val pr_integer_underflow_info : ?detailed:bool -> integer_underflow -> string
-val pr_bug_cwe : bug_type -> string
 val pr_bug_type : ?detailed:bool -> bug_type -> string
 val pr_potential_bug : potential_bug -> string
 val pr_potential_bugs : potential_bug list -> string
@@ -130,4 +123,4 @@ val is_bug_integer_underflow : bug -> bool
 (*** annotating and reporting ***)
 
 val report_bug_stats : bug list -> unit
-val annotate_potential_bugs : Llir.program -> potential_bugs
+val record_potential_bugs : Llir.program -> potential_bugs
