@@ -30,7 +30,7 @@ let construct_map_llvalue_to_source_name (prog : program) : unit =
           ~data:sname)
       else ()
     | _ -> () in
-  iter_ast_program ~finstr:(Some visit_instr) prog
+  iter_struct_program ~finstr:(Some visit_instr) prog
 ;;
 
 let compute_func_call_info (prog : program) : unit =
@@ -59,7 +59,7 @@ let compute_func_call_info (prog : program) : unit =
         let callees = List.map ~f:callable_of_func_pointer fpcallees in
         Hashtbl.set pfd.pfd_callees ~key:caller ~data:callees)
     | _ -> () in
-  iter_ast_program ~finstr:(Some visit_instr) prog
+  iter_struct_program ~finstr:(Some visit_instr) prog
 ;;
 
 let construct_func_call_graph (prog : program) : unit =
@@ -98,7 +98,7 @@ let compute_funcs_in_pointers (prog : program) : unit =
         | Some fs -> fs in
       let nfuncs = List.insert_dedup curr_funcs f ~equal:equal_func in
       Hashtbl.set pfd.pfd_funcs_of_type ~key:ftyp ~data:nfuncs in
-  iter_ast_program ~finstr:(Some visit_instr) prog
+  iter_struct_program ~finstr:(Some visit_instr) prog
 ;;
 
 let compute_func_used_globals (prog : program) : unit =
@@ -124,7 +124,7 @@ let compute_func_used_globals (prog : program) : unit =
               gs := List.insert_sorti_dedup !gs gopr ~compare:Poly.compare
             | _ -> ()
           done in
-        let _ = iter_ast_func ~finstr:(Some visit_instr) func in
+        let _ = iter_struct_func ~finstr:(Some visit_instr) func in
         Hashtbl.set tbl_used_globals ~key:func ~data:!gs)
       prog.prog_user_funcs in
   let update_globals_of_all_funcs () =

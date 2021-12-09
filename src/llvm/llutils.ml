@@ -72,7 +72,7 @@ let print_pointer_stats (modul : LL.llmodule) : unit =
     let _ = incr num_user_funcs in
     None in
   let _ =
-    iter_ast_module ~fglobal:(Some visit_global) ~ffunc:(Some visit_func)
+    iter_struct_module ~fglobal:(Some visit_global) ~ffunc:(Some visit_func)
       ~fparam:(Some visit_param) ~fblock:(Some visit_block)
       ~finstr:(Some visit_instr) modul in
   let stats =

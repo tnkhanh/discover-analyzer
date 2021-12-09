@@ -279,7 +279,7 @@ module MakeDefaultEnv (M : Data) = struct
     let visit_instr i =
       let vi = llvalue_of_instr i in
       Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:true in
-    iter_ast_program ~fglobal:(Some visit_global) ~finstr:(Some visit_instr)
+    iter_struct_program ~fglobal:(Some visit_global) ~finstr:(Some visit_instr)
       penv.penv_prog
   ;;
 
@@ -931,7 +931,7 @@ functor
           None)
         else Some () in
       let _ =
-        iter_ast_program ~fglobal:(Some visit_global) ~ffunc:(Some visit_func)
+        iter_struct_program ~fglobal:(Some visit_global) ~ffunc:(Some visit_func)
           ~fparam:(Some visit_param) ~fblock:(Some visit_block)
           ~finstr:(Some visit_instr) prog in
       let stats =
@@ -939,7 +939,7 @@ functor
         ^ sprintf "  #Sparse User funcs: %d\n" !num_user_funcs
         ^ sprintf "  #Sparse Blocks: %d\n" !num_blks
         ^ sprintf "  #Sparse Instrs: %d\n" !num_instrs
-        ^ sprintf "  #Sparse FuncH calls: %d\n" !num_func_calls
+        ^ sprintf "  #Sparse Func calls: %d\n" !num_func_calls
         ^ sprintf "  #Sparse Pointer Vars: %d\n" !num_pointer_vars
         ^ sprintf "  #Sparse Struct Vars: %d\n" !num_struct_vars
         ^ sprintf "  #Sparse Array Vars: %d\n" !num_array_vars in
@@ -1248,7 +1248,7 @@ functor
       let _ =
         match res with
         | None ->
-          hdebug ~always:true ~indent:4 "FuncH summary NOT FOUND: " func_name
+          hdebug ~always:true ~indent:4 "Func summary NOT FOUND: " func_name
             func
         | Some fsum ->
           hdebug ~always:true ~indent:4 "Found func summary:\n" pr_func_summary
@@ -1317,7 +1317,7 @@ functor
                 raise (EBool false)
               | Some _ -> ()) in
           let _ =
-            iter_ast_func ~fblock:(Some visit_block) ~finstr:(Some visit_instr)
+            iter_struct_func ~fblock:(Some visit_block) ~finstr:(Some visit_instr)
               func in
           true
         with EBool res -> res in
@@ -2420,7 +2420,7 @@ functor
             (" - Time analyzing function: " ^ fname ^ ": ")
             (sprintf "%.3fs") time in
         (* let _ = if Float.(>) time 15. then
-         *     hprint "TOO SLOW... FuncH env: " (pr_func_env penv) fenv in *)
+         *     hprint "TOO SLOW... Func env: " (pr_func_env penv) fenv in *)
         let _ = hdebug "Analysis output updated: " pr_bool env_updated in
         let _ =
           if need_reanalyze
@@ -2577,7 +2577,7 @@ functor
                      && not (is_llvalue_pointer (src_of_instr_return instr))
                   then has_return_of_non_pointer := true
                 | _ -> num_sparse_instrs := !num_sparse_instrs + 1) in
-            let _ = iter_ast_func ~finstr:(Some visit_instr) f in
+            let _ = iter_struct_func ~finstr:(Some visit_instr) f in
             if !num_sparse_instrs == 0
                || (not !has_return_or_unreachable)
                || (!num_sparse_instrs == 1 && !has_return_of_non_pointer)
@@ -2618,7 +2618,7 @@ functor
                       then ()
                       else has_pointer_related_instr := true
                     | _ -> has_pointer_related_instr := true) in
-                let _ = iter_ast_func ~finstr:(Some visit_instr) f in
+                let _ = iter_struct_func ~finstr:(Some visit_instr) f in
                 if not !has_pointer_related_instr
                 then (
                   (* let _ = hprint "Set function to non-sparse: " func_name f in *)
@@ -2666,7 +2666,7 @@ functor
                            ~compare:Poly.compare
                   | _ -> ()
                 done in
-            let _ = iter_ast_func ~finstr:(Some visit_instr) func in
+            let _ = iter_struct_func ~finstr:(Some visit_instr) func in
             Hashtbl.set tbl_used_globals ~key:func ~data:!gs)
           prog.prog_user_funcs in
       let update_globals_of_all_funcs () =

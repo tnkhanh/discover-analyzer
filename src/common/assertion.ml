@@ -119,7 +119,7 @@ let find_alias_assertions (func : func) : assertion list =
         acc @ [ mk_refute (MustAlias (u, v)) instr ])
       else acc
     | _ -> acc in
-  fold_ast_func ~finstr:(Some visit_instr) [] func
+  fold_struct_func ~finstr:(Some visit_instr) [] func
 ;;
 
 let find_range_assertions (func : func) : assertion list =
@@ -149,7 +149,7 @@ let find_range_assertions (func : func) : assertion list =
         | _ -> acc)
       else acc
     | _ -> acc in
-  fold_ast_func ~finstr:(Some visit_instr) [] func
+  fold_struct_func ~finstr:(Some visit_instr) [] func
 ;;
 
 let find_all_assertions (func : func) : assertion list =

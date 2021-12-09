@@ -32,7 +32,7 @@ type llmodules = llmodule list
  *******************************************************************)
 
 (* function *)
-type func = FuncH of llvalue
+type func = Func of llvalue
 
 (* callable: function or function pointer *)
 type callable =
@@ -46,13 +46,16 @@ type block = llblock
 type param = Param of llvalue
 
 (* instruction *)
-type instr = InstrH of llvalue
+type instr = Instr of llvalue
 
 (* global variable *)
-type global = GlobalH of llvalue
+type global = Global of llvalue
 
 (* constant expression *)
 type const = Constant of llvalue
+
+(* (\* users and usees of llvalue *\) *)
+(* type use = lluse *)
 
 (* expression *)
 type expr =
@@ -204,7 +207,7 @@ module CallGraph = struct
 
     let equal f1 f2 =
       match f1, f2 with
-      | FuncH v1, FuncH v2 -> v1 == v2
+      | Func v1, Func v2 -> v1 == v2
     ;;
 
     let hash = Hashtbl.hash
@@ -562,10 +565,10 @@ let pr_type (t : lltype) : string = String.strip (Llvm.string_of_lltype t)
 
 let mk_func (v : llvalue) : func =
   match LL.classify_value v with
-  | LV.Function -> FuncH v
-  | LV.Instruction _ -> FuncH v
-  | LV.Argument _ -> FuncH v
-  | _ -> FuncH v
+  | LV.Function -> Func v
+  | LV.Instruction _ -> Func v
+  | LV.Argument _ -> Func v
+  | _ -> Func v
 ;;
 
 (* herror "mk_func: not a function or func pointer: " pr_value_detail v *)
@@ -578,13 +581,13 @@ let mk_param (v : llvalue) : param =
 
 let mk_instr (v : llvalue) : instr =
   match LL.classify_value v with
-  | LV.Instruction _ -> InstrH v
+  | LV.Instruction _ -> Instr v
   | _ -> herror "mk_instr: not an instruction: " pr_value_detail v
 ;;
 
 let mk_global (v : llvalue) : global =
   match LL.classify_value v with
-  | LV.GlobalVariable -> GlobalH v
+  | LV.GlobalVariable -> Global v
   | _ -> herror "mk_global: not a global variable: " pr_value_detail v
 ;;
 
@@ -598,7 +601,7 @@ let mk_const (v : llvalue) : const =
 
 let llvalue_of_global (g : global) : llvalue =
   match g with
-  | GlobalH v -> v
+  | Global v -> v
 ;;
 
 let llvalues_of_globals (gs : globals) : llvalues =
@@ -612,12 +615,12 @@ let llvalue_of_const (c : const) : llvalue =
 
 let llvalue_of_instr (i : instr) : llvalue =
   match i with
-  | InstrH v -> v
+  | Instr v -> v
 ;;
 
 let llvalue_of_func (f : func) : llvalue =
   match f with
-  | FuncH v -> v
+  | Func v -> v
 ;;
 
 let llvalue_of_param (p : param) : llvalue =
@@ -685,7 +688,7 @@ module Equal = struct
 
   let equal_func (f1 : func) (f2 : func) : bool =
     match f1, f2 with
-    | FuncH v1, FuncH v2 -> equal_llvalue v1 v2
+    | Func v1, Func v2 -> equal_llvalue v1 v2
   ;;
 
   let equal_param (p1 : param) (p2 : param) : bool =
@@ -695,12 +698,12 @@ module Equal = struct
 
   let equal_global (g1 : global) (g2 : global) : bool =
     match g1, g2 with
-    | GlobalH v1, GlobalH v2 -> equal_llvalue v1 v2
+    | Global v1, Global v2 -> equal_llvalue v1 v2
   ;;
 
   let equal_instr (i1 : instr) (i2 : instr) : bool =
     match i1, i2 with
-    | InstrH v1, InstrH v2 -> equal_llvalue v1 v2
+    | Instr v1, Instr v2 -> equal_llvalue v1 v2
   ;;
 
   let equal_block (b1 : block) (b2 : block) : bool = equal_llblock b1 b2
@@ -719,7 +722,7 @@ include Equal
 
 let pr_instr (i : instr) : string =
   match i with
-  | InstrH v -> pr_value_detail v
+  | Instr v -> pr_value_detail v
 ;;
 
 let pr_param ?(detailed = false) (p : param) : string =
@@ -734,7 +737,7 @@ let pr_typed_param (p : param) : string =
 
 let pr_global ?(detailed = false) (g : global) : string =
   match g with
-  | GlobalH v -> if detailed then pr_value_detail v else pr_value v
+  | Global v -> if detailed then pr_value_detail v else pr_value v
 ;;
 
 let rec pr_expr (e : expr) : string =
@@ -842,9 +845,15 @@ let func_of_instr (i : instr) : func =
 
 let type_of_func (f : func) : lltype = LL.type_of (llvalue_of_func f)
 
-(** Iteration over LLVM data structures *)
+(*******************************************************************
+ * Iteration, Mapping, Fold linearly over LLVM data structures
+ *******************************************************************)
 
-module IterSimple = struct
+(** Iterate linearly over LLVM data structures *)
+
+module IterLinear = struct
+  (* let iter_uses *)
+
   let iter_instrs ~(f : instr -> unit) (blk : block) : unit =
     let ff v = f (mk_instr v) in
     LL.iter_instrs ff blk
@@ -870,9 +879,9 @@ module IterSimple = struct
   ;;
 end
 
-(** Mapping over LLVM data structures *)
+(** Map linearly over LLVM data structures *)
 
-module MapSimple = struct
+module MapLinear = struct
   let map_instrs ~(f : instr -> 'a) (blk : block) : 'a list =
     let ff acc v = acc @ [ f (mk_instr v) ] in
     LL.fold_left_instrs ff [] blk
@@ -899,9 +908,9 @@ module MapSimple = struct
   ;;
 end
 
-(** Folding over LLVM data structures *)
+(** Fold linearly over LLVM data structures *)
 
-module FoldSimple = struct
+module FoldLinear = struct
   let fold_left_instrs ~(f : 'a -> instr -> 'a) ~(init : 'a) (blk : block) : 'a
     =
     let ff acc v = f acc (mk_instr v) in
@@ -934,14 +943,47 @@ module FoldSimple = struct
   ;;
 end
 
-include IterSimple
-include MapSimple
-include FoldSimple
+(** Check existence linearly over LLVM data structures *)
+
+module ExistLinear = struct
+  let iter_instrs ~(f : instr -> unit) (blk : block) : unit =
+    let ff v = f (mk_instr v) in
+    LL.iter_instrs ff blk
+  ;;
+
+  let iter_blocks ~(f : block -> unit) (func : func) : unit =
+    LL.iter_blocks f (llvalue_of_func func)
+  ;;
+
+  let iter_params ~(f : param -> unit) (func : func) : unit =
+    let ff v = f (mk_param v) in
+    LL.iter_params ff (llvalue_of_func func)
+  ;;
+
+  let iter_globals ~(f : global -> unit) (m : llmodule) : unit =
+    let ff v = f (mk_global v) in
+    LL.iter_globals ff m
+  ;;
+
+  let iter_functions ~(f : func -> unit) (m : llmodule) : unit =
+    let ff v = f (mk_func v) in
+    LL.iter_functions ff m
+  ;;
+end
+
+
+include IterLinear
+include MapLinear
+include FoldLinear
+
+(*******************************************************************
+ * Iteration, Mapping, Fold structurally over LLVM data structures
+ *******************************************************************)
 
 (** Iteration LLVM data structures by following AST structure *)
 
-module IterAst = struct
-  let iter_ast_instr ?(finstr : (instr -> unit) option = None) (instr : instr)
+module IterStructure = struct
+  let iter_struct_instr ?(finstr : (instr -> unit) option = None) (instr : instr)
       : unit
     =
     match finstr with
@@ -949,7 +991,7 @@ module IterAst = struct
     | Some f -> f instr
   ;;
 
-  let iter_ast_param ?(fparam : (param -> unit) option = None) (param : param)
+  let iter_struct_param ?(fparam : (param -> unit) option = None) (param : param)
       : unit
     =
     match fparam with
@@ -957,7 +999,7 @@ module IterAst = struct
     | Some f -> f param
   ;;
 
-  let iter_ast_global
+  let iter_struct_global
       ?(fglobal : (global -> unit) option = None)
       (glob : global)
       : unit
@@ -967,14 +1009,14 @@ module IterAst = struct
     | Some f -> f glob
   ;;
 
-  let iter_ast_block
+  let iter_struct_block
       ?(fblock : (block -> unit option) option = None)
       ?(finstr : (instr -> unit) option = None)
       (blk : block)
       : unit
     =
     let iter () =
-      LL.iter_instrs (fun i -> iter_ast_instr ~finstr (mk_instr i)) blk in
+      LL.iter_instrs (fun i -> iter_struct_instr ~finstr (mk_instr i)) blk in
     let open Option.Let_syntax in
     let res =
       let%bind f = fblock in
@@ -982,7 +1024,7 @@ module IterAst = struct
     Option.value res ~default:(iter ())
   ;;
 
-  let iter_ast_func
+  let iter_struct_func
       ?(ffunc : (func -> unit option) option = None)
       ?(fparam : (param -> unit) option = None)
       ?(fblock : (block -> unit option) option = None)
@@ -993,9 +1035,9 @@ module IterAst = struct
     let iter () =
       let vfunc = llvalue_of_func func in
       let _ =
-        LL.iter_params (fun p -> iter_ast_param ~fparam (mk_param p)) vfunc
+        LL.iter_params (fun p -> iter_struct_param ~fparam (mk_param p)) vfunc
       in
-      LL.iter_blocks (iter_ast_block ~fblock ~finstr) vfunc in
+      LL.iter_blocks (iter_struct_block ~fblock ~finstr) vfunc in
     let open Option.Let_syntax in
     let res =
       let%bind f = ffunc in
@@ -1003,7 +1045,7 @@ module IterAst = struct
     Option.value res ~default:(iter ())
   ;;
 
-  let iter_ast_module
+  let iter_struct_module
       ?(fglobal : (global -> unit) option = None)
       ?(ffunc : (func -> unit option) option = None)
       ?(fparam : (param -> unit) option = None)
@@ -1012,13 +1054,13 @@ module IterAst = struct
       (m : llmodule)
       : unit
     =
-    LL.iter_globals (fun g -> iter_ast_global ~fglobal (mk_global g)) m;
+    LL.iter_globals (fun g -> iter_struct_global ~fglobal (mk_global g)) m;
     LL.iter_functions
-      (fun f -> iter_ast_func ~ffunc ~fparam ~fblock ~finstr (mk_func f))
+      (fun f -> iter_struct_func ~ffunc ~fparam ~fblock ~finstr (mk_func f))
       m
   ;;
 
-  let iter_ast_program
+  let iter_struct_program
       ?(fglobal : (global -> unit) option = None)
       ?(ffunc : (func -> unit option) option = None)
       ?(fparam : (param -> unit) option = None)
@@ -1027,17 +1069,17 @@ module IterAst = struct
       (prog : program)
       : unit
     =
-    List.iter ~f:(iter_ast_global ~fglobal) prog.prog_globals;
+    List.iter ~f:(iter_struct_global ~fglobal) prog.prog_globals;
     List.iter
-      ~f:(iter_ast_func ~ffunc ~fparam ~fblock ~finstr)
+      ~f:(iter_struct_func ~ffunc ~fparam ~fblock ~finstr)
       (prog.prog_init_funcs @ prog.prog_user_funcs)
   ;;
 end
 
 (** Fold LLVM data structures by following AST structure *)
 
-module FoldAst = struct
-  let fold_ast_instr
+module FoldStructure = struct
+  let fold_struct_instr
       ?(finstr : ('a -> instr -> 'a) option = None)
       (acc : 'a)
       (instr : instr)
@@ -1048,7 +1090,7 @@ module FoldAst = struct
     | Some f -> f acc instr
   ;;
 
-  let fold_ast_param
+  let fold_struct_param
       ?(fparam : ('a -> param -> 'a) option = None)
       (acc : 'a)
       (param : param)
@@ -1059,7 +1101,7 @@ module FoldAst = struct
     | Some f -> f acc param
   ;;
 
-  let fold_ast_global
+  let fold_struct_global
       ?(fglobal : ('a -> global -> 'a) option = None)
       (acc : 'a)
       (glob : global)
@@ -1070,7 +1112,7 @@ module FoldAst = struct
     | Some f -> f acc glob
   ;;
 
-  let fold_ast_block
+  let fold_struct_block
       ?(fblock : ('a -> block -> 'a option) option = None)
       ?(finstr : ('a -> instr -> 'a) option = None)
       (acc : 'a)
@@ -1079,7 +1121,7 @@ module FoldAst = struct
     =
     let fold () =
       LL.fold_left_instrs
-        (fun acc' instr -> fold_ast_instr ~finstr acc' (mk_instr instr))
+        (fun acc' instr -> fold_struct_instr ~finstr acc' (mk_instr instr))
         acc blk in
     let open Option.Let_syntax in
     let res =
@@ -1088,7 +1130,7 @@ module FoldAst = struct
     Option.value res ~default:(fold ())
   ;;
 
-  let fold_ast_func
+  let fold_struct_func
       ?(ffunc : ('a -> func -> 'a option) option = None)
       ?(fparam : ('a -> param -> 'a) option = None)
       ?(fblock : ('a -> block -> 'a option) option = None)
@@ -1101,10 +1143,10 @@ module FoldAst = struct
       let vfunc = llvalue_of_func func in
       let res =
         LL.fold_left_params
-          (fun acc' param -> fold_ast_param ~fparam acc' (mk_param param))
+          (fun acc' param -> fold_struct_param ~fparam acc' (mk_param param))
           acc vfunc in
       LL.fold_left_blocks
-        (fun acc' blk -> fold_ast_block ~fblock ~finstr acc' blk)
+        (fun acc' blk -> fold_struct_block ~fblock ~finstr acc' blk)
         res vfunc in
     let open Option.Let_syntax in
     let res =
@@ -1113,7 +1155,7 @@ module FoldAst = struct
     Option.value res ~default:(fold ())
   ;;
 
-  let fold_ast_module
+  let fold_struct_module
       ?(fglobal : ('a -> global -> 'a) option = None)
       ?(ffunc : ('a -> func -> 'a option) option = None)
       ?(fparam : ('a -> param -> 'a) option = None)
@@ -1125,17 +1167,17 @@ module FoldAst = struct
     =
     let res =
       LL.fold_left_globals
-        (fun acc' glob -> fold_ast_global ~fglobal acc' (mk_global glob))
+        (fun acc' glob -> fold_struct_global ~fglobal acc' (mk_global glob))
         acc m in
     let res =
       fold_left_functions
         ~f:(fun acc' fn ->
-          fold_ast_func ~ffunc ~fparam ~fblock ~finstr acc' fn)
+          fold_struct_func ~ffunc ~fparam ~fblock ~finstr acc' fn)
         ~init:res m in
     res
   ;;
 
-  let fold_ast_program
+  let fold_struct_program
       ?(fglobal : ('a -> global -> 'a) option = None)
       ?(ffunc : ('a -> func -> 'a option) option = None)
       ?(fparam : ('a -> param -> 'a) option = None)
@@ -1146,19 +1188,19 @@ module FoldAst = struct
       : 'a
     =
     let res =
-      List.fold_left ~f:(fold_ast_global ~fglobal) ~init:acc prog.prog_globals
+      List.fold_left ~f:(fold_struct_global ~fglobal) ~init:acc prog.prog_globals
     in
     let res =
       List.fold_left
-        ~f:(fold_ast_func ~ffunc ~fparam ~fblock ~finstr)
+        ~f:(fold_struct_func ~ffunc ~fparam ~fblock ~finstr)
         ~init:res
         (prog.prog_init_funcs @ prog.prog_user_funcs) in
     res
   ;;
 end
 
-include IterAst
-include FoldAst
+include IterStructure
+include FoldStructure
 
 (*******************************************************************
  ** transformation
@@ -2289,7 +2331,7 @@ let get_struct_types (m : llmodule) : lltype list =
   let visit_global g = collect_struct_type (LL.type_of (llvalue_of_global g)) in
   let visit_instr i = collect_struct_type (LL.type_of (llvalue_of_instr i)) in
   let _ =
-    iter_ast_module ~finstr:(Some visit_instr) ~fglobal:(Some visit_global) m
+    iter_struct_module ~finstr:(Some visit_instr) ~fglobal:(Some visit_global) m
   in
   Set.to_list !all_stypes
 ;;

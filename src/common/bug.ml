@@ -434,6 +434,6 @@ let record_potential_bugs (prog : program) : potential_bugs =
     | _ -> acc in
   let funcs = prog.prog_user_funcs in
   List.fold_left
-    ~f:(fun acc func -> acc @ fold_ast_func ~finstr:(Some visit_instr) [] func)
+    ~f:(fun acc func -> acc @ fold_struct_func ~finstr:(Some visit_instr) [] func)
     ~init:[] funcs
 ;;

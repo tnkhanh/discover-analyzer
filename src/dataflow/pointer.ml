@@ -3073,7 +3073,7 @@ struct
       if is_candidate_sparse_instr penv i
       then Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:true
       else Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:false in
-    iter_ast_program ~finstr:(Some visit_instr) penv.penv_prog
+    iter_struct_program ~finstr:(Some visit_instr) penv.penv_prog
   ;;
 
   let refine_candidate_sparse_instrs penv : bool =
@@ -3145,12 +3145,12 @@ struct
             Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:false)
           else ())
         else () in
-      let _ = iter_ast_func ~finstr:(Some visit_instr) f in
+      let _ = iter_struct_func ~finstr:(Some visit_instr) f in
       if !continue then refine_func f else () in
     let visit_func f =
       let _ = refine_func f in
       Some () in
-    let _ = iter_ast_program ~ffunc:(Some visit_func) penv.penv_prog in
+    let _ = iter_struct_program ~ffunc:(Some visit_func) penv.penv_prog in
     !updated
   ;;
 
