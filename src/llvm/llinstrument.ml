@@ -58,7 +58,7 @@ let is_instr_before_annotation (instr : tagged_instr) (ann : bug_annot) : bool =
   Poly.((instr_line, instr_col) < (annot_line, annot_col))
 ;;
 
-let coverage = Hashtbl.create (module InstrH)
+let coverage = Hashtbl.create (module InstrKey)
 
 let rec get_coverage instr =
   match Hashtbl.find coverage instr with

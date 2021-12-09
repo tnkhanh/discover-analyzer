@@ -115,7 +115,7 @@ let elim_unused_instructions (modul : LL.llmodule) : unit =
 let elim_instr_load_of_const (modul : LL.llmodule) : unit =
   let find_instr_load_and_replacer (func : func) : (instr * llvalue) list =
     let loads_replacers = ref [] in
-    let tbl_stored_values = Hashtbl.create (module InstrH) in
+    let tbl_stored_values = Hashtbl.create (module InstrKey) in
     let visit_instr instr =
       match instr_opcode instr with
       | LO.Store ->
