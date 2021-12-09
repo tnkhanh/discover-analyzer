@@ -34,7 +34,7 @@ type llmodules = llmodule list
 (* function *)
 type func = Func of llvalue
 
-(* callable: function or function pointer *)
+(* callable: a callable is a function or a function pointer *)
 type callable =
   | ClFunc of func
   | ClFPtr of llvalue
@@ -54,8 +54,8 @@ type global = Global of llvalue
 (* constant expression *)
 type const = Constant of llvalue
 
-(* (\* users and usees of llvalue *\) *)
-(* type use = lluse *)
+(* users and usees of llvalue *)
+type use = lluse
 
 (* expression *)
 type expr =
@@ -78,6 +78,7 @@ type params = param list
 type instrs = instr list
 type globals = global list
 type consts = const list
+type uses = use list
 type exprs = expr list
 
 (*******************************************************************
@@ -92,15 +93,15 @@ type predicate =
   | PConj of predicate list
   | PDisj of predicate list
 
+(* preceding block of a block *)
 type prec_block =
-  { (* preceding block *)
-    pblk_block : block;
+  { pblk_block : block;
     pblk_pathcond : predicate
   }
 
+(* succeeding block of a block *)
 type succ_block =
-  { (* succeeding block *)
-    sblk_block : block;
+  { sblk_block : block;
     sblk_pathcond : predicate
   }
 
@@ -168,12 +169,20 @@ module FuncKey = struct
 end
 
 module CallableKey = struct
-  (* FIXME: should t be llvalue??? *)
-  type t = func
+  type t = callable
 
   let to_string _ = "(callable)"
   let hash = Hashtbl.hash
   let sexp_of_t _ = Sexp.of_string "(callable)"
+  let compare = Poly.compare
+end
+
+module UseKey = struct
+  type t = use
+
+  let to_string _ = "(use)"
+  let hash = Hashtbl.hash
+  let sexp_of_t _ = Sexp.of_string "(use)"
   let compare = Poly.compare
 end
 
@@ -971,7 +980,6 @@ module ExistLinear = struct
   ;;
 end
 
-
 include IterLinear
 include MapLinear
 include FoldLinear
@@ -983,7 +991,9 @@ include FoldLinear
 (** Iteration LLVM data structures by following AST structure *)
 
 module IterStructure = struct
-  let iter_struct_instr ?(finstr : (instr -> unit) option = None) (instr : instr)
+  let iter_struct_instr
+      ?(finstr : (instr -> unit) option = None)
+      (instr : instr)
       : unit
     =
     match finstr with
@@ -991,7 +1001,9 @@ module IterStructure = struct
     | Some f -> f instr
   ;;
 
-  let iter_struct_param ?(fparam : (param -> unit) option = None) (param : param)
+  let iter_struct_param
+      ?(fparam : (param -> unit) option = None)
+      (param : param)
       : unit
     =
     match fparam with
@@ -1016,7 +1028,8 @@ module IterStructure = struct
       : unit
     =
     let iter () =
-      LL.iter_instrs (fun i -> iter_struct_instr ~finstr (mk_instr i)) blk in
+      LL.iter_instrs (fun i -> iter_struct_instr ~finstr (mk_instr i)) blk
+    in
     let open Option.Let_syntax in
     let res =
       let%bind f = fblock in
@@ -1188,8 +1201,9 @@ module FoldStructure = struct
       : 'a
     =
     let res =
-      List.fold_left ~f:(fold_struct_global ~fglobal) ~init:acc prog.prog_globals
-    in
+      List.fold_left
+        ~f:(fold_struct_global ~fglobal)
+        ~init:acc prog.prog_globals in
     let res =
       List.fold_left
         ~f:(fold_struct_func ~ffunc ~fparam ~fblock ~finstr)
@@ -1803,8 +1817,8 @@ module Callable = struct
     | ClFPtr fp -> value_name fp
   ;;
 
-  let callable_of_func (f : func) : callable = ClFunc f
-  let callable_of_func_pointer (fp : llvalue) : callable = ClFPtr fp
+  let mk_callable_func (f : func) : callable = ClFunc f
+  let mk_callable_func_pointer (fp : llvalue) : callable = ClFPtr fp
 end
 
 (*-----------------------------------------
@@ -2331,8 +2345,8 @@ let get_struct_types (m : llmodule) : lltype list =
   let visit_global g = collect_struct_type (LL.type_of (llvalue_of_global g)) in
   let visit_instr i = collect_struct_type (LL.type_of (llvalue_of_instr i)) in
   let _ =
-    iter_struct_module ~finstr:(Some visit_instr) ~fglobal:(Some visit_global) m
-  in
+    iter_struct_module ~finstr:(Some visit_instr) ~fglobal:(Some visit_global)
+      m in
   Set.to_list !all_stypes
 ;;
 
@@ -2991,7 +3005,7 @@ module FuncUtility = struct
     | Some b -> first_instr_of_block b
   ;;
 
-  let get_pfd_callees (prog : program) (f : func) : funcs =
+  let get_func_callees (prog : program) (f : func) : funcs =
     match Hashtbl.find prog.prog_func_data.pfd_callees f with
     | None -> []
     | Some callables ->
@@ -3015,7 +3029,7 @@ module FuncUtility = struct
         ~init:[] callables
   ;;
 
-  let get_pfd_callers (prog : program) (f : func) : funcs =
+  let get_func_callers (prog : program) (f : func) : funcs =
     match Hashtbl.find prog.prog_func_data.pfd_callers f with
     | None -> []
     | Some fns -> fns
@@ -3031,7 +3045,7 @@ module FuncUtility = struct
   ;;
 
   let has_call_to_user_funcs prog (f : func) : bool =
-    let callees = get_pfd_callees prog f in
+    let callees = get_func_callees prog f in
     List.exists ~f:(fun f -> is_user_func f || is_func_pointer f) callees
   ;;
 end
@@ -3076,13 +3090,13 @@ let get_reachable_funcs (prog : program) (f : func) : funcs =
     match queue with
     | [] -> visited
     | f :: nqueue ->
-      let callees = get_pfd_callees prog f in
+      let callees = get_func_callees prog f in
       let nfs = List.diff callees (nqueue @ visited) ~equal in
       let nqueue = List.concat_dedup nqueue nfs ~equal in
       let nvisited = List.insert_dedup visited f ~equal in
       compute_reachables nqueue nvisited in
   let compute () =
-    let callees = get_pfd_callees prog f in
+    let callees = get_func_callees prog f in
     compute_reachables callees [] in
   Hashtbl.find_or_compute prog.prog_func_data.pfd_reachable_funcs ~key:f
     ~f:compute
@@ -3159,7 +3173,7 @@ let mk_program_meta_data (filename : string) (modul : llmodule)
 let mk_program_func_data (modul : llmodule) : program_func_data =
   { pfd_return_instr = Hashtbl.create (module FuncKey);
     pfd_callers = Hashtbl.create (module FuncKey);
-    pfd_callees = Hashtbl.create (module CallableKey);
+    pfd_callees = Hashtbl.create (module FuncKey);
     pfd_reachable_funcs = Hashtbl.create (module FuncKey);
     pfd_loops = Hashtbl.create (module FuncKey);
     pfd_used_globals = Hashtbl.create (module FuncKey);
@@ -3276,8 +3290,8 @@ module PrintProg = struct
 
   let pr_callee_info (prog : program) : string =
     Hashtbl.fold
-      ~f:(fun ~key:func ~data:callees acc ->
-        let fname = func_name func in
+      ~f:(fun ~key:f ~data:callees acc ->
+        let fname = func_name f in
         let callee_names =
           callees |> List.map ~f:callable_name |> String.concat ~sep:", " in
         acc ^ "\n  " ^ fname ^ " --> [" ^ callee_names ^ "]")

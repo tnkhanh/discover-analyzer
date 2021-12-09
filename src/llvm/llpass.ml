@@ -46,17 +46,17 @@ let compute_func_call_info (prog : program) : unit =
       if is_llvalue_function vcallee
       then (
         let callers =
-          List.insert_dedup (get_pfd_callers prog callee) caller ~equal in
+          List.insert_dedup (get_func_callers prog callee) caller ~equal in
         let _ = Hashtbl.set pfd.pfd_callers ~key:callee ~data:callers in
         let fcallees =
-          List.insert_dedup (get_pfd_callees prog caller) callee ~equal in
-        let callees = List.map ~f:callable_of_func fcallees in
+          List.insert_dedup (get_func_callees prog caller) callee ~equal in
+        let callees = List.map ~f:mk_callable_func fcallees in
         Hashtbl.set pfd.pfd_callees ~key:caller ~data:callees)
       else (
         let fpcallees = get_func_ptr_callees prog caller in
         let fpcallees =
           List.insert_dedup fpcallees vcallee ~equal:equal_llvalue in
-        let callees = List.map ~f:callable_of_func_pointer fpcallees in
+        let callees = List.map ~f:mk_callable_func_pointer fpcallees in
         Hashtbl.set pfd.pfd_callees ~key:caller ~data:callees)
     | _ -> () in
   iter_struct_program ~finstr:(Some visit_instr) prog
@@ -138,7 +138,7 @@ let compute_func_used_globals (prog : program) : unit =
         let gs = Hashtbl.find_default tbl_used_globals f ~default:[] in
         let ngs = ref gs in
         let callees =
-          let callees = get_pfd_callees prog f in
+          let callees = get_func_callees prog f in
           if not !dfa_used_globals_in_func_ptrs
           then callees
           else (
