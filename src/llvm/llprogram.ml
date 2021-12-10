@@ -13,11 +13,11 @@ module LV = LL.ValueKind
 module LO = LL.Opcode
 module SP = Set.Poly
 
-module AST = struct
-  (*******************************************************************
-   ** Core data structures of a program
-   *******************************************************************)
+(*******************************************************************
+ ** Core data structures of a program
+ *******************************************************************)
 
+module AST = struct
   (** [Value] is an important data structure in LLVM IR.
     It's a base data structure for instructions, functions,
     global variables, constant, etc. *)
@@ -89,9 +89,9 @@ module AST = struct
   type funcs = func list
   type callables = callable list
 
-  (*******************************************************************
-   ** Auxiliary data structures
-   *******************************************************************)
+  (*----------------------------
+   * Auxiliary data structures
+   *---------------------------*)
 
   type predicate =
     | PBool of bool
@@ -127,9 +127,9 @@ module AST = struct
 
   type loops = loop list
 
-  (*******************************************************************
-   ** Modules of data structures used for Hashtbl
-   *******************************************************************)
+  (*----------------------------------------------
+   * Modules of data structures used for Hashtbl
+   *---------------------------------------------*)
 
   module TypeKey = struct
     type t = datatype
@@ -212,9 +212,9 @@ module AST = struct
     let compare = Poly.compare
   end
 
-  (*******************************************************************
-   ** more modules for LLIR
-   *******************************************************************)
+  (*------------------------
+   * more modules for LLIR
+   *-----------------------*)
 
   module CallGraph = struct
     module Vertex = struct
@@ -307,7 +307,6 @@ module AST = struct
     end
 
     module Dijkstra = Graph.Path.Dijkstra (G) (Weight)
-
     (* module Pathcheck = Graph.Path.Check(G) *)
   end
 
@@ -315,9 +314,9 @@ module AST = struct
   module BG = BlockGraph
   module IG = InstrGraph
 
-  (*******************************************************************
-   ** Program data structure
-   *******************************************************************)
+  (*-------------------------
+   * Program data structure
+   *------------------------*)
 
   type program_block_data =
     { pbd_preceding_blocks : (block, prec_blocks) Hashtbl.t;
@@ -376,9 +375,9 @@ end
 
 include AST
 
-(*-----------------------------------------
- * datatype
- *-----------------------------------------*)
+(*******************************************************************
+ * LLVM types
+ *******************************************************************)
 
 module Type = struct
   let equal_type (t1 : datatype) (t2 : datatype) : bool = t1 == t2
@@ -498,9 +497,9 @@ end
 
 include Type
 
-(*-----------------------------------------
+(*******************************************************************
  * LLVM Value
- *-----------------------------------------*)
+ *******************************************************************)
 
 (** Module contains operations over value *)
 module Value = struct
@@ -637,9 +636,9 @@ end
 
 include Value
 
-(*-----------------------------------------
- * global
- *-----------------------------------------*)
+(*******************************************************************
+ * Global
+ *******************************************************************)
 
 module Global = struct
   (*** Comparisons ***)
@@ -686,9 +685,9 @@ end
 
 include Global
 
-(*-----------------------------------------
+(*******************************************************************
  * Constants
- *-----------------------------------------*)
+ *******************************************************************)
 
 module Const = struct
   (*** Comparisons ***)
@@ -713,13 +712,22 @@ module Const = struct
     | Constant v -> v
   ;;
 
+  let int_of_const (v : value) : int option =
+    match LL.int64_of_const v with
+    | None -> None
+    | Some i -> Int64.to_int i
+  ;;
+
+  let int64_of_const (v : value) : int64 option = LL.int64_of_const v
+  let float_of_const (v : value) : float option = LL.float_of_const v
+  let string_of_const (v : value) : string option = LL.string_of_const v
 end
 
 include Const
 
-(*-----------------------------------------
- * instruction
- *-----------------------------------------*)
+(*******************************************************************
+ * Instruction
+ *******************************************************************)
 
 module Instr = struct
   let equal_instr (i1 : instr) (i2 : instr) : bool =
@@ -840,9 +848,9 @@ end
 
 include Instr
 
-(*-----------------------------------------
+(*******************************************************************
  * function and parameters
- *-----------------------------------------*)
+ *******************************************************************)
 
 module Func = struct
   (*** Comparisons ***)
@@ -1078,9 +1086,9 @@ end
 
 include Func
 
-(*-----------------------------------------
+(*******************************************************************
  * Callable: function or function pointer
- *-----------------------------------------*)
+ *******************************************************************)
 
 module Callable = struct
   let callable_name (c : callable) : string =
@@ -1095,12 +1103,16 @@ end
 
 include Callable
 
-(*-----------------------------------------
+(*******************************************************************
  * Block
- *-----------------------------------------*)
+ *******************************************************************)
 
 module Block = struct
+  (*** Comparisons ***)
+
   let equal_block (blk1 : block) (blk2 : block) : bool = blk1 == blk2
+
+  (*** Constructors ***)
 
   let mk_prec_block (blk : block) (pcond : predicate) : prec_block =
     { pblk_block = blk; pblk_pathcond = pcond }
@@ -1110,32 +1122,10 @@ module Block = struct
     { sblk_block = blk; sblk_pathcond = pcond }
   ;;
 
-  let rec pr_predicate (p : predicate) : string =
-    match p with
-    | PBool b -> pr_bool b
-    | PIcmp (cmp, lhs, rhs) -> pr_value lhs ^ pr_icmp cmp ^ pr_value rhs
-    | PFcmp (cmp, lhs, rhs) -> pr_value lhs ^ pr_fcmp cmp ^ pr_value rhs
-    | PNeg p -> "!" ^ pr_predicate p
-    | PConj ps -> pr_list_plain ~sep:" & " ~f:pr_predicate ps
-    | PDisj ps -> pr_list_plain ~sep:" | " ~f:pr_predicate ps
-  ;;
+  (*** Printing ***)
 
   let block_name (blk : block) : string = LL.value_name (LL.value_of_block blk)
   let block_names (blks : block list) : string = pr_list ~f:block_name blks
-
-  let pr_prec_block (pblk : prec_block) : string =
-    let blk, p = pblk.pblk_block, pblk.pblk_pathcond in
-    "Preceding BlockKey: { " ^ block_name blk ^ "; " ^ pr_predicate p ^ "}"
-  ;;
-
-  let pr_prec_blocks (pblks : prec_block list) : string =
-    pr_items ~f:pr_prec_block pblks
-  ;;
-
-  let pr_succ_block (sblk : succ_block) : string =
-    let blk, p = sblk.sblk_block, sblk.sblk_pathcond in
-    "Succeeding BlockKey: { " ^ block_name blk ^ "; " ^ pr_predicate p ^ "}"
-  ;;
 
   let equal_block_name (blk1 : block) (blk2 : block) : bool =
     let name1 = block_name blk1 in
@@ -1146,15 +1136,19 @@ end
 
 include Block
 
-(*-----------------------------------------
+(*******************************************************************
  * Loops
- *-----------------------------------------*)
+ *******************************************************************)
 
 (** Module contains operations over loops *)
 module Loop = struct
+  (*** Comparisons ***)
+
   let equal_loop (lp1 : loop) (lp2 : loop) : bool =
     equal_block lp1.loop_head lp2.loop_head
   ;;
+
+  (*** Constructors ***)
 
   let mk_loop ~(head : block) ~(body : block list) ~(exit : block list) =
     { loop_head = head;
@@ -1165,13 +1159,26 @@ module Loop = struct
       loop_outers = None
     }
   ;;
+
+  (*** Printing ***)
+
+  let pr_loop (l : loop) : string =
+    let loop_info =
+      [ "Loop: {head: " ^ block_name l.loop_head;
+        "body: " ^ pr_list ~f:block_name l.loop_body;
+        "exit: " ^ pr_list ~f:block_name l.loop_exit ^ "}"
+      ] in
+    String.concat ~sep:"; " loop_info
+  ;;
+
+  let pr_loops (ls : loop list) : string = pr_items ~f:pr_loop ls
 end
 
 include Loop
 
-(*-----------------------------------------
+(*******************************************************************
  * Expression
- *-----------------------------------------*)
+ *******************************************************************)
 
 (** Module contains operations over expressions *)
 module Expr = struct
@@ -1385,13 +1392,43 @@ end
 
 include Expr
 
-(*-----------------------------------------
+(*******************************************************************
  * Predicates
- *-----------------------------------------*)
+ *******************************************************************)
 
 module Predicate = struct
+  (*** Comparisons ***)
+
   let equal_icompare (c1 : icompare) (c2 : icompare) : bool = c1 == c2
   let equal_fcompare (c1 : fcompare) (c2 : fcompare) : bool = c1 == c2
+
+  (*** Printing ***)
+
+  let rec pr_predicate (p : predicate) : string =
+    match p with
+    | PBool b -> pr_bool b
+    | PIcmp (cmp, lhs, rhs) -> pr_value lhs ^ pr_icmp cmp ^ pr_value rhs
+    | PFcmp (cmp, lhs, rhs) -> pr_value lhs ^ pr_fcmp cmp ^ pr_value rhs
+    | PNeg p -> "!" ^ pr_predicate p
+    | PConj ps -> pr_list_plain ~sep:" & " ~f:pr_predicate ps
+    | PDisj ps -> pr_list_plain ~sep:" | " ~f:pr_predicate ps
+  ;;
+
+  let pr_prec_block (pblk : prec_block) : string =
+    let blk, p = pblk.pblk_block, pblk.pblk_pathcond in
+    "Preceding BlockKey: { " ^ block_name blk ^ "; " ^ pr_predicate p ^ "}"
+  ;;
+
+  let pr_prec_blocks (pblks : prec_block list) : string =
+    pr_items ~f:pr_prec_block pblks
+  ;;
+
+  let pr_succ_block (sblk : succ_block) : string =
+    let blk, p = sblk.sblk_block, sblk.sblk_pathcond in
+    "Succeeding BlockKey: { " ^ block_name blk ^ "; " ^ pr_predicate p ^ "}"
+  ;;
+
+  (*** Queries ***)
 
   let is_pred_true (p : predicate) : bool =
     match p with

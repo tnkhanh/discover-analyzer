@@ -11,7 +11,20 @@ module LV = LL.ValueKind
 module LO = LL.Opcode
 module SP = Set.Poly
 
+(* Include sub-modules *)
+
 include Llprogram.AST
+include Llprogram.Predicate
+include Llprogram.Value
+include Llprogram.Type
+include Llprogram.Global
+include Llprogram.Expr
+include Llprogram.Instr
+include Llprogram.Const
+include Llprogram.Func
+include Llprogram.Callable
+include Llprogram.Block
+include Llprogram.Loop
 include Llprinter.PrinterPrimitives
 include Llutils.TypeUtils
 include Llutils.ValueUtils
@@ -20,43 +33,11 @@ include Llutils.InstrUtils
 include Llutils.GlobalUtils
 include Llutils.BlockUtils
 include Llutils.FuncUtils
-
-(*******************************************************************
- ** transformation
- *******************************************************************)
-
-let int_of_const (v : value) : int option =
-  match LL.int64_of_const v with
-  | None -> None
-  | Some i -> Int64.to_int i
-;;
-
-let int64_of_const (v : value) : int64 option = LL.int64_of_const v
-let float_of_const (v : value) : float option = LL.float_of_const v
-let string_of_const (v : value) : string option = LL.string_of_const v
-
-(*******************************************************************
- ** basic queries
- *******************************************************************)
-
-include Llprogram.Value
-include Llprogram.Type
-include Llprogram.Global
-include Llprogram.Expr
-include Llprogram.Instr
-include Llprogram.Func
-include Llprogram.Callable
-include Llprogram.Block
-include Llprogram.Loop
-
-include Llir_operations.IterLinear
-include Llir_operations.MapLinear
-include Llir_operations.FoldLinear
-include Llir_operations.IterStructure
-include Llir_operations.FoldStructure
-
 include Llutils.PathUtils
 include Llutils.Substitution
+include Llutils.IterUtils
+include Llutils.MapUtils
+include Llutils.FoldUtils
 
 (*******************************************************************
  ** operations with predicate and path condition
@@ -271,18 +252,7 @@ include Program
  ** more advanced printing
  *******************************************************************)
 
-module PrinterProgram = struct
-  let pr_loop (l : loop) : string =
-    let loop_info =
-      [ "Loop: {head: " ^ block_name l.loop_head;
-        "body: " ^ pr_list ~f:block_name l.loop_body;
-        "exit: " ^ pr_list ~f:block_name l.loop_exit ^ "}"
-      ] in
-    String.concat ~sep:"; " loop_info
-  ;;
-
-  let pr_loops (ls : loop list) : string = pr_items ~f:pr_loop ls
-
+module Printing = struct
   let pr_block (blk : block) : string =
     let blkname = block_name blk in
     let sinstrs =
@@ -386,4 +356,4 @@ module PrinterProgram = struct
   ;;
 end
 
-include PrinterProgram
+include Printing
