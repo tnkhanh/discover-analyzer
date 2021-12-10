@@ -14,7 +14,7 @@ module LD = Llvm_debuginfo
  * Iteration over LLVM data structures
  *******************************************************************)
 
-module IterUtils = struct
+module Iter = struct
   (*** Iterate linearly over LLVM data structures ***)
 
   let iter_instrs ~(f : instr -> unit) (blk : block) : unit =
@@ -145,7 +145,7 @@ end
  * Mapping over LLVM data structures
  *******************************************************************)
 
-module MapUtils = struct
+module Map = struct
   (*** Map linearly over LLVM data structures ***)
 
   let map_instrs ~(f : instr -> 'a) (blk : block) : 'a list =
@@ -178,7 +178,7 @@ end
  * Folding over LLVM data structures
  *******************************************************************)
 
-module FoldUtils = struct
+module Fold = struct
   (*** Fold linearly over LLVM data structures ***)
 
   let fold_left_instrs ~(f : 'a -> instr -> 'a) ~(init : 'a) (blk : block) : 'a
@@ -375,15 +375,15 @@ module ExistUtils = struct
   (*** Check existence structurally over LLVM data structures ***)
 end
 
-include IterUtils
-include MapUtils
-include FoldUtils
+include Iter
+include Map
+include Fold
 
 (*******************************************************************
  * Utilities functions for data types
  *******************************************************************)
 
-module TypeUtils = struct
+module Type = struct
   let get_struct_types (m : bitcode_module) : datatype list =
     let all_stypes = ref Set.Poly.empty in
     let rec collect_struct_type typ =
@@ -405,7 +405,7 @@ module TypeUtils = struct
   ;;
 end
 
-include TypeUtils
+include Type
 
 (*******************************************************************
  ** operations with value
@@ -413,7 +413,7 @@ include TypeUtils
 
 (** Module contains utility functions to process LLVM Values *)
 
-module ValueUtils = struct
+module Value = struct
   let collect_llvalue_of_expr (e : expr) : values =
     let rec collect e acc =
       match e with
@@ -447,7 +447,7 @@ module ValueUtils = struct
   ;;
 end
 
-include ValueUtils
+include Value
 
 (*******************************************************************
  ** operations with use
@@ -455,7 +455,7 @@ include ValueUtils
 
 (** Module contains utility functions to process LLVM Use *)
 
-module UseUtils = struct
+module Use = struct
   let num_uses (v : value) : int = LL.fold_left_uses (fun acc _ -> acc + 1) 0 v
 
   let get_uses (v : value) : use list =
@@ -471,7 +471,7 @@ module UseUtils = struct
   ;;
 end
 
-include UseUtils
+include Use
 
 (*******************************************************************
  ** operations with globals
@@ -479,7 +479,7 @@ include UseUtils
 
 (** Module contains utility functions to process global variables *)
 
-module GlobalUtils = struct
+module Global = struct
   let index_of_global_name (g : global) : int =
     let gname = pr_global g in
     if String.is_prefix gname ~prefix:"g"
@@ -495,7 +495,7 @@ module GlobalUtils = struct
   ;;
 end
 
-include GlobalUtils
+include Global
 
 (*******************************************************************
  ** Utility functions to process instructions
@@ -503,7 +503,7 @@ include GlobalUtils
 
 (** Module contains utility functions to process instructions *)
 
-module InstrUtils = struct
+module Instr = struct
   (* General instruction utilities *)
 
   let is_instr_same_block (i1 : instr) (i2 : instr) : bool =
@@ -930,7 +930,7 @@ module InstrUtils = struct
   ;;
 end
 
-include InstrUtils
+include Instr
 
 (*******************************************************************
  ** operations with blocks
@@ -938,7 +938,17 @@ include InstrUtils
 
 (** Module contains utility functions for processing blocks *)
 
-module BlockUtils = struct
+module Block = struct
+  let pr_block (blk : block) : string =
+    let blkname = block_name blk in
+    let sinstrs =
+      blk
+      |> map_instrs ~f:(String.hindent 2 pr_instr)
+      |> String.concat ~sep:"\n" in
+    (" " ^ blkname ^ ":\n")
+    ^ String.replace_if_empty sinstrs ~replacer:"{Empty block}"
+  ;;
+
   let block_name_full (blk : block) : string =
     let func = func_of_block blk in
     Func.func_name func ^ "_" ^ block_name blk
@@ -1001,13 +1011,75 @@ module BlockUtils = struct
   ;;
 end
 
-include BlockUtils
+include Block
 
 (*******************************************************************
  ** operations with path condition
  *******************************************************************)
 
-module PathUtils = struct
+module Path = struct
+  (*** Printing ***)
+
+  let pr_icmp (cmp : LL.Icmp.t) : string =
+    match cmp with
+    | LL.Icmp.Eq -> "="
+    | LL.Icmp.Ne -> "!="
+    | LL.Icmp.Ugt -> ">"
+    | LL.Icmp.Uge -> ">="
+    | LL.Icmp.Ult -> "<"
+    | LL.Icmp.Ule -> "<="
+    | LL.Icmp.Sgt -> ">"
+    | LL.Icmp.Sge -> ">="
+    | LL.Icmp.Slt -> "<"
+    | LL.Icmp.Sle -> "<="
+  ;;
+
+  let pr_fcmp (cmp : LL.Fcmp.t) : string =
+    match cmp with
+    | LL.Fcmp.False -> "False"
+    | LL.Fcmp.Oeq -> "=="
+    | LL.Fcmp.Ogt -> ">"
+    | LL.Fcmp.Oge -> ">="
+    | LL.Fcmp.Olt -> "<"
+    | LL.Fcmp.Ole -> "<="
+    | LL.Fcmp.One -> "!="
+    | LL.Fcmp.Ord -> "NaN"
+    | LL.Fcmp.Uno -> "NaN"
+    | LL.Fcmp.Ueq -> "=="
+    | LL.Fcmp.Ugt -> ">"
+    | LL.Fcmp.Uge -> ">="
+    | LL.Fcmp.Ult -> "<"
+    | LL.Fcmp.Ule -> "<="
+    | LL.Fcmp.Une -> "!="
+    | LL.Fcmp.True -> "True"
+  ;;
+
+  let rec pr_predicate (p : predicate) : string =
+    match p with
+    | PBool b -> pr_bool b
+    | PIcmp (cmp, lhs, rhs) -> pr_value lhs ^ pr_icmp cmp ^ pr_value rhs
+    | PFcmp (cmp, lhs, rhs) -> pr_value lhs ^ pr_fcmp cmp ^ pr_value rhs
+    | PNeg p -> "!" ^ pr_predicate p
+    | PConj ps -> pr_list_plain ~sep:" & " ~f:pr_predicate ps
+    | PDisj ps -> pr_list_plain ~sep:" | " ~f:pr_predicate ps
+  ;;
+
+  let pr_prec_block (pblk : prec_block) : string =
+    let blk, p = pblk.pblk_block, pblk.pblk_pathcond in
+    "Preceding BlockKey: { " ^ block_name blk ^ "; " ^ pr_predicate p ^ "}"
+  ;;
+
+  let pr_prec_blocks (pblks : prec_block list) : string =
+    pr_items ~f:pr_prec_block pblks
+  ;;
+
+  let pr_succ_block (sblk : succ_block) : string =
+    let blk, p = sblk.sblk_block, sblk.sblk_pathcond in
+    "Succeeding BlockKey: { " ^ block_name blk ^ "; " ^ pr_predicate p ^ "}"
+  ;;
+
+  (*** Utility functions ***)
+
   let extract_icmp_predicate (cond : value) : predicate =
     match LL.icmp_predicate cond with
     | None -> herror "extract_icmp_predicate: not Icmp cond: " pr_value cond
@@ -1213,14 +1285,28 @@ module PathUtils = struct
   ;;
 end
 
-include PathUtils
+include Path
 
 (*******************************************************************
  ** operations with functions and parameters
  *******************************************************************)
 
 (** Module contains utility functions for processing functions *)
-module FuncUtils = struct
+module Func = struct
+  (*** Printing ***)
+
+  let pr_func (f : func) : string =
+    let fname =
+      sprintf "Function: %s %s(%s)"
+        (pr_type (func_return_type f))
+        (func_name f)
+        (pr_args ~f:pr_typed_param (func_params f)) in
+    let sblks =
+      f |> map_blocks ~f:pr_block |> String.concat ~sep:"\n\n"
+      |> String.replace_if_empty ~replacer:"{Empty function}" in
+    fname ^ "\n" ^ sblks
+  ;;
+
   (* formal parameters *)
   let formal_params_of_func (f : func) : param list =
     let v = llvalue_of_func f in
@@ -1347,7 +1433,7 @@ module FuncUtils = struct
   ;;
 end
 
-include FuncUtils
+include Func
 
 (*******************************************************************
  ** Utility functions for processing metadata
@@ -1426,10 +1512,172 @@ end
 include Metadata
 
 (*******************************************************************
+ ** Utility functions for processing modules
+ *******************************************************************)
+
+module Module = struct
+  let pr_module (m : bitcode_module) : string = LL.string_of_llmodule m
+
+  let print_pointer_stats (modul : LL.llmodule) : unit =
+    let num_struct_vars = ref 0 in
+    let num_array_vars = ref 0 in
+    let num_pointer_vars = ref 0 in
+    let num_instrs = ref 0 in
+    let num_blks = ref 0 in
+    let num_user_funcs = ref 0 in
+    let num_func_calls = ref 0 in
+    let update_stats_of_llvalue v =
+      let t = LL.type_of v in
+      let users = get_users v in
+      let _ = if is_type_array t then incr num_array_vars in
+      let _ = if is_type_struct t then incr num_struct_vars in
+      if is_type_pointer t
+      then (
+        let elem_typ = LL.element_type t in
+        let _ =
+          if is_type_struct elem_typ
+          then incr num_struct_vars
+          else if is_type_array elem_typ
+          then incr num_array_vars
+          else if List.exists ~f:is_llvalue_instr_gep users
+          then incr num_array_vars
+          else () in
+        incr num_pointer_vars) in
+    let visit_global g =
+      let t = LL.element_type (type_of_global g) in
+      let users = get_users (llvalue_of_global g) in
+      let _ = if is_type_array t then incr num_array_vars in
+      let _ = if is_type_struct t then incr num_struct_vars in
+      if is_type_pointer t
+      then (
+        let elem_typ = LL.element_type t in
+        let _ =
+          if is_type_struct elem_typ
+          then incr num_struct_vars
+          else if is_type_array elem_typ
+          then incr num_array_vars
+          else if List.exists ~f:is_llvalue_instr_gep users
+          then incr num_array_vars
+          else () in
+        incr num_pointer_vars) in
+    let visit_param p =
+      let vp = llvalue_of_param p in
+      update_stats_of_llvalue vp in
+    let visit_instr i =
+      let vi = llvalue_of_instr i in
+      let _ = update_stats_of_llvalue vi in
+      let _ = if is_instr_call_invoke i then incr num_func_calls in
+      incr num_instrs in
+    let visit_block blk =
+      let _ = incr num_blks in
+      None in
+    let visit_func f =
+      let _ = incr num_user_funcs in
+      None in
+    let _ =
+      iter_struct_module ~fglobal:(Some visit_global) ~ffunc:(Some visit_func)
+        ~fparam:(Some visit_param) ~fblock:(Some visit_block)
+        ~finstr:(Some visit_instr) modul in
+    let stats =
+      "\nPointer Statistics:\n"
+      ^ sprintf "  #User funcs: %d\n" !num_user_funcs
+      ^ sprintf "  #Blocks: %d\n" !num_blks
+      ^ sprintf "  #Instrs: %d\n" !num_instrs
+      ^ sprintf "  #Func calls: %d\n" !num_func_calls
+      ^ sprintf "  #Pointer Vars: %d\n" !num_pointer_vars
+      ^ sprintf "  #Struct Vars: %d\n" !num_struct_vars
+      ^ sprintf "  #Array Vars: %d\n" !num_array_vars in
+    print ~autoformat:false ~always:true stats
+  ;;
+end
+
+include Module
+
+(*******************************************************************
  ** Utility functions for processing programs
  *******************************************************************)
 
-module ProgramUtils = struct
+module Program = struct
+  (*** Printings ***)
+
+  let pr_program (prog : program) : string =
+    let sglobals =
+      prog.prog_globals
+      |> List.map ~f:(String.hindent 2 (pr_global ~detailed:true))
+      |> String.concat ~sep:"\n"
+      |> String.prefix_if_not_empty ~prefix:"Globals:\n" in
+    let sstructs =
+      prog.prog_struct_types
+      |> List.map ~f:(fun t -> "  " ^ pr_type t)
+      |> String.concat ~sep:"\n"
+      |> String.prefix_if_not_empty ~prefix:"Struct types:\n" in
+    let funcs = prog.prog_init_funcs @ prog.prog_user_funcs in
+    let sfuncs = funcs |> List.map ~f:pr_func |> String.concat ~sep:"\n\n" in
+    (sglobals |> String.suffix_if_not_empty ~suffix:"\n\n")
+    ^ (sstructs |> String.suffix_if_not_empty ~suffix:"\n\n")
+    ^ sfuncs
+  ;;
+
+  let pr_caller_info (prog : program) : string =
+    Hashtbl.fold
+      ~f:(fun ~key:func ~data:callers acc ->
+        let fname = func_name func in
+        let caller_names =
+          callers |> List.map ~f:func_name |> String.concat ~sep:", " in
+        acc ^ "\n  " ^ fname ^ " <-- [" ^ caller_names ^ "]")
+      ~init:"Caller graph:" prog.prog_func_data.pfd_callers
+  ;;
+
+  let pr_callee_info (prog : program) : string =
+    Hashtbl.fold
+      ~f:(fun ~key:f ~data:callees acc ->
+        let fname = func_name f in
+        let callee_names =
+          callees |> List.map ~f:callable_name |> String.concat ~sep:", " in
+        acc ^ "\n  " ^ fname ^ " --> [" ^ callee_names ^ "]")
+      ~init:"Callee graph:" prog.prog_func_data.pfd_callees
+  ;;
+
+  let pr_func_call_info (prog : program) : unit =
+    let pfd = prog.prog_func_data in
+    let callees_info =
+      "Function call information:\n"
+      ^ Hashtbl.fold
+          ~f:(fun ~key:f ~data:callees acc ->
+            if List.is_empty callees
+            then acc
+            else
+              (acc ^ "\n - " ^ func_name f ^ ":")
+              ^ pr_items ~bullet:"    ->" ~f:callable_name callees)
+          ~init:"" pfd.pfd_callees in
+    let _ = debug callees_info in
+    let callers_info =
+      "====================================\n"
+      ^ "* Information of function callers:\n"
+      ^ Hashtbl.fold
+          ~f:(fun ~key:f ~data:callers acc ->
+            if List.is_empty callers
+            then acc
+            else
+              (acc ^ "\n - " ^ func_name f ^ ":")
+              ^ pr_items ~bullet:"    <-" ~f:func_name callers)
+          ~init:"" pfd.pfd_callers in
+    debug callers_info
+  ;;
+
+  let pr_program_info (prog : program) : string =
+    sprintf " - Init functions: %s\n" (func_names prog.prog_init_funcs)
+    ^ sprintf " - Library (no source code) functions: %s\n"
+        (func_names prog.prog_lib_no_source_funcs)
+    ^ sprintf " - Library (has source code) functions: %s\n"
+        (func_names prog.prog_lib_has_source_funcs)
+    ^ sprintf " - User functions: %s\n" (func_names prog.prog_user_funcs)
+    ^ sprintf " - Entry functions: %s\n" (func_names prog.prog_entry_funcs)
+    ^ sprintf " - Function call information: \n%s\n%s"
+        (String.hindent 4 pr_caller_info prog)
+        (String.hindent 4 pr_callee_info prog)
+  ;;
+
   let get_all_funcs (m : bitcode_module) =
     fold_left_functions ~f:(fun acc f -> acc @ [ f ]) ~init:[] m
   ;;
@@ -1670,7 +1918,7 @@ module ProgramUtils = struct
   ;;
 end
 
-include ProgramUtils
+include Program
 
 (*******************************************************************
  ** substitution
@@ -1799,79 +2047,3 @@ module Substitution = struct
 end
 
 include Substitution
-
-(*******************************************************************
- ** Other
- *******************************************************************)
-
-let print_pointer_stats (modul : LL.llmodule) : unit =
-  let num_struct_vars = ref 0 in
-  let num_array_vars = ref 0 in
-  let num_pointer_vars = ref 0 in
-  let num_instrs = ref 0 in
-  let num_blks = ref 0 in
-  let num_user_funcs = ref 0 in
-  let num_func_calls = ref 0 in
-  let update_stats_of_llvalue v =
-    let t = LL.type_of v in
-    let users = get_users v in
-    let _ = if is_type_array t then incr num_array_vars in
-    let _ = if is_type_struct t then incr num_struct_vars in
-    if is_type_pointer t
-    then (
-      let elem_typ = LL.element_type t in
-      let _ =
-        if is_type_struct elem_typ
-        then incr num_struct_vars
-        else if is_type_array elem_typ
-        then incr num_array_vars
-        else if List.exists ~f:is_llvalue_instr_gep users
-        then incr num_array_vars
-        else () in
-      incr num_pointer_vars) in
-  let visit_global g =
-    let t = LL.element_type (type_of_global g) in
-    let users = get_users (llvalue_of_global g) in
-    let _ = if is_type_array t then incr num_array_vars in
-    let _ = if is_type_struct t then incr num_struct_vars in
-    if is_type_pointer t
-    then (
-      let elem_typ = LL.element_type t in
-      let _ =
-        if is_type_struct elem_typ
-        then incr num_struct_vars
-        else if is_type_array elem_typ
-        then incr num_array_vars
-        else if List.exists ~f:is_llvalue_instr_gep users
-        then incr num_array_vars
-        else () in
-      incr num_pointer_vars) in
-  let visit_param p =
-    let vp = llvalue_of_param p in
-    update_stats_of_llvalue vp in
-  let visit_instr i =
-    let vi = llvalue_of_instr i in
-    let _ = update_stats_of_llvalue vi in
-    let _ = if is_instr_call_invoke i then incr num_func_calls in
-    incr num_instrs in
-  let visit_block blk =
-    let _ = incr num_blks in
-    None in
-  let visit_func f =
-    let _ = incr num_user_funcs in
-    None in
-  let _ =
-    iter_struct_module ~fglobal:(Some visit_global) ~ffunc:(Some visit_func)
-      ~fparam:(Some visit_param) ~fblock:(Some visit_block)
-      ~finstr:(Some visit_instr) modul in
-  let stats =
-    "\nPointer Statistics:\n"
-    ^ sprintf "  #User funcs: %d\n" !num_user_funcs
-    ^ sprintf "  #Blocks: %d\n" !num_blks
-    ^ sprintf "  #Instrs: %d\n" !num_instrs
-    ^ sprintf "  #Func calls: %d\n" !num_func_calls
-    ^ sprintf "  #Pointer Vars: %d\n" !num_pointer_vars
-    ^ sprintf "  #Struct Vars: %d\n" !num_struct_vars
-    ^ sprintf "  #Array Vars: %d\n" !num_array_vars in
-  print ~autoformat:false ~always:true stats
-;;

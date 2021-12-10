@@ -6,7 +6,6 @@
  ********************************************************************)
 
 open Dcore
-open Llprinter.PrinterPrimitives
 module LL = Llvm
 module LT = LL.TypeKind
 module LV = LL.ValueKind
@@ -43,6 +42,9 @@ module AST = struct
 
   (** Instruction of programs *)
   type instr = Instr of value
+
+  (** Opcode of instructions *)
+  type opcode = LL.Opcode.t
 
   (** Basic block of functions *)
   type block = LL.llbasicblock
@@ -381,6 +383,31 @@ include AST
 
 module Type = struct
   let equal_type (t1 : datatype) (t2 : datatype) : bool = t1 == t2
+
+  let pr_typekind (k : LT.t) : string =
+    match k with
+    | LT.Void -> "Void"
+    | LT.Half -> "Half"
+    | LT.Float -> "Float"
+    | LT.Double -> "Double"
+    | LT.X86fp80 -> "X86fp80"
+    | LT.Fp128 -> "Fp128"
+    | LT.Ppc_fp128 -> "Ppc_fp128"
+    | LT.Label -> "Label"
+    | LT.Integer -> "Integer"
+    | LT.Function -> "Function"
+    | LT.Struct -> "Struct"
+    | LT.Array -> "Array"
+    | LT.Pointer -> "Pointer"
+    | LT.Vector -> "Vector"
+    | LT.Metadata -> "Metadata"
+    | LT.X86_mmx -> "X86_mmx"
+    | LT.Token -> "Token"
+    | LT.ScalableVector -> "ScalableVector"
+    | LT.BFloat -> "BFloat"
+    | LT.X86_amx -> "X86_amx"
+  ;;
+
   let pr_type (t : datatype) : string = String.strip (Llvm.string_of_lltype t)
 
   let is_type_void (typ : datatype) : bool =
@@ -504,6 +531,34 @@ include Type
 (** Module contains operations over value *)
 module Value = struct
   let equal_value (v1 : value) (v2 : value) : bool = v1 == v2
+
+  let pr_valuekind (k : LV.t) : string =
+    match k with
+    | LV.NullValue -> "NullValue"
+    | LV.Argument -> "Argument"
+    | LV.BasicBlock -> "BasicBlock"
+    | LV.InlineAsm -> "InlineAsm"
+    | LV.MDNode -> "MDNode"
+    | LV.MDString -> "MDString"
+    | LV.BlockAddress -> "BlockAddress"
+    | LV.ConstantAggregateZero -> "ConstantAggregateZero"
+    | LV.ConstantArray -> "ConstantArray"
+    | LV.ConstantDataArray -> "ConstantDataArray"
+    | LV.ConstantDataVector -> "ConstantDataVector"
+    | LV.ConstantExpr -> "ConstantExpr"
+    | LV.ConstantFP -> "ConstantFP"
+    | LV.ConstantInt -> "ConstantInt"
+    | LV.ConstantPointerNull -> "ConstantPointerNull"
+    | LV.ConstantStruct -> "ConstantStruct"
+    | LV.ConstantVector -> "ConstantVector"
+    | LV.Function -> "Function"
+    | LV.GlobalAlias -> "GlobalAlias"
+    | LV.GlobalIFunc -> "GlobalIFunc"
+    | LV.GlobalVariable -> "GlobalVariable"
+    | LV.UndefValue -> "UndefValue"
+    | LV.PoisonValue -> "PoisonValue"
+    | LV.Instruction _ -> "Instruction"
+  ;;
 
   let pr_value (v : LL.llvalue) : string =
     let vtyp = LL.type_of v in
@@ -847,6 +902,79 @@ module Instr = struct
 end
 
 include Instr
+
+(*******************************************************************
+ * Opcode
+ *******************************************************************)
+
+module Opcode = struct
+  let pr_opcode (op : LO.t) =
+    match op with
+    | LO.Invalid -> "Invalid"
+    | LO.Ret -> "Ret"
+    | LO.Br -> "Br"
+    | LO.Switch -> "Switch"
+    | LO.IndirectBr -> "IndirectBr"
+    | LO.Invoke -> "Invoke"
+    | LO.Invalid2 -> "Invalid2"
+    | LO.Unreachable -> "Unreachable"
+    | LO.Add -> "Add"
+    | LO.FAdd -> "FAdd"
+    | LO.Sub -> "Sub"
+    | LO.FSub -> "FSub"
+    | LO.Mul -> "Mul"
+    | LO.FMul -> "FMul"
+    | LO.UDiv -> "UDiv"
+    | LO.SDiv -> "SDiv"
+    | LO.FDiv -> "FDiv"
+    | LO.URem -> "URem"
+    | LO.SRem -> "SRem"
+    | LO.FRem -> "FRem"
+    | LO.Shl -> "Shl"
+    | LO.LShr -> "LShr"
+    | LO.AShr -> "AShr"
+    | LO.And -> "And"
+    | LO.Or -> "Or"
+    | LO.Xor -> "Xor"
+    | LO.Alloca -> "Alloca"
+    | LO.Load -> "Load"
+    | LO.Store -> "Store"
+    | LO.GetElementPtr -> "GetElementPtr"
+    | LO.Trunc -> "Trunc"
+    | LO.ZExt -> "ZExt"
+    | LO.SExt -> "SExt"
+    | LO.FPToUI -> "FPToUI"
+    | LO.FPToSI -> "FPToSI"
+    | LO.UIToFP -> "UIToFP"
+    | LO.SIToFP -> "SIToFP"
+    | LO.FPTrunc -> "FPTrunc"
+    | LO.FPExt -> "FPExt"
+    | LO.PtrToInt -> "PtrToInt"
+    | LO.IntToPtr -> "IntToPtr"
+    | LO.BitCast -> "BitCast"
+    | LO.ICmp -> "ICmp"
+    | LO.FCmp -> "FCmp"
+    | LO.PHI -> "PHI"
+    | LO.Call -> "Call"
+    | LO.Select -> "Select"
+    | LO.UserOp1 -> "UserOp1"
+    | LO.UserOp2 -> "UserOp2"
+    | LO.VAArg -> "VAArg"
+    | LO.ExtractElement -> "ExtractElement"
+    | LO.InsertElement -> "InsertElement"
+    | LO.ShuffleVector -> "ShuffleVector"
+    | LO.ExtractValue -> "ExtractValue"
+    | LO.InsertValue -> "InsertValue"
+    | LO.Fence -> "Fence"
+    | LO.AtomicCmpXchg -> "AtomicCmpXchg"
+    | LO.AtomicRMW -> "AtomicRMW"
+    | LO.Resume -> "Resume"
+    | LO.LandingPad -> "LandingPad"
+    | _ -> "UnknownOpcode"
+  ;;
+end
+
+include Opcode
 
 (*******************************************************************
  * function and parameters
@@ -1497,32 +1625,6 @@ module Path = struct
         | [] -> mk_pred_false ()
         | [ np ] -> np
         | _ -> PDisj nps))
-  ;;
-
-  (*** Printing ***)
-
-  let rec pr_predicate (p : predicate) : string =
-    match p with
-    | PBool b -> pr_bool b
-    | PIcmp (cmp, lhs, rhs) -> pr_value lhs ^ pr_icmp cmp ^ pr_value rhs
-    | PFcmp (cmp, lhs, rhs) -> pr_value lhs ^ pr_fcmp cmp ^ pr_value rhs
-    | PNeg p -> "!" ^ pr_predicate p
-    | PConj ps -> pr_list_plain ~sep:" & " ~f:pr_predicate ps
-    | PDisj ps -> pr_list_plain ~sep:" | " ~f:pr_predicate ps
-  ;;
-
-  let pr_prec_block (pblk : prec_block) : string =
-    let blk, p = pblk.pblk_block, pblk.pblk_pathcond in
-    "Preceding BlockKey: { " ^ block_name blk ^ "; " ^ pr_predicate p ^ "}"
-  ;;
-
-  let pr_prec_blocks (pblks : prec_block list) : string =
-    pr_items ~f:pr_prec_block pblks
-  ;;
-
-  let pr_succ_block (sblk : succ_block) : string =
-    let blk, p = sblk.sblk_block, sblk.sblk_pathcond in
-    "Succeeding BlockKey: { " ^ block_name blk ^ "; " ^ pr_predicate p ^ "}"
   ;;
 
   let block_of_prec_block (pblk : prec_block) : block = pblk.pblk_block
