@@ -1,12 +1,12 @@
 #include <stdio.h>
+#include <discover.h>
 
 int main() {
   int x, y;
   scanf("%d%d", &x, &y);
 
-  if (x!=8) x = -8;
-  if (y!=4) y = -4;
-
+  __assume_range(x, -8, 8);
+  __assume_range(y, -4, 4);
   int z = x / y;
 
   printf("%d\n", z);

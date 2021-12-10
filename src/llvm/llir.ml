@@ -1781,6 +1781,11 @@ let is_discover_assertion_func (f : func) : bool =
   || String.is_substring ~substring:__refute fname
 ;;
 
+let is_discover_assume_func (f : func) : bool =
+  let fname = func_name f in
+  String.is_prefix ~prefix:__assume fname
+;;
+
 let is_init_func (f : func) : bool =
   let fname = func_name f in
   String.is_prefix ~prefix:__init fname
@@ -1792,7 +1797,8 @@ let is_user_func (f : func) : bool =
   | LV.Function ->
     not
       (is_init_func f || is_lib_no_source_func f || is_lib_has_source_func f
-      || is_discover_assertion_func f)
+      || is_discover_assertion_func f
+      || is_discover_assume_func f)
   | _ -> false
 ;;
 

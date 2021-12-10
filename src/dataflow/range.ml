@@ -1006,8 +1006,24 @@ struct
       replace_interval expr itv input
     | LO.Call | LO.Invoke ->
       (* TODO: function call for inter-procedural analysis *)
-      (* let callee = callee_of_instr_func_call instr in *)
-      (* let _ = if is_func_scanf callee then *)
+       let callee = callee_of_instr_func_call instr in 
+       let fname = func_name callee in
+       let _ = hprint "Function name: " pr_str fname in
+       if String.equal fname __assume_range then
+         let v = operand instr 0 in
+         let lb_opt = int64_of_const (operand instr 1) in
+         let ub_opt = int64_of_const (operand instr 2) in
+         let assume_itv =
+           match lb_opt, ub_opt with 
+           | None, _ -> Bottom
+           | _, None -> Bottom
+           | Some lb, Some ub -> 
+             mk_interval_range ~li:true ~ui:true (Int64 lb) (Int64 ub) in
+         let assume_expr = expr_of_instr (mk_instr v) in
+         let original_itv = get_interval assume_expr input in
+         replace_interval assume_expr (intersect_interval original_itv assume_itv) input
+       else
+       
       (*     print "TODO: need to handle func call: scanf" in *)
       input
     | _ -> input
