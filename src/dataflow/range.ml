@@ -229,7 +229,9 @@ module IntervalDomain = struct
   ;;
 
   let sdiv_bound (a : bound) (b : bound) : bound =
-    (* TODO: Division by zero *)
+    let cmp = compare_bound b (Int64 Int64.zero) in
+    if cmp = 0 then error "sdiv_bound: undefined for _ / 0"
+    else
     match a, b with
     | PInf, PInf -> error "sdiv_bound: undefined for PInf / PInf"
     | PInf, NInf -> error "sdiv_bound: undefined for PInf / NInf"
@@ -237,7 +239,6 @@ module IntervalDomain = struct
     | NInf, NInf -> error "sdiv_bound: undefined for NInf / NInf"
     | _, PInf | _, NInf -> Int64 Int64.zero
     | PInf, _ ->
-      let cmp = compare_bound b (Int64 Int64.zero) in
       if cmp > 0
       then PInf
       else if cmp < 0
@@ -414,11 +415,14 @@ module IntervalDomain = struct
     let b_ub =
       if b.range_ub_incl then b.range_ub else add_bound b.range_ub minus_one
     in
-    let b1 = sdiv_bound a_lb b_lb in
-    let b2 = sdiv_bound a_lb b_ub in
-    let b3 = sdiv_bound a_ub b_lb in
-    let b4 = sdiv_bound a_ub b_ub in
-    let bounds = [ b1; b2; b3; b4 ] in
+    let bounds_low = 
+      if compare_bound b_lb (Int64 Int64.zero) = 0
+      then []
+      else [sdiv_bound a_lb b_lb; sdiv_bound a_ub b_lb] in
+    let bounds_up =
+      if compare_bound b_ub (Int64 Int64.zero) = 0
+      then []
+      else [sdiv_bound a_lb b_ub; sdiv_bound a_ub b_ub] in
     let bounds_one =
       if compare_bound one b_lb >= 0 && compare_bound one b_ub <= 0
       then [ sdiv_bound a_lb one; sdiv_bound a_ub one ]
@@ -427,9 +431,10 @@ module IntervalDomain = struct
       if compare_bound minus_one b_lb >= 0 && compare_bound minus_one b_ub <= 0
       then [ sdiv_bound a_lb minus_one; sdiv_bound a_ub minus_one ]
       else [] in
-    let all_bounds = bounds @ bounds_one @ bounds_minus_one in
-    let lb = List.fold all_bounds ~init:b1 ~f:min_bound in
-    let ub = List.fold all_bounds ~init:b1 ~f:max_bound in
+    let all_bounds = bounds_low @ bounds_up @ bounds_one @ bounds_minus_one in
+    if List.is_empty all_bounds then mk_range PInf NInf else
+    let lb = List.fold all_bounds ~init:(List.hd_exn all_bounds) ~f:min_bound in
+    let ub = List.fold all_bounds ~init:(List.hd_exn all_bounds) ~f:max_bound in
     mk_range lb ub ~li:true ~ui:true
   ;;
 
@@ -513,7 +518,11 @@ module IntervalDomain = struct
     match a, b with
     | Bottom, _ -> Bottom
     | _, Bottom -> Bottom
-    | Range ra, Range rb -> Range (sdiv_range ra rb)
+    | Range ra, Range rb -> 
+      let res = sdiv_range ra rb in
+      match res.range_lb, res.range_ub with 
+      | PInf, NInf -> Bottom
+      | _ -> Range res
   ;;
 
   let intersect_interval (a : interval) (b : interval) : interval =
