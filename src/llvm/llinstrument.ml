@@ -149,8 +149,8 @@ let generate_instrumented_func_name anntyp (bug : BG.bug_type) ins_type =
   base_name ^ "_" ^ tail
 ;;
 
-let generate_instrumented_func_args (bug : BG.bug_type) (instr : llvalue)
-    : llvalue array
+let generate_instrumented_func_args (bug : BG.bug_type) (instr : value)
+    : value array
   =
   match bug with
   | _ -> [| instr |]

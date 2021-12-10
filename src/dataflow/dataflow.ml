@@ -41,7 +41,7 @@ module type Env = sig
     { exn_orig_expr : expr;
       exn_root_expr : expr;
       exn_data : t;
-      exn_type_info : llvalue
+      exn_type_info : value
     }
 
   type exns = exn list
@@ -74,8 +74,8 @@ module type Env = sig
       (* arguments and globals *)
       (* TODO: maybe adding location of this input (func call) for debugging? *)
       mutable fenv_output : t option;
-      fenv_thrown_exn : (llvalue, exn) Hashtbl.t;
-      fenv_landing_exns : (llvalue, exn list) Hashtbl.t;
+      fenv_thrown_exn : (value, exn) Hashtbl.t;
+      fenv_landing_exns : (value, exn list) Hashtbl.t;
       mutable fenv_deref_params : params;
       mutable fenv_deref_globals : globals;
       mutable fenv_working_blocks : working_block list;
@@ -108,7 +108,7 @@ module type Env = sig
       mutable penv_working_funcs : working_func list;
       (* functions to be analyzed*)
       (* sparse analysis *)
-      penv_sparse_llvalue : (llvalue, bool) Hashtbl.t;
+      penv_sparse_llvalue : (value, bool) Hashtbl.t;
       penv_sparse_block : (block, bool) Hashtbl.t;
       penv_sparse_func : (func, bool) Hashtbl.t;
       penv_sparse_used_globals : (func, globals) Hashtbl.t;
@@ -141,7 +141,7 @@ module type Env = sig
   val post_analyze_func : prog_env -> func_env -> unit
   val pre_analyze_prog : prog_env -> unit
   val post_analyze_prog : prog_env -> unit
-  val is_sparse_llvalue : prog_env -> llvalue -> bool
+  val is_sparse_llvalue : prog_env -> value -> bool
   val is_sparse_global : prog_env -> global -> bool
   val is_sparse_instr : prog_env -> instr -> bool
   val is_sparse_block : prog_env -> block -> bool
@@ -169,7 +169,7 @@ module MakeDefaultEnv (M : Data) = struct
     { exn_orig_expr : expr;
       exn_root_expr : expr;
       exn_data : t;
-      exn_type_info : llvalue
+      exn_type_info : value
     }
 
   type exns = exn list
@@ -200,8 +200,8 @@ module MakeDefaultEnv (M : Data) = struct
       fenv_block_input : (block, t) Hashtbl.t;
       mutable fenv_input : t;
       mutable fenv_output : t option;
-      fenv_thrown_exn : (llvalue, exn) Hashtbl.t;
-      fenv_landing_exns : (llvalue, exn list) Hashtbl.t;
+      fenv_thrown_exn : (value, exn) Hashtbl.t;
+      fenv_landing_exns : (value, exn list) Hashtbl.t;
       mutable fenv_deref_params : params;
       mutable fenv_deref_globals : globals;
       mutable fenv_working_blocks : working_block list;
@@ -225,7 +225,7 @@ module MakeDefaultEnv (M : Data) = struct
       penv_func_analyzed_inputs : (func, t list) Hashtbl.t;
       mutable penv_goal_funcs : funcs;
       mutable penv_working_funcs : working_func list;
-      penv_sparse_llvalue : (llvalue, bool) Hashtbl.t;
+      penv_sparse_llvalue : (value, bool) Hashtbl.t;
       penv_sparse_block : (block, bool) Hashtbl.t;
       penv_sparse_func : (func, bool) Hashtbl.t;
       penv_sparse_used_globals : (func, globals) Hashtbl.t;
@@ -291,7 +291,7 @@ module MakeDefaultEnv (M : Data) = struct
 
   (* sparse analysis *)
 
-  let is_sparse_llvalue penv (v : llvalue) : bool =
+  let is_sparse_llvalue penv (v : value) : bool =
     if !dfa_sparse_analysis
     then (
       match Hashtbl.find penv.penv_sparse_llvalue v with
@@ -372,7 +372,7 @@ module type ForwardDataTransfer = sig
 
   val need_widening : func -> bool
   val clean_irrelevant_info_from_data : prog_env -> func -> t -> t
-  val clean_info_of_vars : t -> llvalues -> t
+  val clean_info_of_vars : t -> values -> t
   val is_data_satisfied_predicate : t -> predicate -> bool
   val refine_data_by_predicate : ?widen:bool -> t -> predicate -> t
   val prepare_entry_func_input : prog_env -> func -> t -> t
@@ -381,7 +381,7 @@ module type ForwardDataTransfer = sig
     :  prog_env ->
     instr ->
     func ->
-    llvalue list ->
+    value list ->
     t ->
     t
 
@@ -389,17 +389,17 @@ module type ForwardDataTransfer = sig
     :  prog_env ->
     instr ->
     func ->
-    llvalue list ->
+    value list ->
     t ->
     func_summary ->
     t * exns
 
-  val prepare_thrown_exception_data : prog_env -> llvalue -> llvalue -> t -> t
+  val prepare_thrown_exception_data : prog_env -> value -> value -> t -> t
 
   val compute_catch_exception_data
     :  prog_env ->
     instr ->
-    llvalue ->
+    value ->
     t ->
     exn ->
     t
@@ -1863,7 +1863,7 @@ functor
         herror "analyze_instr_landingpad: not a landingpad: " pr_instr instr
     ;;
 
-    let get_catch_exception_type_info penv fenv instr : llvalue option =
+    let get_catch_exception_type_info penv fenv instr : value option =
       let catch_blk = block_of_instr instr in
       let pblks = get_preceding_blocks penv.penv_prog catch_blk in
       if List.length pblks = 1

@@ -6,46 +6,46 @@
  ********************************************************************)
 
 type integer_overflow =
-  { iof_expr : Llir.llvalue;
+  { iof_expr : Llir.value;
     iof_bitwidth : int;
     iof_instr : Llir.instr
   }
 
 type integer_underflow =
-  { iuf_expr : Llir.llvalue;
+  { iuf_expr : Llir.value;
     iuf_bitwidth : int;
     iuf_instr : Llir.instr
   }
 
 type integer_coercion_error =
-  { ice_expr : Llir.llvalue;
+  { ice_expr : Llir.value;
     ice_instr : Llir.instr
   }
 
 type numeric_truncation_error =
-  { nte_expr : Llir.llvalue;
+  { nte_expr : Llir.value;
     nte_instr : Llir.instr
   }
 
 type division_by_zero =
-  { dbz_expr : Llir.llvalue;
+  { dbz_expr : Llir.value;
     dbz_instr : Llir.instr
   }
 
 type memory_leak =
-  { mlk_pointer : Llir.llvalue;
+  { mlk_pointer : Llir.value;
     mlk_size : int option
   }
 
-type null_pointer_deref = { npe_pointer : Llir.llvalue }
+type null_pointer_deref = { npe_pointer : Llir.value }
 
 type buffer_size =
-  | NumElem of (int64 * Llir.lltype)
-  | MemSizeOf of Llir.llvalue
+  | NumElem of (int64 * Llir.datatype)
+  | MemSizeOf of Llir.value
 
 type buffer_overflow =
-  { bof_pointer : Llir.llvalue;
-    bof_elem_index : Llir.llvalue;
+  { bof_pointer : Llir.value;
+    bof_elem_index : Llir.value;
     bof_buff_size : buffer_size;
     bof_write_operation : bool;
     bof_stack_based : bool;
@@ -53,7 +53,7 @@ type buffer_overflow =
   }
 
 type resource_leak =
-  { rlk_pointer : Llir.llvalue;
+  { rlk_pointer : Llir.value;
     rlk_file_resource : bool
   }
 

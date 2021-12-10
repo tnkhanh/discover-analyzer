@@ -113,7 +113,7 @@ let elim_unused_instructions (modul : LL.llmodule) : unit =
 (** eliminate instruction Load that loads from a register a constant that was
     stored previously in the same basic block *)
 let elim_instr_load_of_const (modul : LL.llmodule) : unit =
-  let find_instr_load_and_replacer (func : func) : (instr * llvalue) list =
+  let find_instr_load_and_replacer (func : func) : (instr * value) list =
     let loads_replacers = ref [] in
     let tbl_stored_values = Hashtbl.create (module InstrKey) in
     let visit_instr instr =
@@ -174,7 +174,7 @@ let elim_instr_load_of_const (modul : LL.llmodule) : unit =
 (** Eliminate instruction SExt of integers, e.g. sext i32 0 to i64.
     Such instructions SExt may be introduced from other simplifications *)
 let elim_instr_sext_integer (modul : LL.llmodule) : unit =
-  let find_instr_sext_and_replacer (func : func) : (instr * llvalue) list =
+  let find_instr_sext_and_replacer (func : func) : (instr * value) list =
     let sext_replacers = ref [] in
     let visit_instr instr =
       match instr_opcode instr with

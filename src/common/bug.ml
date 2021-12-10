@@ -23,29 +23,29 @@ module LO = Llvm.Opcode
 (* Module containing definitions of arithmetic bugs *)
 module ArithmeticBug = struct
   type integer_overflow =
-    { iof_expr : llvalue;
+    { iof_expr : value;
       iof_bitwidth : int;
       iof_instr : instr
     }
 
   type integer_underflow =
-    { iuf_expr : llvalue;
+    { iuf_expr : value;
       iuf_bitwidth : int;
       iuf_instr : instr
     }
 
   type integer_coercion_error =
-    { ice_expr : llvalue;
+    { ice_expr : value;
       ice_instr : instr
     }
 
   type numeric_truncation_error =
-    { nte_expr : llvalue;
+    { nte_expr : value;
       nte_instr : instr
     }
 
   type division_by_zero =
-    { dbz_expr : llvalue;
+    { dbz_expr : value;
       dbz_instr : instr
     }
 
@@ -79,21 +79,21 @@ module MemoryBug = struct
    *--------------*)
 
   type memory_leak =
-    { mlk_pointer : llvalue;
+    { mlk_pointer : value;
       mlk_size : int option
     }
 
-  type null_pointer_deref = { npe_pointer : llvalue }
+  type null_pointer_deref = { npe_pointer : value }
 
   type buffer_size =
     (* FIXME: need to change name of this variant type *)
-    | NumElem of (int64 * lltype) (* number of element of type lltype *)
-    | MemSizeOf of llvalue
+    | NumElem of (int64 * datatype) (* number of element of type datatype *)
+    | MemSizeOf of value
   (* size of allocated memory of pointer *)
 
   type buffer_overflow =
-    { bof_pointer : llvalue;
-      bof_elem_index : llvalue;
+    { bof_pointer : value;
+      bof_elem_index : value;
       bof_buff_size : buffer_size;
       bof_write_operation : bool;
       bof_stack_based : bool;
@@ -121,7 +121,7 @@ end
 (* Module containing definitions of resource bugs *)
 module ResourceBug = struct
   type resource_leak =
-    { rlk_pointer : llvalue;
+    { rlk_pointer : value;
       rlk_file_resource : bool
     }
 end

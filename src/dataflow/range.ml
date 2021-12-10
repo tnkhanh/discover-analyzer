@@ -706,7 +706,7 @@ struct
       d
   ;;
 
-  let clean_info_of_vars (input : t) (vs : llvalues) : t =
+  let clean_info_of_vars (input : t) (vs : values) : t =
     (* TODO: implement later *)
     input
   ;;
@@ -905,7 +905,7 @@ struct
       (penv : prog_env)
       instr
       func
-      (args : llvalues)
+      (args : values)
       (input : t)
       : t
     =
@@ -1029,7 +1029,7 @@ struct
   let check_lower_bound
       (fenv : func_env)
       (instr : instr)
-      (v : llvalue)
+      (v : value)
       (lb : int64)
       : bool
     =
@@ -1056,7 +1056,7 @@ struct
           BInt.ge vlb (BInt.of_int64 lb)))
   ;;
 
-  let check_upper_bound (fenv : func_env) instr (v : llvalue) (ub : int64)
+  let check_upper_bound (fenv : func_env) instr (v : value) (ub : int64)
       : bool
     =
     match get_instr_output fenv instr with
@@ -1085,7 +1085,7 @@ struct
   let check_lower_upper_bound
       (fenv : func_env)
       instr
-      (v : llvalue)
+      (v : value)
       (lb : int64)
       (ub : int64)
       : bool

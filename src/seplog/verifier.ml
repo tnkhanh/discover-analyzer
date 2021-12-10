@@ -39,7 +39,7 @@ type program_state =
 type verifier_state =
   { vrs_core_prog : program;
     vrs_llvm_prog : LI.program;
-    vrs_recent_instr : LI.llvalue option;
+    vrs_recent_instr : LI.value option;
     mutable vrs_interact : bool
   }
 

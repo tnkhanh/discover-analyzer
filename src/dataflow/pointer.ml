@@ -61,7 +61,7 @@ module PointerGraph = struct
     (* edge label *)
     | Alias of (precision * trace)
     | Pto of direction
-    | GEP of (lltype * expr list * direction)
+    | GEP of (datatype * expr list * direction)
     | Seq of (label list * precision * trace)
   (* capture only Pto and GEP *)
 
@@ -579,7 +579,7 @@ module PointerGraph = struct
       ~init:[] tr.trace_path
   ;;
 
-  let is_write_trace (tr : trace) (v : llvalue) : bool =
+  let is_write_trace (tr : trace) (v : value) : bool =
     let instrs = get_trace_instrs tr in
     List.exists
       ~f:(fun instr ->
@@ -589,7 +589,7 @@ module PointerGraph = struct
       instrs
   ;;
 
-  let is_read_write_trace (tr : trace) (v : llvalue) : bool =
+  let is_read_write_trace (tr : trace) (v : value) : bool =
     let instrs = get_trace_instrs tr in
     List.exists
       ~f:(fun instr ->
@@ -1248,7 +1248,7 @@ module PointerDomain = struct
 
   let insert_element_ptr
       ~(root : expr)
-      ~(rtyp : lltype)
+      ~(rtyp : datatype)
       ~(elemptr : expr)
       ~(idxs : exprs)
       (g : pgraph)
@@ -1292,7 +1292,7 @@ module PointerDomain = struct
     res
   ;;
 
-  let get_bitcast_alias_of_llvalue (v : llvalue) : expr =
+  let get_bitcast_alias_of_llvalue (v : value) : expr =
     get_bitcast_alias (expr_of_llvalue v)
   ;;
 
@@ -1980,7 +1980,7 @@ module PointerDomain = struct
       g []
   ;;
 
-  let find_funcs_of_pointer (prog : program) (g : pgraph) (ptr : llvalue)
+  let find_funcs_of_pointer (prog : program) (g : pgraph) (ptr : value)
       : funcs
     =
     let curr_funcs = get_current_funcs_of_pointer prog ptr in
@@ -2307,7 +2307,7 @@ struct
       vertices
   ;;
 
-  let is_irrelevant_var penv (f : func) (v : llvalue) =
+  let is_irrelevant_var penv (f : func) (v : value) =
     match LL.classify_value v with
     | LV.Instruction _ -> true (* local var *)
     | LV.GlobalVariable ->
@@ -2367,7 +2367,7 @@ struct
   (** Eliminate alias edges of inner vertices *)
 
   let remove_must_alias_vertices penv func (g : pgraph) : unit =
-    let find_removable_vertex g : (llvalue * expr) option =
+    let find_removable_vertex g : (value * expr) option =
       let res =
         PG.fold_edges_e
           (fun e acc ->
@@ -2923,7 +2923,7 @@ struct
     ng
   ;;
 
-  let clean_info_of_vars (input : t) (vs : llvalues) : t =
+  let clean_info_of_vars (input : t) (vs : values) : t =
     let _ =
       List.iter
         ~f:(fun v ->
@@ -3085,7 +3085,7 @@ struct
         if is_sparse_instr penv i
         then (
           let vi, oprs = llvalue_of_instr i, operands i in
-          let num_using_sparse_instrs (v : llvalue) : int =
+          let num_using_sparse_instrs (v : value) : int =
             LL.fold_left_uses
               (fun acc u ->
                 let vu = LL.user u in
@@ -3109,12 +3109,12 @@ struct
                 v;
               true
             with EBool res -> res in
-          let has_operand_of_non_sparse_global (oprs : llvalue list) =
+          let has_operand_of_non_sparse_global (oprs : value list) =
             List.exists
               ~f:(fun opr ->
                 is_llvalue_global opr && not (is_sparse_llvalue penv opr))
               oprs in
-          let has_operand_of_non_sparse_instr (oprs : llvalue list) =
+          let has_operand_of_non_sparse_instr (oprs : value list) =
             List.exists
               ~f:(fun opr ->
                 is_llvalue_instr opr && not (is_sparse_llvalue penv opr))

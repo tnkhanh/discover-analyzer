@@ -67,13 +67,13 @@ module SD = SizeDomain
  *******************************************************************)
 
 module SizeData = struct
-  type t = (llvalue * SD.size) list (* maintained as a sorted list *)
+  type t = (value * SD.size) list (* maintained as a sorted list *)
 end
 
 module SizeUtil = struct
   include SizeData
 
-  let get_size (v : llvalue) (d : t) : SD.size =
+  let get_size (v : value) (d : t) : SD.size =
     try LA.find_exn d ~equal:( == ) v with _ -> SD.least_size
   ;;
 end
@@ -149,7 +149,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
     List.exclude ~f:(fun (v, s) -> is_local_llvalue v) d
   ;;
 
-  let clean_info_of_vars (input : t) (vs : llvalues) : t =
+  let clean_info_of_vars (input : t) (vs : values) : t =
     (* TODO: implement later *)
     input
   ;;
@@ -161,7 +161,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
 
   let join_data (a : t) (b : t) : t = merge_data a b
 
-  let update_size (v : llvalue) (s : SD.size) (d : t) : t =
+  let update_size (v : value) (s : SD.size) (d : t) : t =
     let rec replace xs acc =
       match xs with
       | [] -> acc @ [ v, s ]
@@ -183,7 +183,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
 
   let prepare_entry_func_input (penv : prog_env) func (input : t) : t = input
 
-  let prepare_callee_input penv instr callee (args : llvalues) (input : t) : t =
+  let prepare_callee_input penv instr callee (args : values) (input : t) : t =
     input
   ;;
 
@@ -260,6 +260,6 @@ module Analysis = struct
   module SU = SizeUtil
   module ST = SizeTransfer
 
-  let get_size (v : llvalue) (d : t) : SD.size = SU.get_size v d
+  let get_size (v : value) (d : t) : SD.size = SU.get_size v d
   let pr_size = SD.pr_size
 end

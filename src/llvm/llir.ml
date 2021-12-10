@@ -10,68 +10,72 @@ module LT = LL.TypeKind
 module LV = LL.ValueKind
 module LO = LL.Opcode
 module SP = Set.Poly
-
 include Llprinter.PrinterPrimitives
 
 (*******************************************************************
  ** Alias to existing data structures of LLVM
  *******************************************************************)
 
-type llvalue = LL.llvalue
 type lluse = LL.lluse
-type lltype = LL.lltype
-type llblock = LL.llbasicblock
 type llmodule = LL.llmodule
 type llicmp = LL.Icmp.t
 type llfcmp = LL.Fcmp.t
-type llvalues = llvalue list
-type lltypes = lltype list
 type llmodules = llmodule list
 
 (*******************************************************************
  ** Structured types to wrap the default LLVM data structure
  *******************************************************************)
 
+(** [Value] is an important data structure in LLVM IR.
+    It's a base data structure for instructions, functions,
+    global variables, constant, etc. *)
+type value = LL.llvalue
+
+(** Data type of [value]. *)
+type datatype = LL.lltype
+
 (* function *)
-type func = Func of llvalue
+type func = Func of value
 
 (* callable: a callable is a function or a function pointer *)
 type callable =
   | ClFunc of func
-  | ClFPtr of llvalue
+  | ClFPtr of value
 
 (* basic block *)
-type block = llblock
+type block = LL.llbasicblock
 
 (* formal parameter of function *)
-type param = Param of llvalue
+type param = Param of value
 
 (* instruction *)
-type instr = Instr of llvalue
+type instr = Instr of value
 
 (* global variable *)
-type global = Global of llvalue
+type global = Global of value
 
 (* constant expression *)
-type const = Constant of llvalue
+type const = Constant of value
 
-(* users and usees of llvalue *)
+(* users and usees of value *)
 type use = lluse
 
 (* expression *)
 type expr =
-  | Undef of lltype
+  | Undef of datatype
   | Int64 of int64
   | Float of float
   | String of string
-  | Var of llvalue
+  | Var of value
   | OldE of expr
   | Deref of expr
-  | ElemPtr of (expr * lltype * expr list)
+  | ElemPtr of (expr * datatype * expr list)
   | Malloc of expr (* allocation *)
   | FuncRes of func (* returned value of a function *)
   | Exn of expr
 
+type values = value list
+type datatypes = datatype list
 type funcs = func list
 type callables = callable list
 type blocks = block list
@@ -88,8 +92,8 @@ type exprs = expr list
 
 type predicate =
   | PBool of bool
-  | PIcmp of (llicmp * llvalue * llvalue)
-  | PFcmp of (llfcmp * llvalue * llvalue)
+  | PIcmp of (llicmp * value * value)
+  | PFcmp of (llfcmp * value * value)
   | PNeg of predicate
   | PConj of predicate list
   | PDisj of predicate list
@@ -125,20 +129,20 @@ type loops = loop list
  *******************************************************************)
 
 module TypeKey = struct
-  type t = lltype
+  type t = datatype
 
-  let to_string _ = "(lltype)"
+  let to_string _ = "(datatype)"
   let hash = Hashtbl.hash
-  let sexp_of_t _ = Sexp.of_string "(lltype)"
+  let sexp_of_t _ = Sexp.of_string "(datatype)"
   let compare = Poly.compare
 end
 
 module ValueKey = struct
-  type t = llvalue
+  type t = value
 
-  let to_string _ = "(llvalue)"
+  let to_string _ = "(value)"
   let hash = Hashtbl.hash
-  let sexp_of_t _ = Sexp.of_string "(llvalue)"
+  let sexp_of_t _ = Sexp.of_string "(value)"
   let compare = Poly.compare
 end
 
@@ -197,7 +201,7 @@ module ExprKey = struct
 end
 
 module BlockKey = struct
-  type t = llblock
+  type t = block
 
   let to_string _ = "(block)"
   let hash = Hashtbl.hash
@@ -263,7 +267,7 @@ module BlockGraph = struct
 end
 
 module InstrGraph = struct
-  type rvertex = llvalue
+  type rvertex = value
 
   type label =
     | NextInstr
@@ -323,7 +327,7 @@ type program_loop_data =
   { pld_loop_updated_instr : (instr, bool) Hashtbl.t;
     pld_loop_head_instr : (instr, bool) Hashtbl.t;
     pld_innermost_loop_containing_block : (block, loop option) Hashtbl.t;
-    pld_innermost_loop_containing_value : (llvalue, loop option) Hashtbl.t
+    pld_innermost_loop_containing_value : (value, loop option) Hashtbl.t
   }
 
 type program_func_data =
@@ -335,8 +339,8 @@ type program_func_data =
     pfd_used_globals : (func, globals) Hashtbl.t;
     pfd_func_call_graph : CallGraph.t;
     pfd_block_graph : (func, BlockGraph.t) Hashtbl.t;
-    pfd_funcs_of_pointer : (llvalue, funcs) Hashtbl.t;
-    mutable pfd_funcs_of_type : (lltype, funcs) Hashtbl.t
+    pfd_funcs_of_pointer : (value, funcs) Hashtbl.t;
+    mutable pfd_funcs_of_type : (datatype, funcs) Hashtbl.t
   }
 
 type program_meta_data =
@@ -350,7 +354,7 @@ type program_meta_data =
 
 type program =
   { prog_globals : global list;
-    prog_struct_types : lltype list;
+    prog_struct_types : datatype list;
     (* program functions  *)
     prog_all_funcs : func list;
     (* TODO: what are better names for prog_lib_no_source_funcs and
@@ -377,8 +381,7 @@ exception Llvm_invalid_instr of string
 
 let memseg_name_index : int ref = ref (-1)
 
-
-let pr_value (v : llvalue) : string =
+let pr_value (v : value) : string =
   let vtyp = LL.type_of v in
   let vname =
     if LL.is_undef v
@@ -401,17 +404,17 @@ let pr_value (v : llvalue) : string =
   else vname
 ;;
 
-let pr_values (vs : llvalues) : string = pr_list ~f:pr_value vs
-let value_name (v : llvalue) : string = pr_value v
-let value_names (vs : llvalues) : string = pr_list ~f:pr_value vs
+let pr_values (vs : values) : string = pr_list ~f:pr_value vs
+let value_name (v : value) : string = pr_value v
+let value_names (vs : values) : string = pr_list ~f:pr_value vs
 
-let pr_value_detail (v : llvalue) : string =
+let pr_value_detail (v : value) : string =
   v |> LL.string_of_llvalue |> String.split_lines |> List.map ~f:String.strip
   |> String.concat ~sep:" "
 ;;
 
-let pr_values_detail (vs : llvalues) : string = pr_list ~f:pr_value_detail vs
-let pr_type (t : lltype) : string = String.strip (Llvm.string_of_lltype t)
+let pr_values_detail (vs : values) : string = pr_list ~f:pr_value_detail vs
+let pr_type (t : datatype) : string = String.strip (Llvm.string_of_lltype t)
 
 (*******************************************************************
  ** Constructors and Conversions of LLIR data structures
@@ -419,7 +422,7 @@ let pr_type (t : lltype) : string = String.strip (Llvm.string_of_lltype t)
 
 (* constructors *)
 
-let mk_func (v : llvalue) : func =
+let mk_func (v : value) : func =
   match LL.classify_value v with
   | LV.Function -> Func v
   | LV.Instruction _ -> Func v
@@ -429,25 +432,25 @@ let mk_func (v : llvalue) : func =
 
 (* herror "mk_func: not a function or func pointer: " pr_value_detail v *)
 
-let mk_param (v : llvalue) : param =
+let mk_param (v : value) : param =
   match LL.classify_value v with
   | LV.Argument -> Param v
   | _ -> herror "mk_param: not a formal parameter: " pr_value_detail v
 ;;
 
-let mk_instr (v : llvalue) : instr =
+let mk_instr (v : value) : instr =
   match LL.classify_value v with
   | LV.Instruction _ -> Instr v
   | _ -> herror "mk_instr: not an instruction: " pr_value_detail v
 ;;
 
-let mk_global (v : llvalue) : global =
+let mk_global (v : value) : global =
   match LL.classify_value v with
   | LV.GlobalVariable -> Global v
   | _ -> herror "mk_global: not a global variable: " pr_value_detail v
 ;;
 
-let mk_const (v : llvalue) : const =
+let mk_const (v : value) : const =
   match LL.classify_value v with
   | LV.ConstantExpr -> Constant v
   | _ -> herror "mk_const: not a constant: " pr_value_detail v
@@ -455,59 +458,59 @@ let mk_const (v : llvalue) : const =
 
 (* conversions *)
 
-let llvalue_of_global (g : global) : llvalue =
+let llvalue_of_global (g : global) : value =
   match g with
   | Global v -> v
 ;;
 
-let llvalues_of_globals (gs : globals) : llvalues =
+let llvalues_of_globals (gs : globals) : values =
   List.map ~f:llvalue_of_global gs
 ;;
 
-let llvalue_of_const (c : const) : llvalue =
+let llvalue_of_const (c : const) : value =
   match c with
   | Constant v -> v
 ;;
 
-let llvalue_of_instr (i : instr) : llvalue =
+let llvalue_of_instr (i : instr) : value =
   match i with
   | Instr v -> v
 ;;
 
-let llvalue_of_func (f : func) : llvalue =
+let llvalue_of_func (f : func) : value =
   match f with
   | Func v -> v
 ;;
 
-let llvalue_of_param (p : param) : llvalue =
+let llvalue_of_param (p : param) : value =
   match p with
   | Param v -> v
 ;;
 
-let llvalues_of_params (ps : params) : llvalues =
+let llvalues_of_params (ps : params) : values =
   List.map ~f:llvalue_of_param ps
 ;;
 
 (* expression *)
 
-let mk_expr_undef (typ : lltype) : expr = Undef typ
+let mk_expr_undef (typ : datatype) : expr = Undef typ
 let mk_expr_int64 (i : int64) : expr = Int64 i
 let mk_expr_int (i : int) : expr = Int64 (Int64.of_int i)
 let mk_expr_float (f : float) : expr = Float f
 let mk_expr_string (s : string) : expr = String s
-let mk_expr_var (v : llvalue) : expr = Var v
-let mk_expr_deref (v : llvalue) : expr = Deref (mk_expr_var v)
+let mk_expr_var (v : value) : expr = Var v
+let mk_expr_deref (v : value) : expr = Deref (mk_expr_var v)
 
-let mk_expr_elemptr (root : expr) (rtyp : lltype) (idxs : expr list) : expr =
+let mk_expr_elemptr (root : expr) (rtyp : datatype) (idxs : expr list) : expr =
   ElemPtr (root, rtyp, idxs)
 ;;
 
-let mk_expr_malloc (v : llvalue) : expr = Malloc (mk_expr_var v)
+let mk_expr_malloc (v : value) : expr = Malloc (mk_expr_var v)
 let mk_expr_func_result (f : func) : expr = FuncRes f
-let mk_expr_exn (tinfo : llvalue) : expr = Exn (mk_expr_var tinfo)
+let mk_expr_exn (tinfo : value) : expr = Exn (mk_expr_var tinfo)
 let expr_of_int32 (i : int) = mk_expr_int64 (Int64.of_int i)
 
-let expr_of_llvalue (v : llvalue) : expr =
+let expr_of_llvalue (v : value) : expr =
   match LL.int64_of_const v, LL.float_of_const v, LL.string_of_const v with
   | None, None, None -> mk_expr_var v
   | Some i, _, _ -> mk_expr_int64 i
@@ -535,12 +538,12 @@ let elemptr_of_global (g : global) (idxs : expr list) =
  *******************************************************************)
 
 module Equal = struct
-  let equal_llvalue (v1 : llvalue) (v2 : llvalue) : bool = v1 == v2
-  let equal_lltype (t1 : lltype) (t2 : lltype) : bool = t1 == t2
-  let equal_llblock (b1 : llblock) (b2 : llblock) = b1 == b2
+  let equal_llvalue (v1 : value) (v2 : value) : bool = v1 == v2
+  let equal_lltype (t1 : datatype) (t2 : datatype) : bool = t1 == t2
+  let equal_llblock (b1 : block) (b2 : block) = b1 == b2
   let equal_llicmp (c1 : llicmp) (c2 : llicmp) : bool = c1 == c2
   let equal_llfcmp (c1 : llfcmp) (c2 : llfcmp) : bool = c1 == c2
-  let equal_type (t1 : lltype) (t2 : lltype) = equal_lltype t1 t2
+  let equal_type (t1 : datatype) (t2 : datatype) = equal_lltype t1 t2
 
   let equal_func (f1 : func) (f2 : func) : bool =
     match f1, f2 with
@@ -652,7 +655,7 @@ let pr_succ_block (sblk : succ_block) : string =
 
 let instr_opcode (i : instr) : LO.t = LL.instr_opcode (llvalue_of_instr i)
 
-let operand (i : instr) (idx : int) : llvalue =
+let operand (i : instr) (idx : int) : value =
   LL.operand (llvalue_of_instr i) idx
 ;;
 
@@ -662,11 +665,11 @@ let expr_operand (i : instr) (idx : int) : expr =
 
 let num_operands (i : instr) : int = LL.num_operands (llvalue_of_instr i)
 
-let set_operand (i : instr) (idx : int) (opr : llvalue) : unit =
+let set_operand (i : instr) (idx : int) (opr : value) : unit =
   LL.set_operand (llvalue_of_instr i) idx opr
 ;;
 
-let operands (i : instr) : llvalue list =
+let operands (i : instr) : value list =
   let oprs = ref [] in
   for idx = 0 to num_operands i - 1 do
     oprs := !oprs @ [ operand i idx ]
@@ -676,7 +679,7 @@ let operands (i : instr) : llvalue list =
 
 let get_branch (i : instr) = LL.get_branch (llvalue_of_instr i)
 let block_of_instr (i : instr) : block = LL.instr_parent (llvalue_of_instr i)
-let type_of_instr (i : instr) : lltype = LL.type_of (llvalue_of_instr i)
+let type_of_instr (i : instr) : datatype = LL.type_of (llvalue_of_instr i)
 
 let delete_instruction (i : instr) : unit =
   LL.delete_instruction (llvalue_of_instr i)
@@ -684,11 +687,11 @@ let delete_instruction (i : instr) : unit =
 
 (*** global variable ***)
 
-let global_operand (g : global) (idx : int) : llvalue =
+let global_operand (g : global) (idx : int) : value =
   LL.operand (llvalue_of_global g) idx
 ;;
 
-let type_of_global (g : global) : lltype = LL.type_of (llvalue_of_global g)
+let type_of_global (g : global) : datatype = LL.type_of (llvalue_of_global g)
 
 (*** function ***)
 
@@ -699,7 +702,7 @@ let func_of_instr (i : instr) : func =
   func_of_block (LL.instr_parent vi)
 ;;
 
-let type_of_func (f : func) : lltype = LL.type_of (llvalue_of_func f)
+let type_of_func (f : func) : datatype = LL.type_of (llvalue_of_func f)
 
 (*******************************************************************
  * Iteration, Mapping, Fold linearly over LLVM data structures
@@ -1067,44 +1070,44 @@ include FoldStructure
  ** transformation
  *******************************************************************)
 
-let int_of_const (v : llvalue) : int option =
+let int_of_const (v : value) : int option =
   match LL.int64_of_const v with
   | None -> None
   | Some i -> Int64.to_int i
 ;;
 
-let int64_of_const (v : llvalue) : int64 option = LL.int64_of_const v
-let float_of_const (v : llvalue) : float option = LL.float_of_const v
-let string_of_const (v : llvalue) : string option = LL.string_of_const v
+let int64_of_const (v : value) : int64 option = LL.int64_of_const v
+let float_of_const (v : value) : float option = LL.float_of_const v
+let string_of_const (v : value) : string option = LL.string_of_const v
 
 (*******************************************************************
  ** basic queries
  *******************************************************************)
 
 (*-----------------------------------------
- * lltype
+ * datatype
  *-----------------------------------------*)
 
 module Lltype = struct
-  let is_type_void (typ : lltype) : bool =
+  let is_type_void (typ : datatype) : bool =
     match LL.classify_type typ with
     | LT.Void -> true
     | _ -> false
   ;;
 
-  let is_type_integer (typ : lltype) : bool =
+  let is_type_integer (typ : datatype) : bool =
     match LL.classify_type typ with
     | LT.Integer -> true
     | _ -> false
   ;;
 
-  let is_type_array (typ : lltype) : bool =
+  let is_type_array (typ : datatype) : bool =
     match LL.classify_type typ with
     | LT.Array -> true
     | _ -> false
   ;;
 
-  let is_type_string (typ : lltype) : bool =
+  let is_type_string (typ : datatype) : bool =
     match LL.classify_type typ with
     | LT.Array ->
       let elemtyp = LL.element_type typ in
@@ -1114,19 +1117,19 @@ module Lltype = struct
     | _ -> false
   ;;
 
-  let is_type_struct (typ : lltype) : bool =
+  let is_type_struct (typ : datatype) : bool =
     match LL.classify_type typ with
     | LT.Struct -> true
     | _ -> false
   ;;
 
-  let is_type_pointer (typ : lltype) : bool =
+  let is_type_pointer (typ : datatype) : bool =
     match LL.classify_type typ with
     | LT.Pointer -> true
     | _ -> false
   ;;
 
-  let rec is_type_contain_pointer (typ : lltype) : bool =
+  let rec is_type_contain_pointer (typ : datatype) : bool =
     match LL.classify_type typ with
     | LT.Pointer -> true
     | LT.Struct ->
@@ -1135,13 +1138,13 @@ module Lltype = struct
     | _ -> false
   ;;
 
-  let is_type_func (typ : lltype) : bool =
+  let is_type_func (typ : datatype) : bool =
     match LL.classify_type typ with
     | LT.Function -> true
     | _ -> false
   ;;
 
-  let is_type_pointer_to_func (typ : lltype) : bool =
+  let is_type_pointer_to_func (typ : datatype) : bool =
     match LL.classify_type typ with
     | LT.Pointer -> is_type_func (LL.element_type typ)
     | _ -> false
@@ -1149,13 +1152,13 @@ module Lltype = struct
 
   (** Memory size in bytes of an element of type `typ' *)
 
-  let memsize_of_type (typ : lltype) : int64 =
+  let memsize_of_type (typ : datatype) : int64 =
     match LL.classify_type typ with
     | LT.Integer -> Int64.of_int (LL.integer_bitwidth typ / 8)
     | _ -> herror "memsize_of_size: need to implement: " pr_type typ
   ;;
 
-  let rec get_elemptr_typ (typ : lltype) (idxs : expr list) : lltype =
+  let rec get_elemptr_typ (typ : datatype) (idxs : expr list) : datatype =
     match idxs with
     | [] -> typ
     | idx :: nidxs ->
@@ -1174,7 +1177,7 @@ module Lltype = struct
       get_elemptr_typ ntyp nidxs
   ;;
 
-  let rec check_equiv_type (t1 : lltype) (t2 : lltype) : bool =
+  let rec check_equiv_type (t1 : datatype) (t2 : datatype) : bool =
     if equal_type t1 t2
     then true
     else (
@@ -1201,78 +1204,78 @@ end
 include Lltype
 
 (*-----------------------------------------
- * llvalue
+ * value
  *-----------------------------------------*)
 
-(** Module contains operations over llvalue *)
+(** Module contains operations over value *)
 module Llvalue = struct
-  let equal_value (v1 : llvalue) (v2 : llvalue) : bool = equal_llvalue v1 v2
+  let equal_value (v1 : value) (v2 : value) : bool = equal_llvalue v1 v2
 
-  let is_llvalue_empty_name (v : llvalue) : bool =
+  let is_llvalue_empty_name (v : value) : bool =
     String.is_empty (LL.value_name v)
   ;;
 
-  let is_llvalue_void (v : llvalue) : bool = is_type_void (Llvm.type_of v)
+  let is_llvalue_void (v : value) : bool = is_type_void (Llvm.type_of v)
 
-  let is_llvalue_undef (v : llvalue) : bool =
+  let is_llvalue_undef (v : value) : bool =
     match LL.classify_value v with
     | LV.UndefValue -> true
     | _ -> false
   ;;
 
-  let is_llvalue_pointer (v : llvalue) : bool = is_type_pointer (LL.type_of v)
+  let is_llvalue_pointer (v : value) : bool = is_type_pointer (LL.type_of v)
 
-  let is_llvalue_contain_pointer (v : llvalue) : bool =
+  let is_llvalue_contain_pointer (v : value) : bool =
     is_type_contain_pointer (LL.type_of v)
   ;;
 
-  let is_llvalue_pointer_to_function (v : llvalue) : bool =
+  let is_llvalue_pointer_to_function (v : value) : bool =
     let typ = LL.type_of v in
     is_type_pointer typ && is_type_pointer (LL.element_type typ)
   ;;
 
-  let is_llvalue_param (v : llvalue) : bool =
+  let is_llvalue_param (v : value) : bool =
     match LL.classify_value v with
     | LV.Argument _ -> true
     | _ -> false
   ;;
 
-  let is_llvalue_instr (v : llvalue) : bool =
+  let is_llvalue_instr (v : value) : bool =
     match LL.classify_value v with
     | LV.Instruction _ -> true
     | _ -> false
   ;;
 
-  let is_llvalue_instr_phi (v : llvalue) : bool =
+  let is_llvalue_instr_phi (v : value) : bool =
     match LL.classify_value v with
     | LV.Instruction LO.PHI -> true
     | _ -> false
   ;;
 
-  let is_llvalue_callable_instr (v : llvalue) : bool =
+  let is_llvalue_callable_instr (v : value) : bool =
     match LL.classify_value v with
     | LV.Instruction LO.Call -> true
     | LV.Instruction LO.Invoke -> true
     | _ -> false
   ;;
 
-  let is_llvalue_instr_gep (v : llvalue) : bool =
+  let is_llvalue_instr_gep (v : value) : bool =
     match LL.classify_value v with
     | LV.Instruction LO.GetElementPtr -> true
     | _ -> false
   ;;
 
-  let is_local_llvalue (v : llvalue) : bool = is_llvalue_instr v
+  let is_local_llvalue (v : value) : bool = is_llvalue_instr v
 
-  let is_llvalue_constant_expr (v : llvalue) : bool =
+  let is_llvalue_constant_expr (v : value) : bool =
     match LL.classify_value v with
     | LV.ConstantExpr -> true
     | _ -> false
   ;;
 
-  let is_llvalue_null_constant (v : llvalue) : bool = LL.is_null v
+  let is_llvalue_null_constant (v : value) : bool = LL.is_null v
 
-  let is_llvalue_integer_constant (v : llvalue) : bool =
+  let is_llvalue_integer_constant (v : value) : bool =
     if LL.is_constant v
     then (
       match LL.classify_type (LL.type_of v) with
@@ -1281,25 +1284,25 @@ module Llvalue = struct
     else false
   ;;
 
-  let is_llvalue_argument (v : llvalue) : bool =
+  let is_llvalue_argument (v : value) : bool =
     match LL.classify_value v with
     | LV.Argument -> true
     | _ -> false
   ;;
 
-  let is_llvalue_global (v : llvalue) : bool =
+  let is_llvalue_global (v : value) : bool =
     match LL.classify_value v with
     | LV.GlobalVariable -> true
     | _ -> false
   ;;
 
-  let is_llvalue_function (v : llvalue) : bool =
+  let is_llvalue_function (v : value) : bool =
     match LL.classify_value v with
     | LV.Function -> true
     | _ -> false
   ;;
 
-  let type_of_llvalue (v : llvalue) : lltype = LL.type_of v
+  let type_of_llvalue (v : value) : datatype = LL.type_of v
 end
 
 include Llvalue
@@ -1468,15 +1471,15 @@ module Func = struct
     | _ -> herror "func_params: not a function: " pr_value_detail v
   ;;
 
-  let func_type (f : func) : lltype =
+  let func_type (f : func) : datatype =
     LL.return_type (LL.type_of (llvalue_of_func f))
   ;;
 
-  let func_param_types (f : func) : lltype list =
+  let func_param_types (f : func) : datatype list =
     Array.to_list (LL.param_types (func_type f))
   ;;
 
-  let func_return_type (f : func) : lltype = LL.return_type (func_type f)
+  let func_return_type (f : func) : datatype = LL.return_type (func_type f)
 
   let blocks_of_func (f : func) : blocks =
     let v = llvalue_of_func f in
@@ -1665,7 +1668,7 @@ module Callable = struct
   ;;
 
   let mk_callable_func (f : func) : callable = ClFunc f
-  let mk_callable_func_pointer (fp : llvalue) : callable = ClFPtr fp
+  let mk_callable_func_pointer (fp : value) : callable = ClFPtr fp
 end
 
 (*-----------------------------------------
@@ -1844,7 +1847,7 @@ module Expr = struct
       equal_expr ne sub || is_sub_expr ne ~sub
   ;;
 
-  let rec type_of_expr (e : expr) : lltype =
+  let rec type_of_expr (e : expr) : datatype =
     let llcontext = LL.global_context () in
     match e with
     | Undef t -> t
@@ -1873,9 +1876,9 @@ include Block
 
 (** Module contains function to process substitution *)
 module Substitution = struct
-  type substv = (llvalue * llvalue) list (* old / new values*)
+  type substv = (value * value) list (* old / new values*)
 
-  type substve = (llvalue * expr) list (* old / new values*)
+  type substve = (value * expr) list (* old / new values*)
 
   type subste = (expr * expr) list (* old / new exprs*)
 
@@ -1908,7 +1911,7 @@ module Substitution = struct
     else (oldv, newe) :: sst
   ;;
 
-  let mk_substv ~(oldvs : llvalue list) ~(newvs : llvalue list) : substv =
+  let mk_substv ~(oldvs : value list) ~(newvs : value list) : substv =
     try
       List.fold2_exn
         ~f:(fun acc ov nv -> extend_substv acc ov nv)
@@ -1924,7 +1927,7 @@ module Substitution = struct
     with _ -> []
   ;;
 
-  let mk_substve ~(oldvs : llvalue list) ~(newes : expr list) : substve =
+  let mk_substve ~(oldvs : value list) ~(newes : expr list) : substve =
     try
       List.fold2_exn
         ~f:(fun acc ov ne -> extend_substve acc ov ne)
@@ -1932,21 +1935,21 @@ module Substitution = struct
     with _ -> []
   ;;
 
-  let subst_value (sst : substv) (v : llvalue) : llvalue =
+  let subst_value (sst : substv) (v : value) : value =
     let res = List.find ~f:(fun (a, b) -> equal_llvalue a v) sst in
     match res with
     | Some (_, b) -> b
     | None -> v
   ;;
 
-  let subst_value_expr (sst : substve) (v : llvalue) : expr =
+  let subst_value_expr (sst : substve) (v : value) : expr =
     let res = List.find ~f:(fun (a, b) -> equal_llvalue a v) sst in
     match res with
     | Some (_, b) -> b
     | None -> Var v
   ;;
 
-  let subst_values (sst : substv) (vs : llvalue list) : llvalue list =
+  let subst_values (sst : substv) (vs : value list) : value list =
     List.fold_left ~f:(fun acc v -> acc @ [ subst_value sst v ]) ~init:[] vs
   ;;
 
@@ -1962,7 +1965,7 @@ module Substitution = struct
     match res with
     | Some (_, b) -> b
     | None ->
-      if (* if not successful, substitute llvalue or llvalue/expr *)
+      if (* if not successful, substitute value or value/expr *)
          List.not_empty sstv
       then (
         match e with
@@ -1996,224 +1999,261 @@ end
 include Substitution
 
 (*******************************************************************
- ** operations with llvalue
+ ** operations with value
  *******************************************************************)
 
-let collect_llvalue_of_expr (e : expr) : llvalues =
-  let rec collect e acc =
-    match e with
-    | Undef _ | Int64 _ | Float _ | String _ -> acc
-    | Var v -> List.insert_dedup acc v ~equal:equal_llvalue
-    | OldE e -> collect e acc
-    | Deref e -> collect e acc
-    | ElemPtr (root, _, idxs) ->
-      let acc1 = collect root acc in
-      List.fold ~f:(fun acc2 e -> collect e acc2) ~init:acc1 idxs
-    | Malloc e -> collect e acc
-    | FuncRes f ->
-      List.insert_dedup acc (llvalue_of_func f) ~equal:equal_llvalue
-    | Exn e -> collect e acc in
-  collect e []
-;;
+(** Module contains utility functions to process LLVM Values *)
 
-let collect_llvalue_of_predicate (p : predicate) : llvalues =
-  let equal = equal_llvalue in
-  let rec collect p =
-    match p with
-    | PBool _ -> []
-    | PIcmp (_, lhs, rhs) -> List.dedup ~equal [ lhs; rhs ]
-    | PFcmp (_, lhs, rhs) -> List.dedup ~equal [ lhs; rhs ]
-    | PNeg p1 -> collect p1
-    | PConj ps | PDisj ps ->
-      List.fold_left
-        ~f:(fun acc p1 -> List.concat_dedup acc (collect p1) ~equal)
-        ~init:[] ps in
-  collect p
-;;
+module ValueUtils = struct
+  let collect_llvalue_of_expr (e : expr) : values =
+    let rec collect e acc =
+      match e with
+      | Undef _ | Int64 _ | Float _ | String _ -> acc
+      | Var v -> List.insert_dedup acc v ~equal:equal_llvalue
+      | OldE e -> collect e acc
+      | Deref e -> collect e acc
+      | ElemPtr (root, _, idxs) ->
+        let acc1 = collect root acc in
+        List.fold ~f:(fun acc2 e -> collect e acc2) ~init:acc1 idxs
+      | Malloc e -> collect e acc
+      | FuncRes f ->
+        List.insert_dedup acc (llvalue_of_func f) ~equal:equal_llvalue
+      | Exn e -> collect e acc in
+    collect e []
+  ;;
 
-let num_uses (v : llvalue) : int = LL.fold_left_uses (fun acc _ -> acc + 1) 0 v
+  let collect_llvalue_of_predicate (p : predicate) : values =
+    let equal = equal_llvalue in
+    let rec collect p =
+      match p with
+      | PBool _ -> []
+      | PIcmp (_, lhs, rhs) -> List.dedup ~equal [ lhs; rhs ]
+      | PFcmp (_, lhs, rhs) -> List.dedup ~equal [ lhs; rhs ]
+      | PNeg p1 -> collect p1
+      | PConj ps | PDisj ps ->
+        List.fold_left
+          ~f:(fun acc p1 -> List.concat_dedup acc (collect p1) ~equal)
+          ~init:[] ps in
+    collect p
+  ;;
+end
 
-let get_uses (v : llvalue) : lluse list =
-  LL.fold_left_uses (fun acc u -> acc @ [ u ]) [] v
-;;
+include ValueUtils
 
-let get_used_values (v : llvalue) : llvalue list =
-  LL.fold_left_uses (fun acc u -> acc @ [ LL.used_value u ]) [] v
-;;
+(*******************************************************************
+ ** operations with lluse
+ *******************************************************************)
 
-let get_users (v : llvalue) : llvalue list =
-  LL.fold_left_uses (fun acc u -> acc @ [ LL.user u ]) [] v
-;;
+(** Module contains utility functions to process LLVM Use *)
+
+module UseUtils = struct
+  let num_uses (v : value) : int =
+    LL.fold_left_uses (fun acc _ -> acc + 1) 0 v
+  ;;
+
+  let get_uses (v : value) : lluse list =
+    LL.fold_left_uses (fun acc u -> acc @ [ u ]) [] v
+  ;;
+
+  let get_used_values (v : value) : value list =
+    LL.fold_left_uses (fun acc u -> acc @ [ LL.used_value u ]) [] v
+  ;;
+
+  let get_users (v : value) : value list =
+    LL.fold_left_uses (fun acc u -> acc @ [ LL.user u ]) [] v
+  ;;
+end
+
+include UseUtils
 
 (*******************************************************************
  ** operations with predicate and path condition
  *******************************************************************)
 
-let mk_pred_true () = PBool true
-let mk_pred_false () = PBool false
+(** Module contains utility functions to process path condition *)
 
-let mk_pred_icmp cmp (lhs : llvalue) (rhs : llvalue) : predicate =
-  PIcmp (cmp, lhs, rhs)
-;;
+module PathCondition = struct
+  let mk_pred_true () = PBool true
+  let mk_pred_false () = PBool false
 
-let mk_pred_fcmp cmp (lhs : llvalue) (rhs : llvalue) : predicate =
-  PFcmp (cmp, lhs, rhs)
-;;
+  let mk_pred_icmp cmp (lhs : value) (rhs : value) : predicate =
+    PIcmp (cmp, lhs, rhs)
+  ;;
 
-let negate_icmp (cmp : LL.Icmp.t) : LL.Icmp.t =
-  match cmp with
-  | LL.Icmp.Eq -> LL.Icmp.Ne
-  | LL.Icmp.Ne -> LL.Icmp.Eq
-  | LL.Icmp.Ugt -> LL.Icmp.Ule
-  | LL.Icmp.Uge -> LL.Icmp.Ult
-  | LL.Icmp.Ult -> LL.Icmp.Uge
-  | LL.Icmp.Ule -> LL.Icmp.Ugt
-  | LL.Icmp.Sgt -> LL.Icmp.Sle
-  | LL.Icmp.Sge -> LL.Icmp.Slt
-  | LL.Icmp.Slt -> LL.Icmp.Sge
-  | LL.Icmp.Sle -> LL.Icmp.Sgt
-;;
+  let mk_pred_fcmp cmp (lhs : value) (rhs : value) : predicate =
+    PFcmp (cmp, lhs, rhs)
+  ;;
 
-let mk_pred_neg (p : predicate) : predicate =
-  match p with
-  | PBool b -> PBool (not b)
-  | PIcmp (cmp, lhs, rhs) -> PIcmp (negate_icmp cmp, lhs, rhs)
-  | PNeg p -> p
-  | _ -> PNeg p
-;;
+  let negate_icmp (cmp : LL.Icmp.t) : LL.Icmp.t =
+    match cmp with
+    | LL.Icmp.Eq -> LL.Icmp.Ne
+    | LL.Icmp.Ne -> LL.Icmp.Eq
+    | LL.Icmp.Ugt -> LL.Icmp.Ule
+    | LL.Icmp.Uge -> LL.Icmp.Ult
+    | LL.Icmp.Ult -> LL.Icmp.Uge
+    | LL.Icmp.Ule -> LL.Icmp.Ugt
+    | LL.Icmp.Sgt -> LL.Icmp.Sle
+    | LL.Icmp.Sge -> LL.Icmp.Slt
+    | LL.Icmp.Slt -> LL.Icmp.Sge
+    | LL.Icmp.Sle -> LL.Icmp.Sgt
+  ;;
 
-let mk_pred_conj (ps : predicate list) : predicate =
-  let rec flatten acc ps =
-    match ps with
-    | [] -> acc
-    | PConj gs :: nps -> flatten (flatten acc gs) nps
-    | p :: nps -> flatten (acc @ [ p ]) nps in
-  if List.is_empty ps
-  then mk_pred_false ()
-  else (
-    let nps = flatten [] ps in
-    if List.exists ~f:is_pred_false nps
+  let mk_pred_neg (p : predicate) : predicate =
+    match p with
+    | PBool b -> PBool (not b)
+    | PIcmp (cmp, lhs, rhs) -> PIcmp (negate_icmp cmp, lhs, rhs)
+    | PNeg p -> p
+    | _ -> PNeg p
+  ;;
+
+  let mk_pred_conj (ps : predicate list) : predicate =
+    let rec flatten acc ps =
+      match ps with
+      | [] -> acc
+      | PConj gs :: nps -> flatten (flatten acc gs) nps
+      | p :: nps -> flatten (acc @ [ p ]) nps in
+    if List.is_empty ps
     then mk_pred_false ()
     else (
-      let nps = List.stable_dedup (List.exclude ~f:is_pred_true nps) in
-      match nps with
-      | [] -> mk_pred_true ()
-      | [ np ] -> np
-      | _ -> PConj nps))
-;;
+      let nps = flatten [] ps in
+      if List.exists ~f:is_pred_false nps
+      then mk_pred_false ()
+      else (
+        let nps = List.stable_dedup (List.exclude ~f:is_pred_true nps) in
+        match nps with
+        | [] -> mk_pred_true ()
+        | [ np ] -> np
+        | _ -> PConj nps))
+  ;;
 
-let mk_pred_disj (ps : predicate list) : predicate =
-  let rec flatten acc ps =
-    match ps with
-    | [] -> acc
-    | PDisj gs :: nps -> flatten (flatten acc gs) nps
-    | p :: nps -> flatten (acc @ [ p ]) nps in
-  if List.is_empty ps
-  then mk_pred_true ()
-  else (
-    let nps = flatten [] ps in
-    if List.exists ~f:is_pred_true nps
+  let mk_pred_disj (ps : predicate list) : predicate =
+    let rec flatten acc ps =
+      match ps with
+      | [] -> acc
+      | PDisj gs :: nps -> flatten (flatten acc gs) nps
+      | p :: nps -> flatten (acc @ [ p ]) nps in
+    if List.is_empty ps
     then mk_pred_true ()
     else (
-      let nps = List.stable_dedup (List.exclude ~f:is_pred_false nps) in
-      match nps with
-      | [] -> mk_pred_false ()
-      | [ np ] -> np
-      | _ -> PDisj nps))
-;;
+      let nps = flatten [] ps in
+      if List.exists ~f:is_pred_true nps
+      then mk_pred_true ()
+      else (
+        let nps = List.stable_dedup (List.exclude ~f:is_pred_false nps) in
+        match nps with
+        | [] -> mk_pred_false ()
+        | [ np ] -> np
+        | _ -> PDisj nps))
+  ;;
 
-let extract_icmp_predicate (cond : llvalue) : predicate =
-  match LL.icmp_predicate cond with
-  | None -> herror "extract_icmp_predicate: not Icmp cond: " pr_value cond
-  | Some cmp ->
-    let lhs, rhs = LL.operand cond 0, LL.operand cond 1 in
-    mk_pred_icmp cmp lhs rhs
-;;
+  let extract_icmp_predicate (cond : value) : predicate =
+    match LL.icmp_predicate cond with
+    | None -> herror "extract_icmp_predicate: not Icmp cond: " pr_value cond
+    | Some cmp ->
+      let lhs, rhs = LL.operand cond 0, LL.operand cond 1 in
+      mk_pred_icmp cmp lhs rhs
+  ;;
 
-let extract_fcmp_predicate (cond : llvalue) : predicate =
-  match LL.fcmp_predicate cond with
-  | None -> herror "extract_fcmp_predicate: not Fcmp cond: " pr_value cond
-  | Some cmp ->
-    let lhs, rhs = LL.operand cond 0, LL.operand cond 1 in
-    mk_pred_fcmp cmp lhs rhs
-;;
+  let extract_fcmp_predicate (cond : value) : predicate =
+    match LL.fcmp_predicate cond with
+    | None -> herror "extract_fcmp_predicate: not Fcmp cond: " pr_value cond
+    | Some cmp ->
+      let lhs, rhs = LL.operand cond 0, LL.operand cond 1 in
+      mk_pred_fcmp cmp lhs rhs
+  ;;
 
-let extract_trunc_predicate (cond : llvalue) : predicate =
-  match LL.instr_opcode cond with
-  | LO.Trunc ->
-    (* FIXME: need better handling of Trunc, maybe by unfolding? *)
-    mk_pred_true ()
-  | _ -> herror "extract_trunc_predicate: not a Trunc cond: " pr_value cond
-;;
+  let extract_trunc_predicate (cond : value) : predicate =
+    match LL.instr_opcode cond with
+    | LO.Trunc ->
+      (* FIXME: need better handling of Trunc, maybe by unfolding? *)
+      mk_pred_true ()
+    | _ -> herror "extract_trunc_predicate: not a Trunc cond: " pr_value cond
+  ;;
 
-let extract_zext_predicate (cond : llvalue) : predicate =
-  match LL.instr_opcode cond with
-  | LO.ZExt ->
-    (* FIXME: need better handling of ZExt? *)
-    mk_pred_true ()
-  | _ -> herror "extract_zext_predicate: not a ZExt cond: " pr_value cond
-;;
+  let extract_zext_predicate (cond : value) : predicate =
+    match LL.instr_opcode cond with
+    | LO.ZExt ->
+      (* FIXME: need better handling of ZExt? *)
+      mk_pred_true ()
+    | _ -> herror "extract_zext_predicate: not a ZExt cond: " pr_value cond
+  ;;
 
-let extract_br_cond_predicate (cond : llvalue) : predicate =
-  match LL.classify_value cond with
-  | LV.Instruction _ ->
-    (match LL.instr_opcode cond with
-    | LO.ICmp -> extract_icmp_predicate cond
-    | LO.FCmp -> extract_fcmp_predicate cond
-    | LO.Trunc -> extract_trunc_predicate cond
-    | LO.ZExt -> extract_zext_predicate cond
-    | _ -> mk_pred_true ())
-  | _ -> mk_pred_true ()
-;;
+  let extract_br_cond_predicate (cond : value) : predicate =
+    match LL.classify_value cond with
+    | LV.Instruction _ ->
+      (match LL.instr_opcode cond with
+      | LO.ICmp -> extract_icmp_predicate cond
+      | LO.FCmp -> extract_fcmp_predicate cond
+      | LO.Trunc -> extract_trunc_predicate cond
+      | LO.ZExt -> extract_zext_predicate cond
+      | _ -> mk_pred_true ())
+    | _ -> mk_pred_true ()
+  ;;
 
-let mk_prec_block (blk : block) (pcond : predicate) : prec_block =
-  { pblk_block = blk; pblk_pathcond = pcond }
-;;
+  let mk_prec_block (blk : block) (pcond : predicate) : prec_block =
+    { pblk_block = blk; pblk_pathcond = pcond }
+  ;;
 
-let mk_succ_block (blk : block) (pcond : predicate) : succ_block =
-  { sblk_block = blk; sblk_pathcond = pcond }
-;;
+  let mk_succ_block (blk : block) (pcond : predicate) : succ_block =
+    { sblk_block = blk; sblk_pathcond = pcond }
+  ;;
+end
+
+include PathCondition
 
 (*******************************************************************
  ** operations with type
  *******************************************************************)
 
-let get_struct_types (m : llmodule) : lltype list =
-  let all_stypes = ref Set.Poly.empty in
-  let rec collect_struct_type typ =
-    if is_type_struct typ
-    then (
-      match LL.struct_name typ with
-      | None -> ()
-      | Some _ -> all_stypes := Set.add !all_stypes typ)
-    else (
-      let subtypes = typ |> LL.subtypes |> Array.to_list in
-      List.iter ~f:collect_struct_type subtypes) in
-  let visit_global g = collect_struct_type (LL.type_of (llvalue_of_global g)) in
-  let visit_instr i = collect_struct_type (LL.type_of (llvalue_of_instr i)) in
-  let _ =
-    iter_struct_module ~finstr:(Some visit_instr) ~fglobal:(Some visit_global)
-      m in
-  Set.to_list !all_stypes
-;;
+(** Module contains utility functions to process types *)
+
+module TypeUtils = struct
+  let get_struct_types (m : llmodule) : datatype list =
+    let all_stypes = ref Set.Poly.empty in
+    let rec collect_struct_type typ =
+      if is_type_struct typ
+      then (
+        match LL.struct_name typ with
+        | None -> ()
+        | Some _ -> all_stypes := Set.add !all_stypes typ)
+      else (
+        let subtypes = typ |> LL.subtypes |> Array.to_list in
+        List.iter ~f:collect_struct_type subtypes) in
+    let visit_global g =
+      collect_struct_type (LL.type_of (llvalue_of_global g)) in
+    let visit_instr i = collect_struct_type (LL.type_of (llvalue_of_instr i)) in
+    let _ =
+      iter_struct_module ~finstr:(Some visit_instr)
+        ~fglobal:(Some visit_global) m in
+    Set.to_list !all_stypes
+  ;;
+end
+
+include TypeUtils
 
 (*******************************************************************
  ** operations with globals
  *******************************************************************)
 
-let index_of_global_name (g : global) : int =
-  let gname = pr_global g in
-  if String.is_prefix gname ~prefix:"g"
-  then (
-    let sindex = String.sub gname ~pos:1 ~len:(String.length gname - 1) in
-    try Int.of_string sindex with _ -> -1)
-  else -1
-;;
+(** Module contains utility functions to process global variables *)
 
-let compare_global_by_name blk1 blk2 : int =
-  let idx1, idx2 = index_of_global_name blk1, index_of_global_name blk2 in
-  if idx1 < idx2 then -1 else if idx1 > idx2 then 1 else 0
-;;
+module GlobalUtils = struct
+  let index_of_global_name (g : global) : int =
+    let gname = pr_global g in
+    if String.is_prefix gname ~prefix:"g"
+    then (
+      let sindex = String.sub gname ~pos:1 ~len:(String.length gname - 1) in
+      try Int.of_string sindex with _ -> -1)
+    else -1
+  ;;
+
+  let compare_global_by_name blk1 blk2 : int =
+    let idx1, idx2 = index_of_global_name blk1, index_of_global_name blk2 in
+    if idx1 < idx2 then -1 else if idx1 > idx2 then 1 else 0
+  ;;
+end
+
+include GlobalUtils
 
 (*******************************************************************
  ** Utility functions to process instructions
@@ -2221,10 +2261,10 @@ let compare_global_by_name blk1 blk2 : int =
 
 (** Module contains utility functions to process instructions *)
 
-module InstrUtility = struct
+module InstrUtils = struct
   (* Alloca *)
 
-  let dst_of_instr_alloca (i : instr) : llvalue =
+  let dst_of_instr_alloca (i : instr) : value =
     match instr_opcode i with
     | LO.Alloca -> llvalue_of_instr i
     | _ -> herror "dst_of_instr: not an instr Alloca: " pr_instr i
@@ -2232,13 +2272,13 @@ module InstrUtility = struct
 
   (* Store *)
 
-  let src_of_instr_store (i : instr) : llvalue =
+  let src_of_instr_store (i : instr) : value =
     match instr_opcode i with
     | LO.Store -> operand i 0
     | _ -> herror "src_of_instr: not an instr Store: " pr_instr i
   ;;
 
-  let dst_of_instr_store (i : instr) : llvalue =
+  let dst_of_instr_store (i : instr) : value =
     match instr_opcode i with
     | LO.Store -> operand i 1
     | _ -> herror "dst_of_instr: not an instr Store: " pr_instr i
@@ -2246,13 +2286,13 @@ module InstrUtility = struct
 
   (* Load *)
 
-  let src_of_instr_load (i : instr) : llvalue =
+  let src_of_instr_load (i : instr) : value =
     match instr_opcode i with
     | LO.Load -> operand i 0
     | _ -> herror "src_of_instr: not an instr Load: " pr_instr i
   ;;
 
-  let dst_of_instr_load (i : instr) : llvalue =
+  let dst_of_instr_load (i : instr) : value =
     match instr_opcode i with
     | LO.Load -> llvalue_of_instr i
     | _ -> herror "dst_of_instr: not an instr Load: " pr_instr i
@@ -2260,13 +2300,13 @@ module InstrUtility = struct
 
   (* InsertValue *)
 
-  let src_of_instr_insertvalue (i : instr) : llvalue =
+  let src_of_instr_insertvalue (i : instr) : value =
     match instr_opcode i with
     | LO.InsertValue -> operand i 1
     | _ -> herror "src_of_instr: not an instr InsertValue: " pr_instr i
   ;;
 
-  let dst_of_instr_insertvalue (i : instr) : llvalue =
+  let dst_of_instr_insertvalue (i : instr) : value =
     match instr_opcode i with
     | LO.InsertValue -> operand i 0
     | _ -> herror "dst_of_instr: not an instr InsertValue: " pr_instr i
@@ -2274,13 +2314,13 @@ module InstrUtility = struct
 
   (* ExtractValue *)
 
-  let src_of_instr_extractvalue (i : instr) : llvalue =
+  let src_of_instr_extractvalue (i : instr) : value =
     match instr_opcode i with
     | LO.ExtractValue -> operand i 0
     | _ -> herror "src_of_instr: not an instr ExtractValue: " pr_instr i
   ;;
 
-  let dst_of_instr_extractvalue (i : instr) : llvalue =
+  let dst_of_instr_extractvalue (i : instr) : value =
     match instr_opcode i with
     | LO.ExtractValue -> llvalue_of_instr i
     | _ -> herror "dst_of_instr: not an instr ExtractValue: " pr_instr i
@@ -2288,19 +2328,19 @@ module InstrUtility = struct
 
   (* GetElementPointer *)
 
-  let src_of_instr_gep (i : instr) : llvalue =
+  let src_of_instr_gep (i : instr) : value =
     match instr_opcode i with
     | LO.GetElementPtr -> operand i 0
     | _ -> herror "src_of_instr: not an instr GEP: " pr_instr i
   ;;
 
-  let dst_of_instr_gep (i : instr) : llvalue =
+  let dst_of_instr_gep (i : instr) : value =
     match instr_opcode i with
     | LO.GetElementPtr -> llvalue_of_instr i
     | _ -> herror "dst_of_instr: not an instr GEP: " pr_instr i
   ;;
 
-  let indexes_of_instr_gep (i : instr) : llvalue list =
+  let indexes_of_instr_gep (i : instr) : value list =
     let indexes = ref [] in
     for idx = 1 to num_operands i - 1 do
       indexes := !indexes @ [ operand i idx ]
@@ -2310,21 +2350,21 @@ module InstrUtility = struct
 
   (* GetElementPointer/ExtractValue *)
 
-  let src_of_instr_gep_extract_value (i : instr) : llvalue =
+  let src_of_instr_gep_extract_value (i : instr) : value =
     match instr_opcode i with
     | LO.GetElementPtr -> operand i 0
     | LO.ExtractValue -> operand i 0
     | _ -> herror "src_of_instr: not an instr GEP/ExtractValue: " pr_instr i
   ;;
 
-  let dst_of_instr_gep_extract_value (i : instr) : llvalue =
+  let dst_of_instr_gep_extract_value (i : instr) : value =
     match instr_opcode i with
     | LO.GetElementPtr -> llvalue_of_instr i
     | LO.ExtractValue -> llvalue_of_instr i
     | _ -> herror "dst_of_instr: not an instr GEP/ExtractValue: " pr_instr i
   ;;
 
-  let indexes_of_instr_gep_extract_value (i : instr) : llvalue list =
+  let indexes_of_instr_gep_extract_value (i : instr) : value list =
     let indexes = ref [] in
     for idx = 1 to num_operands i - 1 do
       indexes := !indexes @ [ operand i idx ]
@@ -2334,19 +2374,19 @@ module InstrUtility = struct
 
   (* BitCast *)
 
-  let src_of_instr_bitcast (i : instr) : llvalue =
+  let src_of_instr_bitcast (i : instr) : value =
     match instr_opcode i with
     | LO.BitCast -> operand i 0
     | _ -> herror "src_of_instr: not an instr BitCast: " pr_instr i
   ;;
 
-  let dst_of_instr_bitcast (i : instr) : llvalue =
+  let dst_of_instr_bitcast (i : instr) : value =
     match instr_opcode i with
     | LO.BitCast -> llvalue_of_instr i
     | _ -> herror "dst_of_instr: not an instr BitCast: " pr_instr i
   ;;
 
-  let rec get_root_src_of_bitcast (v : llvalue) : llvalue =
+  let rec get_root_src_of_bitcast (v : value) : value =
     match LL.classify_value v with
     | LV.Instruction LO.BitCast -> get_root_src_of_bitcast (LL.operand v 0)
     | _ -> v
@@ -2354,7 +2394,7 @@ module InstrUtility = struct
 
   (* FuncRes *)
 
-  let src_of_instr_return (i : instr) : llvalue =
+  let src_of_instr_return (i : instr) : value =
     match instr_opcode i with
     | LO.Ret -> operand i 0
     | _ -> herror "src_of_instr: not an instr FuncRes: " pr_instr i
@@ -2362,13 +2402,13 @@ module InstrUtility = struct
 
   (* SExt *)
 
-  let src_of_instr_sext (i : instr) : llvalue =
+  let src_of_instr_sext (i : instr) : value =
     match instr_opcode i with
     | LO.SExt -> operand i 0
     | _ -> herror "src_of_instr: not an instr SExt: " pr_instr i
   ;;
 
-  let dst_of_instr_sext (i : instr) : llvalue =
+  let dst_of_instr_sext (i : instr) : value =
     match instr_opcode i with
     | LO.SExt -> llvalue_of_instr i
     | _ -> herror "dst_of_instr: not an instr SExt: " pr_instr i
@@ -2376,13 +2416,13 @@ module InstrUtility = struct
 
   (* ZExt *)
 
-  let src_of_instr_zext (i : instr) : llvalue =
+  let src_of_instr_zext (i : instr) : value =
     match instr_opcode i with
     | LO.ZExt -> operand i 0
     | _ -> herror "src_of_instr: not an instr ZExt: " pr_instr i
   ;;
 
-  let dst_of_instr_zext (i : instr) : llvalue =
+  let dst_of_instr_zext (i : instr) : value =
     match instr_opcode i with
     | LO.ZExt -> llvalue_of_instr i
     | _ -> herror "dst_of_instr: not an instr ZExt: " pr_instr i
@@ -2404,7 +2444,7 @@ module InstrUtility = struct
     | _ -> herror "callee_of: not an instr Call: " pr_instr i
   ;;
 
-  let arg_of_instr_call (i : instr) (idx : int) : llvalue =
+  let arg_of_instr_call (i : instr) (idx : int) : value =
     match instr_opcode i with
     | LO.Call ->
       if idx < num_args_of_instr_call i
@@ -2413,7 +2453,7 @@ module InstrUtility = struct
     | _ -> herror "arg_of: not an instr Call: " pr_instr i
   ;;
 
-  let args_of_instr_call (i : instr) : llvalues =
+  let args_of_instr_call (i : instr) : values =
     match instr_opcode i with
     | LO.Call ->
       let args = ref [] in
@@ -2433,7 +2473,7 @@ module InstrUtility = struct
     | _ -> herror "num_args_of: not an instr CallBr: " pr_instr i
   ;;
 
-  let arg_of_instr_callbr (i : instr) (idx : int) : llvalue =
+  let arg_of_instr_callbr (i : instr) (idx : int) : value =
     match instr_opcode i with
     | LO.CallBr ->
       if idx < num_args_of_instr_call i
@@ -2442,7 +2482,7 @@ module InstrUtility = struct
     | _ -> herror "arg_of: not an instr Call: " pr_instr i
   ;;
 
-  let args_of_instr_callbr (i : instr) : llvalues =
+  let args_of_instr_callbr (i : instr) : values =
     match instr_opcode i with
     | LO.CallBr ->
       let args = ref [] in
@@ -2490,7 +2530,7 @@ module InstrUtility = struct
     | _ -> herror "normal_dest_of: not an instr Invoke: " pr_instr i
   ;;
 
-  let arg_of_instr_invoke (i : instr) (idx : int) : llvalue =
+  let arg_of_instr_invoke (i : instr) (idx : int) : value =
     match instr_opcode i with
     | LO.Invoke ->
       if idx < num_args_of_instr_call i
@@ -2499,7 +2539,7 @@ module InstrUtility = struct
     | _ -> herror "arg_of: not an instr Invoke: " pr_instr i
   ;;
 
-  let args_of_instr_invoke (i : instr) : llvalues =
+  let args_of_instr_invoke (i : instr) : values =
     match instr_opcode i with
     | LO.Invoke ->
       let args = ref [] in
@@ -2531,7 +2571,7 @@ module InstrUtility = struct
       herror "callee_of_instr_func_call: not a callable instr: " pr_instr i
   ;;
 
-  let arg_of_instr_func_app (i : instr) (idx : int) : llvalue =
+  let arg_of_instr_func_app (i : instr) (idx : int) : value =
     match instr_opcode i with
     | LO.Call -> arg_of_instr_call i idx
     | LO.CallBr -> arg_of_instr_callbr i idx
@@ -2539,7 +2579,7 @@ module InstrUtility = struct
     | _ -> herror "arg_of_instr_func_app: not a callable instr: " pr_instr i
   ;;
 
-  let args_of_instr_func_app (i : instr) : llvalues =
+  let args_of_instr_func_app (i : instr) : values =
     match instr_opcode i with
     | LO.Call -> args_of_instr_call i
     | LO.CallBr -> args_of_instr_callbr i
@@ -2547,14 +2587,14 @@ module InstrUtility = struct
     | _ -> herror "args_of_instr_func_app: not a callable instr: " pr_instr i
   ;;
 
-  let get_origin_src_of_memcpy (i : instr) : llvalue =
+  let get_origin_src_of_memcpy (i : instr) : value =
     let callee = callee_of_instr_func_call i in
     if is_func_memcpy callee
     then operand (mk_instr (operand i 0)) 0
     else herror "get_origin_src_of_memcpy: not a memcopy Call: " pr_instr i
   ;;
 
-  let get_origin_dst_of_memcpy (i : instr) : llvalue =
+  let get_origin_dst_of_memcpy (i : instr) : value =
     let callee = callee_of_instr_func_call i in
     if is_func_memcpy callee
     then operand (mk_instr (operand i 1)) 0
@@ -2587,7 +2627,7 @@ module InstrUtility = struct
 
   (* PHI Node *)
 
-  let src_of_instr_phi (i : instr) : llvalues =
+  let src_of_instr_phi (i : instr) : values =
     match instr_opcode i with
     | LO.PHI ->
       let operands = ref [] in
@@ -2598,13 +2638,13 @@ module InstrUtility = struct
     | _ -> herror "operands: not an instr PHI: " pr_instr i
   ;;
 
-  let src_and_origin_of_instr_phi (i : instr) : (llvalue * block) list =
+  let src_and_origin_of_instr_phi (i : instr) : (value * block) list =
     match instr_opcode i with
     | LO.PHI -> LL.incoming (llvalue_of_instr i)
     | _ -> herror "operands: not an instr PHI: " pr_instr i
   ;;
 
-  let dst_of_instr_phi (i : instr) : llvalue =
+  let dst_of_instr_phi (i : instr) : value =
     match instr_opcode i with
     | LO.PHI -> llvalue_of_instr i
     | _ -> herror "dst_of_instr: not an instr PHI: " pr_instr i
@@ -2622,7 +2662,7 @@ module InstrUtility = struct
   ;;
 end
 
-include InstrUtility
+include InstrUtils
 
 (*******************************************************************
  ** operations with blocks
@@ -2630,7 +2670,7 @@ include InstrUtility
 
 (** Module contains utility functions for processing blocks *)
 
-module BlockUtility = struct
+module BlockUtils = struct
   let index_of_block_name (blk : block) : int =
     let bname = block_name blk in
     if String.is_prefix bname ~prefix:"bb"
@@ -2801,14 +2841,14 @@ module BlockUtility = struct
   ;;
 end
 
-include BlockUtility
+include BlockUtils
 
 (*******************************************************************
  ** operations with functions and parameters
  *******************************************************************)
 
 (** Module contains utility functions for processing functions *)
-module FuncUtility = struct
+module FuncUtils = struct
   (* formal parameters *)
   let formal_params_of_func (f : func) : param list =
     let v = llvalue_of_func f in
@@ -2864,7 +2904,7 @@ module FuncUtility = struct
         ~init:[] callables
   ;;
 
-  let get_func_ptr_callees (prog : program) (f : func) : llvalues =
+  let get_func_ptr_callees (prog : program) (f : func) : values =
     match Hashtbl.find prog.prog_func_data.pfd_callees f with
     | None -> []
     | Some callables ->
@@ -2897,7 +2937,7 @@ module FuncUtility = struct
   ;;
 end
 
-include FuncUtility
+include FuncUtils
 
 (*******************************************************************
  ** more utility operations
@@ -2987,13 +3027,13 @@ let find_user_func (prog : program) (fname : string) : func option =
     prog.prog_user_funcs
 ;;
 
-let get_current_funcs_of_pointer (prog : program) (v : llvalue) : funcs =
+let get_current_funcs_of_pointer (prog : program) (v : value) : funcs =
   match Hashtbl.find prog.prog_func_data.pfd_funcs_of_pointer v with
   | None -> []
   | Some funcs -> funcs
 ;;
 
-let update_funcs_of_pointer (prog : program) (v : llvalue) (funcs : funcs) =
+let update_funcs_of_pointer (prog : program) (v : value) (funcs : funcs) =
   let curr_funcs = get_current_funcs_of_pointer prog v in
   let new_funcs = List.concat_dedup curr_funcs funcs ~equal:equal_func in
   let _ = hdebug "update func pointer of: " pr_value v in
@@ -3071,7 +3111,7 @@ let mk_program (filename : string) (modul : llmodule) : program =
  ** more advanced printing
  *******************************************************************)
 
-module PrintProg = struct
+module PrinterProgram = struct
   let pr_loop (l : loop) : string =
     let loop_info =
       [ "Loop: {head: " ^ block_name l.loop_head;
@@ -3186,4 +3226,4 @@ module PrintProg = struct
   ;;
 end
 
-include PrintProg
+include PrinterProgram

@@ -21,8 +21,8 @@ module SP = Set.Poly
 
 module UndefDomain = struct
   type undef =
-    { undef_pointers : llvalues;
-      undef_values : llvalues
+    { undef_pointers : values;
+      undef_values : values
     }
 
   let mk_undef pointers values =
@@ -54,30 +54,30 @@ module UndefDomain = struct
     else List.length ud1.undef_values <= List.length ud2.undef_values
   ;;
 
-  let is_undef_pointer (ud : undef) (v : llvalue) : bool =
+  let is_undef_pointer (ud : undef) (v : value) : bool =
     List.mem ud.undef_pointers v ~equal:equal_llvalue
   ;;
 
-  let is_undef_value (ud : undef) (v : llvalue) : bool =
+  let is_undef_value (ud : undef) (v : value) : bool =
     List.mem ud.undef_values v ~equal:equal_llvalue
   ;;
 
-  let insert_undef_pointer (ud : undef) (v : llvalue) : undef =
+  let insert_undef_pointer (ud : undef) (v : value) : undef =
     let pointers = List.insert_dedup ud.undef_pointers v ~equal:equal_llvalue in
     { ud with undef_pointers = pointers }
   ;;
 
-  let insert_undef_value (ud : undef) (v : llvalue) : undef =
+  let insert_undef_value (ud : undef) (v : value) : undef =
     let values = List.insert_dedup ud.undef_values v ~equal:equal_llvalue in
     { ud with undef_values = values }
   ;;
 
-  let remove_undef_pointer (ud : undef) (v : llvalue) : undef =
+  let remove_undef_pointer (ud : undef) (v : value) : undef =
     let pointers = List.remove ud.undef_pointers v ~equal:equal_llvalue in
     { ud with undef_pointers = pointers }
   ;;
 
-  let remove_undef_value (ud : undef) (v : llvalue) : undef =
+  let remove_undef_value (ud : undef) (v : value) : undef =
     let values = List.remove ud.undef_values v ~equal:equal_llvalue in
     { ud with undef_values = values }
   ;;
@@ -144,7 +144,7 @@ struct
     UD.mk_undef pointers values
   ;;
 
-  let clean_info_of_vars (input : t) (vs : llvalues) : t =
+  let clean_info_of_vars (input : t) (vs : values) : t =
     (* TODO: implement later *)
     input
   ;;
@@ -153,7 +153,7 @@ struct
   let refine_data_by_predicate ?(widen = false) (d : t) (p : predicate) : t = d
   let prepare_entry_func_input (penv : prog_env) func (input : t) : t = input
 
-  let prepare_callee_input penv instr callee (args : llvalues) (input : t) : t =
+  let prepare_callee_input penv instr callee (args : values) (input : t) : t =
     input
   ;;
 
