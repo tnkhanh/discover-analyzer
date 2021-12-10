@@ -5,14 +5,11 @@
  * All rights reserved.
  ********************************************************************)
 
-module LL = Llvm
-module LO = LL.Opcode
-module LV = LL.ValueKind
+open Dcore
 module LT = LL.TypeKind
-
-(*******************************************************************
- ** primitive printers of LLVM data structures
- *******************************************************************)
+module LV = LL.ValueKind
+module LO = LL.Opcode
+module SP = Set.Poly
 
 module PrinterPrimitives = struct
   let pr_opcode (op : LO.t) =
@@ -165,4 +162,5 @@ module PrinterPrimitives = struct
     | LL.Fcmp.Une -> "!="
     | LL.Fcmp.True -> "True"
   ;;
+
 end

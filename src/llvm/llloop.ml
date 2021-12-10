@@ -7,6 +7,7 @@
 
 open Dcore
 open Llir
+open Llprogram.Loop
 module LL = Llvm
 module LG = Llcallgraph
 module BG = BlockGraph
