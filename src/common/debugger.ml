@@ -5,7 +5,6 @@
  * All rights reserved.
  ********************************************************************)
 
-
 (* Printer module *)
 open Core
 open Libstring
@@ -147,7 +146,6 @@ let debug
   let prefix = if ruler != `None then "" else if marker then "" else "\n" in
   debug_core ~header ~ruler ~indent ~enable ~prefix (fun () -> msg)
 ;;
-
 
 (*** deep debugging printers ***)
 

@@ -5,8 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-module Entails :
-sig
+module Entails : sig
   val dump_data_defn : Slir.data_defn -> string
   val dump_view_defn : Slir.view_defn -> string
   val dump_func_defn : Slir.func_defn -> string

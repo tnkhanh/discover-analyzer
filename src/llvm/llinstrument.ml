@@ -160,7 +160,7 @@ let apply_annotation
     (anntyp : annot_type)
     (instr : tagged_instr)
     (bugs : BG.bug_types)
-    (modul : llmodule)
+    (modul : bitcode_module)
   =
   match instr.tagx_instr with
   | Instr inx ->

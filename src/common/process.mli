@@ -15,7 +15,6 @@ type process =
   }
 
 val pid_dummy : int
-
 val mk_proc_dummy : string list -> process
 
 (*** Handle input/output *)

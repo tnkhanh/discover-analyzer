@@ -6,5 +6,4 @@
  ********************************************************************)
 
 val pr_file_excerpt : string -> int -> int -> int -> int -> string
-
 val pr_file_position_and_excerpt : Global.position -> string

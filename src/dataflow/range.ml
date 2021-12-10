@@ -1056,8 +1056,7 @@ struct
           BInt.ge vlb (BInt.of_int64 lb)))
   ;;
 
-  let check_upper_bound (fenv : func_env) instr (v : value) (ub : int64)
-      : bool
+  let check_upper_bound (fenv : func_env) instr (v : value) (ub : int64) : bool
     =
     match get_instr_output fenv instr with
     | None -> false

@@ -10,7 +10,6 @@
 open Core
 open Global
 open Libstring
-
 module FM = CamlinternalFormat
 module FB = CamlinternalFormatBasics
 
@@ -249,13 +248,12 @@ let nprint _ = ()
 let nprintln _ = ()
 let nhprint _ _ = ()
 
-
 (*******************************************************************
  ** Warning printing
  *******************************************************************)
 
 (** Print a warning message *)
-let warning (msg: string) : unit =
+let warning (msg : string) : unit =
   let msg = "[warning] " ^ msg in
   if not !print_concise_output then prerr_endline msg
 ;;
@@ -311,7 +309,6 @@ let errorf ?(log = "") fmt =
       FM.End_of_acc fmt in
   keprintf ignore stdout fmt
 ;;
-
 
 (*******************************************************************
  ** Override default printing function to throw some warning

@@ -376,14 +376,7 @@ module type ForwardDataTransfer = sig
   val is_data_satisfied_predicate : t -> predicate -> bool
   val refine_data_by_predicate : ?widen:bool -> t -> predicate -> t
   val prepare_entry_func_input : prog_env -> func -> t -> t
-
-  val prepare_callee_input
-    :  prog_env ->
-    instr ->
-    func ->
-    value list ->
-    t ->
-    t
+  val prepare_callee_input : prog_env -> instr -> func -> value list -> t -> t
 
   val compute_callee_output_exns
     :  prog_env ->
@@ -931,9 +924,9 @@ functor
           None)
         else Some () in
       let _ =
-        iter_struct_program ~fglobal:(Some visit_global) ~ffunc:(Some visit_func)
-          ~fparam:(Some visit_param) ~fblock:(Some visit_block)
-          ~finstr:(Some visit_instr) prog in
+        iter_struct_program ~fglobal:(Some visit_global)
+          ~ffunc:(Some visit_func) ~fparam:(Some visit_param)
+          ~fblock:(Some visit_block) ~finstr:(Some visit_instr) prog in
       let stats =
         "\nSparse Pointer Statistics:\n"
         ^ sprintf "  #Sparse User funcs: %d\n" !num_user_funcs
@@ -1317,8 +1310,8 @@ functor
                 raise (EBool false)
               | Some _ -> ()) in
           let _ =
-            iter_struct_func ~fblock:(Some visit_block) ~finstr:(Some visit_instr)
-              func in
+            iter_struct_func ~fblock:(Some visit_block)
+              ~finstr:(Some visit_instr) func in
           true
         with EBool res -> res in
       let _ = hdebug ~always:true " - Env completed: " pr_bool env_completed in
@@ -1904,7 +1897,7 @@ functor
               | Some tinfo ->
                 let exns =
                   List.filter
-                    ~f:(fun e -> equal_llvalue tinfo e.exn_type_info)
+                    ~f:(fun e -> equal_value tinfo e.exn_type_info)
                     exns in
                 Some (List.hd_exn exns)) in
           let res =

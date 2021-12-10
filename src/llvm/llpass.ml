@@ -55,7 +55,7 @@ let compute_func_call_info (prog : program) : unit =
       else (
         let fpcallees = get_func_ptr_callees prog caller in
         let fpcallees =
-          List.insert_dedup fpcallees vcallee ~equal:equal_llvalue in
+          List.insert_dedup fpcallees vcallee ~equal:equal_value in
         let callees = List.map ~f:mk_callable_func_pointer fpcallees in
         Hashtbl.set pfd.pfd_callees ~key:caller ~data:callees)
     | _ -> () in

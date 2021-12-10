@@ -26,13 +26,7 @@ type assertion =
 val pr_predicateicate : predicate -> string
 val pr_assertion : assertion -> string
 val pr_assertion_status : Llir.func -> assertion -> bool -> string
-
-val mk_assertion
-  :  assertion_type ->
-  predicate ->
-  Llir.instr ->
-  assertion
-
+val mk_assertion : assertion_type -> predicate -> Llir.instr -> assertion
 val mk_assert : predicate -> Llir.instr -> assertion
 val mk_refute : predicate -> Llir.instr -> assertion
 val find_alias_assertions : Llir.func -> assertion list

@@ -112,7 +112,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
       | [], [] -> true
       | [], _ | _, [] -> false
       | (xv, xr) :: nxs, (yv, yr) :: nys ->
-        if equal_llvalue xv yv && SD.lequal_size xr yr
+        if equal_value xv yv && SD.lequal_size xr yr
         then leq nxs nys
         else false in
     leq a b

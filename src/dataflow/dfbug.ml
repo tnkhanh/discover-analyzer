@@ -123,10 +123,11 @@ let find_bug_integer_underflow (pdata : program_data) : bugs =
  *-------------------*)
 
 let check_bug_division_by_zero (pdata : program_data) (pbug : potential_bug)
-  : bug option
+    : bug option
   =
   (* TODO: @Khanh: implement from here *)
   None
+;;
 
 let find_bug_division_by_zero (pdata : program_data) : bugs =
   if !bug_all || !bug_integer_all || !bug_divizion_by_zero

@@ -160,7 +160,7 @@ let elim_instr_load_of_const (modul : LL.llmodule) : unit =
             let vload = llvalue_of_instr instr_load in
             let visit_instr instr =
               for i = 0 to num_operands instr do
-                if equal_llvalue vload (operand instr i)
+                if equal_value vload (operand instr i)
                 then set_operand instr i replacer
               done in
             let _ = iter_struct_func ~finstr:(Some visit_instr) func in
@@ -204,7 +204,7 @@ let elim_instr_sext_integer (modul : LL.llmodule) : unit =
             let vsext = llvalue_of_instr instr_sext in
             let visit_instr instr =
               for i = 0 to num_operands instr do
-                if equal_llvalue vsext (operand instr i)
+                if equal_value vsext (operand instr i)
                 then set_operand instr i replacer
               done in
             let _ = iter_struct_func ~finstr:(Some visit_instr) func in

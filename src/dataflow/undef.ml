@@ -38,10 +38,9 @@ module UndefDomain = struct
 
   let equal_undef (ud1 : undef) (ud2 : undef) : bool =
     List.length ud1.undef_pointers = List.length ud2.undef_pointers
-    && List.is_subset ud1.undef_pointers ud2.undef_pointers
-         ~equal:equal_llvalue
+    && List.is_subset ud1.undef_pointers ud2.undef_pointers ~equal:equal_value
     && List.length ud1.undef_pointers = List.length ud2.undef_pointers
-    && List.is_subset ud1.undef_values ud2.undef_values ~equal:equal_llvalue
+    && List.is_subset ud1.undef_values ud2.undef_values ~equal:equal_value
   ;;
 
   let lequal_undef (ud1 : undef) (ud2 : undef) : bool =
@@ -55,30 +54,30 @@ module UndefDomain = struct
   ;;
 
   let is_undef_pointer (ud : undef) (v : value) : bool =
-    List.mem ud.undef_pointers v ~equal:equal_llvalue
+    List.mem ud.undef_pointers v ~equal:equal_value
   ;;
 
   let is_undef_value (ud : undef) (v : value) : bool =
-    List.mem ud.undef_values v ~equal:equal_llvalue
+    List.mem ud.undef_values v ~equal:equal_value
   ;;
 
   let insert_undef_pointer (ud : undef) (v : value) : undef =
-    let pointers = List.insert_dedup ud.undef_pointers v ~equal:equal_llvalue in
+    let pointers = List.insert_dedup ud.undef_pointers v ~equal:equal_value in
     { ud with undef_pointers = pointers }
   ;;
 
   let insert_undef_value (ud : undef) (v : value) : undef =
-    let values = List.insert_dedup ud.undef_values v ~equal:equal_llvalue in
+    let values = List.insert_dedup ud.undef_values v ~equal:equal_value in
     { ud with undef_values = values }
   ;;
 
   let remove_undef_pointer (ud : undef) (v : value) : undef =
-    let pointers = List.remove ud.undef_pointers v ~equal:equal_llvalue in
+    let pointers = List.remove ud.undef_pointers v ~equal:equal_value in
     { ud with undef_pointers = pointers }
   ;;
 
   let remove_undef_value (ud : undef) (v : value) : undef =
-    let values = List.remove ud.undef_values v ~equal:equal_llvalue in
+    let values = List.remove ud.undef_values v ~equal:equal_value in
     { ud with undef_values = values }
   ;;
 end
@@ -125,7 +124,7 @@ struct
   let lequal_data (a : t) (b : t) : bool = UD.lequal_undef a b
 
   let merge_data ?(widen = false) (a : t) (b : t) : t =
-    let equal = equal_llvalue in
+    let equal = equal_value in
     let pointers = List.concat_dedup a.undef_pointers b.undef_pointers ~equal in
     let values = List.concat_dedup a.undef_values b.undef_pointers ~equal in
     UD.mk_undef pointers values

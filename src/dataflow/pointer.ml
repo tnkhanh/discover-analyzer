@@ -102,7 +102,7 @@ module PointerGraph = struct
     | Alias (p1, _), Alias (p2, _) -> equal_precision p1 p2
     | Pto d1, Pto d2 -> equal_direction d1 d2
     | GEP (t1, idxs1, d1), GEP (t2, idxs2, d2) ->
-      equal_lltype t1 t2
+      equal_type t1 t2
       && List.equal equal_expr idxs1 idxs2
       && equal_direction d1 d2
     | Seq (lbls1, p1, _), Seq (lbls2, p2, _) ->
@@ -584,7 +584,7 @@ module PointerGraph = struct
     List.exists
       ~f:(fun instr ->
         match instr_opcode instr with
-        | LO.Store -> equal_llvalue (dst_of_instr_store instr) v
+        | LO.Store -> equal_value (dst_of_instr_store instr) v
         | _ -> false)
       instrs
   ;;
@@ -594,8 +594,8 @@ module PointerGraph = struct
     List.exists
       ~f:(fun instr ->
         match instr_opcode instr with
-        | LO.Store -> equal_llvalue (dst_of_instr_store instr) v
-        | LO.Load -> equal_llvalue (src_of_instr_load instr) v
+        | LO.Store -> equal_value (dst_of_instr_store instr) v
+        | LO.Load -> equal_value (src_of_instr_load instr) v
         | _ -> false)
       instrs
   ;;
@@ -1043,8 +1043,13 @@ module PointerDomain = struct
 
   type vpair = PV.t * PV.t (* vertex pair *)
 
-  let must_alias_cache : (expr, exprs) Hashtbl.t = Hashtbl.create (module ExprKey)
-  let may_alias_cache : (expr, exprs) Hashtbl.t = Hashtbl.create (module ExprKey)
+  let must_alias_cache : (expr, exprs) Hashtbl.t =
+    Hashtbl.create (module ExprKey)
+  ;;
+
+  let may_alias_cache : (expr, exprs) Hashtbl.t =
+    Hashtbl.create (module ExprKey)
+  ;;
 
   (* printing *)
 
@@ -1980,8 +1985,7 @@ module PointerDomain = struct
       g []
   ;;
 
-  let find_funcs_of_pointer (prog : program) (g : pgraph) (ptr : value)
-      : funcs
+  let find_funcs_of_pointer (prog : program) (g : pgraph) (ptr : value) : funcs
     =
     let curr_funcs = get_current_funcs_of_pointer prog ptr in
     let _ = hdebug "Finding functions pointed by: " pr_value ptr in
@@ -2966,8 +2970,7 @@ struct
             is_func_memcpy;
             is_func_memmove;
             is_func_clang_call_terminate;
-            is_func_dynamic_cast
-            (* is_func_handling_exception *)
+            is_func_dynamic_cast (* is_func_handling_exception *)
           ] in
         List.exists ~f:(fun f -> f func) candidate_funcs in
       is_func_pointer callee

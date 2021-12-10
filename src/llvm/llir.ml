@@ -12,15 +12,6 @@ module LO = LL.Opcode
 module SP = Set.Poly
 include Llprinter.PrinterPrimitives
 
-(*******************************************************************
- ** Alias to existing data structures of LLVM
- *******************************************************************)
-
-type lluse = LL.lluse
-type llmodule = LL.llmodule
-type llicmp = LL.Icmp.t
-type llfcmp = LL.Fcmp.t
-type llmodules = llmodule list
 
 (*******************************************************************
  ** Structured types to wrap the default LLVM data structure
@@ -34,33 +25,42 @@ type value = LL.llvalue
 (** Data type of [value]. *)
 type datatype = LL.lltype
 
-(* function *)
+(** A [use] represents a user or a usee of a value *)
+type use = LL.lluse
+
+(** Comparison predicate for integer types *)
+type icompare = LL.Icmp.t
+
+(** Comparison predicate for floating-point types *)
+type fcompare = LL.Fcmp.t
+
+(** Global variable *)
+type global = Global of value
+
+(** Constant value *)
+type const = Constant of value
+
+(** Instruction of programs *)
+type instr = Instr of value
+
+(** Basic block of functions *)
+type block = LL.llbasicblock
+
+(** Formal parameter of functions *)
+type param = Param of value
+
+(** Function in programs *)
 type func = Func of value
 
-(* callable: a callable is a function or a function pointer *)
+(** A [callable] is a function or a function pointer *)
 type callable =
   | ClFunc of func
   | ClFPtr of value
 
-(* basic block *)
-type block = LL.llbasicblock
+(** Bitcode module of a program *)
+type bitcode_module = LL.llmodule
 
-(* formal parameter of function *)
-type param = Param of value
-
-(* instruction *)
-type instr = Instr of value
-
-(* global variable *)
-type global = Global of value
-
-(* constant expression *)
-type const = Constant of value
-
-(* users and usees of value *)
-type use = lluse
-
-(* expression *)
+(** Expression *)
 type expr =
   | Undef of datatype
   | Int64 of int64
@@ -73,6 +73,7 @@ type expr =
   | Malloc of expr (* allocation *)
   | FuncRes of func (* returned value of a function *)
   | Exn of expr
+
 
 type values = value list
 type datatypes = datatype list
@@ -92,8 +93,8 @@ type exprs = expr list
 
 type predicate =
   | PBool of bool
-  | PIcmp of (llicmp * value * value)
-  | PFcmp of (llfcmp * value * value)
+  | PIcmp of (icompare * value * value)
+  | PFcmp of (fcompare * value * value)
   | PNeg of predicate
   | PConj of predicate list
   | PDisj of predicate list
@@ -354,23 +355,20 @@ type program_meta_data =
 
 type program =
   { prog_globals : global list;
-    prog_struct_types : datatype list;
-    (* program functions  *)
-    prog_all_funcs : func list;
-    (* TODO: what are better names for prog_lib_no_source_funcs and
-       prog_lib_has_source_funcs? *)
-    prog_lib_no_source_funcs : func list;
-    prog_lib_has_source_funcs : func list;
-    prog_discover_funcs : func list;
-    prog_init_funcs : func list;
-    prog_user_funcs : func list;
-    prog_entry_funcs : func list;
+    prog_struct_types : datatype list; (* data structures in function *)
+    prog_all_funcs : func list; (* All functions of a program *)
+    prog_lib_no_source_funcs : func list; (* Libraries, won't be analyzed *)
+    prog_lib_has_source_funcs : func list; (* Libraries, may be analyzed *)
+    prog_discover_funcs : func list; (* Built-in functions of Discover *)
+    prog_init_funcs : func list; (* Initialization Functions *)
+    prog_user_funcs : func list; (* User code which will be analyzed *)
+    prog_entry_funcs : func list; (* Entry point of program *)
     (* program data *)
     prog_block_data : program_block_data;
     prog_loop_data : program_loop_data;
     prog_func_data : program_func_data;
     prog_meta_data : program_meta_data;
-    prog_module_data : llmodule
+    prog_module_data : bitcode_module
   }
 
 exception Llvm_invalid_instr of string
@@ -487,9 +485,7 @@ let llvalue_of_param (p : param) : value =
   | Param v -> v
 ;;
 
-let llvalues_of_params (ps : params) : values =
-  List.map ~f:llvalue_of_param ps
-;;
+let llvalues_of_params (ps : params) : values = List.map ~f:llvalue_of_param ps
 
 (* expression *)
 
@@ -538,38 +534,37 @@ let elemptr_of_global (g : global) (idxs : expr list) =
  *******************************************************************)
 
 module Equal = struct
-  let equal_llvalue (v1 : value) (v2 : value) : bool = v1 == v2
-  let equal_lltype (t1 : datatype) (t2 : datatype) : bool = t1 == t2
-  let equal_llblock (b1 : block) (b2 : block) = b1 == b2
-  let equal_llicmp (c1 : llicmp) (c2 : llicmp) : bool = c1 == c2
-  let equal_llfcmp (c1 : llfcmp) (c2 : llfcmp) : bool = c1 == c2
-  let equal_type (t1 : datatype) (t2 : datatype) = equal_lltype t1 t2
+  let equal_value (v1 : value) (v2 : value) : bool = v1 == v2
+  let equal_type (t1 : datatype) (t2 : datatype) : bool = t1 == t2
+  let equal_icompare (c1 : icompare) (c2 : icompare) : bool = c1 == c2
+  let equal_fcompare (c1 : fcompare) (c2 : fcompare) : bool = c1 == c2
+  let equal_type (t1 : datatype) (t2 : datatype) = equal_type t1 t2
 
   let equal_func (f1 : func) (f2 : func) : bool =
     match f1, f2 with
-    | Func v1, Func v2 -> equal_llvalue v1 v2
+    | Func v1, Func v2 -> equal_value v1 v2
   ;;
 
   let equal_param (p1 : param) (p2 : param) : bool =
     match p1, p2 with
-    | Param v1, Param v2 -> equal_llvalue v1 v2
+    | Param v1, Param v2 -> equal_value v1 v2
   ;;
 
   let equal_global (g1 : global) (g2 : global) : bool =
     match g1, g2 with
-    | Global v1, Global v2 -> equal_llvalue v1 v2
+    | Global v1, Global v2 -> equal_value v1 v2
   ;;
 
   let equal_instr (i1 : instr) (i2 : instr) : bool =
     match i1, i2 with
-    | Instr v1, Instr v2 -> equal_llvalue v1 v2
+    | Instr v1, Instr v2 -> equal_value v1 v2
   ;;
 
-  let equal_block (b1 : block) (b2 : block) : bool = equal_llblock b1 b2
+  let equal_block (b1 : block) (b2 : block) : bool = b1 == b2
 
   let equal_const (c1 : const) (c2 : const) : bool =
     match c1, c2 with
-    | Constant v1, Constant v2 -> equal_llvalue v1 v2
+    | Constant v1, Constant v2 -> equal_value v1 v2
   ;;
 end
 
@@ -727,12 +722,12 @@ module IterLinear = struct
     LL.iter_params ff (llvalue_of_func func)
   ;;
 
-  let iter_globals ~(f : global -> unit) (m : llmodule) : unit =
+  let iter_globals ~(f : global -> unit) (m : bitcode_module) : unit =
     let ff v = f (mk_global v) in
     LL.iter_globals ff m
   ;;
 
-  let iter_functions ~(f : func -> unit) (m : llmodule) : unit =
+  let iter_functions ~(f : func -> unit) (m : bitcode_module) : unit =
     let ff v = f (mk_func v) in
     LL.iter_functions ff m
   ;;
@@ -756,12 +751,12 @@ module MapLinear = struct
     LL.fold_left_params ff [] (llvalue_of_func func)
   ;;
 
-  let map_globals ~(f : global -> 'a) (m : llmodule) : 'a list =
+  let map_globals ~(f : global -> 'a) (m : bitcode_module) : 'a list =
     let ff acc v = acc @ [ f (mk_global v) ] in
     LL.fold_left_globals ff [] m
   ;;
 
-  let map_functions ~(f : func -> 'a) (m : llmodule) : 'a list =
+  let map_functions ~(f : func -> 'a) (m : bitcode_module) : 'a list =
     let ff acc v = acc @ [ f (mk_func v) ] in
     LL.fold_left_functions ff [] m
   ;;
@@ -787,14 +782,14 @@ module FoldLinear = struct
     LL.fold_left_params ff init (llvalue_of_func func)
   ;;
 
-  let fold_left_globals ~(f : 'a -> global -> 'a) ~(init : 'a) (m : llmodule)
+  let fold_left_globals ~(f : 'a -> global -> 'a) ~(init : 'a) (m : bitcode_module)
       : 'a
     =
     let ff acc v = f acc (mk_global v) in
     LL.fold_left_globals ff init m
   ;;
 
-  let fold_left_functions ~(f : 'a -> func -> 'a) ~(init : 'a) (m : llmodule)
+  let fold_left_functions ~(f : 'a -> func -> 'a) ~(init : 'a) (m : bitcode_module)
       : 'a
     =
     let ff acc v = f acc (mk_func v) in
@@ -819,12 +814,12 @@ module ExistLinear = struct
     LL.iter_params ff (llvalue_of_func func)
   ;;
 
-  let iter_globals ~(f : global -> unit) (m : llmodule) : unit =
+  let iter_globals ~(f : global -> unit) (m : bitcode_module) : unit =
     let ff v = f (mk_global v) in
     LL.iter_globals ff m
   ;;
 
-  let iter_functions ~(f : func -> unit) (m : llmodule) : unit =
+  let iter_functions ~(f : func -> unit) (m : bitcode_module) : unit =
     let ff v = f (mk_func v) in
     LL.iter_functions ff m
   ;;
@@ -914,7 +909,7 @@ module IterStructure = struct
       ?(fparam : (param -> unit) option = None)
       ?(fblock : (block -> unit option) option = None)
       ?(finstr : (instr -> unit) option = None)
-      (m : llmodule)
+      (m : bitcode_module)
       : unit
     =
     LL.iter_globals (fun g -> iter_struct_global ~fglobal (mk_global g)) m;
@@ -1025,7 +1020,7 @@ module FoldStructure = struct
       ?(fblock : ('a -> block -> 'a option) option = None)
       ?(finstr : ('a -> instr -> 'a) option = None)
       (acc : 'a)
-      (m : llmodule)
+      (m : bitcode_module)
       : 'a
     =
     let res =
@@ -1209,7 +1204,7 @@ include Lltype
 
 (** Module contains operations over value *)
 module Llvalue = struct
-  let equal_value (v1 : value) (v2 : value) : bool = equal_llvalue v1 v2
+  let equal_value (v1 : value) (v2 : value) : bool = equal_value v1 v2
 
   let is_llvalue_empty_name (v : value) : bool =
     String.is_empty (LL.value_name v)
@@ -1327,7 +1322,7 @@ let equal_pred_simple (p1 : predicate) (p2 : predicate) =
   match p1, p2 with
   | PBool b1, PBool b2 -> b1 == b2
   | PIcmp (cmp1, lhs1, rhs1), PIcmp (cmp2, lhs2, rhs2) ->
-    cmp1 == cmp2 && equal_llvalue lhs1 lhs2 && equal_llvalue rhs1 rhs2
+    cmp1 == cmp2 && equal_value lhs1 lhs2 && equal_value rhs1 rhs2
   | _ -> false
 ;;
 
@@ -1620,36 +1615,36 @@ module Func = struct
       ~init:[] f
   ;;
 
-  let get_all_funcs (m : llmodule) =
+  let get_all_funcs (m : bitcode_module) =
     fold_left_functions ~f:(fun acc f -> acc @ [ f ]) ~init:[] m
   ;;
 
-  let get_lib_no_source_funcs (m : llmodule) =
+  let get_lib_no_source_funcs (m : bitcode_module) =
     fold_left_functions
       ~f:(fun acc f -> if is_lib_no_source_func f then acc @ [ f ] else acc)
       ~init:[] m
   ;;
 
-  let get_lib_has_source_funcs (m : llmodule) =
+  let get_lib_has_source_funcs (m : bitcode_module) =
     fold_left_functions
       ~f:(fun acc f -> if is_lib_has_source_func f then acc @ [ f ] else acc)
       ~init:[] m
   ;;
 
-  let get_user_funcs (m : llmodule) =
+  let get_user_funcs (m : bitcode_module) =
     fold_left_functions
       ~f:(fun acc f -> if is_user_func f then acc @ [ f ] else acc)
       ~init:[] m
   ;;
 
-  let get_discover_funcs (m : llmodule) =
+  let get_discover_funcs (m : bitcode_module) =
     fold_left_functions
       ~f:(fun acc f ->
         if is_discover_assertion_func f then acc @ [ f ] else acc)
       ~init:[] m
   ;;
 
-  let get_init_funcs (m : llmodule) =
+  let get_init_funcs (m : bitcode_module) =
     fold_left_functions
       ~f:(fun acc f -> if is_init_func f then acc @ [ f ] else acc)
       ~init:[] m
@@ -1722,7 +1717,7 @@ include Loop
 module Expr = struct
   let rec equal_expr (e1 : expr) (e2 : expr) : bool =
     match e1, e2 with
-    | Undef t1, Undef t2 -> equal_lltype t1 t2
+    | Undef t1, Undef t2 -> equal_type t1 t2
     | Undef _, _ -> false
     | Int64 i1, Int64 i2 -> Int64.equal i1 i2
     | Int64 _, _ -> false
@@ -1730,14 +1725,14 @@ module Expr = struct
     | Float _, _ -> false
     | String s1, String s2 -> String.equal s1 s2
     | String _, _ -> false
-    | Var v1, Var v2 -> equal_llvalue v1 v2
+    | Var v1, Var v2 -> equal_value v1 v2
     | Var _, _ -> false
     | OldE e1, OldE e2 -> equal_expr e1 e2
     | OldE _, _ -> false
     | Deref e1, Deref e2 -> equal_expr e1 e2
     | Deref _, _ -> false
     | ElemPtr (e1, t1, es1), ElemPtr (e2, t2, es2) ->
-      equal_expr e1 e2 && equal_lltype t1 t2 && List.equal equal_expr es1 es2
+      equal_expr e1 e2 && equal_type t1 t2 && List.equal equal_expr es1 es2
     | ElemPtr _, _ -> false
     | Malloc e1, Malloc e2 -> equal_expr e1 e2
     | Malloc _, _ -> false
@@ -1894,7 +1889,7 @@ module Substitution = struct
   let init_subste () : subste = []
 
   let extend_substv (sst : substv) oldv newv : substv =
-    if List.exists ~f:(fun (a, _) -> equal_llvalue oldv a) sst
+    if List.exists ~f:(fun (a, _) -> equal_value oldv a) sst
     then sst
     else (oldv, newv) :: sst
   ;;
@@ -1906,7 +1901,7 @@ module Substitution = struct
   ;;
 
   let extend_substve (sst : substve) oldv newe : substve =
-    if List.exists ~f:(fun (a, _) -> equal_llvalue oldv a) sst
+    if List.exists ~f:(fun (a, _) -> equal_value oldv a) sst
     then sst
     else (oldv, newe) :: sst
   ;;
@@ -1936,14 +1931,14 @@ module Substitution = struct
   ;;
 
   let subst_value (sst : substv) (v : value) : value =
-    let res = List.find ~f:(fun (a, b) -> equal_llvalue a v) sst in
+    let res = List.find ~f:(fun (a, b) -> equal_value a v) sst in
     match res with
     | Some (_, b) -> b
     | None -> v
   ;;
 
   let subst_value_expr (sst : substve) (v : value) : expr =
-    let res = List.find ~f:(fun (a, b) -> equal_llvalue a v) sst in
+    let res = List.find ~f:(fun (a, b) -> equal_value a v) sst in
     match res with
     | Some (_, b) -> b
     | None -> Var v
@@ -2009,7 +2004,7 @@ module ValueUtils = struct
     let rec collect e acc =
       match e with
       | Undef _ | Int64 _ | Float _ | String _ -> acc
-      | Var v -> List.insert_dedup acc v ~equal:equal_llvalue
+      | Var v -> List.insert_dedup acc v ~equal:equal_value
       | OldE e -> collect e acc
       | Deref e -> collect e acc
       | ElemPtr (root, _, idxs) ->
@@ -2017,13 +2012,13 @@ module ValueUtils = struct
         List.fold ~f:(fun acc2 e -> collect e acc2) ~init:acc1 idxs
       | Malloc e -> collect e acc
       | FuncRes f ->
-        List.insert_dedup acc (llvalue_of_func f) ~equal:equal_llvalue
+        List.insert_dedup acc (llvalue_of_func f) ~equal:equal_value
       | Exn e -> collect e acc in
     collect e []
   ;;
 
   let collect_llvalue_of_predicate (p : predicate) : values =
-    let equal = equal_llvalue in
+    let equal = equal_value in
     let rec collect p =
       match p with
       | PBool _ -> []
@@ -2041,17 +2036,15 @@ end
 include ValueUtils
 
 (*******************************************************************
- ** operations with lluse
+ ** operations with use
  *******************************************************************)
 
 (** Module contains utility functions to process LLVM Use *)
 
 module UseUtils = struct
-  let num_uses (v : value) : int =
-    LL.fold_left_uses (fun acc _ -> acc + 1) 0 v
-  ;;
+  let num_uses (v : value) : int = LL.fold_left_uses (fun acc _ -> acc + 1) 0 v
 
-  let get_uses (v : value) : lluse list =
+  let get_uses (v : value) : use list =
     LL.fold_left_uses (fun acc u -> acc @ [ u ]) [] v
   ;;
 
@@ -2208,7 +2201,7 @@ include PathCondition
 (** Module contains utility functions to process types *)
 
 module TypeUtils = struct
-  let get_struct_types (m : llmodule) : datatype list =
+  let get_struct_types (m : bitcode_module) : datatype list =
     let all_stypes = ref Set.Poly.empty in
     let rec collect_struct_type typ =
       if is_type_struct typ
@@ -3045,7 +3038,7 @@ let update_funcs_of_pointer (prog : program) (v : value) (funcs : funcs) =
  ** constructors of program
  *******************************************************************)
 
-let mk_program_meta_data (filename : string) (modul : llmodule)
+let mk_program_meta_data (filename : string) (modul : bitcode_module)
     : program_meta_data
   =
   { pmd_bitcode_filename = filename;
@@ -3057,7 +3050,7 @@ let mk_program_meta_data (filename : string) (modul : llmodule)
   }
 ;;
 
-let mk_program_func_data (modul : llmodule) : program_func_data =
+let mk_program_func_data (modul : bitcode_module) : program_func_data =
   { pfd_return_instr = Hashtbl.create (module FuncKey);
     pfd_callers = Hashtbl.create (module FuncKey);
     pfd_callees = Hashtbl.create (module FuncKey);
@@ -3071,7 +3064,7 @@ let mk_program_func_data (modul : llmodule) : program_func_data =
   }
 ;;
 
-let mk_program_loop_data (modul : llmodule) : program_loop_data =
+let mk_program_loop_data (modul : bitcode_module) : program_loop_data =
   { pld_loop_updated_instr = Hashtbl.create (module InstrKey);
     pld_loop_head_instr = Hashtbl.create (module InstrKey);
     pld_innermost_loop_containing_block = Hashtbl.create (module BlockKey);
@@ -3079,7 +3072,7 @@ let mk_program_loop_data (modul : llmodule) : program_loop_data =
   }
 ;;
 
-let mk_program_block_data (modul : llmodule) : program_block_data =
+let mk_program_block_data (modul : bitcode_module) : program_block_data =
   { pbd_preceding_blocks = Hashtbl.create (module BlockKey);
     pbd_succeeding_blocks = Hashtbl.create (module BlockKey);
     pbd_incoming_pathcond = Hashtbl.create (module BlockKey);
@@ -3087,7 +3080,7 @@ let mk_program_block_data (modul : llmodule) : program_block_data =
   }
 ;;
 
-let mk_program (filename : string) (modul : llmodule) : program =
+let mk_program (filename : string) (modul : bitcode_module) : program =
   let globals =
     LL.fold_left_globals (fun acc g -> acc @ [ mk_global g ]) [] modul in
   { prog_globals = globals;
@@ -3145,7 +3138,7 @@ module PrinterProgram = struct
     fname ^ "\n" ^ sblks
   ;;
 
-  let pr_module (m : llmodule) : string = LL.string_of_llmodule m
+  let pr_module (m : bitcode_module) : string = LL.string_of_llmodule m
 
   let pr_program (prog : program) : string =
     let sglobals =

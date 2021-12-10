@@ -15,7 +15,6 @@ module LT = LL.TypeKind
  *******************************************************************)
 
 module PrinterPrimitives = struct
-
   let pr_opcode (op : LO.t) =
     match op with
     | LO.Invalid -> "Invalid"
@@ -166,5 +165,4 @@ module PrinterPrimitives = struct
     | LL.Fcmp.Une -> "!="
     | LL.Fcmp.True -> "True"
   ;;
-
 end
