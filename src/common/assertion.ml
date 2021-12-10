@@ -8,7 +8,6 @@
 open Dcore
 open Llir
 module LL = Llvm
-module LD = Lldebug
 module LO = Llvm.Opcode
 
 (*******************************************************************
@@ -61,7 +60,7 @@ let pr_assertion_status (func : func) (ast : assertion) (status : bool) =
       let args = args_of_instr_func_app instr in
       asname ^ "(" ^ pr_args ~f:pr_value args ^ ")" in
   let location =
-    match LD.position_of_instr instr with
+    match position_of_instr instr with
     | None -> "Function: " ^ fname
     | Some l ->
       ("File: " ^ l.pos_file_name ^ ", ")

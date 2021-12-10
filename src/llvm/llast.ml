@@ -369,7 +369,7 @@ module AST = struct
       prog_loop_data : program_loop_data;
       prog_func_data : program_func_data;
       prog_meta_data : program_meta_data;
-      prog_module_data : bitcode_module
+      prog_bitcode_module : bitcode_module
     }
 end
 
@@ -1393,14 +1393,111 @@ end
 include Expr
 
 (*******************************************************************
- * Predicates
+ * Path
  *******************************************************************)
 
-module Predicate = struct
+module Path = struct
   (*** Comparisons ***)
 
   let equal_icompare (c1 : icompare) (c2 : icompare) : bool = c1 == c2
   let equal_fcompare (c1 : fcompare) (c2 : fcompare) : bool = c1 == c2
+
+  (*** Queries ***)
+
+  let is_pred_true (p : predicate) : bool =
+    match p with
+    | PBool true -> true
+    | _ -> false
+  ;;
+
+  let is_pred_false (p : predicate) : bool =
+    match p with
+    | PBool false -> true
+    | _ -> false
+  ;;
+
+  let equal_pred_simple (p1 : predicate) (p2 : predicate) =
+    match p1, p2 with
+    | PBool b1, PBool b2 -> b1 == b2
+    | PIcmp (cmp1, lhs1, rhs1), PIcmp (cmp2, lhs2, rhs2) ->
+      cmp1 == cmp2 && equal_value lhs1 lhs2 && equal_value rhs1 rhs2
+    | _ -> false
+  ;;
+
+  (*** Constructors ***)
+
+  let mk_pred_true () = PBool true
+  let mk_pred_false () = PBool false
+
+  let mk_pred_icmp cmp (lhs : value) (rhs : value) : predicate =
+    PIcmp (cmp, lhs, rhs)
+  ;;
+
+  let mk_pred_fcmp cmp (lhs : value) (rhs : value) : predicate =
+    PFcmp (cmp, lhs, rhs)
+  ;;
+
+  let negate_icmp (cmp : LL.Icmp.t) : LL.Icmp.t =
+    match cmp with
+    | LL.Icmp.Eq -> LL.Icmp.Ne
+    | LL.Icmp.Ne -> LL.Icmp.Eq
+    | LL.Icmp.Ugt -> LL.Icmp.Ule
+    | LL.Icmp.Uge -> LL.Icmp.Ult
+    | LL.Icmp.Ult -> LL.Icmp.Uge
+    | LL.Icmp.Ule -> LL.Icmp.Ugt
+    | LL.Icmp.Sgt -> LL.Icmp.Sle
+    | LL.Icmp.Sge -> LL.Icmp.Slt
+    | LL.Icmp.Slt -> LL.Icmp.Sge
+    | LL.Icmp.Sle -> LL.Icmp.Sgt
+  ;;
+
+  let mk_pred_neg (p : predicate) : predicate =
+    match p with
+    | PBool b -> PBool (not b)
+    | PIcmp (cmp, lhs, rhs) -> PIcmp (negate_icmp cmp, lhs, rhs)
+    | PNeg p -> p
+    | _ -> PNeg p
+  ;;
+
+  let mk_pred_conj (ps : predicate list) : predicate =
+    let rec flatten acc ps =
+      match ps with
+      | [] -> acc
+      | PConj gs :: nps -> flatten (flatten acc gs) nps
+      | p :: nps -> flatten (acc @ [ p ]) nps in
+    if List.is_empty ps
+    then mk_pred_false ()
+    else (
+      let nps = flatten [] ps in
+      if List.exists ~f:is_pred_false nps
+      then mk_pred_false ()
+      else (
+        let nps = List.stable_dedup (List.exclude ~f:is_pred_true nps) in
+        match nps with
+        | [] -> mk_pred_true ()
+        | [ np ] -> np
+        | _ -> PConj nps))
+  ;;
+
+  let mk_pred_disj (ps : predicate list) : predicate =
+    let rec flatten acc ps =
+      match ps with
+      | [] -> acc
+      | PDisj gs :: nps -> flatten (flatten acc gs) nps
+      | p :: nps -> flatten (acc @ [ p ]) nps in
+    if List.is_empty ps
+    then mk_pred_true ()
+    else (
+      let nps = flatten [] ps in
+      if List.exists ~f:is_pred_true nps
+      then mk_pred_true ()
+      else (
+        let nps = List.stable_dedup (List.exclude ~f:is_pred_false nps) in
+        match nps with
+        | [] -> mk_pred_false ()
+        | [ np ] -> np
+        | _ -> PDisj nps))
+  ;;
 
   (*** Printing ***)
 
@@ -1428,27 +1525,78 @@ module Predicate = struct
     "Succeeding BlockKey: { " ^ block_name blk ^ "; " ^ pr_predicate p ^ "}"
   ;;
 
-  (*** Queries ***)
+  let block_of_prec_block (pblk : prec_block) : block = pblk.pblk_block
+  let block_of_succ_block (sblk : succ_block) : block = sblk.sblk_block
+end
 
-  let is_pred_true (p : predicate) : bool =
-    match p with
-    | PBool true -> true
-    | _ -> false
+include Path
+
+(*******************************************************************
+ * Programs
+ *******************************************************************)
+
+module Program = struct
+  let mk_program_meta_data (filename : string) (modul : bitcode_module)
+      : program_meta_data
+    =
+    { pmd_bitcode_filename = filename;
+      pmd_source_filename = "<unknown>";
+      pmd_llvalue_original_name = Hashtbl.create (module String);
+      pmd_module_id = "<unknown>";
+      pmd_data_layout = LL.data_layout modul;
+      pmd_target_platform = LL.target_triple modul
+    }
   ;;
 
-  let is_pred_false (p : predicate) : bool =
-    match p with
-    | PBool false -> true
-    | _ -> false
+  let mk_program_func_data (modul : bitcode_module) : program_func_data =
+    { pfd_return_instr = Hashtbl.create (module FuncKey);
+      pfd_callers = Hashtbl.create (module FuncKey);
+      pfd_callees = Hashtbl.create (module FuncKey);
+      pfd_reachable_funcs = Hashtbl.create (module FuncKey);
+      pfd_loops = Hashtbl.create (module FuncKey);
+      pfd_used_globals = Hashtbl.create (module FuncKey);
+      pfd_func_call_graph = CG.create ();
+      pfd_block_graph = Hashtbl.create (module FuncKey);
+      pfd_funcs_of_pointer = Hashtbl.create (module ValueKey);
+      pfd_funcs_of_type = Hashtbl.create (module TypeKey)
+    }
   ;;
 
-  let equal_pred_simple (p1 : predicate) (p2 : predicate) =
-    match p1, p2 with
-    | PBool b1, PBool b2 -> b1 == b2
-    | PIcmp (cmp1, lhs1, rhs1), PIcmp (cmp2, lhs2, rhs2) ->
-      cmp1 == cmp2 && equal_value lhs1 lhs2 && equal_value rhs1 rhs2
-    | _ -> false
+  let mk_program_loop_data (modul : bitcode_module) : program_loop_data =
+    { pld_loop_updated_instr = Hashtbl.create (module InstrKey);
+      pld_loop_head_instr = Hashtbl.create (module InstrKey);
+      pld_innermost_loop_containing_block = Hashtbl.create (module BlockKey);
+      pld_innermost_loop_containing_value = Hashtbl.create (module ValueKey)
+    }
+  ;;
+
+  let mk_program_block_data (modul : bitcode_module) : program_block_data =
+    { pbd_preceding_blocks = Hashtbl.create (module BlockKey);
+      pbd_succeeding_blocks = Hashtbl.create (module BlockKey);
+      pbd_incoming_pathcond = Hashtbl.create (module BlockKey);
+      pbd_reachable_blocks = Hashtbl.create (module BlockKey)
+    }
+  ;;
+
+  let mk_raw_program (filename : string) (modul : bitcode_module) : program =
+    let globals =
+      LL.fold_left_globals (fun acc g -> acc @ [ mk_global g ]) [] modul in
+    { prog_globals = globals;
+      prog_struct_types = [];
+      prog_all_funcs = [];
+      prog_discover_funcs = [];
+      prog_lib_no_source_funcs = [];
+      prog_lib_has_source_funcs = [];
+      prog_user_funcs = [];
+      prog_init_funcs = [];
+      prog_entry_funcs = [];
+      prog_meta_data = mk_program_meta_data filename modul;
+      prog_func_data = mk_program_func_data modul;
+      prog_loop_data = mk_program_loop_data modul;
+      prog_block_data = mk_program_block_data modul;
+      prog_bitcode_module = modul
+    }
   ;;
 end
 
-include Predicate
+include Program

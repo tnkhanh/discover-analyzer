@@ -9,7 +9,6 @@ open Dcore
 open Source
 open Llir
 module LL = Llvm
-module LD = Lldebug
 module LO = Llvm.Opcode
 
 (*******************************************************************
@@ -58,7 +57,7 @@ module ArithmeticBug = struct
     =
     let bug_info = "Integer Overflow" in
     if detailed
-    then bug_info ^ "\n" ^ LD.pr_instr_location_and_code_excerpt iof.iof_instr
+    then bug_info ^ "\n" ^ pr_instr_location_and_code_excerpt iof.iof_instr
     else bug_info
   ;;
 
@@ -67,7 +66,7 @@ module ArithmeticBug = struct
     =
     let bug_info = "Integer Underflow" in
     if detailed
-    then bug_info ^ "\n" ^ LD.pr_instr_location_and_code_excerpt iuf.iuf_instr
+    then bug_info ^ "\n" ^ pr_instr_location_and_code_excerpt iuf.iuf_instr
     else bug_info
   ;;
 end
@@ -239,7 +238,7 @@ let pr_bug (bug : bug) : string =
     match !llvm_orig_source_name with
     | false -> ""
     | true ->
-      (match LD.position_of_instr bug.bug_instr with
+      (match position_of_instr bug.bug_instr with
       | None -> ""
       | Some p -> "  " ^ pr_file_position_and_excerpt p ^ "\n") in
   "BUG: " ^ bug_type_info ^ "\n" ^ location

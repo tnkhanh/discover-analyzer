@@ -11,7 +11,6 @@ open Llannot
 module LL = Llvm
 module LO = Llvm.Opcode
 module LD = Llvm_debuginfo
-module LS = Lldebug
 module LV = Llvm.ValueKind
 module SP = Set.Poly
 module LP = Llloop
@@ -63,7 +62,7 @@ let coverage = Hashtbl.create (module InstrKey)
 let rec get_coverage instr =
   match Hashtbl.find coverage instr with
   | None ->
-    let pos_op = LS.position_of_instr instr in
+    let pos_op = position_of_instr instr in
     let oprc = num_operands instr in
     let cover =
       let init =
@@ -295,7 +294,7 @@ let instrument_bug_annotation annots source_name (modul : LL.llmodule) : unit =
   let finstr =
     Some
       (fun acc instr ->
-        let pos_op = LS.position_of_instr instr in
+        let pos_op = position_of_instr instr in
         match pos_op with
         | None -> acc
         | Some pos ->

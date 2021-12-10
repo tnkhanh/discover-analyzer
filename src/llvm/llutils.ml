@@ -6,15 +6,15 @@
  ********************************************************************)
 
 open Dcore
-open Llprogram
-module SP = Set.Poly
+open Llast
+open Source
+module LD = Llvm_debuginfo
 
 (*******************************************************************
  * Iteration over LLVM data structures
  *******************************************************************)
 
 module IterUtils = struct
-
   (*** Iterate linearly over LLVM data structures ***)
 
   let iter_instrs ~(f : instr -> unit) (blk : block) : unit =
@@ -43,7 +43,7 @@ module IterUtils = struct
 
   (*** Iterate structurally over LLVM data structures ***)
 
-    let iter_struct_instr
+  let iter_struct_instr
       ?(finstr : (instr -> unit) option = None)
       (instr : instr)
       : unit
@@ -139,7 +139,6 @@ module IterUtils = struct
       ~f:(iter_struct_func ~ffunc ~fparam ~fblock ~finstr)
       (prog.prog_init_funcs @ prog.prog_user_funcs)
   ;;
-
 end
 
 (*******************************************************************
@@ -147,7 +146,6 @@ end
  *******************************************************************)
 
 module MapUtils = struct
-
   (*** Map linearly over LLVM data structures ***)
 
   let map_instrs ~(f : instr -> 'a) (blk : block) : 'a list =
@@ -174,7 +172,6 @@ module MapUtils = struct
     let ff acc v = acc @ [ f (mk_func v) ] in
     LL.fold_left_functions ff [] m
   ;;
-
 end
 
 (*******************************************************************
@@ -182,7 +179,6 @@ end
  *******************************************************************)
 
 module FoldUtils = struct
-
   (*** Fold linearly over LLVM data structures ***)
 
   let fold_left_instrs ~(f : 'a -> instr -> 'a) ~(init : 'a) (blk : block) : 'a
@@ -224,7 +220,7 @@ module FoldUtils = struct
 
   (*** Fold structurally over LLVM data structures ***)
 
-    let fold_struct_instr
+  let fold_struct_instr
       ?(finstr : ('a -> instr -> 'a) option = None)
       (acc : 'a)
       (instr : instr)
@@ -476,7 +472,6 @@ module UseUtils = struct
 end
 
 include UseUtils
-
 
 (*******************************************************************
  ** operations with globals
@@ -938,133 +933,6 @@ end
 include InstrUtils
 
 (*******************************************************************
- ** operations with path condition
- *******************************************************************)
-
-module PathUtils = struct
-  let mk_pred_true () = PBool true
-  let mk_pred_false () = PBool false
-
-  let mk_pred_icmp cmp (lhs : value) (rhs : value) : predicate =
-    PIcmp (cmp, lhs, rhs)
-  ;;
-
-  let mk_pred_fcmp cmp (lhs : value) (rhs : value) : predicate =
-    PFcmp (cmp, lhs, rhs)
-  ;;
-
-  let negate_icmp (cmp : LL.Icmp.t) : LL.Icmp.t =
-    match cmp with
-    | LL.Icmp.Eq -> LL.Icmp.Ne
-    | LL.Icmp.Ne -> LL.Icmp.Eq
-    | LL.Icmp.Ugt -> LL.Icmp.Ule
-    | LL.Icmp.Uge -> LL.Icmp.Ult
-    | LL.Icmp.Ult -> LL.Icmp.Uge
-    | LL.Icmp.Ule -> LL.Icmp.Ugt
-    | LL.Icmp.Sgt -> LL.Icmp.Sle
-    | LL.Icmp.Sge -> LL.Icmp.Slt
-    | LL.Icmp.Slt -> LL.Icmp.Sge
-    | LL.Icmp.Sle -> LL.Icmp.Sgt
-  ;;
-
-  let mk_pred_neg (p : predicate) : predicate =
-    match p with
-    | PBool b -> PBool (not b)
-    | PIcmp (cmp, lhs, rhs) -> PIcmp (negate_icmp cmp, lhs, rhs)
-    | PNeg p -> p
-    | _ -> PNeg p
-  ;;
-
-  let mk_pred_conj (ps : predicate list) : predicate =
-    let rec flatten acc ps =
-      match ps with
-      | [] -> acc
-      | PConj gs :: nps -> flatten (flatten acc gs) nps
-      | p :: nps -> flatten (acc @ [ p ]) nps in
-    if List.is_empty ps
-    then mk_pred_false ()
-    else (
-      let nps = flatten [] ps in
-      if List.exists ~f:is_pred_false nps
-      then mk_pred_false ()
-      else (
-        let nps = List.stable_dedup (List.exclude ~f:is_pred_true nps) in
-        match nps with
-        | [] -> mk_pred_true ()
-        | [ np ] -> np
-        | _ -> PConj nps))
-  ;;
-
-  let mk_pred_disj (ps : predicate list) : predicate =
-    let rec flatten acc ps =
-      match ps with
-      | [] -> acc
-      | PDisj gs :: nps -> flatten (flatten acc gs) nps
-      | p :: nps -> flatten (acc @ [ p ]) nps in
-    if List.is_empty ps
-    then mk_pred_true ()
-    else (
-      let nps = flatten [] ps in
-      if List.exists ~f:is_pred_true nps
-      then mk_pred_true ()
-      else (
-        let nps = List.stable_dedup (List.exclude ~f:is_pred_false nps) in
-        match nps with
-        | [] -> mk_pred_false ()
-        | [ np ] -> np
-        | _ -> PDisj nps))
-  ;;
-
-  let extract_icmp_predicate (cond : value) : predicate =
-    match LL.icmp_predicate cond with
-    | None -> herror "extract_icmp_predicate: not Icmp cond: " pr_value cond
-    | Some cmp ->
-      let lhs, rhs = LL.operand cond 0, LL.operand cond 1 in
-      mk_pred_icmp cmp lhs rhs
-  ;;
-
-  let extract_fcmp_predicate (cond : value) : predicate =
-    match LL.fcmp_predicate cond with
-    | None -> herror "extract_fcmp_predicate: not Fcmp cond: " pr_value cond
-    | Some cmp ->
-      let lhs, rhs = LL.operand cond 0, LL.operand cond 1 in
-      mk_pred_fcmp cmp lhs rhs
-  ;;
-
-  let extract_trunc_predicate (cond : value) : predicate =
-    match LL.instr_opcode cond with
-    | LO.Trunc ->
-      (* FIXME: need better handling of Trunc, maybe by unfolding? *)
-      mk_pred_true ()
-    | _ -> herror "extract_trunc_predicate: not a Trunc cond: " pr_value cond
-  ;;
-
-  let extract_zext_predicate (cond : value) : predicate =
-    match LL.instr_opcode cond with
-    | LO.ZExt ->
-      (* FIXME: need better handling of ZExt? *)
-      mk_pred_true ()
-    | _ -> herror "extract_zext_predicate: not a ZExt cond: " pr_value cond
-  ;;
-
-  let extract_br_cond_predicate (cond : value) : predicate =
-    match LL.classify_value cond with
-    | LV.Instruction _ ->
-      (match LL.instr_opcode cond with
-      | LO.ICmp -> extract_icmp_predicate cond
-      | LO.FCmp -> extract_fcmp_predicate cond
-      | LO.Trunc -> extract_trunc_predicate cond
-      | LO.ZExt -> extract_zext_predicate cond
-      | _ -> mk_pred_true ())
-    | _ -> mk_pred_true ()
-  ;;
-
-end
-
-include PathUtils
-
-
-(*******************************************************************
  ** operations with blocks
  *******************************************************************)
 
@@ -1131,9 +999,58 @@ module BlockUtils = struct
     | LL.At_start _ -> true
     | LL.After _ -> false
   ;;
+end
 
-  let block_of_prec_block (pblk : prec_block) : block = pblk.pblk_block
-  let block_of_succ_block (sblk : succ_block) : block = sblk.sblk_block
+include BlockUtils
+
+(*******************************************************************
+ ** operations with path condition
+ *******************************************************************)
+
+module PathUtils = struct
+  let extract_icmp_predicate (cond : value) : predicate =
+    match LL.icmp_predicate cond with
+    | None -> herror "extract_icmp_predicate: not Icmp cond: " pr_value cond
+    | Some cmp ->
+      let lhs, rhs = LL.operand cond 0, LL.operand cond 1 in
+      mk_pred_icmp cmp lhs rhs
+  ;;
+
+  let extract_fcmp_predicate (cond : value) : predicate =
+    match LL.fcmp_predicate cond with
+    | None -> herror "extract_fcmp_predicate: not Fcmp cond: " pr_value cond
+    | Some cmp ->
+      let lhs, rhs = LL.operand cond 0, LL.operand cond 1 in
+      mk_pred_fcmp cmp lhs rhs
+  ;;
+
+  let extract_trunc_predicate (cond : value) : predicate =
+    match LL.instr_opcode cond with
+    | LO.Trunc ->
+      (* FIXME: need better handling of Trunc, maybe by unfolding? *)
+      mk_pred_true ()
+    | _ -> herror "extract_trunc_predicate: not a Trunc cond: " pr_value cond
+  ;;
+
+  let extract_zext_predicate (cond : value) : predicate =
+    match LL.instr_opcode cond with
+    | LO.ZExt ->
+      (* FIXME: need better handling of ZExt? *)
+      mk_pred_true ()
+    | _ -> herror "extract_zext_predicate: not a ZExt cond: " pr_value cond
+  ;;
+
+  let extract_br_cond_predicate (cond : value) : predicate =
+    match LL.classify_value cond with
+    | LV.Instruction _ ->
+      (match LL.instr_opcode cond with
+      | LO.ICmp -> extract_icmp_predicate cond
+      | LO.FCmp -> extract_fcmp_predicate cond
+      | LO.Trunc -> extract_trunc_predicate cond
+      | LO.ZExt -> extract_zext_predicate cond
+      | _ -> mk_pred_true ())
+    | _ -> mk_pred_true ()
+  ;;
 
   let get_preceding_blocks (prog : program) (blk : block) : prec_blocks =
     let compute_blocks (blk : block) : prec_blocks =
@@ -1244,9 +1161,59 @@ module BlockUtils = struct
     | [] -> None
     | sblk :: _ -> Some sblk.sblk_pathcond
   ;;
+
+  (** TRUNG: this function might be inefficient if it is used to compute
+    reachable blocks of all blocks.
+    TODO: need to think how to re-use the result of a succeeding block
+    when computing the reachability of a preceding block.*)
+
+  let get_reachable_blocks (prog : program) (blk : block) : blocks =
+    let rec compute_reachables (queue : blocks) (visited : blocks) =
+      match queue with
+      | [] -> visited
+      | blk :: nqueue ->
+        let nblks =
+          blk |> get_succeeding_blocks prog
+          |> List.map ~f:(fun sblk -> sblk.sblk_block)
+          |> List.exclude ~f:(List.mem ~equal:( == ) visited)
+          |> List.exclude ~f:(List.mem ~equal:( == ) nqueue) in
+        let nqueue = nqueue @ nblks in
+        let nvisited = visited @ [ blk ] in
+        compute_reachables nqueue nvisited in
+    let compute () =
+      let sblks =
+        blk |> get_succeeding_blocks prog
+        |> List.map ~f:(fun sb -> sb.sblk_block) in
+      compute_reachables sblks [] in
+    Hashtbl.find_or_compute prog.prog_block_data.pbd_reachable_blocks
+      ~f:compute ~key:blk
+  ;;
+
+  let is_reachable_block prog (src : block) (dst : block) : bool =
+    let func1, func2 = func_of_block src, func_of_block dst in
+    if equal_func func1 func2
+    then (
+      let blks = get_reachable_blocks prog src in
+      List.mem blks dst ~equal:equal_block)
+    else false
+  ;;
+
+  let is_reachable_instr prog (src : instr) (dst : instr) : bool =
+    let rec check_reachable_instr_same_block instr1 instr2 =
+      if equal_instr instr1 instr2
+      then true
+      else (
+        match instr_succ instr1 with
+        | None -> false
+        | Some instr' -> check_reachable_instr_same_block instr' instr2) in
+    let blk1, blk2 = block_of_instr src, block_of_instr dst in
+    if equal_block blk1 blk2
+    then check_reachable_instr_same_block src dst
+    else is_reachable_block prog blk1 blk2
+  ;;
 end
 
-include BlockUtils
+include PathUtils
 
 (*******************************************************************
  ** operations with functions and parameters
@@ -1354,10 +1321,356 @@ module FuncUtils = struct
         acc1 @ allocas)
       ~init:[] f
   ;;
+
+  (* TODO: can be optimized by compute for all functions at once *)
+  let get_reachable_funcs (prog : program) (f : func) : funcs =
+    let equal = equal_func in
+    let rec compute_reachables (queue : func list) (visited : funcs) =
+      match queue with
+      | [] -> visited
+      | f :: nqueue ->
+        let callees = get_func_callees prog f in
+        let nfs = List.diff callees (nqueue @ visited) ~equal in
+        let nqueue = List.concat_dedup nqueue nfs ~equal in
+        let nvisited = List.insert_dedup visited f ~equal in
+        compute_reachables nqueue nvisited in
+    let compute () =
+      let callees = get_func_callees prog f in
+      compute_reachables callees [] in
+    Hashtbl.find_or_compute prog.prog_func_data.pfd_reachable_funcs ~key:f
+      ~f:compute
+  ;;
+
+  let is_reachable_func prog (src : func) (dst : func) : bool =
+    let funcs = get_reachable_funcs prog src in
+    List.mem funcs dst ~equal:equal_func
+  ;;
 end
 
 include FuncUtils
 
+(*******************************************************************
+ ** Utility functions for processing metadata
+ *******************************************************************)
+
+module Metadata = struct
+  let extract_name_from_metadata (md : LL.llvalue) : string =
+    let str = LL.string_of_llvalue md in
+    let re = Str.regexp ".*name:[ ]*\"\\([a-zA-Z0-9_]+\\)\".*" in
+    if Str.string_match re str 0 then Str.matched_group 1 str else ""
+  ;;
+
+  let get_original_name_of_llvalue (v : LL.llvalue) : string option =
+    (* let _ = hprint "get_original_name_of_llvalue: " LI.pr_value v in *)
+    match LL.classify_value v with
+    | LV.Instruction _ ->
+      let func = func_of_instr (mk_instr v) in
+      let _ =
+        iter_blocks
+          ~f:(fun blk ->
+            iter_instrs
+              ~f:(fun instr ->
+                if is_instr_call_invoke instr
+                then (
+                  let callee = callee_of_instr_func_call instr in
+                  if is_func_llvm_debug_declare callee
+                     || is_func_llvm_debug_value callee
+                  then () (* hprint "Instr: " pr_instr instr *)
+                  else ()))
+              blk)
+          func in
+      None
+    | _ -> None
+  ;;
+
+  let position_of_instr (instr : instr) : position option =
+    let vinstr = llvalue_of_instr instr in
+    let llctx = LL.global_context () in
+    let instr_dbg = LL.metadata vinstr (LL.mdkind_id llctx "dbg") in
+    match instr_dbg with
+    | None -> None
+    | Some instr_dbg_info ->
+      let instr_md = LL.value_as_metadata instr_dbg_info in
+      let line = LD.di_location_get_line ~location:instr_md in
+      let column = LD.di_location_get_column ~location:instr_md in
+      let scope_md = LD.di_location_get_scope ~location:instr_md in
+      (* let _ = hprint "Line: " pr_int line in *)
+      (* let _ = hprint "Column: " pr_int column in *)
+      let filename =
+        match LD.di_scope_get_file ~scope:scope_md with
+        | None -> ""
+        | Some file_md -> LD.di_file_get_filename ~file:file_md in
+      (* let _ = hprint "Filename: " pr_id filename in *)
+      Some (mk_position filename line line column column)
+  ;;
+
+  let pr_llvalue_name (v : LL.llvalue) : string =
+    match get_original_name_of_llvalue v with
+    | Some str -> str
+    | None -> pr_value v
+  ;;
+
+  let pr_instr_location_and_code_excerpt instr =
+    let code_excerpt =
+      match position_of_instr instr with
+      | None -> ""
+      | Some p -> "  Location: " ^ pr_file_position_and_excerpt p ^ "\n" in
+    if !location_source_code_only
+    then code_excerpt
+    else
+      "  Instruction: " ^ pr_instr instr
+      ^ String.prefix_if_not_empty ~prefix:"\n" code_excerpt
+  ;;
+end
+
+include Metadata
+
+(*******************************************************************
+ ** Utility functions for processing programs
+ *******************************************************************)
+
+module ProgramUtils = struct
+  let get_all_funcs (m : bitcode_module) =
+    fold_left_functions ~f:(fun acc f -> acc @ [ f ]) ~init:[] m
+  ;;
+
+  let get_lib_no_source_funcs (m : bitcode_module) =
+    fold_left_functions
+      ~f:(fun acc f -> if is_lib_no_source_func f then acc @ [ f ] else acc)
+      ~init:[] m
+  ;;
+
+  let get_lib_has_source_funcs (m : bitcode_module) =
+    fold_left_functions
+      ~f:(fun acc f -> if is_lib_has_source_func f then acc @ [ f ] else acc)
+      ~init:[] m
+  ;;
+
+  let get_user_funcs (m : bitcode_module) =
+    fold_left_functions
+      ~f:(fun acc f -> if is_user_func f then acc @ [ f ] else acc)
+      ~init:[] m
+  ;;
+
+  let get_discover_funcs (m : bitcode_module) =
+    fold_left_functions
+      ~f:(fun acc f ->
+        if is_discover_assertion_func f then acc @ [ f ] else acc)
+      ~init:[] m
+  ;;
+
+  let get_init_funcs (m : bitcode_module) =
+    fold_left_functions
+      ~f:(fun acc f -> if is_init_func f then acc @ [ f ] else acc)
+      ~init:[] m
+  ;;
+
+  let find_user_func (prog : program) (fname : string) : func option =
+    List.find
+      ~f:(fun func -> String.equal (func_name func) fname)
+      prog.prog_user_funcs
+  ;;
+
+  let get_current_funcs_of_pointer (prog : program) (v : value) : funcs =
+    match Hashtbl.find prog.prog_func_data.pfd_funcs_of_pointer v with
+    | None -> []
+    | Some funcs -> funcs
+  ;;
+
+  let update_funcs_of_pointer (prog : program) (v : value) (funcs : funcs) =
+    let curr_funcs = get_current_funcs_of_pointer prog v in
+    let new_funcs = List.concat_dedup curr_funcs funcs ~equal:equal_func in
+    let _ = hdebug "update func pointer of: " pr_value v in
+    let _ = hdebug "   new funcs: " func_names new_funcs in
+    Hashtbl.set prog.prog_func_data.pfd_funcs_of_pointer ~key:v ~data:new_funcs
+  ;;
+
+  let construct_map_llvalue_to_source_name (prog : program) : unit =
+    let _ = ddebug "Construct mapping llvalue to source name" in
+    let visit_instr instr =
+      match instr_opcode instr with
+      | LO.Call | LO.Invoke ->
+        if is_func_llvm_debug (callee_of_instr_func_call instr)
+        then (
+          let _ = hprint "instr: " pr_instr instr in
+          (* let v0, v1 = operand instr 0, operand instr 1 in *)
+          let vname = pr_value (operand instr 0) in
+          let sname = extract_name_from_metadata (operand instr 1) in
+          Hashtbl.set prog.prog_meta_data.pmd_llvalue_original_name ~key:vname
+            ~data:sname)
+        else ()
+      | _ -> () in
+    iter_struct_program ~finstr:(Some visit_instr) prog
+  ;;
+
+  let compute_func_call_info (prog : program) : unit =
+    let _ = ndebug "Compute function call information" in
+    let equal = equal_func in
+    let visit_instr instr =
+      match instr_opcode instr with
+      | LO.Call | LO.Invoke ->
+        let callee = callee_of_instr_func_call instr in
+        let vcallee = llvalue_of_func callee in
+        let caller = func_of_instr instr in
+        let pfd = prog.prog_func_data in
+        if is_llvalue_function vcallee
+        then (
+          let callers =
+            List.insert_dedup (get_func_callers prog callee) caller ~equal
+          in
+          let _ = Hashtbl.set pfd.pfd_callers ~key:callee ~data:callers in
+          let fcallees =
+            List.insert_dedup (get_func_callees prog caller) callee ~equal
+          in
+          let callees = List.map ~f:mk_callable_func fcallees in
+          Hashtbl.set pfd.pfd_callees ~key:caller ~data:callees)
+        else (
+          let fpcallees = get_func_ptr_callees prog caller in
+          let fpcallees =
+            List.insert_dedup fpcallees vcallee ~equal:equal_value in
+          let callees = List.map ~f:mk_callable_func_pointer fpcallees in
+          Hashtbl.set pfd.pfd_callees ~key:caller ~data:callees)
+      | _ -> () in
+    iter_struct_program ~finstr:(Some visit_instr) prog
+  ;;
+
+  let construct_func_call_graph (prog : program) : unit =
+    let pfd = prog.prog_func_data in
+    Hashtbl.iteri
+      ~f:(fun ~key:func ~data:callees ->
+        List.iter
+          ~f:(fun callee ->
+            match callee with
+            | ClFunc fcallee ->
+              CG.add_edge pfd.pfd_func_call_graph func fcallee
+            | _ -> ())
+          callees)
+      pfd.pfd_callees
+  ;;
+
+  let compute_funcs_in_pointers (prog : program) : unit =
+    let _ = ndebug "Compute functions in pointers" in
+    let visit_instr instr =
+      let func =
+        match instr_opcode instr with
+        | LO.BitCast ->
+          let v = src_of_instr_bitcast instr in
+          if is_llvalue_function v then Some (mk_func v) else None
+        | LO.Store ->
+          let v = src_of_instr_store instr in
+          if is_llvalue_function v then Some (mk_func v) else None
+        | _ -> None in
+      match func with
+      | None -> ()
+      | Some f ->
+        let pfd = prog.prog_func_data in
+        let ftyp = type_of_func f in
+        let curr_funcs =
+          match Hashtbl.find pfd.pfd_funcs_of_type ftyp with
+          | None -> []
+          | Some fs -> fs in
+        let nfuncs = List.insert_dedup curr_funcs f ~equal:equal_func in
+        Hashtbl.set pfd.pfd_funcs_of_type ~key:ftyp ~data:nfuncs in
+    iter_struct_program ~finstr:(Some visit_instr) prog
+  ;;
+
+  let compute_func_used_globals (prog : program) : unit =
+    let _ = print "Compute used globals in each functions" in
+    let pfd = prog.prog_func_data in
+    let tbl_used_globals = pfd.pfd_used_globals in
+    let init_globals_of_all_funcs () =
+      let _ =
+        List.iter
+          ~f:(fun func ->
+            let gs = List.sorti prog.prog_globals ~compare:Poly.compare in
+            Hashtbl.set tbl_used_globals ~key:func ~data:gs)
+          prog.prog_init_funcs in
+      List.iter
+        ~f:(fun func ->
+          let gs = ref [] in
+          let visit_instr instr =
+            for i = 0 to num_operands instr - 1 do
+              let opr = operand instr i in
+              match LL.classify_value opr with
+              | LV.GlobalVariable ->
+                let gopr = mk_global opr in
+                gs := List.insert_sorti_dedup !gs gopr ~compare:Poly.compare
+              | _ -> ()
+            done in
+          let _ = iter_struct_func ~finstr:(Some visit_instr) func in
+          Hashtbl.set tbl_used_globals ~key:func ~data:!gs)
+        prog.prog_user_funcs in
+    let update_globals_of_all_funcs () =
+      let funcs = prog.prog_init_funcs @ prog.prog_user_funcs in
+      let rec update_globals fs acc =
+        let compare = Poly.compare in
+        match fs with
+        | [] -> acc
+        | f :: nfs ->
+          (* let _ = hprint "Update globals of func: " func_name f in *)
+          let gs = Hashtbl.find_default tbl_used_globals f ~default:[] in
+          let ngs = ref gs in
+          let callees =
+            let callees = get_func_callees prog f in
+            if not !dfa_used_globals_in_func_ptrs
+            then callees
+            else (
+              let ptr_callees = get_func_ptr_callees prog f in
+              if List.is_empty ptr_callees
+              then callees
+              else
+                List.fold_left
+                  ~f:(fun acc pc ->
+                    let pfd = prog.prog_func_data in
+                    let ftyp = LL.type_of pc in
+                    match Hashtbl.find pfd.pfd_funcs_of_type ftyp with
+                    | None -> acc
+                    | Some fs -> List.concat_dedup acc fs ~equal:equal_func)
+                  ptr_callees ~init:callees) in
+          let cgs =
+            List.fold_left
+              ~f:(fun acc f1 ->
+                let gs1 =
+                  Hashtbl.find_default tbl_used_globals f1 ~default:[] in
+                List.concat_sorti_dedup acc gs1 ~compare)
+              ~init:[] callees in
+          let _ = ngs := List.concat_sorti_dedup !ngs cgs ~compare in
+          (* let _ = print "  done" in *)
+          if List.length !ngs > List.length gs
+          then (
+            let _ = Hashtbl.set tbl_used_globals ~key:f ~data:!ngs in
+            update_globals nfs true)
+          else update_globals nfs acc in
+      let updated = ref true in
+      while !updated do
+        updated := update_globals funcs false
+      done in
+    let _ = init_globals_of_all_funcs () in
+    update_globals_of_all_funcs ()
+  ;;
+
+  let update_program_info (prog : program) : program =
+    let modul = prog.prog_bitcode_module in
+    let prog =
+      { prog with
+        prog_all_funcs = get_all_funcs modul;
+        prog_discover_funcs = get_discover_funcs modul;
+        prog_lib_no_source_funcs = get_lib_no_source_funcs modul;
+        prog_lib_has_source_funcs = get_lib_has_source_funcs modul;
+        prog_user_funcs = get_user_funcs modul;
+        prog_init_funcs = get_init_funcs modul;
+        prog_entry_funcs = []
+      } in
+    let _ = print "Updating program information..." in
+    let _ = compute_funcs_in_pointers prog in
+    let _ = compute_func_call_info prog in
+    let _ = compute_func_used_globals prog in
+    let _ = construct_func_call_graph prog in
+    prog
+  ;;
+end
+
+include ProgramUtils
 
 (*******************************************************************
  ** substitution
