@@ -15,8 +15,6 @@ module LD = Llvm_debuginfo
  *******************************************************************)
 
 module Iter = struct
-  (*** Iterate linearly over LLVM data structures ***)
-
   let iter_instrs ~(f : instr -> unit) (blk : block) : unit =
     let ff v = f (mk_instr v) in
     LL.iter_instrs ff blk
@@ -43,6 +41,157 @@ module Iter = struct
 end
 
 include Iter
+
+(*******************************************************************
+ * Mapping over LLVM data structures
+ *******************************************************************)
+
+module Map = struct
+  let map_instrs ~(f : instr -> 'a) (blk : block) : 'a list =
+    let ff acc v = acc @ [ f (mk_instr v) ] in
+    LL.fold_left_instrs ff [] blk
+  ;;
+
+  let map_blocks ~(f : block -> 'a) (func : func) : 'a list =
+    let ff acc b = acc @ [ f b ] in
+    LL.fold_left_blocks ff [] (llvalue_of_func func)
+  ;;
+
+  let map_params ~(f : param -> 'a) (func : func) : 'a list =
+    let ff acc v = acc @ [ f (mk_param v) ] in
+    LL.fold_left_params ff [] (llvalue_of_func func)
+  ;;
+
+  let map_globals ~(f : global -> 'a) (m : bitcode_module) : 'a list =
+    let ff acc v = acc @ [ f (mk_global v) ] in
+    LL.fold_left_globals ff [] m
+  ;;
+
+  let map_functions ~(f : func -> 'a) (m : bitcode_module) : 'a list =
+    let ff acc v = acc @ [ f (mk_func v) ] in
+    LL.fold_left_functions ff [] m
+  ;;
+end
+
+include Map
+
+(*******************************************************************
+ * Checking existence over LLVM data structures
+ *******************************************************************)
+
+module Exists = struct
+  let exists_instr ~(f : instr -> bool) (blk : block) : bool =
+    let rec check_instr (ins : instr) : bool =
+      if f ins
+      then true
+      else (
+        match instr_succ ins with
+        | None -> false
+        | Some ins' -> check_instr ins') in
+    match first_instr_of_block blk with
+    | None -> false
+    | Some ins -> check_instr ins
+  ;;
+
+  let exists_block ~(f : block -> bool) (fn : func) : bool =
+    let rec check_block (blk : block) : bool =
+      if f blk
+      then true
+      else (
+        match block_succ blk with
+        | None -> false
+        | Some blk' -> check_block blk') in
+    match first_block_of_func fn with
+    | None -> false
+    | Some blk -> check_block blk
+  ;;
+
+  let exists_param ~(f : param -> bool) (fn : func) : bool =
+    let rec check_param (p : param) : bool =
+      if f p
+      then true
+      else (
+        match param_succ p with
+        | None -> false
+        | Some p' -> check_param p') in
+    match first_param_of_func fn with
+    | None -> false
+    | Some p -> check_param p
+  ;;
+
+  let exists_global ~(f : global -> bool) (m : bitcode_module) : bool =
+    let rec check_global (g : global) : bool =
+      if f g
+      then true
+      else (
+        match global_succ g with
+        | None -> false
+        | Some g' -> check_global g') in
+    match first_global_of_module m with
+    | None -> false
+    | Some g -> check_global g
+  ;;
+
+  let exists_function ~(f : func -> bool) (m : bitcode_module) : bool =
+    let rec check_func (fn : func) : bool =
+      if f fn
+      then true
+      else (
+        match func_succ fn with
+        | None -> false
+        | Some fn' -> check_func fn') in
+    match first_func_of_module m with
+    | None -> false
+    | Some fn -> check_func fn
+  ;;
+end
+
+include Exists
+
+(*******************************************************************
+ * Folding over LLVM data structures
+ *******************************************************************)
+
+module Fold = struct
+  let fold_left_instrs ~(f : 'a -> instr -> 'a) ~(init : 'a) (blk : block) : 'a
+    =
+    let ff acc v = f acc (mk_instr v) in
+    LL.fold_left_instrs ff init blk
+  ;;
+
+  let fold_left_blocks ~(f : 'a -> block -> 'a) ~(init : 'a) (func : func) : 'a
+    =
+    LL.fold_left_blocks f init (llvalue_of_func func)
+  ;;
+
+  let fold_left_params ~(f : 'a -> param -> 'a) ~(init : 'a) (func : func) : 'a
+    =
+    let ff acc v = f acc (mk_param v) in
+    LL.fold_left_params ff init (llvalue_of_func func)
+  ;;
+
+  let fold_left_globals
+      ~(f : 'a -> global -> 'a)
+      ~(init : 'a)
+      (m : bitcode_module)
+      : 'a
+    =
+    let ff acc v = f acc (mk_global v) in
+    LL.fold_left_globals ff init m
+  ;;
+
+  let fold_left_functions
+      ~(f : 'a -> func -> 'a)
+      ~(init : 'a)
+      (m : bitcode_module)
+      : 'a
+    =
+    let ff acc v = f acc (mk_func v) in
+    LL.fold_left_functions ff init m
+  ;;
+end
+
+include Fold
 
 (*******************************************************************
  * Visit LLVM data structures
@@ -127,88 +276,6 @@ module Visit = struct
 end
 
 include Visit
-
-(*******************************************************************
- * Mapping over LLVM data structures
- *******************************************************************)
-
-module Map = struct
-  (*** Map linearly over LLVM data structures ***)
-
-  let map_instrs ~(f : instr -> 'a) (blk : block) : 'a list =
-    let ff acc v = acc @ [ f (mk_instr v) ] in
-    LL.fold_left_instrs ff [] blk
-  ;;
-
-  let map_blocks ~(f : block -> 'a) (func : func) : 'a list =
-    let ff acc b = acc @ [ f b ] in
-    LL.fold_left_blocks ff [] (llvalue_of_func func)
-  ;;
-
-  let map_params ~(f : param -> 'a) (func : func) : 'a list =
-    let ff acc v = acc @ [ f (mk_param v) ] in
-    LL.fold_left_params ff [] (llvalue_of_func func)
-  ;;
-
-  let map_globals ~(f : global -> 'a) (m : bitcode_module) : 'a list =
-    let ff acc v = acc @ [ f (mk_global v) ] in
-    LL.fold_left_globals ff [] m
-  ;;
-
-  let map_functions ~(f : func -> 'a) (m : bitcode_module) : 'a list =
-    let ff acc v = acc @ [ f (mk_func v) ] in
-    LL.fold_left_functions ff [] m
-  ;;
-end
-
-include Map
-
-(*******************************************************************
- * Folding over LLVM data structures
- *******************************************************************)
-
-module Fold = struct
-  (*** Fold linearly over LLVM data structures ***)
-
-  let fold_left_instrs ~(f : 'a -> instr -> 'a) ~(init : 'a) (blk : block) : 'a
-    =
-    let ff acc v = f acc (mk_instr v) in
-    LL.fold_left_instrs ff init blk
-  ;;
-
-  let fold_left_blocks ~(f : 'a -> block -> 'a) ~(init : 'a) (func : func) : 'a
-    =
-    LL.fold_left_blocks f init (llvalue_of_func func)
-  ;;
-
-  let fold_left_params ~(f : 'a -> param -> 'a) ~(init : 'a) (func : func) : 'a
-    =
-    let ff acc v = f acc (mk_param v) in
-    LL.fold_left_params ff init (llvalue_of_func func)
-  ;;
-
-  let fold_left_globals
-      ~(f : 'a -> global -> 'a)
-      ~(init : 'a)
-      (m : bitcode_module)
-      : 'a
-    =
-    let ff acc v = f acc (mk_global v) in
-    LL.fold_left_globals ff init m
-  ;;
-
-  let fold_left_functions
-      ~(f : 'a -> func -> 'a)
-      ~(init : 'a)
-      (m : bitcode_module)
-      : 'a
-    =
-    let ff acc v = f acc (mk_func v) in
-    LL.fold_left_functions ff init m
-  ;;
-end
-
-include Fold
 
 (*******************************************************************
  * Visit and fold LLVM data structures
@@ -301,125 +368,29 @@ end
 include VisitFold
 
 (*******************************************************************
- * Checking existence over LLVM data structures
+ * Visit and check existence over LLVM data structures
  *******************************************************************)
 
-module Exists = struct
-  (*--------------------------------------------------------
-   * Checking existence linearly over LLVM data structures
-   *-------------------------------------------------------*)
-
-  let exists_instr ~(f : instr -> bool) (blk : block) : bool =
-    let rec check_instr (ins : instr) : bool =
-      if f ins
-      then true
-      else (
-        match instr_succ ins with
-        | None -> false
-        | Some ins' -> check_instr ins') in
-    match first_instr_of_block blk with
-    | None -> false
-    | Some ins -> check_instr ins
-  ;;
-
-  let exists_block ~(f : block -> bool) (fn : func) : bool =
-    let rec check_block (blk : block) : bool =
-      if f blk
-      then true
-      else (
-        match block_succ blk with
-        | None -> false
-        | Some blk' -> check_block blk') in
-    match first_block_of_func fn with
-    | None -> false
-    | Some blk -> check_block blk
-  ;;
-
-  let exists_param ~(f : param -> bool) (fn : func) : bool =
-    let rec check_param (p : param) : bool =
-      if f p
-      then true
-      else (
-        match param_succ p with
-        | None -> false
-        | Some p' -> check_param p') in
-    match first_param_of_func fn with
-    | None -> false
-    | Some p -> check_param p
-  ;;
-
-  let exists_global ~(f : global -> bool) (m : bitcode_module) : bool =
-    let rec check_global (g : global) : bool =
-      if f g
-      then true
-      else (
-        match global_succ g with
-        | None -> false
-        | Some g' -> check_global g') in
-    match first_global_of_module m with
-    | None -> false
-    | Some g -> check_global g
-  ;;
-
-  let exists_function ~(f : func -> bool) (m : bitcode_module) : bool =
-    let rec check_func (fn : func) : bool =
-      if f fn
-      then true
-      else (
-        match func_succ fn with
-        | None -> false
-        | Some fn' -> check_func fn') in
-    match first_func_of_module m with
-    | None -> false
-    | Some fn -> check_func fn
-  ;;
-
-  (*---------------------------------------------------------
-   * Check existence structurally over LLVM data structures
-   *--------------------------------------------------------*)
-
-  let exists_struct_instr ?(finstr : (instr -> bool) option = None) (i : instr)
-      : bool
-    =
-    match finstr with
-    | None -> false
-    | Some f -> f i
-  ;;
-
-  let exists_struct_param ?(fparam : (param -> bool) option = None) (p : param)
-      : bool
-    =
-    match fparam with
-    | None -> false
-    | Some f -> f p
-  ;;
-
-  let exists_struct_global
-      ?(fglobal : (global -> bool) option = None)
-      (g : global)
-      : bool
-    =
-    match fglobal with
-    | None -> false
-    | Some f -> f g
-  ;;
-
-  let exists_struct_block
+module VisitExists = struct
+  let visit_exists_block
       ?(fblock : (block -> bool option) option = None)
       ?(finstr : (instr -> bool) option = None)
       (blk : block)
       : 'a
     =
-    let exists () = exists_instr ~f:(exists_struct_instr ~finstr) blk in
+    let visit_exists () =
+      match finstr with
+      | None -> false
+      | Some f -> exists_instr ~f blk in
     match fblock with
-    | None -> exists ()
+    | None -> visit_exists ()
     | Some f ->
       (match f blk with
-      | None -> exists ()
+      | None -> visit_exists ()
       | Some res -> res)
   ;;
 
-  let exists_struct_func
+  let visit_exists_func
       ?(ffunc : (func -> bool option) option = None)
       ?(fparam : (param -> bool) option = None)
       ?(fblock : (block -> bool option) option = None)
@@ -427,54 +398,64 @@ module Exists = struct
       (fn : func)
       : bool
     =
-    let exists () =
+    let visit_exists () =
       let res =
         match fparam with
         | None -> false
         | Some f -> exists_param ~f fn in
       if res
       then true
-      else exists_block ~f:(exists_struct_block ~fblock ~finstr) fn in
+      else exists_block ~f:(visit_exists_block ~fblock ~finstr) fn in
     match ffunc with
-    | None -> exists ()
+    | None -> visit_exists ()
     | Some f ->
       (match f fn with
-      | None -> exists ()
+      | None -> visit_exists ()
       | Some res -> res)
   ;;
 
-  (* let exists_struct_module *)
-  (*     ?(fglobal : (global -> bool) option = None) *)
-  (*     ?(ffunc : (func -> bool option) option = None) *)
-  (*     ?(fparam : (param -> bool) option = None) *)
-  (*     ?(fblock : (block -> bool option) option = None) *)
-  (*     ?(finstr : (instr -> bool) option = None) *)
-  (*     (m : bitcode_module) *)
-  (*     : bool *)
-  (*   = *)
-  (*   LL.iter_globals (fun g -> iter_struct_global ~fglobal (mk_global g)) m; *)
-  (*   LL.iter_functions *)
-  (*     (fun f -> visit_func ~ffunc ~fparam ~fblock ~finstr (mk_func f)) *)
-  (*     m *)
-  (* ;; *)
+  let visit_exists_module
+      ?(fglobal : (global -> bool) option = None)
+      ?(ffunc : (func -> bool option) option = None)
+      ?(fparam : (param -> bool) option = None)
+      ?(fblock : (block -> bool option) option = None)
+      ?(finstr : (instr -> bool) option = None)
+      (m : bitcode_module)
+      : bool
+    =
+    let res =
+      match fglobal with
+      | None -> false
+      | Some f -> exists_global ~f m in
+    if res
+    then true
+    else
+      exists_function ~f:(visit_exists_func ~ffunc ~fparam ~fblock ~finstr) m
+  ;;
 
-  (* let visit_program *)
-  (*     ?(fglobal : (global -> unit) option = None) *)
-  (*     ?(ffunc : (func -> unit option) option = None) *)
-  (*     ?(fparam : (param -> unit) option = None) *)
-  (*     ?(fblock : (block -> unit option) option = None) *)
-  (*     ?(finstr : (instr -> unit) option = None) *)
-  (*     (prog : program) *)
-  (*     : unit *)
-  (*   = *)
-  (*   List.iter ~f:(iter_struct_global ~fglobal) prog.prog_globals; *)
-  (*   List.iter *)
-  (*     ~f:(visit_func ~ffunc ~fparam ~fblock ~finstr) *)
-  (*     (prog.prog_init_funcs @ prog.prog_user_funcs) *)
-  (* ;; *)
+  let visit_exists_program
+      ?(fglobal : (global -> bool) option = None)
+      ?(ffunc : (func -> bool option) option = None)
+      ?(fparam : (param -> bool) option = None)
+      ?(fblock : (block -> bool option) option = None)
+      ?(finstr : (instr -> bool) option = None)
+      (prog : program)
+      : bool
+    =
+    let res =
+      match fglobal with
+      | None -> false
+      | Some f -> List.exists ~f prog.prog_globals in
+    if res
+    then true
+    else
+      List.exists
+        ~f:(visit_exists_func ~ffunc ~fparam ~fblock ~finstr)
+        (prog.prog_init_funcs @ prog.prog_user_funcs)
+  ;;
 end
 
-include Exists
+include VisitExists
 
 (*******************************************************************
  * Utilities functions for data types
