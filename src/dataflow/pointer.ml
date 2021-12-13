@@ -451,21 +451,19 @@ module PointerGraph = struct
   ;;
 
   let has_edges_of_direction_from_then_to (lbl : label) : bool =
-    try
-      let has_from = ref false in
-      match lbl with
-      | Seq (lbls, _, _) ->
-        let _ =
-          List.iter
-            ~f:(fun lbl ->
-              match lbl with
-              | Pto From | GEP (_, _, From) -> has_from := true
-              | Pto To | GEP (_, _, To) -> if !has_from then raise (EBool true)
-              | _ -> ())
-            lbls in
-        false
-      | _ -> false
-    with EBool res -> res
+    let has_from = ref false in
+    match lbl with
+    | Seq (lbls, _, _) ->
+      List.exists
+        ~f:(fun lbl ->
+          match lbl with
+          | Pto From | GEP (_, _, From) ->
+            let _ = has_from := true in
+            false
+          | Pto To | GEP (_, _, To) -> !has_from
+          | _ -> false)
+        lbls
+    | _ -> false
   ;;
 
   let has_consecutive_edges_of_direction_to_from (lbl : label) : bool =
@@ -3015,39 +3013,31 @@ struct
     (* let _ = print "REFINE_CANDIDATE_SPARSE_GLOBALS" in *)
     let updated = ref false in
     let is_used_global g =
-      try
-        let vg = llvalue_of_global g in
-        let _ =
-          LL.iter_uses
-            (fun u ->
-              let vu = LL.user u in
-              match LL.classify_value vu with
-              | LV.Instruction _ | LV.GlobalVariable _ ->
-                if is_sparse_llvalue penv vu then raise (EBool true)
-              | _ -> ())
-            vg in
-        false
-      with EBool res -> res in
+      let vg = llvalue_of_global g in
+      exists_use
+        ~f:(fun u ->
+          let vu = LL.user u in
+          match LL.classify_value vu with
+          | LV.Instruction _ | LV.GlobalVariable _ -> is_sparse_llvalue penv vu
+          | _ -> false)
+        vg in
     let is_global_used_only_as_dst_of_instr_store g =
-      try
-        let vg = llvalue_of_global g in
-        (* let _ = hprint "global: " pr_global g in *)
-        let _ =
-          LL.iter_uses
-            (fun u ->
-              let vu = LL.user u in
-              if is_sparse_llvalue penv vu
-              then (
-                (* let _ = hprint "  user: " pr_value_detail vu in *)
-                match LL.classify_value vu with
-                | LV.Instruction LO.Store ->
-                  if equal_value (dst_of_instr_store (mk_instr vu)) vg
-                  then ()
-                  else raise (EBool false)
-                | _ -> raise (EBool false)))
-            vg in
-        true
-      with EBool res -> res in
+      let vg = llvalue_of_global g in
+      (* let _ = hprint "global: " pr_global g in *)
+      for_all_use
+        ~f:(fun u ->
+          let vu = LL.user u in
+          if is_sparse_llvalue penv vu
+          then (
+            (* let _ = hprint "  user: " pr_value_detail vu in *)
+            match LL.classify_value vu with
+            | LV.Instruction LO.Store ->
+              if equal_value (dst_of_instr_store (mk_instr vu)) vg
+              then true
+              else false
+            | _ -> false)
+          else false)
+        vg in
     let _ =
       List.iter
         ~f:(fun g ->
@@ -3097,21 +3087,18 @@ struct
                 else acc)
               0 v in
           let is_value_used_only_as_dst_of_instr_store v =
-            try
-              LL.iter_uses
-                (fun u ->
-                  let vu = LL.user u in
-                  match LL.classify_value vu with
-                  | LV.Instruction LO.Store ->
-                    if not (is_sparse_llvalue penv vu)
-                    then ()
-                    else if equal_value (dst_of_instr_store (mk_instr vu)) v
-                    then ()
-                    else raise (EBool false)
-                  | _ -> raise (EBool false))
-                v;
-              true
-            with EBool res -> res in
+            for_all_use
+              ~f:(fun u ->
+                let vu = LL.user u in
+                match LL.classify_value vu with
+                | LV.Instruction LO.Store ->
+                  if not (is_sparse_llvalue penv vu)
+                  then true
+                  else if equal_value (dst_of_instr_store (mk_instr vu)) v
+                  then true
+                  else false
+                | _ -> false)
+              v in
           let has_operand_of_non_sparse_global (oprs : value list) =
             List.exists
               ~f:(fun opr ->

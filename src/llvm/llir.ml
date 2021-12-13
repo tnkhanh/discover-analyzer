@@ -19,6 +19,7 @@ include Llast.Type
 include Llast.Global
 include Llast.Expr
 include Llast.Instr
+include Llast.Use
 include Llast.Opcode
 include Llast.Const
 include Llast.Param
@@ -36,6 +37,7 @@ include Llutils.Iter
 include Llutils.Map
 include Llutils.Fold
 include Llutils.Exists
+include Llutils.ForAll
 include Llutils.Visit
 include Llutils.VisitFold
 include Llutils.VisitExists

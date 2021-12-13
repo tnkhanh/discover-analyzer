@@ -924,9 +924,9 @@ functor
           None)
         else Some () in
       let _ =
-        visit_program ~fglobal:(Some process_global)
-          ~ffunc:(Some process_func) ~fparam:(Some process_param)
-          ~fblock:(Some process_block) ~finstr:(Some process_instr) prog in
+        visit_program ~fglobal:(Some process_global) ~ffunc:(Some process_func)
+          ~fparam:(Some process_param) ~fblock:(Some process_block)
+          ~finstr:(Some process_instr) prog in
       let stats =
         "\nSparse Pointer Statistics:\n"
         ^ sprintf "  #Sparse User funcs: %d\n" !num_user_funcs
@@ -1298,22 +1298,19 @@ functor
       in
       let _ = hdebug " - Output: " pr_data_opt fenv.fenv_output in
       let env_completed =
-        try
-          let process_block blk =
-            if is_sparse_block penv blk then None else Some () in
-          let process_instr instr =
-            if T.is_sparse_instr penv instr && not (is_instr_unreachable instr)
-            then (
-              match T.get_instr_output fenv instr with
-              | None ->
-                let _ = hdebug "Env incompleted at: " pr_instr instr in
-                raise (EBool false)
-              | Some _ -> ()) in
-          let _ =
-            visit_func ~fblock:(Some process_block)
-              ~finstr:(Some process_instr) func in
-          true
-        with EBool res -> res in
+        let process_block blk =
+          if is_sparse_block penv blk then None else Some true in
+        let process_instr instr =
+          if T.is_sparse_instr penv instr && not (is_instr_unreachable instr)
+          then (
+            match T.get_instr_output fenv instr with
+            | None ->
+              let _ = hdebug "Env incompleted at: " pr_instr instr in
+              false
+            | Some _ -> true)
+          else true in
+        visit_for_all_func ~fblock:(Some process_block)
+          ~finstr:(Some process_instr) func in
       let _ = hdebug ~always:true " - Env completed: " pr_bool env_completed in
       match Hashtbl.find penv.penv_func_envs func with
       | None ->

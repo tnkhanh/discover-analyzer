@@ -80,6 +80,19 @@ include Map
  *******************************************************************)
 
 module Exists = struct
+  let exists_use ~(f : use -> bool) (v : value) : bool =
+    let rec check_use (u : use) : bool =
+      if f u
+      then true
+      else (
+        match use_succ u with
+        | None -> false
+        | Some u' -> check_use u') in
+    match use_begin v with
+    | None -> false
+    | Some u -> check_use u
+  ;;
+
   let exists_instr ~(f : instr -> bool) (blk : block) : bool =
     let rec check_instr (ins : instr) : bool =
       if f ins
@@ -152,7 +165,20 @@ include Exists
  * Checking for-all over LLVM data structures
  *******************************************************************)
 
-module Forall = struct
+module ForAll = struct
+  let for_all_use ~(f : use -> bool) (v : value) : bool =
+    let rec check_use (u : use) : bool =
+      if not (f u)
+      then false
+      else (
+        match use_succ u with
+        | None -> true
+        | Some u' -> check_use u') in
+    match use_begin v with
+    | None -> true
+    | Some u -> check_use u
+  ;;
+
   let for_all_instr ~(f : instr -> bool) (blk : block) : bool =
     let rec check_instr (ins : instr) : bool =
       if not (f ins)
@@ -219,7 +245,7 @@ module Forall = struct
   ;;
 end
 
-include Forall
+include ForAll
 
 (*******************************************************************
  * Folding over LLVM data structures
@@ -619,7 +645,6 @@ module VisitForAll = struct
 end
 
 include VisitForAll
-
 
 (*******************************************************************
  * Utilities functions for data types
