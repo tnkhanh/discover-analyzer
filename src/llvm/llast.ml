@@ -728,6 +728,9 @@ module Global = struct
   ;;
 
   let pr_globals (gs : globals) : string = pr_list ~f:pr_global gs
+
+  (*** Utilities ***)
+
   let global_name (g : global) : string = pr_global ~detailed:false g
   let global_names (gs : globals) : string = pr_args ~f:global_name gs
 
@@ -736,6 +739,30 @@ module Global = struct
   ;;
 
   let type_of_global (g : global) : datatype = LL.type_of (llvalue_of_global g)
+
+  let global_succ (g : global) : global option =
+    match LL.global_succ (llvalue_of_global g) with
+    | LL.At_end _ -> None
+    | LL.Before v -> Some (mk_global v)
+  ;;
+
+  let global_pred (g : global) : global option =
+    match LL.global_pred (llvalue_of_global g) with
+    | LL.At_start _ -> None
+    | LL.After v -> Some (mk_global v)
+  ;;
+
+  let first_global_of_module (m : bitcode_module) : global option =
+    match LL.global_begin m with
+    | LL.At_end _ -> None
+    | LL.Before v -> Some (mk_global v)
+  ;;
+
+  let last_global_of_module (m : bitcode_module) : global option =
+    match LL.global_end m with
+    | LL.At_start _ -> None
+    | LL.After v -> Some (mk_global v)
+  ;;
 end
 
 include Global
@@ -829,6 +856,25 @@ module Instr = struct
   let get_branch (i : instr) = LL.get_branch (llvalue_of_instr i)
   let block_of_instr (i : instr) : block = LL.instr_parent (llvalue_of_instr i)
   let type_of_instr (i : instr) : datatype = LL.type_of (llvalue_of_instr i)
+
+  (** Get the succeeding instruction of [i] *)
+  let instr_succ (i : instr) : instr option =
+    match LL.instr_succ (llvalue_of_instr i) with
+    | LL.At_end _ -> None
+    | LL.Before v -> Some (mk_instr v)
+  ;;
+
+  let instr_pred (i : instr) : instr option =
+    match LL.instr_pred (llvalue_of_instr i) with
+    | LL.At_start _ -> None
+    | LL.After v -> Some (mk_instr v)
+  ;;
+
+  let instr_begin (b : block) : instr option =
+    match LL.instr_begin b with
+    | LL.At_end _ -> None
+    | LL.Before v -> Some (mk_instr v)
+  ;;
 
   let is_instr_load (i : instr) : bool =
     match instr_opcode i with
@@ -977,16 +1023,81 @@ end
 include Opcode
 
 (*******************************************************************
- * function and parameters
+ * Block
  *******************************************************************)
 
-module Func = struct
+module Block = struct
   (*** Comparisons ***)
 
-  let equal_func (f1 : func) (f2 : func) : bool =
-    match f1, f2 with
-    | Func v1, Func v2 -> equal_value v1 v2
+  let equal_block (b1 : block) (b2 : block) : bool = b1 == b2
+
+  (*** Constructors ***)
+
+  let mk_prec_block (blk : block) (pcond : predicate) : prec_block =
+    { pblk_block = blk; pblk_pathcond = pcond }
   ;;
+
+  let mk_succ_block (blk : block) (pcond : predicate) : succ_block =
+    { sblk_block = blk; sblk_pathcond = pcond }
+  ;;
+
+  (*** Utilities ***)
+
+  let block_name (b : block) : string = LL.value_name (LL.value_of_block b)
+  let block_names (bs : block list) : string = pr_list ~f:block_name bs
+
+  let equal_block_name (b1 : block) (b2 : block) : bool =
+    let name1 = block_name b1 in
+    let name2 = block_name b2 in
+    String.equal name1 name2
+  ;;
+
+  let last_instr_of_block (b : block) : instr option =
+    match LL.instr_end b with
+    | LL.At_start _ -> None
+    | LL.After v -> Some (mk_instr v)
+  ;;
+
+  let first_instr_of_block (b : block) : instr option =
+    match LL.instr_begin b with
+    | LL.At_end _ -> None
+    | LL.Before v -> Some (mk_instr v)
+  ;;
+
+  let is_first_instr_of_block (i : instr) : bool =
+    let b = block_of_instr i in
+    match first_instr_of_block b with
+    | None -> false
+    | Some i' -> equal_instr i i'
+  ;;
+
+  let is_entry_block_of_function (b : block) : bool =
+    match LL.block_pred b with
+    | LL.At_start _ -> true
+    | LL.After _ -> false
+  ;;
+
+  let block_succ (b : block) : block option =
+    match LL.block_succ b with
+    | LL.At_end _ -> None
+    | LL.Before b' -> Some b'
+  ;;
+
+  let block_pred (b : block) : block option =
+    match LL.block_pred b with
+    | LL.At_start _ -> None
+    | LL.After b' -> Some b'
+  ;;
+end
+
+include Block
+
+(*******************************************************************
+ * Parameters
+ *******************************************************************)
+
+module Param = struct
+  (*** Comparisons ***)
 
   let equal_param (p1 : param) (p2 : param) : bool =
     match p1, p2 with
@@ -994,19 +1105,6 @@ module Func = struct
   ;;
 
   (*** Constructors ***)
-
-  let mk_func (v : value) : func =
-    match LL.classify_value v with
-    | LV.Function -> Func v
-    | LV.Instruction _ -> Func v
-    | LV.Argument _ -> Func v
-    | _ -> Func v
-  ;;
-
-  let llvalue_of_func (f : func) : value =
-    match f with
-    | Func v -> v
-  ;;
 
   let mk_param (v : value) : param =
     match LL.classify_value v with
@@ -1023,6 +1121,8 @@ module Func = struct
     List.map ~f:llvalue_of_param ps
   ;;
 
+  (*** Printing ***)
+
   let pr_param ?(detailed = false) (p : param) : string =
     match p with
     | Param v -> if detailed then pr_value_detail v else pr_value v
@@ -1033,6 +1133,50 @@ module Func = struct
   let pr_typed_param (p : param) : string =
     match p with
     | Param v -> pr_type (LL.type_of v) ^ " " ^ pr_value v
+  ;;
+
+  (*** Utilities ***)
+
+  let param_succ (p : param) : param option =
+    match LL.param_succ (llvalue_of_param p) with
+    | LL.At_end _ -> None
+    | LL.Before v -> Some (mk_param v)
+  ;;
+
+  let param_pred (p : param) : param option =
+    match LL.param_pred (llvalue_of_param p) with
+    | LL.At_start _ -> None
+    | LL.After v -> Some (mk_param v)
+  ;;
+end
+
+include Param
+
+(*******************************************************************
+ * Function
+ *******************************************************************)
+
+module Func = struct
+  (*** Comparisons ***)
+
+  let equal_func (f1 : func) (f2 : func) : bool =
+    match f1, f2 with
+    | Func v1, Func v2 -> equal_value v1 v2
+  ;;
+
+  (*** Constructors ***)
+
+  let mk_func (v : value) : func =
+    match LL.classify_value v with
+    | LV.Function -> Func v
+    | LV.Instruction _ -> Func v
+    | LV.Argument _ -> Func v
+    | _ -> Func v
+  ;;
+
+  let llvalue_of_func (f : func) : value =
+    match f with
+    | Func v -> v
   ;;
 
   let func_name (f : func) : string =
@@ -1076,10 +1220,53 @@ module Func = struct
   ;;
 
   let func_return_type (f : func) : datatype = LL.return_type (func_type f)
+  let func_of_block (blk : block) : func = mk_func (LL.block_parent blk)
+
+  let func_of_instr (i : instr) : func =
+    let vi = llvalue_of_instr i in
+    func_of_block (LL.instr_parent vi)
+  ;;
+
+  let first_param_of_func (f : func) : param option =
+    match LL.param_begin (llvalue_of_func f) with
+    | LL.At_end _ -> None
+    | LL.Before v -> Some (mk_param v)
+  ;;
+
+  let last_param_of_func (f : func) : param option =
+    match LL.param_end (llvalue_of_func f) with
+    | LL.At_start _ -> None
+    | LL.After v -> Some (mk_param v)
+  ;;
 
   let blocks_of_func (f : func) : blocks =
     let v = llvalue_of_func f in
     LL.fold_left_blocks (fun acc blk -> acc @ [ blk ]) [] v
+  ;;
+
+  let first_block_of_func (f : func) : block option =
+    match LL.block_begin (llvalue_of_func f) with
+    | LL.At_end _ -> None
+    | LL.Before blk -> Some blk
+  ;;
+
+  let last_block_of_func (f : func) : block option =
+    match LL.block_end (llvalue_of_func f) with
+    | LL.At_start _ -> None
+    | LL.After blk -> Some blk
+  ;;
+
+  let is_first_block_of_func (blk : block) : bool =
+    let func = func_of_block blk in
+    match first_block_of_func func with
+    | None -> false
+    | Some b -> equal_block b blk
+  ;;
+
+  let first_instr_of_func (f : func) : instr option =
+    match first_block_of_func f with
+    | None -> None
+    | Some b -> first_instr_of_block b
   ;;
 
   let is_func_free (f : func) : bool = String.equal (func_name f) "free"
@@ -1202,14 +1389,17 @@ module Func = struct
     | _ -> false
   ;;
 
-  let func_of_block (blk : block) : func = mk_func (LL.block_parent blk)
-
-  let func_of_instr (i : instr) : func =
-    let vi = llvalue_of_instr i in
-    func_of_block (LL.instr_parent vi)
+  let func_succ (fn : func) : func option =
+    match LL.function_succ (llvalue_of_func fn) with
+    | LL.At_end _ -> None
+    | LL.Before v -> Some (mk_func v)
   ;;
 
-  let type_of_func (f : func) : datatype = LL.type_of (llvalue_of_func f)
+  let func_pred (fn : func) : func option =
+    match LL.function_pred (llvalue_of_func fn) with
+    | LL.At_start _ -> None
+    | LL.After v -> Some (mk_func v)
+  ;;
 end
 
 include Func
@@ -1230,39 +1420,6 @@ module Callable = struct
 end
 
 include Callable
-
-(*******************************************************************
- * Block
- *******************************************************************)
-
-module Block = struct
-  (*** Comparisons ***)
-
-  let equal_block (blk1 : block) (blk2 : block) : bool = blk1 == blk2
-
-  (*** Constructors ***)
-
-  let mk_prec_block (blk : block) (pcond : predicate) : prec_block =
-    { pblk_block = blk; pblk_pathcond = pcond }
-  ;;
-
-  let mk_succ_block (blk : block) (pcond : predicate) : succ_block =
-    { sblk_block = blk; sblk_pathcond = pcond }
-  ;;
-
-  (*** Printing ***)
-
-  let block_name (blk : block) : string = LL.value_name (LL.value_of_block blk)
-  let block_names (blks : block list) : string = pr_list ~f:block_name blks
-
-  let equal_block_name (blk1 : block) (blk2 : block) : bool =
-    let name1 = block_name blk1 in
-    let name2 = block_name blk2 in
-    String.equal name1 name2
-  ;;
-end
-
-include Block
 
 (*******************************************************************
  * Loops
@@ -1632,6 +1789,28 @@ module Path = struct
 end
 
 include Path
+
+(*******************************************************************
+ * Module
+ *******************************************************************)
+
+module Module = struct
+  (*** Utilities ***)
+
+  let first_func_of_module (m : bitcode_module) : func option =
+    match LL.function_begin m with
+    | LL.At_end _ -> None
+    | LL.Before v -> Some (mk_func v)
+  ;;
+
+  let last_func_of_module (m : bitcode_module) : func option =
+    match LL.function_end m with
+    | LL.At_start _ -> None
+    | LL.After v -> Some (mk_func v)
+  ;;
+end
+
+include Module
 
 (*******************************************************************
  * Programs

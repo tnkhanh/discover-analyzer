@@ -11,7 +11,7 @@ module LV = LL.ValueKind
 module LO = LL.Opcode
 module SP = Set.Poly
 
-(* Include sub-modules *)
+(* Include core sub-modules *)
 
 include Llast.AST
 include Llast.Value
@@ -21,21 +21,29 @@ include Llast.Expr
 include Llast.Instr
 include Llast.Opcode
 include Llast.Const
+include Llast.Param
 include Llast.Func
 include Llast.Callable
 include Llast.Block
 include Llast.Path
 include Llast.Loop
+include Llast.Module
 include Llast.Program
+
+(* Include utility sub-modules *)
+
 include Llutils.Iter
 include Llutils.Map
 include Llutils.Fold
+include Llutils.Visit
+include Llutils.Exists
 include Llutils.Type
 include Llutils.Value
 include Llutils.Use
 include Llutils.Instr
 include Llutils.Global
 include Llutils.Block
+(* include Llutils.Param *)
 include Llutils.Func
 include Llutils.Path
 include Llutils.Metadata

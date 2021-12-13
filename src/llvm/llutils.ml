@@ -22,13 +22,13 @@ module Iter = struct
     LL.iter_instrs ff blk
   ;;
 
-  let iter_blocks ~(f : block -> unit) (func : func) : unit =
-    LL.iter_blocks f (llvalue_of_func func)
+  let iter_blocks ~(f : block -> unit) (fn : func) : unit =
+    LL.iter_blocks f (llvalue_of_func fn)
   ;;
 
-  let iter_params ~(f : param -> unit) (func : func) : unit =
+  let iter_params ~(f : param -> unit) (fn : func) : unit =
     let ff v = f (mk_param v) in
-    LL.iter_params ff (llvalue_of_func func)
+    LL.iter_params ff (llvalue_of_func fn)
   ;;
 
   let iter_globals ~(f : global -> unit) (m : bitcode_module) : unit =
@@ -40,37 +40,38 @@ module Iter = struct
     let ff v = f (mk_func v) in
     LL.iter_functions ff m
   ;;
+end
 
-  (*** Iterate structurally over LLVM data structures ***)
+include Iter
 
-  let iter_struct_instr
-      ?(finstr : (instr -> unit) option = None)
-      (instr : instr)
+(*** Visit structurally over LLVM data structures ***)
+module Visit = struct
+  let iter_struct_instr ?(finstr : (instr -> unit) option = None)
+        (i : instr)
       : unit
     =
     match finstr with
     | None -> ()
-    | Some f -> f instr
+    | Some f -> f i
   ;;
 
-  let iter_struct_param
-      ?(fparam : (param -> unit) option = None)
-      (param : param)
+  let iter_struct_param ?(fparam : (param -> unit) option = None)
+        (p : param)
       : unit
     =
     match fparam with
     | None -> ()
-    | Some f -> f param
+    | Some f -> f p
   ;;
 
   let iter_struct_global
       ?(fglobal : (global -> unit) option = None)
-      (glob : global)
+      (g: global)
       : unit
     =
     match fglobal with
     | None -> ()
-    | Some f -> f glob
+    | Some f -> f g
   ;;
 
   let iter_struct_block
@@ -80,13 +81,15 @@ module Iter = struct
       : unit
     =
     let iter () =
-      LL.iter_instrs (fun i -> iter_struct_instr ~finstr (mk_instr i)) blk
-    in
-    let open Option.Let_syntax in
-    let res =
-      let%bind f = fblock in
-      f blk in
-    Option.value res ~default:(iter ())
+      match finstr with
+      | None -> ()
+      | Some finstr -> iter_instrs ~f:finstr blk in
+    match fblock with
+    | None -> iter ()
+    | Some f ->
+      (match f blk with
+      | None -> iter ()
+      | Some res -> res)
   ;;
 
   let iter_struct_func
@@ -94,20 +97,20 @@ module Iter = struct
       ?(fparam : (param -> unit) option = None)
       ?(fblock : (block -> unit option) option = None)
       ?(finstr : (instr -> unit) option = None)
-      (func : func)
+      (fn : func)
       : unit
     =
     let iter () =
-      let vfunc = llvalue_of_func func in
-      let _ =
-        LL.iter_params (fun p -> iter_struct_param ~fparam (mk_param p)) vfunc
-      in
-      LL.iter_blocks (iter_struct_block ~fblock ~finstr) vfunc in
-    let open Option.Let_syntax in
-    let res =
-      let%bind f = ffunc in
-      f func in
-    Option.value res ~default:(iter ())
+      let _ = match fparam with
+        | None -> ()
+        | Some fparam -> iter_params ~f:fparam fn in
+      iter_blocks ~f:(iter_struct_block ~fblock ~finstr) fn in
+    match ffunc with
+    | None -> iter ()
+    | Some f ->
+      (match f fn with
+      | None -> iter ()
+      | Some res -> res)
   ;;
 
   let iter_struct_module
@@ -264,11 +267,12 @@ module Fold = struct
       LL.fold_left_instrs
         (fun acc' instr -> fold_struct_instr ~finstr acc' (mk_instr instr))
         acc blk in
-    let open Option.Let_syntax in
-    let res =
-      let%bind f = fblock in
-      f acc blk in
-    Option.value res ~default:(fold ())
+    match fblock with
+    | None -> fold ()
+    | Some f ->
+      (match f acc blk with
+      | None -> fold ()
+      | Some res -> res)
   ;;
 
   let fold_struct_func
@@ -277,23 +281,24 @@ module Fold = struct
       ?(fblock : ('a -> block -> 'a option) option = None)
       ?(finstr : ('a -> instr -> 'a) option = None)
       (acc : 'a)
-      (func : func)
+      (fn : func)
       : 'a
     =
     let fold () =
-      let vfunc = llvalue_of_func func in
+      let vfn = llvalue_of_func fn in
       let res =
         LL.fold_left_params
           (fun acc' param -> fold_struct_param ~fparam acc' (mk_param param))
-          acc vfunc in
+          acc vfn in
       LL.fold_left_blocks
         (fun acc' blk -> fold_struct_block ~fblock ~finstr acc' blk)
-        res vfunc in
-    let open Option.Let_syntax in
-    let res =
-      let%bind f = ffunc in
-      f acc func in
-    Option.value res ~default:(fold ())
+        res vfn in
+    match ffunc with
+    | None -> fold ()
+    | Some f ->
+      (match f acc fn with
+      | None -> fold ()
+      | Some res -> res)
   ;;
 
   let fold_struct_module
@@ -345,39 +350,180 @@ end
  * Checking existence over LLVM data structures
  *******************************************************************)
 
-module ExistUtils = struct
-  (*** Checking existence linearly over LLVM data structures ***)
+module Exists = struct
+  (*--------------------------------------------------------
+   * Checking existence linearly over LLVM data structures
+   *-------------------------------------------------------*)
 
-  let iter_instrs ~(f : instr -> unit) (blk : block) : unit =
-    let ff v = f (mk_instr v) in
-    LL.iter_instrs ff blk
+  let exists_instr ~(f : instr -> bool) (blk : block) : bool =
+    let rec check_instr (ins : instr) : bool =
+      if f ins
+      then true
+      else (
+        match instr_succ ins with
+        | None -> false
+        | Some ins' -> check_instr ins') in
+    match first_instr_of_block blk with
+    | None -> false
+    | Some ins -> check_instr ins
   ;;
 
-  let iter_blocks ~(f : block -> unit) (func : func) : unit =
-    LL.iter_blocks f (llvalue_of_func func)
+  let exists_block ~(f : block -> bool) (fn : func) : bool =
+    let rec check_block (blk : block) : bool =
+      if f blk
+      then true
+      else (
+        match block_succ blk with
+        | None -> false
+        | Some blk' -> check_block blk') in
+    match first_block_of_func fn with
+    | None -> false
+    | Some blk -> check_block blk
   ;;
 
-  let iter_params ~(f : param -> unit) (func : func) : unit =
-    let ff v = f (mk_param v) in
-    LL.iter_params ff (llvalue_of_func func)
+  let exists_param ~(f : param -> bool) (fn : func) : bool =
+    let rec check_param (p : param) : bool =
+      if f p
+      then true
+      else (
+        match param_succ p with
+        | None -> false
+        | Some p' -> check_param p') in
+    match first_param_of_func fn with
+    | None -> false
+    | Some p -> check_param p
   ;;
 
-  let iter_globals ~(f : global -> unit) (m : bitcode_module) : unit =
-    let ff v = f (mk_global v) in
-    LL.iter_globals ff m
+  let exists_global ~(f : global -> bool) (m : bitcode_module) : bool =
+    let rec check_global (g : global) : bool =
+      if f g
+      then true
+      else (
+        match global_succ g with
+        | None -> false
+        | Some g' -> check_global g') in
+    match first_global_of_module m with
+    | None -> false
+    | Some g -> check_global g
   ;;
 
-  let iter_functions ~(f : func -> unit) (m : bitcode_module) : unit =
-    let ff v = f (mk_func v) in
-    LL.iter_functions ff m
+  let exists_function ~(f : func -> bool) (m : bitcode_module) : bool =
+    let rec check_func (fn : func) : bool =
+      if f fn
+      then true
+      else (
+        match func_succ fn with
+        | None -> false
+        | Some fn' -> check_func fn') in
+    match first_func_of_module m with
+    | None -> false
+    | Some fn -> check_func fn
   ;;
 
-  (*** Check existence structurally over LLVM data structures ***)
+  (*---------------------------------------------------------
+   * Check existence structurally over LLVM data structures
+   *--------------------------------------------------------*)
+
+  let exists_struct_instr ?(finstr : (instr -> bool) option = None) (i : instr)
+      : bool
+    =
+    match finstr with
+    | None -> false
+    | Some f -> f i
+  ;;
+
+  let exists_struct_param ?(fparam : (param -> bool) option = None) (p : param)
+      : bool
+    =
+    match fparam with
+    | None -> false
+    | Some f -> f p
+  ;;
+
+  let exists_struct_global
+      ?(fglobal : (global -> bool) option = None)
+      (g : global)
+      : bool
+    =
+    match fglobal with
+    | None -> false
+    | Some f -> f g
+  ;;
+
+  let exists_struct_block
+      ?(fblock : (block -> bool option) option = None)
+      ?(finstr : (instr -> bool) option = None)
+      (blk : block)
+      : 'a
+    =
+    let exists () = exists_instr ~f:(exists_struct_instr ~finstr) blk in
+    match fblock with
+    | None -> exists ()
+    | Some f ->
+      (match f blk with
+      | None -> exists ()
+      | Some res -> res)
+  ;;
+
+  let exists_struct_func
+        ?(ffunc : (func -> bool option) option = None)
+        ?(fparam : (param -> bool) option = None)
+        ?(fblock : (block -> bool option) option = None)
+        ?(finstr : (instr -> bool) option = None)
+        (fn : func)
+    : bool
+    =
+    let exists () =
+      let res = match fparam with
+        | None -> false
+        | Some f -> exists_param ~f fn in
+      if res
+      then true
+      else exists_block ~f:(exists_struct_block ~fblock ~finstr) fn in
+    match ffunc with
+    | None -> exists ()
+    | Some f ->
+      (match f fn with
+       | None -> exists ()
+       | Some res -> res)
+  ;;
+
+  (* let exists_struct_module *)
+  (*     ?(fglobal : (global -> bool) option = None) *)
+  (*     ?(ffunc : (func -> bool option) option = None) *)
+  (*     ?(fparam : (param -> bool) option = None) *)
+  (*     ?(fblock : (block -> bool option) option = None) *)
+  (*     ?(finstr : (instr -> bool) option = None) *)
+  (*     (m : bitcode_module) *)
+  (*     : bool *)
+  (*   = *)
+  (*   LL.iter_globals (fun g -> iter_struct_global ~fglobal (mk_global g)) m; *)
+  (*   LL.iter_functions *)
+  (*     (fun f -> iter_struct_func ~ffunc ~fparam ~fblock ~finstr (mk_func f)) *)
+  (*     m *)
+  (* ;; *)
+
+  (* let iter_struct_program *)
+  (*     ?(fglobal : (global -> unit) option = None) *)
+  (*     ?(ffunc : (func -> unit option) option = None) *)
+  (*     ?(fparam : (param -> unit) option = None) *)
+  (*     ?(fblock : (block -> unit option) option = None) *)
+  (*     ?(finstr : (instr -> unit) option = None) *)
+  (*     (prog : program) *)
+  (*     : unit *)
+  (*   = *)
+  (*   List.iter ~f:(iter_struct_global ~fglobal) prog.prog_globals; *)
+  (*   List.iter *)
+  (*     ~f:(iter_struct_func ~ffunc ~fparam ~fblock ~finstr) *)
+  (*     (prog.prog_init_funcs @ prog.prog_user_funcs) *)
+  (* ;; *)
 end
 
 include Iter
+include Visit
 include Map
 include Fold
+include Exists
 
 (*******************************************************************
  * Utilities functions for data types
@@ -510,24 +656,6 @@ module Instr = struct
     let blk1 = block_of_instr i1 in
     let blk2 = block_of_instr i2 in
     equal_block blk1 blk2
-  ;;
-
-  let instr_succ (i : instr) : instr option =
-    match LL.instr_succ (llvalue_of_instr i) with
-    | LL.At_end _ -> None
-    | LL.Before v -> Some (mk_instr v)
-  ;;
-
-  let instr_pred (i : instr) : instr option =
-    match LL.instr_pred (llvalue_of_instr i) with
-    | LL.At_start _ -> None
-    | LL.After v -> Some (mk_instr v)
-  ;;
-
-  let instr_begin (blk : block) : instr option =
-    match LL.instr_begin blk with
-    | LL.At_end _ -> None
-    | LL.Before v -> Some (mk_instr v)
   ;;
 
   (* Alloca *)
@@ -984,31 +1112,6 @@ module Block = struct
   let is_entry_block (blk : block) func : bool =
     equal_block blk (LL.entry_block func)
   ;;
-
-  let last_instr_of_block (blk : block) : instr option =
-    match LL.instr_end blk with
-    | LL.At_start _ -> None
-    | LL.After v -> Some (mk_instr v)
-  ;;
-
-  let first_instr_of_block (blk : block) : instr option =
-    match LL.instr_begin blk with
-    | LL.At_end _ -> None
-    | LL.Before v -> Some (mk_instr v)
-  ;;
-
-  let is_first_instr_of_block (instr : instr) : bool =
-    let blk = block_of_instr instr in
-    match first_instr_of_block blk with
-    | None -> false
-    | Some i -> equal_instr i instr
-  ;;
-
-  let is_entry_block_of_function (blk : block) : bool =
-    match LL.block_pred blk with
-    | LL.At_start _ -> true
-    | LL.After _ -> false
-  ;;
 end
 
 include Block
@@ -1323,31 +1426,6 @@ module Func = struct
 
   let delete_function (f : func) : unit =
     LL.delete_function (llvalue_of_func f)
-  ;;
-
-  let first_block_of_func (f : func) : block option =
-    match LL.block_begin (llvalue_of_func f) with
-    | LL.At_end _ -> None
-    | LL.Before blk -> Some blk
-  ;;
-
-  let last_block_of_func (f : func) : block option =
-    match LL.block_end (llvalue_of_func f) with
-    | LL.At_start _ -> None
-    | LL.After blk -> Some blk
-  ;;
-
-  let is_first_block_of_func (blk : block) : bool =
-    let func = func_of_block blk in
-    match first_block_of_func func with
-    | None -> false
-    | Some b -> equal_block b blk
-  ;;
-
-  let first_instr_of_func (f : func) : instr option =
-    match first_block_of_func f with
-    | None -> None
-    | Some b -> first_instr_of_block b
   ;;
 
   let get_func_callees (prog : program) (f : func) : funcs =
@@ -1812,7 +1890,7 @@ module Program = struct
       | None -> ()
       | Some f ->
         let pfd = prog.prog_func_data in
-        let ftyp = type_of_func f in
+        let ftyp = func_type f in
         let curr_funcs =
           match Hashtbl.find pfd.pfd_funcs_of_type ftyp with
           | None -> []
