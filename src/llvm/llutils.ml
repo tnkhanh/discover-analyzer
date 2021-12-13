@@ -44,7 +44,10 @@ end
 
 include Iter
 
-(*** Visit structurally over LLVM data structures ***)
+(*******************************************************************
+ * Visit LLVM data structures
+ *******************************************************************)
+
 module Visit = struct
   let visit_block
       ?(fblock : (block -> unit option) option = None)
@@ -52,15 +55,15 @@ module Visit = struct
       (blk : block)
       : unit
     =
-    let iter () =
+    let visit () =
       match finstr with
       | None -> ()
-      | Some finstr -> iter_instrs ~f:finstr blk in
+      | Some f -> iter_instrs ~f blk in
     match fblock with
-    | None -> iter ()
+    | None -> visit ()
     | Some f ->
       (match f blk with
-      | None -> iter ()
+      | None -> visit ()
       | Some res -> res)
   ;;
 
@@ -72,17 +75,17 @@ module Visit = struct
       (fn : func)
       : unit
     =
-    let iter () =
+    let visit () =
       let _ =
         match fparam with
         | None -> ()
-        | Some fparam -> iter_params ~f:fparam fn in
+        | Some f -> iter_params ~f fn in
       iter_blocks ~f:(visit_block ~fblock ~finstr) fn in
     match ffunc with
-    | None -> iter ()
+    | None -> visit ()
     | Some f ->
       (match f fn with
-      | None -> iter ()
+      | None -> visit ()
       | Some res -> res)
   ;;
 
@@ -98,7 +101,7 @@ module Visit = struct
     let _ =
       match fglobal with
       | None -> ()
-      | Some fglobal -> iter_globals ~f:fglobal m in
+      | Some f -> iter_globals ~f m in
     LL.iter_functions
       (fun f -> visit_func ~ffunc ~fparam ~fblock ~finstr (mk_func f))
       m
@@ -116,12 +119,14 @@ module Visit = struct
     let _ =
       match fglobal with
       | None -> ()
-      | Some process_global -> List.iter ~f:process_global prog.prog_globals in
+      | Some f -> List.iter ~f prog.prog_globals in
     List.iter
       ~f:(visit_func ~ffunc ~fparam ~fblock ~finstr)
       (prog.prog_init_funcs @ prog.prog_user_funcs)
   ;;
 end
+
+include Visit
 
 (*******************************************************************
  * Mapping over LLVM data structures
@@ -155,6 +160,8 @@ module Map = struct
     LL.fold_left_functions ff [] m
   ;;
 end
+
+include Map
 
 (*******************************************************************
  * Folding over LLVM data structures
@@ -199,62 +206,35 @@ module Fold = struct
     let ff acc v = f acc (mk_func v) in
     LL.fold_left_functions ff init m
   ;;
+end
 
-  (*** Fold structurally over LLVM data structures ***)
+include Fold
 
-  let fold_struct_instr
-      ?(finstr : ('a -> instr -> 'a) option = None)
-      (acc : 'a)
-      (instr : instr)
-      : 'a
-    =
-    match finstr with
-    | None -> acc
-    | Some f -> f acc instr
-  ;;
+(*******************************************************************
+ * Visit and fold LLVM data structures
+ *******************************************************************)
 
-  let fold_struct_param
-      ?(fparam : ('a -> param -> 'a) option = None)
-      (acc : 'a)
-      (param : param)
-      : 'a
-    =
-    match fparam with
-    | None -> acc
-    | Some f -> f acc param
-  ;;
-
-  let fold_struct_global
-      ?(fglobal : ('a -> global -> 'a) option = None)
-      (acc : 'a)
-      (glob : global)
-      : 'a
-    =
-    match fglobal with
-    | None -> acc
-    | Some f -> f acc glob
-  ;;
-
-  let fold_struct_block
+module VisitFold = struct
+  let visit_fold_block
       ?(fblock : ('a -> block -> 'a option) option = None)
       ?(finstr : ('a -> instr -> 'a) option = None)
       (acc : 'a)
       (blk : block)
       : 'a
     =
-    let fold () =
-      LL.fold_left_instrs
-        (fun acc' instr -> fold_struct_instr ~finstr acc' (mk_instr instr))
-        acc blk in
+    let visit_fold () =
+      match finstr with
+      | None -> acc
+      | Some f -> fold_left_instrs ~f ~init:acc blk in
     match fblock with
-    | None -> fold ()
+    | None -> visit_fold ()
     | Some f ->
       (match f acc blk with
-      | None -> fold ()
+      | None -> visit_fold ()
       | Some res -> res)
   ;;
 
-  let fold_struct_func
+  let visit_fold_func
       ?(ffunc : ('a -> func -> 'a option) option = None)
       ?(fparam : ('a -> param -> 'a) option = None)
       ?(fblock : ('a -> block -> 'a option) option = None)
@@ -263,24 +243,21 @@ module Fold = struct
       (fn : func)
       : 'a
     =
-    let fold () =
-      let vfn = llvalue_of_func fn in
+    let visit_fold () =
       let res =
-        LL.fold_left_params
-          (fun acc' param -> fold_struct_param ~fparam acc' (mk_param param))
-          acc vfn in
-      LL.fold_left_blocks
-        (fun acc' blk -> fold_struct_block ~fblock ~finstr acc' blk)
-        res vfn in
+        match fparam with
+        | None -> acc
+        | Some f -> fold_left_params ~f ~init:acc fn in
+      fold_left_blocks ~f:(visit_fold_block ~fblock ~finstr) ~init:res fn in
     match ffunc with
-    | None -> fold ()
+    | None -> visit_fold ()
     | Some f ->
       (match f acc fn with
-      | None -> fold ()
+      | None -> visit_fold ()
       | Some res -> res)
   ;;
 
-  let fold_struct_module
+  let visit_fold_module
       ?(fglobal : ('a -> global -> 'a) option = None)
       ?(ffunc : ('a -> func -> 'a option) option = None)
       ?(fparam : ('a -> param -> 'a) option = None)
@@ -291,18 +268,16 @@ module Fold = struct
       : 'a
     =
     let res =
-      LL.fold_left_globals
-        (fun acc' glob -> fold_struct_global ~fglobal acc' (mk_global glob))
-        acc m in
-    let res =
-      fold_left_functions
-        ~f:(fun acc' fn ->
-          fold_struct_func ~ffunc ~fparam ~fblock ~finstr acc' fn)
-        ~init:res m in
-    res
+      match fglobal with
+      | None -> acc
+      | Some f -> fold_left_globals ~f ~init:acc m in
+    fold_left_functions
+      ~f:(fun acc' fn ->
+        visit_fold_func ~ffunc ~fparam ~fblock ~finstr acc' fn)
+      ~init:res m
   ;;
 
-  let fold_struct_program
+  let visit_fold_program
       ?(fglobal : ('a -> global -> 'a) option = None)
       ?(ffunc : ('a -> func -> 'a option) option = None)
       ?(fparam : ('a -> param -> 'a) option = None)
@@ -313,17 +288,17 @@ module Fold = struct
       : 'a
     =
     let res =
-      List.fold_left
-        ~f:(fold_struct_global ~fglobal)
-        ~init:acc prog.prog_globals in
-    let res =
-      List.fold_left
-        ~f:(fold_struct_func ~ffunc ~fparam ~fblock ~finstr)
-        ~init:res
-        (prog.prog_init_funcs @ prog.prog_user_funcs) in
-    res
+      match fglobal with
+      | None -> acc
+      | Some f -> List.fold_left ~f ~init:acc prog.prog_globals in
+    List.fold_left
+      ~f:(visit_fold_func ~ffunc ~fparam ~fblock ~finstr)
+      ~init:res
+      (prog.prog_init_funcs @ prog.prog_user_funcs)
   ;;
 end
+
+include VisitFold
 
 (*******************************************************************
  * Checking existence over LLVM data structures
@@ -499,10 +474,6 @@ module Exists = struct
   (* ;; *)
 end
 
-include Iter
-include Visit
-include Map
-include Fold
 include Exists
 
 (*******************************************************************
@@ -523,10 +494,11 @@ module Type = struct
         List.iter ~f:collect_struct_type subtypes) in
     let process_global g =
       collect_struct_type (LL.type_of (llvalue_of_global g)) in
-    let process_instr i = collect_struct_type (LL.type_of (llvalue_of_instr i)) in
+    let process_instr i =
+      collect_struct_type (LL.type_of (llvalue_of_instr i)) in
     let _ =
-      visit_module ~finstr:(Some process_instr)
-        ~fglobal:(Some process_global) m in
+      visit_module ~finstr:(Some process_instr) ~fglobal:(Some process_global)
+        m in
     Set.to_list !all_stypes
   ;;
 end

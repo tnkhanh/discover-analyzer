@@ -35,8 +35,9 @@ include Llast.Program
 include Llutils.Iter
 include Llutils.Map
 include Llutils.Fold
-include Llutils.Visit
 include Llutils.Exists
+include Llutils.Visit
+include Llutils.VisitFold
 include Llutils.Type
 include Llutils.Value
 include Llutils.Use

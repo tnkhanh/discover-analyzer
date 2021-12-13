@@ -76,7 +76,7 @@ let elim_instr_intrinsic_lifetime (modul : LL.llmodule) : unit =
           then acc @ [ instr ]
           else acc
         | _ -> acc) in
-  let instr_calls = fold_struct_module ~finstr [] modul in
+  let instr_calls = visit_fold_module ~finstr [] modul in
   let callees =
     List.fold_left
       ~f:(fun acc instr ->
@@ -100,7 +100,7 @@ let elim_unused_instructions (modul : LL.llmodule) : unit =
             | None -> acc @ [ instr ]
             | Some _ -> acc)
           | _ -> acc) in
-    let unused_instrs = fold_struct_func ~finstr [] func in
+    let unused_instrs = visit_fold_func ~finstr [] func in
     (* then remove them *)
     if unused_instrs != []
     then (
