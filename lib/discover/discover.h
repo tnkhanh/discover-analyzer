@@ -147,6 +147,10 @@ void __assert_range_full(int x, int lb, int ub) {
 #endif
 }
 
+void __assume_range(int x, int lb, int ub) {
+  printf("Range : %d %d\n", lb, ub);
+}
+
 /*******************************************************************
  * assertions for integer bug
  *******************************************************************/
