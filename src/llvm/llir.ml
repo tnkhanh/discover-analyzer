@@ -38,6 +38,8 @@ include Llutils.Fold
 include Llutils.Exists
 include Llutils.Visit
 include Llutils.VisitFold
+include Llutils.VisitExists
+include Llutils.VisitForAll
 include Llutils.Type
 include Llutils.Value
 include Llutils.Use

@@ -149,6 +149,79 @@ end
 include Exists
 
 (*******************************************************************
+ * Checking for-all over LLVM data structures
+ *******************************************************************)
+
+module Forall = struct
+  let for_all_instr ~(f : instr -> bool) (blk : block) : bool =
+    let rec check_instr (ins : instr) : bool =
+      if not (f ins)
+      then false
+      else (
+        match instr_succ ins with
+        | None -> true
+        | Some ins' -> check_instr ins') in
+    match first_instr_of_block blk with
+    | None -> true
+    | Some ins -> check_instr ins
+  ;;
+
+  let for_all_block ~(f : block -> bool) (fn : func) : bool =
+    let rec check_block (blk : block) : bool =
+      if not (f blk)
+      then false
+      else (
+        match block_succ blk with
+        | None -> true
+        | Some blk' -> check_block blk') in
+    match first_block_of_func fn with
+    | None -> true
+    | Some blk -> check_block blk
+  ;;
+
+  let for_all_param ~(f : param -> bool) (fn : func) : bool =
+    let rec check_param (p : param) : bool =
+      if not (f p)
+      then false
+      else (
+        match param_succ p with
+        | None -> true
+        | Some p' -> check_param p') in
+    match first_param_of_func fn with
+    | None -> true
+    | Some p -> check_param p
+  ;;
+
+  let for_all_global ~(f : global -> bool) (m : bitcode_module) : bool =
+    let rec check_global (g : global) : bool =
+      if not (f g)
+      then false
+      else (
+        match global_succ g with
+        | None -> true
+        | Some g' -> check_global g') in
+    match first_global_of_module m with
+    | None -> true
+    | Some g -> check_global g
+  ;;
+
+  let for_all_function ~(f : func -> bool) (m : bitcode_module) : bool =
+    let rec check_func (fn : func) : bool =
+      if not (f fn)
+      then false
+      else (
+        match func_succ fn with
+        | None -> true
+        | Some fn' -> check_func fn') in
+    match first_func_of_module m with
+    | None -> true
+    | Some fn -> check_func fn
+  ;;
+end
+
+include Forall
+
+(*******************************************************************
  * Folding over LLVM data structures
  *******************************************************************)
 
@@ -456,6 +529,97 @@ module VisitExists = struct
 end
 
 include VisitExists
+
+(*******************************************************************
+ * Visit and check for-all over LLVM data structures
+ *******************************************************************)
+
+module VisitForAll = struct
+  let visit_for_all_block
+      ?(fblock : (block -> bool option) option = None)
+      ?(finstr : (instr -> bool) option = None)
+      (blk : block)
+      : 'a
+    =
+    let visit_forall () =
+      match finstr with
+      | None -> true
+      | Some f -> for_all_instr ~f blk in
+    match fblock with
+    | None -> visit_forall ()
+    | Some f ->
+      (match f blk with
+      | None -> visit_forall ()
+      | Some res -> res)
+  ;;
+
+  let visit_for_all_func
+      ?(ffunc : (func -> bool option) option = None)
+      ?(fparam : (param -> bool) option = None)
+      ?(fblock : (block -> bool option) option = None)
+      ?(finstr : (instr -> bool) option = None)
+      (fn : func)
+      : bool
+    =
+    let visit_forall () =
+      let res =
+        match fparam with
+        | None -> true
+        | Some f -> for_all_param ~f fn in
+      if res
+      then true
+      else for_all_block ~f:(visit_for_all_block ~fblock ~finstr) fn in
+    match ffunc with
+    | None -> visit_forall ()
+    | Some f ->
+      (match f fn with
+      | None -> visit_forall ()
+      | Some res -> res)
+  ;;
+
+  let visit_for_all_module
+      ?(fglobal : (global -> bool) option = None)
+      ?(ffunc : (func -> bool option) option = None)
+      ?(fparam : (param -> bool) option = None)
+      ?(fblock : (block -> bool option) option = None)
+      ?(finstr : (instr -> bool) option = None)
+      (m : bitcode_module)
+      : bool
+    =
+    let res =
+      match fglobal with
+      | None -> true
+      | Some f -> for_all_global ~f m in
+    if res
+    then true
+    else
+      for_all_function ~f:(visit_for_all_func ~ffunc ~fparam ~fblock ~finstr) m
+  ;;
+
+  let visit_for_all_program
+      ?(fglobal : (global -> bool) option = None)
+      ?(ffunc : (func -> bool option) option = None)
+      ?(fparam : (param -> bool) option = None)
+      ?(fblock : (block -> bool option) option = None)
+      ?(finstr : (instr -> bool) option = None)
+      (prog : program)
+      : bool
+    =
+    let res =
+      match fglobal with
+      | None -> true
+      | Some f -> List.for_all ~f prog.prog_globals in
+    if res
+    then true
+    else
+      List.for_all
+        ~f:(visit_for_all_func ~ffunc ~fparam ~fblock ~finstr)
+        (prog.prog_init_funcs @ prog.prog_user_funcs)
+  ;;
+end
+
+include VisitForAll
+
 
 (*******************************************************************
  * Utilities functions for data types
