@@ -262,6 +262,8 @@ def main():
 
     project_dir = find_project_path()
     discover_exe = os.path.relpath(project_dir + "/discover", current_dir)
+    if discover_exe == "discover":
+        discover_exe = "./discover"
 
     setting = ("\n******************************\n" +
                "TESTING THE ANALYZER DISCOVER..." + "\n\n" +
