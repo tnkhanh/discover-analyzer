@@ -46,35 +46,7 @@ include Iter
 
 (*** Visit structurally over LLVM data structures ***)
 module Visit = struct
-  let iter_struct_instr ?(finstr : (instr -> unit) option = None)
-        (i : instr)
-      : unit
-    =
-    match finstr with
-    | None -> ()
-    | Some f -> f i
-  ;;
-
-  let iter_struct_param ?(fparam : (param -> unit) option = None)
-        (p : param)
-      : unit
-    =
-    match fparam with
-    | None -> ()
-    | Some f -> f p
-  ;;
-
-  let iter_struct_global
-      ?(fglobal : (global -> unit) option = None)
-      (g: global)
-      : unit
-    =
-    match fglobal with
-    | None -> ()
-    | Some f -> f g
-  ;;
-
-  let iter_struct_block
+  let visit_block
       ?(fblock : (block -> unit option) option = None)
       ?(finstr : (instr -> unit) option = None)
       (blk : block)
@@ -92,7 +64,7 @@ module Visit = struct
       | Some res -> res)
   ;;
 
-  let iter_struct_func
+  let visit_func
       ?(ffunc : (func -> unit option) option = None)
       ?(fparam : (param -> unit) option = None)
       ?(fblock : (block -> unit option) option = None)
@@ -101,10 +73,11 @@ module Visit = struct
       : unit
     =
     let iter () =
-      let _ = match fparam with
+      let _ =
+        match fparam with
         | None -> ()
         | Some fparam -> iter_params ~f:fparam fn in
-      iter_blocks ~f:(iter_struct_block ~fblock ~finstr) fn in
+      iter_blocks ~f:(visit_block ~fblock ~finstr) fn in
     match ffunc with
     | None -> iter ()
     | Some f ->
@@ -113,7 +86,7 @@ module Visit = struct
       | Some res -> res)
   ;;
 
-  let iter_struct_module
+  let visit_module
       ?(fglobal : (global -> unit) option = None)
       ?(ffunc : (func -> unit option) option = None)
       ?(fparam : (param -> unit) option = None)
@@ -122,13 +95,16 @@ module Visit = struct
       (m : bitcode_module)
       : unit
     =
-    LL.iter_globals (fun g -> iter_struct_global ~fglobal (mk_global g)) m;
+    let _ =
+      match fglobal with
+      | None -> ()
+      | Some fglobal -> iter_globals ~f:fglobal m in
     LL.iter_functions
-      (fun f -> iter_struct_func ~ffunc ~fparam ~fblock ~finstr (mk_func f))
+      (fun f -> visit_func ~ffunc ~fparam ~fblock ~finstr (mk_func f))
       m
   ;;
 
-  let iter_struct_program
+  let visit_program
       ?(fglobal : (global -> unit) option = None)
       ?(ffunc : (func -> unit option) option = None)
       ?(fparam : (param -> unit) option = None)
@@ -137,9 +113,12 @@ module Visit = struct
       (prog : program)
       : unit
     =
-    List.iter ~f:(iter_struct_global ~fglobal) prog.prog_globals;
+    let _ =
+      match fglobal with
+      | None -> ()
+      | Some process_global -> List.iter ~f:process_global prog.prog_globals in
     List.iter
-      ~f:(iter_struct_func ~ffunc ~fparam ~fblock ~finstr)
+      ~f:(visit_func ~ffunc ~fparam ~fblock ~finstr)
       (prog.prog_init_funcs @ prog.prog_user_funcs)
   ;;
 end
@@ -466,15 +445,16 @@ module Exists = struct
   ;;
 
   let exists_struct_func
-        ?(ffunc : (func -> bool option) option = None)
-        ?(fparam : (param -> bool) option = None)
-        ?(fblock : (block -> bool option) option = None)
-        ?(finstr : (instr -> bool) option = None)
-        (fn : func)
-    : bool
+      ?(ffunc : (func -> bool option) option = None)
+      ?(fparam : (param -> bool) option = None)
+      ?(fblock : (block -> bool option) option = None)
+      ?(finstr : (instr -> bool) option = None)
+      (fn : func)
+      : bool
     =
     let exists () =
-      let res = match fparam with
+      let res =
+        match fparam with
         | None -> false
         | Some f -> exists_param ~f fn in
       if res
@@ -484,8 +464,8 @@ module Exists = struct
     | None -> exists ()
     | Some f ->
       (match f fn with
-       | None -> exists ()
-       | Some res -> res)
+      | None -> exists ()
+      | Some res -> res)
   ;;
 
   (* let exists_struct_module *)
@@ -499,11 +479,11 @@ module Exists = struct
   (*   = *)
   (*   LL.iter_globals (fun g -> iter_struct_global ~fglobal (mk_global g)) m; *)
   (*   LL.iter_functions *)
-  (*     (fun f -> iter_struct_func ~ffunc ~fparam ~fblock ~finstr (mk_func f)) *)
+  (*     (fun f -> visit_func ~ffunc ~fparam ~fblock ~finstr (mk_func f)) *)
   (*     m *)
   (* ;; *)
 
-  (* let iter_struct_program *)
+  (* let visit_program *)
   (*     ?(fglobal : (global -> unit) option = None) *)
   (*     ?(ffunc : (func -> unit option) option = None) *)
   (*     ?(fparam : (param -> unit) option = None) *)
@@ -514,7 +494,7 @@ module Exists = struct
   (*   = *)
   (*   List.iter ~f:(iter_struct_global ~fglobal) prog.prog_globals; *)
   (*   List.iter *)
-  (*     ~f:(iter_struct_func ~ffunc ~fparam ~fblock ~finstr) *)
+  (*     ~f:(visit_func ~ffunc ~fparam ~fblock ~finstr) *)
   (*     (prog.prog_init_funcs @ prog.prog_user_funcs) *)
   (* ;; *)
 end
@@ -541,12 +521,12 @@ module Type = struct
       else (
         let subtypes = typ |> LL.subtypes |> Array.to_list in
         List.iter ~f:collect_struct_type subtypes) in
-    let visit_global g =
+    let process_global g =
       collect_struct_type (LL.type_of (llvalue_of_global g)) in
-    let visit_instr i = collect_struct_type (LL.type_of (llvalue_of_instr i)) in
+    let process_instr i = collect_struct_type (LL.type_of (llvalue_of_instr i)) in
     let _ =
-      iter_struct_module ~finstr:(Some visit_instr)
-        ~fglobal:(Some visit_global) m in
+      visit_module ~finstr:(Some process_instr)
+        ~fglobal:(Some process_global) m in
     Set.to_list !all_stypes
   ;;
 end
@@ -1621,7 +1601,7 @@ module Module = struct
           then incr num_array_vars
           else () in
         incr num_pointer_vars) in
-    let visit_global g =
+    let process_global g =
       let t = LL.element_type (type_of_global g) in
       let users = get_users (llvalue_of_global g) in
       let _ = if is_type_array t then incr num_array_vars in
@@ -1638,24 +1618,24 @@ module Module = struct
           then incr num_array_vars
           else () in
         incr num_pointer_vars) in
-    let visit_param p =
+    let process_param p =
       let vp = llvalue_of_param p in
       update_stats_of_llvalue vp in
-    let visit_instr i =
+    let process_instr i =
       let vi = llvalue_of_instr i in
       let _ = update_stats_of_llvalue vi in
       let _ = if is_instr_call_invoke i then incr num_func_calls in
       incr num_instrs in
-    let visit_block blk =
+    let process_block blk =
       let _ = incr num_blks in
       None in
-    let visit_func f =
+    let process_func f =
       let _ = incr num_user_funcs in
       None in
     let _ =
-      iter_struct_module ~fglobal:(Some visit_global) ~ffunc:(Some visit_func)
-        ~fparam:(Some visit_param) ~fblock:(Some visit_block)
-        ~finstr:(Some visit_instr) modul in
+      visit_module ~fglobal:(Some process_global) ~ffunc:(Some process_func)
+        ~fparam:(Some process_param) ~fblock:(Some process_block)
+        ~finstr:(Some process_instr) modul in
     let stats =
       "\nPointer Statistics:\n"
       ^ sprintf "  #User funcs: %d\n" !num_user_funcs
@@ -1813,7 +1793,7 @@ module Program = struct
 
   let construct_map_llvalue_to_source_name (prog : program) : unit =
     let _ = ddebug "Construct mapping llvalue to source name" in
-    let visit_instr instr =
+    let process_instr instr =
       match instr_opcode instr with
       | LO.Call | LO.Invoke ->
         if is_func_llvm_debug (callee_of_instr_func_call instr)
@@ -1826,13 +1806,13 @@ module Program = struct
             ~data:sname)
         else ()
       | _ -> () in
-    iter_struct_program ~finstr:(Some visit_instr) prog
+    visit_program ~finstr:(Some process_instr) prog
   ;;
 
   let compute_func_call_info (prog : program) : unit =
     let _ = ndebug "Compute function call information" in
     let equal = equal_func in
-    let visit_instr instr =
+    let process_instr instr =
       match instr_opcode instr with
       | LO.Call | LO.Invoke ->
         let callee = callee_of_instr_func_call instr in
@@ -1857,7 +1837,7 @@ module Program = struct
           let callees = List.map ~f:mk_callable_func_pointer fpcallees in
           Hashtbl.set pfd.pfd_callees ~key:caller ~data:callees)
       | _ -> () in
-    iter_struct_program ~finstr:(Some visit_instr) prog
+    visit_program ~finstr:(Some process_instr) prog
   ;;
 
   let construct_func_call_graph (prog : program) : unit =
@@ -1876,7 +1856,7 @@ module Program = struct
 
   let compute_funcs_in_pointers (prog : program) : unit =
     let _ = ndebug "Compute functions in pointers" in
-    let visit_instr instr =
+    let process_instr instr =
       let func =
         match instr_opcode instr with
         | LO.BitCast ->
@@ -1897,7 +1877,7 @@ module Program = struct
           | Some fs -> fs in
         let nfuncs = List.insert_dedup curr_funcs f ~equal:equal_func in
         Hashtbl.set pfd.pfd_funcs_of_type ~key:ftyp ~data:nfuncs in
-    iter_struct_program ~finstr:(Some visit_instr) prog
+    visit_program ~finstr:(Some process_instr) prog
   ;;
 
   let compute_func_used_globals (prog : program) : unit =
@@ -1914,7 +1894,7 @@ module Program = struct
       List.iter
         ~f:(fun func ->
           let gs = ref [] in
-          let visit_instr instr =
+          let process_instr instr =
             for i = 0 to num_operands instr - 1 do
               let opr = operand instr i in
               match LL.classify_value opr with
@@ -1923,7 +1903,7 @@ module Program = struct
                 gs := List.insert_sorti_dedup !gs gopr ~compare:Poly.compare
               | _ -> ()
             done in
-          let _ = iter_struct_func ~finstr:(Some visit_instr) func in
+          let _ = visit_func ~finstr:(Some process_instr) func in
           Hashtbl.set tbl_used_globals ~key:func ~data:!gs)
         prog.prog_user_funcs in
     let update_globals_of_all_funcs () =

@@ -3071,12 +3071,12 @@ struct
   ;;
 
   let initialize_candidate_sparse_instrs penv : unit =
-    let visit_instr i =
+    let process_instr i =
       let vi = llvalue_of_instr i in
       if is_candidate_sparse_instr penv i
       then Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:true
       else Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:false in
-    iter_struct_program ~finstr:(Some visit_instr) penv.penv_prog
+    visit_program ~finstr:(Some process_instr) penv.penv_prog
   ;;
 
   let refine_candidate_sparse_instrs penv : bool =
@@ -3084,7 +3084,7 @@ struct
     let rec refine_func f : unit =
       (* let _ = hdebug "Refining sparse function: " func_name f in *)
       let continue = ref false in
-      let visit_instr i =
+      let process_instr i =
         if is_sparse_instr penv i
         then (
           let vi, oprs = llvalue_of_instr i, operands i in
@@ -3148,12 +3148,12 @@ struct
             Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:false)
           else ())
         else () in
-      let _ = iter_struct_func ~finstr:(Some visit_instr) f in
+      let _ = visit_func ~finstr:(Some process_instr) f in
       if !continue then refine_func f else () in
-    let visit_func f =
+    let process_func f =
       let _ = refine_func f in
       Some () in
-    let _ = iter_struct_program ~ffunc:(Some visit_func) penv.penv_prog in
+    let _ = visit_program ~ffunc:(Some process_func) penv.penv_prog in
     !updated
   ;;
 

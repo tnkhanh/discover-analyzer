@@ -273,13 +273,13 @@ module MakeDefaultEnv (M : Data) = struct
   (* default pre- and post-analysis functions *)
 
   let init_sparse_globals_instrs penv : unit =
-    let visit_global g =
+    let process_global g =
       let vg = llvalue_of_global g in
       Hashtbl.set penv.penv_sparse_llvalue ~key:vg ~data:true in
-    let visit_instr i =
+    let process_instr i =
       let vi = llvalue_of_instr i in
       Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:true in
-    iter_struct_program ~fglobal:(Some visit_global) ~finstr:(Some visit_instr)
+    visit_program ~fglobal:(Some process_global) ~finstr:(Some process_instr)
       penv.penv_prog
   ;;
 
@@ -882,7 +882,7 @@ functor
             then incr num_array_vars
             else () in
           incr num_pointer_vars) in
-      let visit_global g =
+      let process_global g =
         if is_sparse_global penv g
         then (
           let t = LL.element_type (type_of_global g) in
@@ -903,10 +903,10 @@ functor
             incr num_pointer_vars)
           else ())
         else () in
-      let visit_param p =
+      let process_param p =
         let vp = llvalue_of_param p in
         update_stats_of_llvalue vp in
-      let visit_instr i =
+      let process_instr i =
         if is_sparse_instr penv i
         then (
           let vi = llvalue_of_instr i in
@@ -914,19 +914,19 @@ functor
           let _ = if is_instr_call_invoke i then incr num_func_calls in
           incr num_instrs)
         else () in
-      let visit_block blk =
+      let process_block blk =
         let _ = incr num_blks in
         None in
-      let visit_func f =
+      let process_func f =
         if is_sparse_func penv f
         then (
           let _ = incr num_user_funcs in
           None)
         else Some () in
       let _ =
-        iter_struct_program ~fglobal:(Some visit_global)
-          ~ffunc:(Some visit_func) ~fparam:(Some visit_param)
-          ~fblock:(Some visit_block) ~finstr:(Some visit_instr) prog in
+        visit_program ~fglobal:(Some process_global)
+          ~ffunc:(Some process_func) ~fparam:(Some process_param)
+          ~fblock:(Some process_block) ~finstr:(Some process_instr) prog in
       let stats =
         "\nSparse Pointer Statistics:\n"
         ^ sprintf "  #Sparse User funcs: %d\n" !num_user_funcs
@@ -1299,9 +1299,9 @@ functor
       let _ = hdebug " - Output: " pr_data_opt fenv.fenv_output in
       let env_completed =
         try
-          let visit_block blk =
+          let process_block blk =
             if is_sparse_block penv blk then None else Some () in
-          let visit_instr instr =
+          let process_instr instr =
             if T.is_sparse_instr penv instr && not (is_instr_unreachable instr)
             then (
               match T.get_instr_output fenv instr with
@@ -1310,8 +1310,8 @@ functor
                 raise (EBool false)
               | Some _ -> ()) in
           let _ =
-            iter_struct_func ~fblock:(Some visit_block)
-              ~finstr:(Some visit_instr) func in
+            visit_func ~fblock:(Some process_block)
+              ~finstr:(Some process_instr) func in
           true
         with EBool res -> res in
       let _ = hdebug ~always:true " - Env completed: " pr_bool env_completed in
@@ -2558,7 +2558,7 @@ functor
             let num_sparse_instrs = ref 0 in
             let has_return_or_unreachable = ref false in
             let has_return_of_non_pointer = ref false in
-            let visit_instr instr =
+            let process_instr instr =
               if is_sparse_instr penv instr
               then (
                 match instr_opcode instr with
@@ -2570,7 +2570,7 @@ functor
                      && not (is_llvalue_pointer (src_of_instr_return instr))
                   then has_return_of_non_pointer := true
                 | _ -> num_sparse_instrs := !num_sparse_instrs + 1) in
-            let _ = iter_struct_func ~finstr:(Some visit_instr) f in
+            let _ = visit_func ~finstr:(Some process_instr) f in
             if !num_sparse_instrs == 0
                || (not !has_return_or_unreachable)
                || (!num_sparse_instrs == 1 && !has_return_of_non_pointer)
@@ -2596,7 +2596,7 @@ functor
               if is_sparse_func penv f
               then (
                 let has_pointer_related_instr = ref false in
-                let visit_instr instr =
+                let process_instr instr =
                   if is_sparse_instr penv instr
                   then (
                     match instr_opcode instr with
@@ -2611,7 +2611,7 @@ functor
                       then ()
                       else has_pointer_related_instr := true
                     | _ -> has_pointer_related_instr := true) in
-                let _ = iter_struct_func ~finstr:(Some visit_instr) f in
+                let _ = visit_func ~finstr:(Some process_instr) f in
                 if not !has_pointer_related_instr
                 then (
                   (* let _ = hprint "Set function to non-sparse: " func_name f in *)
@@ -2647,7 +2647,7 @@ functor
         List.iter
           ~f:(fun func ->
             let gs = ref [] in
-            let visit_instr instr =
+            let process_instr instr =
               if is_sparse_instr penv instr
               then
                 for i = 0 to num_operands instr - 1 do
@@ -2659,7 +2659,7 @@ functor
                            ~compare:Poly.compare
                   | _ -> ()
                 done in
-            let _ = iter_struct_func ~finstr:(Some visit_instr) func in
+            let _ = visit_func ~finstr:(Some process_instr) func in
             Hashtbl.set tbl_used_globals ~key:func ~data:!gs)
           prog.prog_user_funcs in
       let update_globals_of_all_funcs () =

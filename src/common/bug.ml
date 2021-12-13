@@ -417,7 +417,7 @@ let is_bug_integer_underflow (bug : bug) =
 *)
 
 let record_potential_bugs (prog : program) : potential_bugs =
-  let visit_instr acc instr =
+  let process_instr acc instr =
     match instr_opcode instr with
     | LO.Add | LO.Sub | LO.Mul ->
       acc
@@ -434,6 +434,6 @@ let record_potential_bugs (prog : program) : potential_bugs =
   let funcs = prog.prog_user_funcs in
   List.fold_left
     ~f:(fun acc func ->
-      acc @ fold_struct_func ~finstr:(Some visit_instr) [] func)
+      acc @ fold_struct_func ~finstr:(Some process_instr) [] func)
     ~init:[] funcs
 ;;
