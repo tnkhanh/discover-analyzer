@@ -3729,7 +3729,7 @@ struct
             let _ =
               if res then incr num_valid_asserts else incr num_invalid_asserts
             in
-            print_endline (AS.pr_assertion_status func ast res)
+            print (AS.pr_assertion_status func ast res)
           | None -> ())
         assertions in
     !num_checked_assertions
