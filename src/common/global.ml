@@ -47,12 +47,6 @@ type input_mode =
   | InpSolidity
 
 (*******************************************************************
- * Exceptions
- *******************************************************************)
-
-exception EBool of bool
-
-(*******************************************************************
  ** Global Flags
  *******************************************************************)
 
@@ -305,9 +299,3 @@ let pr_work_mode wm =
   | WkmAbsInt -> "Abstract Interpretation"
   | WkmNoAnalysis -> "No Analysis"
 ;;
-
-(*-------------
- * exceptions
- *------------*)
-
-let raise_bool b = raise (EBool b)

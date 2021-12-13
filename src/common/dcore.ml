@@ -19,6 +19,7 @@ include Liblist
 include Libmath
 include Libstring
 include Libsys
+include Libresult
 
 (*---------------------
  * Discover's modules

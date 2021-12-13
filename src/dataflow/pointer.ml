@@ -528,25 +528,25 @@ module PointerGraph = struct
   let has_only_deref_edge (g : t) (v : vertex) : bool =
     try
       iter_succ_e
-        (fun e -> if not (is_deref_edge e) then raise (EBool false))
+        (fun e -> if not (is_deref_edge e) then Result.return_bool false)
         g v;
       iter_pred_e
-        (fun e -> if not (is_deref_edge e) then raise (EBool false))
+        (fun e -> if not (is_deref_edge e) then Result.return_bool false)
         g v;
       true
-    with EBool res -> res
+    with Result.ResBool res -> res
   ;;
 
   let has_only_gep_edge (g : t) (v : vertex) : bool =
     try
       iter_succ_e
-        (fun e -> if not (is_gep_edge e) then raise (EBool false))
+        (fun e -> if not (is_gep_edge e) then Result.return_bool false)
         g v;
       iter_pred_e
-        (fun e -> if not (is_gep_edge e) then raise (EBool false))
+        (fun e -> if not (is_gep_edge e) then Result.return_bool false)
         g v;
       true
-    with EBool res -> res
+    with Result.ResBool res -> res
   ;;
 
   let get_traces_of_deref (path : path) : (vertex * trace list) list =
@@ -1157,10 +1157,10 @@ module PointerDomain = struct
           (fun e ->
             if (not (is_structural_access_edge e))
                && not (check_mem_edge_equiv_label g2 e)
-            then raise (EBool false))
+            then Result.return_bool false)
           g1 in
       true
-    with EBool res -> res
+    with Result.ResBool res -> res
   ;;
 
   let equal_pgraph (g1 : pgraph) (g2 : pgraph) : bool =
@@ -2743,14 +2743,14 @@ struct
         (fun v acc ->
           let has_succ_edges =
             try
-              let _ = PG.iter_succ (fun _ -> raise (EBool true)) g v in
+              let _ = PG.iter_succ (fun _ -> Result.return_bool true) g v in
               false
-            with EBool res -> res in
+            with Result.ResBool res -> res in
           let has_pred_edges =
             try
-              let _ = PG.iter_pred (fun _ -> raise (EBool true)) g v in
+              let _ = PG.iter_pred (fun _ -> Result.return_bool true) g v in
               false
-            with EBool res -> res in
+            with Result.ResBool res -> res in
           if (not has_succ_edges) && not has_pred_edges
           then acc @ [ v ]
           else acc)
