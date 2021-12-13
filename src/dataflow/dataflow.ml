@@ -41,7 +41,7 @@ module type Env = sig
     { exn_orig_expr : expr;
       exn_root_expr : expr;
       exn_data : t;
-      exn_type_info : llvalue
+      exn_type_info : value
     }
 
   type exns = exn list
@@ -74,8 +74,8 @@ module type Env = sig
       (* arguments and globals *)
       (* TODO: maybe adding location of this input (func call) for debugging? *)
       mutable fenv_output : t option;
-      fenv_thrown_exn : (llvalue, exn) Hashtbl.t;
-      fenv_landing_exns : (llvalue, exn list) Hashtbl.t;
+      fenv_thrown_exn : (value, exn) Hashtbl.t;
+      fenv_landing_exns : (value, exn list) Hashtbl.t;
       mutable fenv_deref_params : params;
       mutable fenv_deref_globals : globals;
       mutable fenv_working_blocks : working_block list;
@@ -108,7 +108,7 @@ module type Env = sig
       mutable penv_working_funcs : working_func list;
       (* functions to be analyzed*)
       (* sparse analysis *)
-      penv_sparse_llvalue : (llvalue, bool) Hashtbl.t;
+      penv_sparse_llvalue : (value, bool) Hashtbl.t;
       penv_sparse_block : (block, bool) Hashtbl.t;
       penv_sparse_func : (func, bool) Hashtbl.t;
       penv_sparse_used_globals : (func, globals) Hashtbl.t;
@@ -141,7 +141,7 @@ module type Env = sig
   val post_analyze_func : prog_env -> func_env -> unit
   val pre_analyze_prog : prog_env -> unit
   val post_analyze_prog : prog_env -> unit
-  val is_sparse_llvalue : prog_env -> llvalue -> bool
+  val is_sparse_llvalue : prog_env -> value -> bool
   val is_sparse_global : prog_env -> global -> bool
   val is_sparse_instr : prog_env -> instr -> bool
   val is_sparse_block : prog_env -> block -> bool
@@ -169,7 +169,7 @@ module MakeDefaultEnv (M : Data) = struct
     { exn_orig_expr : expr;
       exn_root_expr : expr;
       exn_data : t;
-      exn_type_info : llvalue
+      exn_type_info : value
     }
 
   type exns = exn list
@@ -200,8 +200,8 @@ module MakeDefaultEnv (M : Data) = struct
       fenv_block_input : (block, t) Hashtbl.t;
       mutable fenv_input : t;
       mutable fenv_output : t option;
-      fenv_thrown_exn : (llvalue, exn) Hashtbl.t;
-      fenv_landing_exns : (llvalue, exn list) Hashtbl.t;
+      fenv_thrown_exn : (value, exn) Hashtbl.t;
+      fenv_landing_exns : (value, exn list) Hashtbl.t;
       mutable fenv_deref_params : params;
       mutable fenv_deref_globals : globals;
       mutable fenv_working_blocks : working_block list;
@@ -225,7 +225,7 @@ module MakeDefaultEnv (M : Data) = struct
       penv_func_analyzed_inputs : (func, t list) Hashtbl.t;
       mutable penv_goal_funcs : funcs;
       mutable penv_working_funcs : working_func list;
-      penv_sparse_llvalue : (llvalue, bool) Hashtbl.t;
+      penv_sparse_llvalue : (value, bool) Hashtbl.t;
       penv_sparse_block : (block, bool) Hashtbl.t;
       penv_sparse_func : (func, bool) Hashtbl.t;
       penv_sparse_used_globals : (func, globals) Hashtbl.t;
@@ -273,13 +273,13 @@ module MakeDefaultEnv (M : Data) = struct
   (* default pre- and post-analysis functions *)
 
   let init_sparse_globals_instrs penv : unit =
-    let visit_global g =
+    let process_global g =
       let vg = llvalue_of_global g in
       Hashtbl.set penv.penv_sparse_llvalue ~key:vg ~data:true in
-    let visit_instr i =
+    let process_instr i =
       let vi = llvalue_of_instr i in
       Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:true in
-    deep_iter_program ~fglobal:(Some visit_global) ~finstr:(Some visit_instr)
+    visit_program ~fglobal:(Some process_global) ~finstr:(Some process_instr)
       penv.penv_prog
   ;;
 
@@ -291,7 +291,7 @@ module MakeDefaultEnv (M : Data) = struct
 
   (* sparse analysis *)
 
-  let is_sparse_llvalue penv (v : llvalue) : bool =
+  let is_sparse_llvalue penv (v : value) : bool =
     if !dfa_sparse_analysis
     then (
       match Hashtbl.find penv.penv_sparse_llvalue v with
@@ -372,34 +372,27 @@ module type ForwardDataTransfer = sig
 
   val need_widening : func -> bool
   val clean_irrelevant_info_from_data : prog_env -> func -> t -> t
-  val clean_info_of_vars : t -> llvalues -> t
+  val clean_info_of_vars : t -> values -> t
   val is_data_satisfied_predicate : t -> predicate -> bool
   val refine_data_by_predicate : ?widen:bool -> t -> predicate -> t
   val prepare_entry_func_input : prog_env -> func -> t -> t
-
-  val prepare_callee_input
-    :  prog_env ->
-    instr ->
-    func ->
-    llvalue list ->
-    t ->
-    t
+  val prepare_callee_input : prog_env -> instr -> func -> value list -> t -> t
 
   val compute_callee_output_exns
     :  prog_env ->
     instr ->
     func ->
-    llvalue list ->
+    value list ->
     t ->
     func_summary ->
     t * exns
 
-  val prepare_thrown_exception_data : prog_env -> llvalue -> llvalue -> t -> t
+  val prepare_thrown_exception_data : prog_env -> value -> value -> t -> t
 
   val compute_catch_exception_data
     :  prog_env ->
     instr ->
-    llvalue ->
+    value ->
     t ->
     exn ->
     t
@@ -613,14 +606,9 @@ functor
       let caller, instr = cs.cs_caller, cs.cs_instr_call in
       let blk = block_of_instr instr in
       let index =
-        try
-          let _ =
-            fold_left_instrs
-              ~f:(fun acc i ->
-                if equal_instr instr i then raise (EInt acc) else acc + 1)
-              ~init:1 blk in
-          -1
-        with EInt res -> res in
+        match index_of_instr_in_block instr blk with
+        | Some idx -> idx
+        | None -> -1 in
       func_name caller ^ ":" ^ block_name blk ^ ":" ^ pr_int index
     ;;
 
@@ -894,7 +882,7 @@ functor
             then incr num_array_vars
             else () in
           incr num_pointer_vars) in
-      let visit_global g =
+      let process_global g =
         if is_sparse_global penv g
         then (
           let t = LL.element_type (type_of_global g) in
@@ -915,10 +903,10 @@ functor
             incr num_pointer_vars)
           else ())
         else () in
-      let visit_param p =
+      let process_param p =
         let vp = llvalue_of_param p in
         update_stats_of_llvalue vp in
-      let visit_instr i =
+      let process_instr i =
         if is_sparse_instr penv i
         then (
           let vi = llvalue_of_instr i in
@@ -926,19 +914,19 @@ functor
           let _ = if is_instr_call_invoke i then incr num_func_calls in
           incr num_instrs)
         else () in
-      let visit_block blk =
+      let process_block blk =
         let _ = incr num_blks in
         None in
-      let visit_func f =
+      let process_func f =
         if is_sparse_func penv f
         then (
           let _ = incr num_user_funcs in
           None)
         else Some () in
       let _ =
-        deep_iter_program ~fglobal:(Some visit_global) ~ffunc:(Some visit_func)
-          ~fparam:(Some visit_param) ~fblock:(Some visit_block)
-          ~finstr:(Some visit_instr) prog in
+        visit_program ~fglobal:(Some process_global) ~ffunc:(Some process_func)
+          ~fparam:(Some process_param) ~fblock:(Some process_block)
+          ~finstr:(Some process_instr) prog in
       let stats =
         "\nSparse Pointer Statistics:\n"
         ^ sprintf "  #Sparse User funcs: %d\n" !num_user_funcs
@@ -1003,7 +991,7 @@ functor
           List.iter
             ~f:(fun f ->
               let fs =
-                f |> get_pfd_callees prog |> List.filter ~f:is_user_func in
+                f |> get_func_callees prog |> List.filter ~f:is_user_func in
               fprintf file "- %s:%s\n\n" (func_name f)
                 (pr_pretty_list func_name fs))
             penv.penv_goal_funcs in
@@ -1018,7 +1006,7 @@ functor
           List.iter
             ~f:(fun f ->
               let fs =
-                f |> get_pfd_callers prog |> List.filter ~f:is_user_func in
+                f |> get_func_callers prog |> List.filter ~f:is_user_func in
               fprintf file "- %s:%s\n\n" (func_name f)
                 (pr_pretty_list func_name fs))
             penv.penv_goal_funcs in
@@ -1126,7 +1114,7 @@ functor
     ;;
 
     let mk_global_env () =
-      { genv_global_output = Hashtbl.create (module Global);
+      { genv_global_output = Hashtbl.create (module GlobalKey);
         genv_globals_data = T.least_data
       }
     ;;
@@ -1142,12 +1130,12 @@ functor
         fenv_func = func;
         fenv_callsites = callsites;
         fenv_prog = prog;
-        fenv_instr_output = Hashtbl.create (module Instr);
-        fenv_block_input = Hashtbl.create (module Block);
+        fenv_instr_output = Hashtbl.create (module InstrKey);
+        fenv_block_input = Hashtbl.create (module BlockKey);
         fenv_input = input;
         fenv_output = None;
-        fenv_thrown_exn = Hashtbl.create (module Llvalue);
-        fenv_landing_exns = Hashtbl.create (module Llvalue);
+        fenv_thrown_exn = Hashtbl.create (module ValueKey);
+        fenv_landing_exns = Hashtbl.create (module ValueKey);
         fenv_deref_params = [];
         fenv_deref_globals = [];
         fenv_working_blocks = [];
@@ -1158,24 +1146,24 @@ functor
     let mk_prog_env (prog : program) : T.prog_env =
       { penv_prog = prog;
         penv_global_env = mk_global_env ();
-        penv_func_envs = Hashtbl.create (module Func);
-        penv_func_summaries = Hashtbl.create (module Func);
-        penv_sparse_llvalue = Hashtbl.create (module Llvalue);
-        penv_sparse_block = Hashtbl.create (module Block);
-        penv_sparse_func = Hashtbl.create (module Func);
-        penv_sparse_used_globals = Hashtbl.create (module Func);
-        penv_block_sparse_instrs = Hashtbl.create (module Block);
-        penv_sparse_precedings_block = Hashtbl.create (module Block);
-        penv_sparse_succeedings_block = Hashtbl.create (module Block);
-        penv_sparse_reachable_blocks = Hashtbl.create (module Block);
-        penv_func_analyzed_times = Hashtbl.create (module Func);
-        penv_block_local_analyzed_times = Hashtbl.create (module Block);
-        penv_block_total_analyzed_times = Hashtbl.create (module Block);
+        penv_func_envs = Hashtbl.create (module FuncKey);
+        penv_func_summaries = Hashtbl.create (module FuncKey);
+        penv_sparse_llvalue = Hashtbl.create (module ValueKey);
+        penv_sparse_block = Hashtbl.create (module BlockKey);
+        penv_sparse_func = Hashtbl.create (module FuncKey);
+        penv_sparse_used_globals = Hashtbl.create (module FuncKey);
+        penv_block_sparse_instrs = Hashtbl.create (module BlockKey);
+        penv_sparse_precedings_block = Hashtbl.create (module BlockKey);
+        penv_sparse_succeedings_block = Hashtbl.create (module BlockKey);
+        penv_sparse_reachable_blocks = Hashtbl.create (module BlockKey);
+        penv_func_analyzed_times = Hashtbl.create (module FuncKey);
+        penv_block_local_analyzed_times = Hashtbl.create (module BlockKey);
+        penv_block_total_analyzed_times = Hashtbl.create (module BlockKey);
         penv_working_funcs = [];
         penv_goal_funcs = [];
-        penv_func_analyzed_inputs = Hashtbl.create (module Func);
+        penv_func_analyzed_inputs = Hashtbl.create (module FuncKey);
         penv_func_analysis_stack = Stack.create ();
-        penv_block_analyzed_squence = Hashtbl.create (module Func)
+        penv_block_analyzed_squence = Hashtbl.create (module FuncKey)
       }
     ;;
 
@@ -1310,22 +1298,19 @@ functor
       in
       let _ = hdebug " - Output: " pr_data_opt fenv.fenv_output in
       let env_completed =
-        try
-          let visit_block blk =
-            if is_sparse_block penv blk then None else Some () in
-          let visit_instr instr =
-            if T.is_sparse_instr penv instr && not (is_instr_unreachable instr)
-            then (
-              match T.get_instr_output fenv instr with
-              | None ->
-                let _ = hdebug "Env incompleted at: " pr_instr instr in
-                raise (EBool false)
-              | Some _ -> ()) in
-          let _ =
-            deep_iter_func ~fblock:(Some visit_block)
-              ~finstr:(Some visit_instr) func in
-          true
-        with EBool res -> res in
+        let process_block blk =
+          if is_sparse_block penv blk then None else Some true in
+        let process_instr instr =
+          if T.is_sparse_instr penv instr && not (is_instr_unreachable instr)
+          then (
+            match T.get_instr_output fenv instr with
+            | None ->
+              let _ = hdebug "Env incompleted at: " pr_instr instr in
+              false
+            | Some _ -> true)
+          else true in
+        visit_for_all_func ~fblock:(Some process_block)
+          ~finstr:(Some process_instr) func in
       let _ = hdebug ~always:true " - Env completed: " pr_bool env_completed in
       match Hashtbl.find penv.penv_func_envs func with
       | None ->
@@ -1868,7 +1853,7 @@ functor
         herror "analyze_instr_landingpad: not a landingpad: " pr_instr instr
     ;;
 
-    let get_catch_exception_type_info penv fenv instr : llvalue option =
+    let get_catch_exception_type_info penv fenv instr : value option =
       let catch_blk = block_of_instr instr in
       let pblks = get_preceding_blocks penv.penv_prog catch_blk in
       if List.length pblks = 1
@@ -1909,7 +1894,7 @@ functor
               | Some tinfo ->
                 let exns =
                   List.filter
-                    ~f:(fun e -> equal_llvalue tinfo e.exn_type_info)
+                    ~f:(fun e -> equal_value tinfo e.exn_type_info)
                     exns in
                 Some (List.hd_exn exns)) in
           let res =
@@ -2031,7 +2016,7 @@ functor
           let binput = wb.wb_instr_input in
           let _ = T.set_block_input fenv blk binput in
           let _ = debug ~marker:false " - Starting from the block's entry. " in
-          hdebug ~marker:false "    Block input: " T.pr_data binput)
+          hdebug ~marker:false "    BlockKey input: " T.pr_data binput)
         else hdebug " - Continuing from instruction: " pr_instr wb.wb_instr
       in
       let _ = update_block_analyzed_stats penv func blk in
@@ -2108,22 +2093,7 @@ functor
         : (working_block * working_block list) option
       =
       let compare wblk1 wblk2 : int =
-        try
-          (* let _ = compare_block_by_sparse_reachability penv wblk1 wblk2 |>
-           *         (fun res -> if res != 0 then raise_int res) in
-           * let _ = compare_block_by_name penv wblk1 wblk2 |>
-           *         (fun res -> if res != 0 then raise_int res) in *)
-          (* let _ = compare_block_by_num_pair_pred_succ_blocks penv wblk1 wblk2 |>
-           *         (fun res -> if res != 0 then raise_int res) in
-           * let _ = compare_block_by_distance_from_entry penv wblk1 wblk2 |>
-           *         (fun res -> if res != 0 then raise_int res) in *)
-          let _ =
-            compare_block_by_analyzed_times penv wblk1 wblk2
-            |> fun res -> if res != 0 then raise_int res in
-          (* let _ = compare_block_by_name penv wblk1 wblk2 |>
-           *         (fun res -> if res != 0 then raise_int res) in *)
-          0
-        with EInt res -> res in
+        compare_block_by_analyzed_times penv wblk1 wblk2 in
       let blks = List.sort ~compare wblks in
       match blks with
       | [] -> None
@@ -2324,8 +2294,8 @@ functor
       =
       let prog = penv.penv_prog in
       let f1, f2 = wf1.wf_func, wf2.wf_func in
-      let callers1 = get_pfd_callers prog f1 in
-      let callers2 = get_pfd_callers prog f2 in
+      let callers1 = get_func_callers prog f1 in
+      let callers2 = get_func_callers prog f2 in
       let is_f1_caller_f2 = List.mem ~equal:equal_func callers2 f1 in
       let is_f2_caller_f1 = List.mem ~equal:equal_func callers1 f2 in
       if (not is_f1_caller_f2) && is_f2_caller_f1
@@ -2343,7 +2313,7 @@ functor
       match Stack.top penv.penv_func_analysis_stack with
       | None -> 0
       | Some f ->
-        let callees = get_pfd_callees prog f in
+        let callees = get_func_callees prog f in
         let is_f1_callee = List.mem callees f1 ~equal:equal_func in
         let is_f2_callee = List.mem callees f2 ~equal:equal_func in
         if is_f1_callee && not is_f2_callee
@@ -2395,23 +2365,14 @@ functor
         : (working_func * working_func list) option
       =
       let compare (wf1 : working_func) (wf2 : working_func) : int =
-        try
-          let _ =
-            compare_func_main penv wf1 wf2
-            |> fun res -> if res != 0 then raise_int res in
-          let _ =
-            compare_func_call_order penv wf1 wf2
-            |> fun res -> if res != 0 then raise_int res in
-          let _ =
-            compare_func_call_stack penv wf1 wf2
-            |> fun res -> if res != 0 then raise_int res in
-          let _ =
-            compare_func_analyzed_times penv wf1 wf2
-            |> fun res -> if res != 0 then raise_int res in
-          (* let _ = compare_func_input penv wf1 wf2 |>
-           *         (fun res -> if res != 0 then raise_int res) in *)
-          0
-        with EInt res -> res in
+        List.eval_return_if
+          ~return:(fun x -> x != 0)
+          ~default:0
+          [ (fun () -> compare_func_main penv wf1 wf2);
+            (fun () -> compare_func_call_order penv wf1 wf2);
+            (fun () -> compare_func_call_stack penv wf1 wf2);
+            (fun () -> compare_func_analyzed_times penv wf1 wf2)
+          ] in
       let wfuncs = List.sorti ~compare penv.penv_working_funcs in
       (* let _ = hdebug ~always:false "Analyzed functions: " pr_analyzed_func_input penv in *)
       match is_interactive_mode () with
@@ -2594,7 +2555,7 @@ functor
             let num_sparse_instrs = ref 0 in
             let has_return_or_unreachable = ref false in
             let has_return_of_non_pointer = ref false in
-            let visit_instr instr =
+            let process_instr instr =
               if is_sparse_instr penv instr
               then (
                 match instr_opcode instr with
@@ -2606,7 +2567,7 @@ functor
                      && not (is_llvalue_pointer (src_of_instr_return instr))
                   then has_return_of_non_pointer := true
                 | _ -> num_sparse_instrs := !num_sparse_instrs + 1) in
-            let _ = deep_iter_func ~finstr:(Some visit_instr) f in
+            let _ = visit_func ~finstr:(Some process_instr) f in
             if !num_sparse_instrs == 0
                || (not !has_return_or_unreachable)
                || (!num_sparse_instrs == 1 && !has_return_of_non_pointer)
@@ -2632,7 +2593,7 @@ functor
               if is_sparse_func penv f
               then (
                 let has_pointer_related_instr = ref false in
-                let visit_instr instr =
+                let process_instr instr =
                   if is_sparse_instr penv instr
                   then (
                     match instr_opcode instr with
@@ -2647,7 +2608,7 @@ functor
                       then ()
                       else has_pointer_related_instr := true
                     | _ -> has_pointer_related_instr := true) in
-                let _ = deep_iter_func ~finstr:(Some visit_instr) f in
+                let _ = visit_func ~finstr:(Some process_instr) f in
                 if not !has_pointer_related_instr
                 then (
                   (* let _ = hprint "Set function to non-sparse: " func_name f in *)
@@ -2683,7 +2644,7 @@ functor
         List.iter
           ~f:(fun func ->
             let gs = ref [] in
-            let visit_instr instr =
+            let process_instr instr =
               if is_sparse_instr penv instr
               then
                 for i = 0 to num_operands instr - 1 do
@@ -2695,7 +2656,7 @@ functor
                            ~compare:Poly.compare
                   | _ -> ()
                 done in
-            let _ = deep_iter_func ~finstr:(Some visit_instr) func in
+            let _ = visit_func ~finstr:(Some process_instr) func in
             Hashtbl.set tbl_used_globals ~key:func ~data:!gs)
           prog.prog_user_funcs in
       let update_globals_of_all_funcs () =
@@ -2709,7 +2670,7 @@ functor
             let gs = Hashtbl.find_default tbl_used_globals f ~default:[] in
             let ngs = ref gs in
             let callees =
-              let callees = get_pfd_callees prog f in
+              let callees = get_func_callees prog f in
               if not !dfa_used_globals_in_func_ptrs
               then callees
               else (

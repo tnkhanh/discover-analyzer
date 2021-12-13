@@ -61,7 +61,7 @@ module PointerGraph = struct
     (* edge label *)
     | Alias of (precision * trace)
     | Pto of direction
-    | GEP of (lltype * expr list * direction)
+    | GEP of (datatype * expr list * direction)
     | Seq of (label list * precision * trace)
   (* capture only Pto and GEP *)
 
@@ -102,7 +102,7 @@ module PointerGraph = struct
     | Alias (p1, _), Alias (p2, _) -> equal_precision p1 p2
     | Pto d1, Pto d2 -> equal_direction d1 d2
     | GEP (t1, idxs1, d1), GEP (t2, idxs2, d2) ->
-      equal_lltype t1 t2
+      equal_type t1 t2
       && List.equal equal_expr idxs1 idxs2
       && equal_direction d1 d2
     | Seq (lbls1, p1, _), Seq (lbls2, p2, _) ->
@@ -451,21 +451,19 @@ module PointerGraph = struct
   ;;
 
   let has_edges_of_direction_from_then_to (lbl : label) : bool =
-    try
-      let has_from = ref false in
-      match lbl with
-      | Seq (lbls, _, _) ->
-        let _ =
-          List.iter
-            ~f:(fun lbl ->
-              match lbl with
-              | Pto From | GEP (_, _, From) -> has_from := true
-              | Pto To | GEP (_, _, To) -> if !has_from then raise (EBool true)
-              | _ -> ())
-            lbls in
-        false
-      | _ -> false
-    with EBool res -> res
+    let has_from = ref false in
+    match lbl with
+    | Seq (lbls, _, _) ->
+      List.exists
+        ~f:(fun lbl ->
+          match lbl with
+          | Pto From | GEP (_, _, From) ->
+            let _ = has_from := true in
+            false
+          | Pto To | GEP (_, _, To) -> !has_from
+          | _ -> false)
+        lbls
+    | _ -> false
   ;;
 
   let has_consecutive_edges_of_direction_to_from (lbl : label) : bool =
@@ -530,25 +528,25 @@ module PointerGraph = struct
   let has_only_deref_edge (g : t) (v : vertex) : bool =
     try
       iter_succ_e
-        (fun e -> if not (is_deref_edge e) then raise (EBool false))
+        (fun e -> if not (is_deref_edge e) then Result.return_bool false)
         g v;
       iter_pred_e
-        (fun e -> if not (is_deref_edge e) then raise (EBool false))
+        (fun e -> if not (is_deref_edge e) then Result.return_bool false)
         g v;
       true
-    with EBool res -> res
+    with Result.ResBool res -> res
   ;;
 
   let has_only_gep_edge (g : t) (v : vertex) : bool =
     try
       iter_succ_e
-        (fun e -> if not (is_gep_edge e) then raise (EBool false))
+        (fun e -> if not (is_gep_edge e) then Result.return_bool false)
         g v;
       iter_pred_e
-        (fun e -> if not (is_gep_edge e) then raise (EBool false))
+        (fun e -> if not (is_gep_edge e) then Result.return_bool false)
         g v;
       true
-    with EBool res -> res
+    with Result.ResBool res -> res
   ;;
 
   let get_traces_of_deref (path : path) : (vertex * trace list) list =
@@ -579,23 +577,23 @@ module PointerGraph = struct
       ~init:[] tr.trace_path
   ;;
 
-  let is_write_trace (tr : trace) (v : llvalue) : bool =
+  let is_write_trace (tr : trace) (v : value) : bool =
     let instrs = get_trace_instrs tr in
     List.exists
       ~f:(fun instr ->
         match instr_opcode instr with
-        | LO.Store -> equal_llvalue (dst_of_instr_store instr) v
+        | LO.Store -> equal_value (dst_of_instr_store instr) v
         | _ -> false)
       instrs
   ;;
 
-  let is_read_write_trace (tr : trace) (v : llvalue) : bool =
+  let is_read_write_trace (tr : trace) (v : value) : bool =
     let instrs = get_trace_instrs tr in
     List.exists
       ~f:(fun instr ->
         match instr_opcode instr with
-        | LO.Store -> equal_llvalue (dst_of_instr_store instr) v
-        | LO.Load -> equal_llvalue (src_of_instr_load instr) v
+        | LO.Store -> equal_value (dst_of_instr_store instr) v
+        | LO.Load -> equal_value (src_of_instr_load instr) v
         | _ -> false)
       instrs
   ;;
@@ -1043,8 +1041,13 @@ module PointerDomain = struct
 
   type vpair = PV.t * PV.t (* vertex pair *)
 
-  let must_alias_cache : (expr, exprs) Hashtbl.t = Hashtbl.create (module Expr)
-  let may_alias_cache : (expr, exprs) Hashtbl.t = Hashtbl.create (module Expr)
+  let must_alias_cache : (expr, exprs) Hashtbl.t =
+    Hashtbl.create (module ExprKey)
+  ;;
+
+  let may_alias_cache : (expr, exprs) Hashtbl.t =
+    Hashtbl.create (module ExprKey)
+  ;;
 
   (* printing *)
 
@@ -1154,10 +1157,10 @@ module PointerDomain = struct
           (fun e ->
             if (not (is_structural_access_edge e))
                && not (check_mem_edge_equiv_label g2 e)
-            then raise (EBool false))
+            then Result.return_bool false)
           g1 in
       true
-    with EBool res -> res
+    with Result.ResBool res -> res
   ;;
 
   let equal_pgraph (g1 : pgraph) (g2 : pgraph) : bool =
@@ -1248,7 +1251,7 @@ module PointerDomain = struct
 
   let insert_element_ptr
       ~(root : expr)
-      ~(rtyp : lltype)
+      ~(rtyp : datatype)
       ~(elemptr : expr)
       ~(idxs : exprs)
       (g : pgraph)
@@ -1292,7 +1295,7 @@ module PointerDomain = struct
     res
   ;;
 
-  let get_bitcast_alias_of_llvalue (v : llvalue) : expr =
+  let get_bitcast_alias_of_llvalue (v : value) : expr =
     get_bitcast_alias (expr_of_llvalue v)
   ;;
 
@@ -1871,7 +1874,7 @@ module PointerDomain = struct
   ;;
 
   let merge_alias_vertices (g : pgraph) : pgraph * (expr, expr) Hashtbl.t =
-    let tbl_merged_vertices = Hashtbl.create (module Expr) in
+    let tbl_merged_vertices = Hashtbl.create (module ExprKey) in
     g, tbl_merged_vertices
   ;;
 
@@ -1980,8 +1983,7 @@ module PointerDomain = struct
       g []
   ;;
 
-  let find_funcs_of_pointer (prog : program) (g : pgraph) (ptr : llvalue)
-      : funcs
+  let find_funcs_of_pointer (prog : program) (g : pgraph) (ptr : value) : funcs
     =
     let curr_funcs = get_current_funcs_of_pointer prog ptr in
     let _ = hdebug "Finding functions pointed by: " pr_value ptr in
@@ -2307,7 +2309,7 @@ struct
       vertices
   ;;
 
-  let is_irrelevant_var penv (f : func) (v : llvalue) =
+  let is_irrelevant_var penv (f : func) (v : value) =
     match LL.classify_value v with
     | LV.Instruction _ -> true (* local var *)
     | LV.GlobalVariable ->
@@ -2367,7 +2369,7 @@ struct
   (** Eliminate alias edges of inner vertices *)
 
   let remove_must_alias_vertices penv func (g : pgraph) : unit =
-    let find_removable_vertex g : (llvalue * expr) option =
+    let find_removable_vertex g : (value * expr) option =
       let res =
         PG.fold_edges_e
           (fun e acc ->
@@ -2741,14 +2743,14 @@ struct
         (fun v acc ->
           let has_succ_edges =
             try
-              let _ = PG.iter_succ (fun _ -> raise (EBool true)) g v in
+              let _ = PG.iter_succ (fun _ -> Result.return_bool true) g v in
               false
-            with EBool res -> res in
+            with Result.ResBool res -> res in
           let has_pred_edges =
             try
-              let _ = PG.iter_pred (fun _ -> raise (EBool true)) g v in
+              let _ = PG.iter_pred (fun _ -> Result.return_bool true) g v in
               false
-            with EBool res -> res in
+            with Result.ResBool res -> res in
           if (not has_succ_edges) && not has_pred_edges
           then acc @ [ v ]
           else acc)
@@ -2923,7 +2925,7 @@ struct
     ng
   ;;
 
-  let clean_info_of_vars (input : t) (vs : llvalues) : t =
+  let clean_info_of_vars (input : t) (vs : values) : t =
     let _ =
       List.iter
         ~f:(fun v ->
@@ -2966,8 +2968,7 @@ struct
             is_func_memcpy;
             is_func_memmove;
             is_func_clang_call_terminate;
-            is_func_dynamic_cast
-            (* is_func_handling_exception *)
+            is_func_dynamic_cast (* is_func_handling_exception *)
           ] in
         List.exists ~f:(fun f -> f func) candidate_funcs in
       is_func_pointer callee
@@ -3012,39 +3013,31 @@ struct
     (* let _ = print "REFINE_CANDIDATE_SPARSE_GLOBALS" in *)
     let updated = ref false in
     let is_used_global g =
-      try
-        let vg = llvalue_of_global g in
-        let _ =
-          LL.iter_uses
-            (fun u ->
-              let vu = LL.user u in
-              match LL.classify_value vu with
-              | LV.Instruction _ | LV.GlobalVariable _ ->
-                if is_sparse_llvalue penv vu then raise (EBool true)
-              | _ -> ())
-            vg in
-        false
-      with EBool res -> res in
+      let vg = llvalue_of_global g in
+      exists_use
+        ~f:(fun u ->
+          let vu = LL.user u in
+          match LL.classify_value vu with
+          | LV.Instruction _ | LV.GlobalVariable _ -> is_sparse_llvalue penv vu
+          | _ -> false)
+        vg in
     let is_global_used_only_as_dst_of_instr_store g =
-      try
-        let vg = llvalue_of_global g in
-        (* let _ = hprint "global: " pr_global g in *)
-        let _ =
-          LL.iter_uses
-            (fun u ->
-              let vu = LL.user u in
-              if is_sparse_llvalue penv vu
-              then (
-                (* let _ = hprint "  user: " pr_value_detail vu in *)
-                match LL.classify_value vu with
-                | LV.Instruction LO.Store ->
-                  if equal_value (dst_of_instr_store (mk_instr vu)) vg
-                  then ()
-                  else raise (EBool false)
-                | _ -> raise (EBool false)))
-            vg in
-        true
-      with EBool res -> res in
+      let vg = llvalue_of_global g in
+      (* let _ = hprint "global: " pr_global g in *)
+      for_all_use
+        ~f:(fun u ->
+          let vu = LL.user u in
+          if is_sparse_llvalue penv vu
+          then (
+            (* let _ = hprint "  user: " pr_value_detail vu in *)
+            match LL.classify_value vu with
+            | LV.Instruction LO.Store ->
+              if equal_value (dst_of_instr_store (mk_instr vu)) vg
+              then true
+              else false
+            | _ -> false)
+          else false)
+        vg in
     let _ =
       List.iter
         ~f:(fun g ->
@@ -3068,12 +3061,12 @@ struct
   ;;
 
   let initialize_candidate_sparse_instrs penv : unit =
-    let visit_instr i =
+    let process_instr i =
       let vi = llvalue_of_instr i in
       if is_candidate_sparse_instr penv i
       then Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:true
       else Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:false in
-    deep_iter_program ~finstr:(Some visit_instr) penv.penv_prog
+    visit_program ~finstr:(Some process_instr) penv.penv_prog
   ;;
 
   let refine_candidate_sparse_instrs penv : bool =
@@ -3081,11 +3074,11 @@ struct
     let rec refine_func f : unit =
       (* let _ = hdebug "Refining sparse function: " func_name f in *)
       let continue = ref false in
-      let visit_instr i =
+      let process_instr i =
         if is_sparse_instr penv i
         then (
           let vi, oprs = llvalue_of_instr i, operands i in
-          let num_using_sparse_instrs (v : llvalue) : int =
+          let num_using_sparse_instrs (v : value) : int =
             LL.fold_left_uses
               (fun acc u ->
                 let vu = LL.user u in
@@ -3094,27 +3087,24 @@ struct
                 else acc)
               0 v in
           let is_value_used_only_as_dst_of_instr_store v =
-            try
-              LL.iter_uses
-                (fun u ->
-                  let vu = LL.user u in
-                  match LL.classify_value vu with
-                  | LV.Instruction LO.Store ->
-                    if not (is_sparse_llvalue penv vu)
-                    then ()
-                    else if equal_value (dst_of_instr_store (mk_instr vu)) v
-                    then ()
-                    else raise (EBool false)
-                  | _ -> raise (EBool false))
-                v;
-              true
-            with EBool res -> res in
-          let has_operand_of_non_sparse_global (oprs : llvalue list) =
+            for_all_use
+              ~f:(fun u ->
+                let vu = LL.user u in
+                match LL.classify_value vu with
+                | LV.Instruction LO.Store ->
+                  if not (is_sparse_llvalue penv vu)
+                  then true
+                  else if equal_value (dst_of_instr_store (mk_instr vu)) v
+                  then true
+                  else false
+                | _ -> false)
+              v in
+          let has_operand_of_non_sparse_global (oprs : value list) =
             List.exists
               ~f:(fun opr ->
                 is_llvalue_global opr && not (is_sparse_llvalue penv opr))
               oprs in
-          let has_operand_of_non_sparse_instr (oprs : llvalue list) =
+          let has_operand_of_non_sparse_instr (oprs : value list) =
             List.exists
               ~f:(fun opr ->
                 is_llvalue_instr opr && not (is_sparse_llvalue penv opr))
@@ -3145,12 +3135,12 @@ struct
             Hashtbl.set penv.penv_sparse_llvalue ~key:vi ~data:false)
           else ())
         else () in
-      let _ = deep_iter_func ~finstr:(Some visit_instr) f in
+      let _ = visit_func ~finstr:(Some process_instr) f in
       if !continue then refine_func f else () in
-    let visit_func f =
+    let process_func f =
       let _ = refine_func f in
       Some () in
-    let _ = deep_iter_program ~ffunc:(Some visit_func) penv.penv_prog in
+    let _ = visit_program ~ffunc:(Some process_func) penv.penv_prog in
     !updated
   ;;
 
@@ -3726,7 +3716,7 @@ struct
             let _ =
               if res then incr num_valid_asserts else incr num_invalid_asserts
             in
-            print_endline (AS.pr_assertion_status func ast res)
+            print (AS.pr_assertion_status func ast res)
           | None -> ())
         assertions in
     !num_checked_assertions

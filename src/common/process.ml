@@ -7,8 +7,6 @@
 
 open Dcore
 
-let pid_dummy = -1000
-
 type process =
   { proc_exe : string;
     proc_cmd : string list;
@@ -17,6 +15,8 @@ type process =
     proc_out_channel : out_channel;
     proc_err_channel : in_channel
   }
+
+let pid_dummy = -1000
 
 let mk_proc_dummy (cmd : string list) =
   { proc_exe = (try List.hd_exn cmd with _ -> "");
@@ -100,10 +100,8 @@ let start_process (cmd : string list) : process =
   with e -> flush stdout; flush stderr; raise e
 ;;
 
-let stop_process proc = close_process proc
-
 let restart_process proc : process =
-  let _ = stop_process proc in
+  let _ = close_process proc in
   start_process proc.proc_cmd
 ;;
 

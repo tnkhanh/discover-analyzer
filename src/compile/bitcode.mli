@@ -6,8 +6,8 @@
  ********************************************************************)
 
 val print_module_stats : string -> unit
-val export_bitcode_to_file : string -> Llvm.llmodule -> unit
-val process_module : string -> Llir.llmodule -> Llir.program
+val export_bitcode_to_file : string -> Llir.bitcode_module -> unit
+val process_module : string -> Llir.bitcode_module -> Llir.program
 val disassemble_bitcode : string -> unit
 val optimize_bitcode : string -> string
 val normalize_bitcode : string -> string

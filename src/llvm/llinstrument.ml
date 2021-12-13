@@ -11,7 +11,6 @@ open Llannot
 module LL = Llvm
 module LO = Llvm.Opcode
 module LD = Llvm_debuginfo
-module LS = Lldebug
 module LV = Llvm.ValueKind
 module SP = Set.Poly
 module LP = Llloop
@@ -58,12 +57,12 @@ let is_instr_before_annotation (instr : tagged_instr) (ann : bug_annot) : bool =
   Poly.((instr_line, instr_col) < (annot_line, annot_col))
 ;;
 
-let coverage = Hashtbl.create (module Instr)
+let coverage = Hashtbl.create (module InstrKey)
 
 let rec get_coverage instr =
   match Hashtbl.find coverage instr with
   | None ->
-    let pos_op = LS.position_of_instr instr in
+    let pos_op = position_of_instr instr in
     let oprc = num_operands instr in
     let cover =
       let init =
@@ -149,8 +148,8 @@ let generate_instrumented_func_name anntyp (bug : BG.bug_type) ins_type =
   base_name ^ "_" ^ tail
 ;;
 
-let generate_instrumented_func_args (bug : BG.bug_type) (instr : llvalue)
-    : llvalue array
+let generate_instrumented_func_args (bug : BG.bug_type) (instr : value)
+    : value array
   =
   match bug with
   | _ -> [| instr |]
@@ -160,7 +159,7 @@ let apply_annotation
     (anntyp : annot_type)
     (instr : tagged_instr)
     (bugs : BG.bug_types)
-    (modul : llmodule)
+    (modul : bitcode_module)
   =
   match instr.tagx_instr with
   | Instr inx ->
@@ -295,7 +294,7 @@ let instrument_bug_annotation annots source_name (modul : LL.llmodule) : unit =
   let finstr =
     Some
       (fun acc instr ->
-        let pos_op = LS.position_of_instr instr in
+        let pos_op = position_of_instr instr in
         match pos_op with
         | None -> acc
         | Some pos ->
@@ -306,7 +305,7 @@ let instrument_bug_annotation annots source_name (modul : LL.llmodule) : unit =
             | [] -> mk_tagged_instr pos 1 instr :: acc
             | hd :: tl -> mk_tagged_instr pos (hd.tagx_tag + 1) instr :: acc))
   in
-  let tagged_instr = deep_fold_module ~finstr [] modul in
+  let tagged_instr = visit_fold_module ~finstr [] modul in
   let compare ins1 ins2 =
     let p1 = ins1.tagx_pos.pos_line_end, ins1.tagx_pos.pos_col_end in
     let p2 = ins2.tagx_pos.pos_line_end, ins2.tagx_pos.pos_col_end in

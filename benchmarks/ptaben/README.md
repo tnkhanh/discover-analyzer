@@ -1,6 +1,5 @@
-PTABenchmark
-===============
+# PTABen benchmark
 
-- URL: https://github.com/SVF-tools/Test-Suite
+- This benchmark is collected from SVF-Testsuite (the original name is PTABen):
 
-- Adopted for Discover
+- Homepage: https://github.com/SVF-tools/Test-Suite

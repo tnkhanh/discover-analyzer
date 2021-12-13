@@ -10,7 +10,6 @@ module LL = Llvm
 module LI = Llir
 module LU = Llutils
 module LN = Llnormalize
-module LP = Llpass
 module PS = Process
 
 let print_module_stats filename =
@@ -38,8 +37,7 @@ let process_module (input_file : string) (modul : LL.llmodule) : LI.program =
   let _ = if !llvm_simplify then LN.normalize_module input_file modul in
   let _ = if !export_bitcode then export_bitcode_to_file input_file modul in
   let _ = LN.check_normalization modul in
-  let prog = LI.mk_program input_file modul in
-  let _ = LP.update_program_info prog in
+  let prog = modul |> LI.mk_raw_program input_file |> LI.update_program_info in
   let _ =
     hdebug ~header:true
       ~enable:((not !print_concise_output) && !print_core_prog)

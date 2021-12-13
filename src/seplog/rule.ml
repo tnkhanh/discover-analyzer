@@ -1576,54 +1576,27 @@ let is_rule_apply_early rule =
 ;;
 
 let is_rule_unfold_head_useless pstate goal rules r =
-  try
-    if List.exists ~f:is_rule_apply_early rules then raise_bool true;
-    (* default *)
-    false
-  with EBool res -> res
+  List.exists ~f:is_rule_apply_early rules
 ;;
 
 let is_rule_unfold_view_left_useless pstate goal rules r =
-  try
-    if List.exists ~f:is_rule_apply_early rules then raise_bool true;
-    (* default *)
-    false
-  with EBool res -> res
+  List.exists ~f:is_rule_apply_early rules
 ;;
 
 let is_rule_unfold_view_right_useless pstate goal rules r =
-  try
-    if List.exists ~f:is_rule_apply_early rules then raise_bool true;
-    (* default *)
-    false
-  with EBool res -> res
+  List.exists ~f:is_rule_apply_early rules
 ;;
 
 let is_rule_match_data_useless pstate goal rules r =
-  try
-    if r.rmd_apply_early then raise_bool false;
-    if List.exists ~f:is_rule_apply_early rules then raise_bool true;
-    (* default *)
-    false
-  with EBool res -> res
+  if r.rmd_apply_early then false else List.exists ~f:is_rule_apply_early rules
 ;;
 
 let is_rule_match_view_useless pstate goal rules r =
-  try
-    if r.rmv_apply_early then raise_bool false;
-    if List.exists ~f:is_rule_apply_early rules then raise_bool true;
-    (* default *)
-    false
-  with EBool res -> res
+  if r.rmv_apply_early then false else List.exists ~f:is_rule_apply_early rules
 ;;
 
 let is_rule_match_array_useless pstate goal rules r =
-  try
-    if r.rma_apply_early then raise_bool false;
-    if List.exists ~f:is_rule_apply_early rules then raise_bool true;
-    (* default *)
-    false
-  with EBool res -> res
+  if r.rma_apply_early then false else List.exists ~f:is_rule_apply_early rules
 ;;
 
 let is_rule_useless pstate goal rules rule =

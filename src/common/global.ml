@@ -47,16 +47,6 @@ type input_mode =
   | InpSolidity
 
 (*******************************************************************
- * Exceptions
- *******************************************************************)
-
-exception EInt of int
-exception EBool of bool
-exception EString of string
-exception ESkip
-exception EDone
-
-(*******************************************************************
  ** Global Flags
  *******************************************************************)
 
@@ -311,10 +301,3 @@ let pr_work_mode wm =
   | WkmAbsInt -> "Abstract Interpretation"
   | WkmNoAnalysis -> "No Analysis"
 ;;
-
-(*-------------
- * exceptions
- *------------*)
-
-let raise_bool b = raise (EBool b)
-let raise_int i = raise (EInt i)

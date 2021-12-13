@@ -8,10 +8,7 @@
 open Dcore
 open Llir
 module LL = Llvm
-module LD = Lldebug
 module LO = Llvm.Opcode
-module LC = Llvm.Icmp
-module LA = List.Assoc
 
 (*******************************************************************
  ** data structure
@@ -63,7 +60,7 @@ let pr_assertion_status (func : func) (ast : assertion) (status : bool) =
       let args = args_of_instr_func_app instr in
       asname ^ "(" ^ pr_args ~f:pr_value args ^ ")" in
   let location =
-    match LD.position_of_instr instr with
+    match position_of_instr instr with
     | None -> "Function: " ^ fname
     | Some l ->
       ("File: " ^ l.pos_file_name ^ ", ")
@@ -89,7 +86,7 @@ let mk_refute (pred : predicate) (instr : instr) =
 ;;
 
 let find_alias_assertions (func : func) : assertion list =
-  let visit_instr acc instr =
+  let process_instr acc instr =
     let vinstr = llvalue_of_instr instr in
     match LL.instr_opcode vinstr with
     | LO.Call | LO.Invoke ->
@@ -121,11 +118,11 @@ let find_alias_assertions (func : func) : assertion list =
         acc @ [ mk_refute (MustAlias (u, v)) instr ])
       else acc
     | _ -> acc in
-  deep_fold_func ~finstr:(Some visit_instr) [] func
+  visit_fold_func ~finstr:(Some process_instr) [] func
 ;;
 
 let find_range_assertions (func : func) : assertion list =
-  let visit_instr acc instr =
+  let process_instr acc instr =
     let vinstr = llvalue_of_instr instr in
     match LL.instr_opcode vinstr with
     | LO.Call ->
@@ -151,7 +148,7 @@ let find_range_assertions (func : func) : assertion list =
         | _ -> acc)
       else acc
     | _ -> acc in
-  deep_fold_func ~finstr:(Some visit_instr) [] func
+  visit_fold_func ~finstr:(Some process_instr) [] func
 ;;
 
 let find_all_assertions (func : func) : assertion list =

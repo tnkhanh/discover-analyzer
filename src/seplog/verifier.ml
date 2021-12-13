@@ -8,11 +8,10 @@
 open Dcore
 open Source
 open Slir
-open Bug
 module PV = Prover
 module LL = Llvm
+module LO = Llvm.Opcode
 module LI = Llir
-module LD = Lldebug
 module OC = Llvm.Opcode
 module NO = Normalize
 module SMT = Smt.SmtSL
@@ -39,7 +38,7 @@ type program_state =
 type verifier_state =
   { vrs_core_prog : program;
     vrs_llvm_prog : LI.program;
-    vrs_recent_instr : LI.llvalue option;
+    vrs_recent_instr : LI.value option;
     mutable vrs_interact : bool
   }
 
@@ -176,7 +175,7 @@ let pr_buggy_exps (prog : LI.program) exps : string =
 
 let report_bug (prog : LI.program) bug exps (instr : LI.instr) : bool =
   let location =
-    match !llvm_orig_source_name, LD.position_of_instr instr with
+    match !llvm_orig_source_name, LI.position_of_instr instr with
     | false, _ | _, None -> ""
     | true, Some p -> "   at " ^ pr_file_position_and_excerpt p in
   let msg =

@@ -50,7 +50,7 @@ let check_bug_integer_overflow (pdata : program_data) (pbug : potential_bug)
                   ^ ("the maximum value of: " ^ EInt.pr_eint ub ^ ",\n")
                   ^ "but is assigned with: " ^ RG.pr_bound r.range_ub ^ ".\n"
                 in
-                return (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
+                Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
               else None))
         ~init:None fenvs_rng)
     else None
@@ -101,7 +101,7 @@ let check_bug_integer_underflow (pdata : program_data) (pbug : potential_bug)
                   ^ ("the minimum value of: " ^ EInt.pr_eint lb ^ ",\n")
                   ^ "but is assigned with: " ^ RG.pr_bound r.range_lb ^ ".\n"
                 in
-                return (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
+                Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
               else None))
         ~init:None fenvs_rng)
     else None
@@ -125,7 +125,6 @@ let find_bug_integer_underflow (pdata : program_data) : bugs =
 let check_bug_division_by_zero (pdata : program_data) (pbug : potential_bug)
     : bug option
   =
-  (* TODO: @Khanh: implement from here *)
   let open Option.Let_syntax in
   match pbug.pbug_type with
   | DivisionByZero None ->
@@ -205,7 +204,7 @@ let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
                 ("Buffer at pointer " ^ LI.pr_value ptr)
                 ^ (" contains " ^ pr_int64 n ^ " elements;\n")
                 ^ "accessing index is " ^ RG.pr_interval_concise itv in
-              return (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
+              Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
             else None
           | MemSizeOf v ->
             let vinstr = LI.mk_instr v in
@@ -229,7 +228,7 @@ let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
                       ^ ("at most " ^ pr_int64 max_num_elem ^ " elements;\n")
                       ^ "accessing index is " ^ RG.pr_interval_concise itv
                     in
-                    return (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
+                    Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
                   else if RG.ID.compare_interval_ub_int itv min_num_elem >= 0
                   then (
                     let reason =
@@ -237,7 +236,7 @@ let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
                       ^ ("only " ^ pr_int64 min_num_elem ^ " elements;\n")
                       ^ "accessing index is " ^ RG.pr_interval_concise itv
                     in
-                    return (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
+                    Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
                   else None))
               ~init:None fenvs_msz))
       ~init:None fenvs_rng

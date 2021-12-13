@@ -34,7 +34,7 @@ let start_solver () =
 ;;
 
 let stop_solver () =
-  PS.stop_process !proc;
+  PS.close_process !proc;
   proc := { !proc with PS.proc_pid = PS.pid_dummy }
 ;;
 
@@ -330,14 +330,14 @@ module Z3LL = struct
     String.concat ~sep:" " (List.map ~f lst)
   ;;
 
-  let transform_lltype (t : LI.lltype) : string =
+  let transform_lltype (t : LI.datatype) : string =
     match LL.classify_type t with
     | LL.TypeKind.Integer -> "Int"
     | LL.TypeKind.Pointer -> "Int" (* handle pointer as Int type *)
     | _ -> herror "Z3LL.transform_lltype: need to handle type: " LI.pr_type t
   ;;
 
-  let transform_llvalue (v : LI.llvalue) : string =
+  let transform_llvalue (v : LI.value) : string =
     (* NOTE: should include function name to avoid name duplication? *)
     if LL.is_null v then "0" else LI.pr_value v
   ;;
@@ -366,7 +366,7 @@ module Z3LL = struct
     transform p
   ;;
 
-  let mk_var_decl (v : LI.llvalue) : string =
+  let mk_var_decl (v : LI.value) : string =
     let sv = transform_llvalue v in
     let st = transform_lltype (LL.type_of v) in
     "(declare-const " ^ sv ^ " " ^ st ^ ")"

@@ -24,7 +24,7 @@ let rename_vars_and_params (modul : LL.llmodule) : unit =
   let compute_index index =
     index := !index + 1;
     pr_int !index in
-  let visit_instr i =
+  let process_instr i =
     let vi = llvalue_of_instr i in
     match LL.instr_opcode vi with
     | LO.Br _ | LO.IndirectBr | LO.Resume | LO.Store | LO.Ret | LO.Unreachable
@@ -36,27 +36,27 @@ let rename_vars_and_params (modul : LL.llmodule) : unit =
       then (
         let instr_name = "v" ^ compute_index index_value in
         LL.set_value_name instr_name vi) in
-  let visit_param p =
+  let process_param p =
     let vp = llvalue_of_param p in
     let param_name = "arg" ^ compute_index index_value in
     LL.set_value_name param_name vp in
-  let visit_global g =
+  let process_global g =
     let vg = llvalue_of_global g in
     if (not !llvm_orig_source_name) || is_llvalue_empty_name vg
     then (
       let global_name = "g" ^ compute_index index_value in
       LL.set_value_name global_name vg) in
-  let visit_block blk =
+  let process_block blk =
     let blk_name = "bb" ^ compute_index index_blk in
-    LL.set_value_name blk_name (LL.value_of_block blk);
+    let _ = LL.set_value_name blk_name (LL.value_of_block blk) in
     None in
-  let visit_func f =
+  let process_func f =
     (* reset index for each function *)
     let _ = index_blk := -1 in
     None in
-  deep_iter_module ~fglobal:(Some visit_global) ~ffunc:(Some visit_func)
-    ~fparam:(Some visit_param) ~fblock:(Some visit_block)
-    ~finstr:(Some visit_instr) modul
+  visit_module ~fglobal:(Some process_global) ~ffunc:(Some process_func)
+    ~fparam:(Some process_param) ~fblock:(Some process_block)
+    ~finstr:(Some process_instr) modul
 ;;
 
 (*******************************************************************
@@ -76,7 +76,7 @@ let elim_instr_intrinsic_lifetime (modul : LL.llmodule) : unit =
           then acc @ [ instr ]
           else acc
         | _ -> acc) in
-  let instr_calls = deep_fold_module ~finstr [] modul in
+  let instr_calls = visit_fold_module ~finstr [] modul in
   let callees =
     List.fold_left
       ~f:(fun acc instr ->
@@ -100,7 +100,7 @@ let elim_unused_instructions (modul : LL.llmodule) : unit =
             | None -> acc @ [ instr ]
             | Some _ -> acc)
           | _ -> acc) in
-    let unused_instrs = deep_fold_func ~finstr [] func in
+    let unused_instrs = visit_fold_func ~finstr [] func in
     (* then remove them *)
     if unused_instrs != []
     then (
@@ -113,10 +113,10 @@ let elim_unused_instructions (modul : LL.llmodule) : unit =
 (** eliminate instruction Load that loads from a register a constant that was
     stored previously in the same basic block *)
 let elim_instr_load_of_const (modul : LL.llmodule) : unit =
-  let find_instr_load_and_replacer (func : func) : (instr * llvalue) list =
+  let find_instr_load_and_replacer (func : func) : (instr * value) list =
     let loads_replacers = ref [] in
-    let tbl_stored_values = Hashtbl.create (module Instr) in
-    let visit_instr instr =
+    let tbl_stored_values = Hashtbl.create (module InstrKey) in
+    let process_instr instr =
       match instr_opcode instr with
       | LO.Store ->
         let src = src_of_instr_store instr in
@@ -145,7 +145,7 @@ let elim_instr_load_of_const (modul : LL.llmodule) : unit =
             else ())
           args
       | _ -> () in
-    let _ = deep_iter_func ~finstr:(Some visit_instr) func in
+    let _ = visit_func ~finstr:(Some process_instr) func in
     !loads_replacers in
   let elim_instr_load (func : func) : unit =
     (* let _ = hdebugc "elim_instr_load: " func_name func in *)
@@ -158,12 +158,12 @@ let elim_instr_load_of_const (modul : LL.llmodule) : unit =
         List.iter
           ~f:(fun (instr_load, replacer) ->
             let vload = llvalue_of_instr instr_load in
-            let visit_instr instr =
+            let process_instr instr =
               for i = 0 to num_operands instr do
-                if equal_llvalue vload (operand instr i)
+                if equal_value vload (operand instr i)
                 then set_operand instr i replacer
               done in
-            let _ = deep_iter_func ~finstr:(Some visit_instr) func in
+            let _ = visit_func ~finstr:(Some process_instr) func in
             let _ = delete_instruction instr_load in
             continue := true)
           load_replacers
@@ -174,9 +174,9 @@ let elim_instr_load_of_const (modul : LL.llmodule) : unit =
 (** Eliminate instruction SExt of integers, e.g. sext i32 0 to i64.
     Such instructions SExt may be introduced from other simplifications *)
 let elim_instr_sext_integer (modul : LL.llmodule) : unit =
-  let find_instr_sext_and_replacer (func : func) : (instr * llvalue) list =
+  let find_instr_sext_and_replacer (func : func) : (instr * value) list =
     let sext_replacers = ref [] in
-    let visit_instr instr =
+    let process_instr instr =
       match instr_opcode instr with
       | LO.SExt ->
         let src = src_of_instr_sext instr in
@@ -190,7 +190,7 @@ let elim_instr_sext_integer (modul : LL.llmodule) : unit =
           | None -> ())
         else ()
       | _ -> () in
-    let _ = deep_iter_func ~finstr:(Some visit_instr) func in
+    let _ = visit_func ~finstr:(Some process_instr) func in
     !sext_replacers in
   let elim_instr_sext (func : func) : unit =
     let continue = ref true in
@@ -202,12 +202,12 @@ let elim_instr_sext_integer (modul : LL.llmodule) : unit =
         List.iter
           ~f:(fun (instr_sext, replacer) ->
             let vsext = llvalue_of_instr instr_sext in
-            let visit_instr instr =
+            let process_instr instr =
               for i = 0 to num_operands instr do
-                if equal_llvalue vsext (operand instr i)
+                if equal_value vsext (operand instr i)
                 then set_operand instr i replacer
               done in
-            let _ = deep_iter_func ~finstr:(Some visit_instr) func in
+            let _ = visit_func ~finstr:(Some process_instr) func in
             let _ = delete_instruction instr_sext in
             continue := true)
           sext_replacers
@@ -255,6 +255,6 @@ let check_normalization (modul : LL.llmodule) : unit =
             ^ (pr_instr instr ^ "\n")
             ^ "Only Ret, Br, IndirectBr, Switch, Call, Invoke, Resume, "
             ^ "or Unreachable is allowed!")) in
-    None in
-  deep_iter_module ~fblock:(Some fblock) modul
+    Some () in
+  visit_module ~fblock:(Some fblock) modul
 ;;

@@ -119,8 +119,7 @@ let find_innermost_loop_of_block (prog : program) blk : loop option =
     ~key:blk
 ;;
 
-let find_innermost_loop_of_llvalue (prog : program) (v : llvalue) : loop option
-  =
+let find_innermost_loop_of_llvalue (prog : program) (v : value) : loop option =
   let find_loop v =
     if is_llvalue_instr v
     then (
@@ -160,6 +159,6 @@ let is_loop_updated_llvalue prog v : bool =
   if is_llvalue_instr v then is_loop_updated_instr prog (mk_instr v) else false
 ;;
 
-let is_loop_head_llvalue prog (v : llvalue) : bool =
+let is_loop_head_llvalue prog (v : value) : bool =
   if is_llvalue_instr v then is_loop_head_instr prog (mk_instr v) else false
 ;;

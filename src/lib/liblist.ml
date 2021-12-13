@@ -157,14 +157,20 @@ module List = struct
     List.filter ~f:(fun x -> Option.value (f x) ~default:false) l
   ;;
 
-  (* let fold_left_monad ~(f: 'a -> bool option) ~(init: 'a) (l: 'a list) : 'a list = *)
-  (*   List.fold_left *)
-  (*     ~f:(fun x -> Option.value (f x) ~default:false) *)
-  (*     ~init l *)
-
-  (*-----------------------------------
-   * Include the original List module
-   *----------------------------------*)
+  let eval_return_if
+      ~(default : 'a)
+      ~(return : 'a -> bool)
+      (lst : (unit -> 'a) list)
+      : 'a
+    =
+    let rec compute lst =
+      match lst with
+      | [] -> default
+      | f :: nlst ->
+        let res = f () in
+        if return res then res else compute nlst in
+    compute lst
+  ;;
 
   include List
 end
