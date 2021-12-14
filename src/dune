@@ -11,8 +11,8 @@
 
 ;; binary
 
-(executable
- (name Discover)
+(executables
+ (names Discover Benchmark)
  ; (empty_module_interface_if_absent)
  (preprocess
   (pps
