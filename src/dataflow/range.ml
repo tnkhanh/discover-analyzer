@@ -230,37 +230,38 @@ module IntervalDomain = struct
 
   let sdiv_bound (a : bound) (b : bound) : bound =
     let cmp = compare_bound b (Int64 Int64.zero) in
-    if cmp = 0 then error "sdiv_bound: undefined for _ / 0"
-    else
-    match a, b with
-    | PInf, PInf -> error "sdiv_bound: undefined for PInf / PInf"
-    | PInf, NInf -> error "sdiv_bound: undefined for PInf / NInf"
-    | NInf, PInf -> error "sdiv_bound: undefined for NInf / PInf"
-    | NInf, NInf -> error "sdiv_bound: undefined for NInf / NInf"
-    | _, PInf | _, NInf -> Int64 Int64.zero
-    | PInf, _ ->
-      if cmp > 0
-      then PInf
-      else if cmp < 0
-      then NInf
-      else error "sdiv_bound: undefined for PInf / 0"
-    | NInf, _ ->
-      let cmp = compare_bound b (Int64 Int64.zero) in
-      if cmp > 0
-      then NInf
-      else if cmp < 0
-      then PInf
-      else error "sdiv_bound: undefined for NInf / 0"
-    (* Int64, BInt, EInt *)
-    | Int64 x, Int64 y -> Int64 (Int64.( / ) x y)
-    | Int64 x, EInt y -> EInt (EInt.div (EInt.of_int64 x) y)
-    | Int64 x, BInt y -> BInt (BInt.div (BInt.of_int64 x) y)
-    | EInt x, Int64 y -> EInt (EInt.div x (EInt.of_int64 y))
-    | EInt x, EInt y -> EInt (EInt.div x y)
-    | EInt x, BInt y -> EInt (EInt.div x (EInt.of_bint y))
-    | BInt x, Int64 y -> BInt (BInt.div x (BInt.of_int64 y))
-    | BInt x, EInt y -> EInt (EInt.div (EInt.of_bint x) y)
-    | BInt x, BInt y -> BInt (BInt.div x y)
+    if cmp = 0
+    then error "sdiv_bound: undefined for _ / 0"
+    else (
+      match a, b with
+      | PInf, PInf -> error "sdiv_bound: undefined for PInf / PInf"
+      | PInf, NInf -> error "sdiv_bound: undefined for PInf / NInf"
+      | NInf, PInf -> error "sdiv_bound: undefined for NInf / PInf"
+      | NInf, NInf -> error "sdiv_bound: undefined for NInf / NInf"
+      | _, PInf | _, NInf -> Int64 Int64.zero
+      | PInf, _ ->
+        if cmp > 0
+        then PInf
+        else if cmp < 0
+        then NInf
+        else error "sdiv_bound: undefined for PInf / 0"
+      | NInf, _ ->
+        let cmp = compare_bound b (Int64 Int64.zero) in
+        if cmp > 0
+        then NInf
+        else if cmp < 0
+        then PInf
+        else error "sdiv_bound: undefined for NInf / 0"
+      (* Int64, BInt, EInt *)
+      | Int64 x, Int64 y -> Int64 (Int64.( / ) x y)
+      | Int64 x, EInt y -> EInt (EInt.div (EInt.of_int64 x) y)
+      | Int64 x, BInt y -> BInt (BInt.div (BInt.of_int64 x) y)
+      | EInt x, Int64 y -> EInt (EInt.div x (EInt.of_int64 y))
+      | EInt x, EInt y -> EInt (EInt.div x y)
+      | EInt x, BInt y -> EInt (EInt.div x (EInt.of_bint y))
+      | BInt x, Int64 y -> BInt (BInt.div x (BInt.of_int64 y))
+      | BInt x, EInt y -> EInt (EInt.div (EInt.of_bint x) y)
+      | BInt x, BInt y -> BInt (BInt.div x y))
   ;;
 
   let mult_int_bound (i : int64) (b : bound) =
@@ -415,14 +416,14 @@ module IntervalDomain = struct
     let b_ub =
       if b.range_ub_incl then b.range_ub else add_bound b.range_ub minus_one
     in
-    let bounds_low = 
+    let bounds_low =
       if compare_bound b_lb (Int64 Int64.zero) = 0
       then []
-      else [sdiv_bound a_lb b_lb; sdiv_bound a_ub b_lb] in
+      else [ sdiv_bound a_lb b_lb; sdiv_bound a_ub b_lb ] in
     let bounds_up =
       if compare_bound b_ub (Int64 Int64.zero) = 0
       then []
-      else [sdiv_bound a_lb b_ub; sdiv_bound a_ub b_ub] in
+      else [ sdiv_bound a_lb b_ub; sdiv_bound a_ub b_ub ] in
     let bounds_one =
       if compare_bound one b_lb >= 0 && compare_bound one b_ub <= 0
       then [ sdiv_bound a_lb one; sdiv_bound a_ub one ]
@@ -432,10 +433,14 @@ module IntervalDomain = struct
       then [ sdiv_bound a_lb minus_one; sdiv_bound a_ub minus_one ]
       else [] in
     let all_bounds = bounds_low @ bounds_up @ bounds_one @ bounds_minus_one in
-    if List.is_empty all_bounds then mk_range PInf NInf else
-    let lb = List.fold all_bounds ~init:(List.hd_exn all_bounds) ~f:min_bound in
-    let ub = List.fold all_bounds ~init:(List.hd_exn all_bounds) ~f:max_bound in
-    mk_range lb ub ~li:true ~ui:true
+    if List.is_empty all_bounds
+    then mk_range PInf NInf
+    else (
+      let lb =
+        List.fold all_bounds ~init:(List.hd_exn all_bounds) ~f:min_bound in
+      let ub =
+        List.fold all_bounds ~init:(List.hd_exn all_bounds) ~f:max_bound in
+      mk_range lb ub ~li:true ~ui:true)
   ;;
 
   let mult_range (a : range) (b : range) =
@@ -518,11 +523,11 @@ module IntervalDomain = struct
     match a, b with
     | Bottom, _ -> Bottom
     | _, Bottom -> Bottom
-    | Range ra, Range rb -> 
+    | Range ra, Range rb ->
       let res = sdiv_range ra rb in
-      match res.range_lb, res.range_ub with 
+      (match res.range_lb, res.range_ub with
       | PInf, NInf -> Bottom
-      | _ -> Range res
+      | _ -> Range res)
   ;;
 
   let intersect_interval (a : interval) (b : interval) : interval =
@@ -1015,26 +1020,27 @@ struct
       replace_interval expr itv input
     | LO.Call | LO.Invoke ->
       (* TODO: function call for inter-procedural analysis *)
-       let callee = callee_of_instr_func_call instr in 
-       let fname = func_name callee in
-       let _ = hprint "Function name: " pr_str fname in
-       if String.equal fname __assume_range then
-         let v = operand instr 0 in
-         let lb_opt = int64_of_const (operand instr 1) in
-         let ub_opt = int64_of_const (operand instr 2) in
-         let assume_itv =
-           match lb_opt, ub_opt with 
-           | None, _ -> Bottom
-           | _, None -> Bottom
-           | Some lb, Some ub -> 
-             mk_interval_range ~li:true ~ui:true (Int64 lb) (Int64 ub) in
-         let assume_expr = expr_of_instr (mk_instr v) in
-         let original_itv = get_interval assume_expr input in
-         replace_interval assume_expr (intersect_interval original_itv assume_itv) input
-       else
-       
-      (*     print "TODO: need to handle func call: scanf" in *)
-      input
+      let callee = callee_of_instr_func_call instr in
+      let fname = func_name callee in
+      let _ = hprint "Function name: " pr_str fname in
+      if String.equal fname __assume_range
+      then (
+        let v = operand instr 0 in
+        let lb_opt = int64_of_const (operand instr 1) in
+        let ub_opt = int64_of_const (operand instr 2) in
+        let assume_itv =
+          match lb_opt, ub_opt with
+          | None, _ -> Bottom
+          | _, None -> Bottom
+          | Some lb, Some ub ->
+            mk_interval_range ~li:true ~ui:true (Int64 lb) (Int64 ub) in
+        let assume_expr = expr_of_instr (mk_instr v) in
+        let original_itv = get_interval assume_expr input in
+        replace_interval assume_expr
+          (intersect_interval original_itv assume_itv)
+          input)
+      else (*     print "TODO: need to handle func call: scanf" in *)
+        input
     | _ -> input
   ;;
 

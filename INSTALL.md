@@ -21,36 +21,15 @@ The following commands are tested and work well with Linux Mint / Ubuntu 20.
 
 - LLVM and Clang 13
 
-  + Install from Linux repositories:
-
-    ``` sh
-    IMPORTANT: to be updated when LLVM 13 is officially released
-    # Ubuntu, Linux Mint
-    # sudo apt-get install llvm-13 llvm-13-dev clang-13 libclang-13-dev
-
-    # Arch Linux, Manjaro
-    # sudo pacman -S llvm13 clang13
-    ```
-
-  + Or, if LLVM and Clang cannot be installed automatically, then download
-    prebuilt LLVM and Clang from the [LLVM GitHub Releases](https://github.com/llvm/llvm-project-13/releases), and extract it
-    to `$HOME/llvm/llvm-13` (or any other custom directory):
-
-    ``` sh
-    # TODO: Revise the followings when LLVM 13 released.
-    # Assume that LLVM + Clang 13 binaries are stored at $HOME/llvm/llvm-13/
-    # export PATH=$HOME/llvm/llvm-13/bin:$PATH
-    # export LD_LIBRARY_PATH=$HOME/llvm/llvm-13/lib:$LD_LIBRARY_PATH
-    ```
-
-  + Otherwise, LLVM and Clang 13 can be built from the branch `sbip-llvm-13` of
-    our custom [LLVM 13](https://github.com/sbip-sg/llvm-project), and install to `$HOME/llvm/llvm-13`. Note that it
-    might take 2 to 3 hours to finish the compilation of LLVM.
+  + We use a customized version [LLVM-SBIP](https://github.com/sbip-sg/llvm-project) of LLVM 13. The latest
+    development is at the branch `sbip-llvm-13`. It need to be installed to
+    `$HOME/llvm/llvm-sbip`. Note that it might take 2 to 3 hours to finish the
+    compilation of LLVM.
 
     ``` sh
     # Prepare installation folder
     export LLVMDIR=$HOME/llvm           # root path to LLVM workspace
-    export LLVMINSTALLDIR=$LLVMDIR/llvm-13
+    export LLVMINSTALLDIR=$LLVMDIR/llvm-sbip
     mkdir -p $LLVMINSTALLDIR
 
     # Prepare source code
@@ -87,7 +66,7 @@ The following commands are tested and work well with Linux Mint / Ubuntu 20.
     export LIBRARY_PATH=$LLVMINSTALLDIR/lib:$LIBRARY_PATH
 
     # Option 2: put the following to ~/.profile to configure the environment permanently
-    export LLVMINSTALLDIR=$HOME/llvm/llvm-13
+    export LLVMINSTALLDIR=$HOME/llvm/llvm-sbip
     export PATH=$LLVMINSTALLDIR/bin:$PATH
     export LD_LIBRARY_PATH=$LLVMINSTALLDIR/lib:$LD_LIBRARY_PATH
     export LIBRARY_PATH=$LLVMINSTALLDIR/lib:$LIBRARY_PATH
@@ -162,7 +141,7 @@ The following commands are tested and work well with Linux Mint / Ubuntu 20.
 
   ``` sh
   opam uninstall llvm
-  cd $HOME/.opam/4.12.0
+  cd $HOME/.opam/<ocaml-compiler-version>
 
   # manually copy llvm libraries and metadata files
   cp -r lib/ocaml/llvm lib/

@@ -8,6 +8,7 @@
 open Dcore
 open Llast
 open Source
+module LL = Llvm
 module LD = Llvm_debuginfo
 
 (*******************************************************************
@@ -1640,6 +1641,8 @@ include Func
  *******************************************************************)
 
 module Metadata = struct
+  (* IMPORTANT: This function will be removed. Use Llvm_debug facilities
+     instead. *)
   let extract_name_from_metadata (md : LL.llvalue) : string =
     let str = LL.string_of_llvalue md in
     let re = Str.regexp ".*name:[ ]*\"\\([a-zA-Z0-9_]+\\)\".*" in

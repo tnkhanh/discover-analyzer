@@ -7,6 +7,7 @@
 
 open Dcore
 module LL = Llvm
+module LD = Llvm_debuginfo
 module LT = LL.TypeKind
 module LV = LL.ValueKind
 module LO = LL.Opcode
@@ -1802,6 +1803,18 @@ end
 include Path
 
 (*******************************************************************
+ ** Utility functions for processing metadata
+ *******************************************************************)
+
+module Metadata = struct
+  let get_source_file_name (m: bitcode_module) : string =
+    LL.source_file_name m
+end
+
+include Metadata
+
+
+(*******************************************************************
  * Module
  *******************************************************************)
 
@@ -1832,7 +1845,7 @@ module Program = struct
       : program_meta_data
     =
     { pmd_bitcode_filename = filename;
-      pmd_source_filename = "<unknown>";
+      pmd_source_filename = get_source_file_name modul;
       pmd_llvalue_original_name = Hashtbl.create (module String);
       pmd_module_id = "<unknown>";
       pmd_data_layout = LL.data_layout modul;

@@ -28,6 +28,7 @@ include Llast.Callable
 include Llast.Block
 include Llast.Path
 include Llast.Loop
+include Llast.Metadata
 include Llast.Module
 include Llast.Program
 
