@@ -352,7 +352,6 @@ module AST = struct
     { pmd_bitcode_filename : string;
       pmd_source_filename : string;
       pmd_llvalue_original_name : (string, string) Hashtbl.t;
-      pmd_module_id : string;
       pmd_data_layout : string;
       pmd_target_platform : string
     }
@@ -1847,7 +1846,6 @@ module Program = struct
     { pmd_bitcode_filename = filename;
       pmd_source_filename = get_source_file_name modul;
       pmd_llvalue_original_name = Hashtbl.create (module String);
-      pmd_module_id = "<unknown>";
       pmd_data_layout = LL.data_layout modul;
       pmd_target_platform = LL.target_triple modul
     }
