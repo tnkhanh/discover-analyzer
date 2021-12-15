@@ -217,6 +217,7 @@ module IntervalDomain = struct
     | PInf, _ -> PInf
     | _, PInf -> Int64 Int64.zero
     (* Int64, BInt, EInt *)
+    (* FIXME: need to check y == 0 *)
     | Int64 x, Int64 y -> Int64 (Int64.( / ) x y)
     | Int64 x, EInt y -> EInt (EInt.div (EInt.of_int64 x) y)
     | Int64 x, BInt y -> BInt (BInt.div (BInt.of_int64 x) y)
@@ -253,6 +254,7 @@ module IntervalDomain = struct
         then PInf
         else error "sdiv_bound: undefined for NInf / 0"
       (* Int64, BInt, EInt *)
+      (* FIXME: need to check y == 0 *)
       | Int64 x, Int64 y -> Int64 (Int64.( / ) x y)
       | Int64 x, EInt y -> EInt (EInt.div (EInt.of_int64 x) y)
       | Int64 x, BInt y -> BInt (BInt.div (BInt.of_int64 x) y)
@@ -975,7 +977,6 @@ struct
       let itv = mult_interval itv0 itv1 in
       replace_interval expr itv input
     | LO.UDiv ->
-      (* TODO: need to handle Div *)
       let opr0, opr1 = expr_operand instr 0, expr_operand instr 1 in
       let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
       let itv = udiv_interval itv0 itv1 in
