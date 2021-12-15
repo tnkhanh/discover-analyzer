@@ -4,7 +4,7 @@
 (name discover)
 (using menhir 2.1)
 
-;; Run `dune build` to generate discover.opam
+;; Run `dune build` to generate the `discover.opam` file for this project
 (generate_opam_files true)
 
 ;; Package
@@ -19,11 +19,12 @@
           yaml
           ezjsonm
           ; ocamlformat
-          (ocamlformat :dev)  ;; use developing version of Ocamlformat
+          (ocamlformat :dev)  ;; use the developing version of Ocamlformat
+          menhir
+          num
           ppx_deriving
           ppx_sexp_conv
-          ppx_compare
-          num))
+          ppx_compare))
 
 ;; Generate interface
 ; (executables_implicit_empty_intf true)        ;; must use dune >= 3.0

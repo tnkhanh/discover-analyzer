@@ -10,10 +10,11 @@ depends: [
   "yaml"
   "ezjsonm"
   "ocamlformat" {dev}
+  "menhir"
+  "num"
   "ppx_deriving"
   "ppx_sexp_conv"
   "ppx_compare"
-  "num"
   "odoc" {with-doc}
 ]
 build: [
