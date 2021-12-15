@@ -125,15 +125,19 @@ The following commands are tested and work well with Linux Mint / Ubuntu 20.
 
 ## OCaml for development
 
-- Currently, we are using 4.12.0, or newer.
+- Currently, we are using 4.13.1, or newer.
 
   ``` sh
+  # Install Opam (OCaml package manager)
   sudo apt-get install opam
   opam init
-  opam switch create 4.12.0
+
+  # Install OCaml
+  opam switch create 4.13.1
   eval $(opam env)
-  opam install core unix str ocamlgraph fileutils yaml ezjsonm \
-               llvm llvm.target llvm.bitreader llvm.bitwriter llvm.irreader
+
+  # Install dependencies of this project
+  opam install . --deps-only --with-test
   ```
 
 - If LLVM 13 is installed from source code, then we also need to copy LLVM 13
