@@ -110,7 +110,8 @@ let run_command (cmd : string list) : unit =
   match Unix.waitpid (Pid.of_int proc.proc_pid) with
   | Ok _ -> close_process proc
   | Error e ->
-    (* let msg = string_of_sexp (Unix.Exit_or_signal.sexp_of_error e) in *)
+    let msg = string_of_sexp (Unix.Exit_or_signal.sexp_of_error e) in
+    let _ = print ("Exception: " ^ msg) in
     let msg = read_error proc in
     let _ = close_process proc in
     let cmd = beautiful_concat ~column:80 ~sep:" " cmd in
@@ -128,8 +129,10 @@ let run_command_get_output (cmd : string list) : (string, string) result =
     let output = read_output proc ^ read_error proc in
     let _ = close_process proc in
     Ok output
-  | Error _ ->
+  | Error e ->
     let msg = read_error proc in
+    let msg2 = read_output proc in
     let _ = close_process proc in
-    Error msg
+(*    let msge = string_of_sexp (Unix.Exit_or_signal.sexp_of_error e) in *)
+    Error (msg ^ "  " ^ msg2)
 ;;

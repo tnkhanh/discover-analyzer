@@ -1,0 +1,15 @@
+- inter-procedural-all:
+    clang-option: -I ../../../../lib/discover
+    discover-option: --dfa-pointer --dfa-inter
+    timeout: 10
+    targets: *.c, *.cpp
+    exclude: foo.c, bar.c 
+    output-log: ???
+- inter-procedural-specific:
+    clang-option: -I ../../../../lib/discover
+    discover-option: --dfa-pointer --dfa-inter --dfa-range
+    targets: foo.c
+- intra-procedural-all:
+    clang-option: -I ../../../../lib/discover
+    discover-option: --dfa-pointer --dfa-intra
+    targets: *.c
