@@ -954,81 +954,96 @@ struct
     input
   ;;
 
-  let analyze_instr ?(widen = false) (penv : prog_env) fenv instr (input : t)
+  let analyze_instr
+      ?(widen = false)
+      (penv : prog_env)
+      (fenv : func_env)
+      (ins : instr)
+      (input : t)
       : t
     =
-    let func = func_of_instr instr in
-    let expr = expr_of_instr instr in
-    match instr_opcode instr with
+    let func = func_of_instr ins in
+    let expr = expr_of_instr ins in
+    match instr_opcode ins with
     | LO.Unreachable -> least_data
     | LO.Add ->
-      let opr0, opr1 = expr_operand instr 0, expr_operand instr 1 in
+      let opr0, opr1 = expr_operand ins 0, expr_operand ins 1 in
       let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
       let itv = add_interval itv0 itv1 in
       replace_interval expr itv input
     | LO.Sub ->
-      let opr0, opr1 = expr_operand instr 0, expr_operand instr 1 in
+      let opr0, opr1 = expr_operand ins 0, expr_operand ins 1 in
       let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
       let itv = sub_interval itv0 itv1 in
       replace_interval expr itv input
     | LO.Mul ->
-      let opr0, opr1 = expr_operand instr 0, expr_operand instr 1 in
+      let opr0, opr1 = expr_operand ins 0, expr_operand ins 1 in
       let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
       let itv = mult_interval itv0 itv1 in
       replace_interval expr itv input
     | LO.UDiv ->
-      let opr0, opr1 = expr_operand instr 0, expr_operand instr 1 in
+      let opr0, opr1 = expr_operand ins 0, expr_operand ins 1 in
       let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
       let itv = udiv_interval itv0 itv1 in
       replace_interval expr itv input
     | LO.SDiv ->
-      let opr0, opr1 = expr_operand instr 0, expr_operand instr 1 in
+      let opr0, opr1 = expr_operand ins 0, expr_operand ins 1 in
       let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
       let itv = sdiv_interval itv0 itv1 in
       replace_interval expr itv input
     | LO.PHI ->
-      let opr0 = expr_operand instr 0 in
+      let opr0 = expr_operand ins 0 in
       let itv = ref (get_interval opr0 input) in
       let _ = hdebug "Before refine widening: " pr_bool widen in
-      let widen = refine_widening func instr widen in
+      let widen = refine_widening func ins widen in
       let _ = hdebug "After refine widening: " pr_bool widen in
-      for i = 1 to num_operands instr - 1 do
-        let opri = expr_operand instr i in
+      for i = 1 to num_operands ins - 1 do
+        let opri = expr_operand ins i in
         let itvi = get_interval opri input in
         (* TODO: need to refine widening here *)
         itv := combine_interval ~widen !itv itvi
       done;
-      replace_interval (expr_of_instr instr) !itv input
+      replace_interval (expr_of_instr ins) !itv input
     | LO.Ret ->
       let expr = mk_expr_func_result func in
-      let opr0 = expr_operand instr 0 in
+      let opr0 = expr_operand ins 0 in
       let itv = get_interval opr0 input in
       replace_interval expr itv input
     | LO.Load ->
-      let dst = dst_of_instr_load instr in
-      let dtyp = LL.type_of dst in
-      if is_type_integer dtyp
+      let dst = dst_of_instr_load ins in
+      let dst_typ = LL.type_of dst in
+      if is_type_integer dst_typ
       then (
-        let bw = LL.integer_bitwidth dtyp in
-        (* LLVM integers is represented in two's complement format *)
-        let ir = compute_int_max_interval bw in
-        replace_interval expr ir input)
+        let src = src_of_instr_load ins in
+        let src_dref = mk_expr_deref src in
+        let src_dref_itv = get_interval src_dref input in
+        let dst_expr = mk_expr_var dst in
+        replace_interval dst_expr src_dref_itv input)
       else input
-    | LO.Store -> input
+    | LO.Store ->
+      let src = src_of_instr_store ins in
+      let src_typ = LL.type_of src in
+      if is_type_integer src_typ
+      then (
+        let src_itv = get_interval (expr_of_llvalue src) input in
+        let dst = dst_of_instr_store ins in
+        let dst_dref = mk_expr_deref dst in
+        replace_interval dst_dref src_itv input)
+      else input
     | LO.ZExt ->
-      let esrc = expr_of_llvalue (src_of_instr_zext instr) in
+      let esrc = expr_of_llvalue (src_of_instr_zext ins) in
       let itv = get_interval esrc input in
       replace_interval expr itv input
     | LO.Call | LO.Invoke ->
       (* TODO: function call for inter-procedural analysis *)
-      let callee = callee_of_instr_func_call instr in
+      let callee = callee_of_instr_func_call ins in
       let fname = func_name callee in
       let _ = hprint "Function name: " pr_str fname in
       if String.equal fname __assume_range
       then (
-        let v = operand instr 0 in
-        let lb_opt = int64_of_const (operand instr 1) in
-        let ub_opt = int64_of_const (operand instr 2) in
+        let v = operand ins 0 in
+        let lb_opt = int64_of_const (operand ins 1) in
+        let ub_opt = int64_of_const (operand ins 2) in
         let assume_itv =
           match lb_opt, ub_opt with
           | None, _ -> Bottom
