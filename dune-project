@@ -7,22 +7,21 @@
 (homepage "https://github.com/sbip-sg/discover")
 (using menhir 2.1)
 
-;; Run `dune build` to generate the `discover.opam` file for this project
-(generate_opam_files true)
+
+(generate_opam_files true)   ;; Run `dune build` to generate `discover.opam`
 
 ;; Package
 (package
  (name discover)
  (synopsis "A source code static analyzer")
- (description "A source code static analyzer.")
+ (description "A source code static analyzer to find bugs in computer programs and smart contracts written in C/C++, Solidity, Golang, Typescript.")
  (depends (core (>= 0.14.1))
           dune
           (ocamlgraph (>= 2.0.0))
           fileutils
-          llvm
+          ;; llvm             ;; LLVM bindings will be installed by llvm-sbip
           yaml
           ezjsonm
-          ; ocamlformat
           (ocamlformat :dev)  ;; use the developing version of Ocamlformat
           menhir
           num

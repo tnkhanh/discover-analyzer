@@ -140,17 +140,8 @@ The following commands are tested and work well with Linux Mint / Ubuntu 20.
   opam install . --deps-only --with-test
   ```
 
-- If LLVM 13 is installed from source code, then we also need to copy LLVM 13
-  bindings to the opam install directory:
-
-  ``` sh
-  opam uninstall llvm
-  cd $HOME/.opam/<ocaml-compiler-version>
-
-  # manually copy llvm libraries and metadata files
-  cp -r lib/ocaml/llvm lib/
-  cp lib/ocaml/META.llvm* lib/
-  ```
+- Note that `llvm` bindings will be installed by our customized version
+  [LLVM-SBIP](https://github.com/sbip-sg/llvm-project).
 
 # Compilation
 
