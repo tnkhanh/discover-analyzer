@@ -69,9 +69,9 @@ let close_process proc : unit =
 
 let read_output proc : string =
   let rec read acc =
-    try read (acc @ [ input_line proc.proc_in_channel ])
+    try read (input_line proc.proc_in_channel :: acc)
     with End_of_file -> acc in
-  let res = String.concat ~sep:"\n" (read []) in
+  let res = String.concat ~sep:"\n" (List.rev (read [])) in
   res
 ;;
 
