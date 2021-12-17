@@ -23,41 +23,51 @@ let test benchmark =
     (*let targets = EJ.get_string (EJ.find config ["targets"]) in*)
     let _ = print ("\n" ^ name ^ ":________") in
     let _ = print ("....." ^ (EJ.value_to_string config)) in
-    let files = 
+    let all_files = 
 (*      let ls_output = PS.run_command_get_output ["ls"; full_dir^"/*.c" [>^"/"^targets <]] in*)
       (*match ls_output with*)
       (*| Ok ls_output_str -> let _ = print ls_output_str in Str.split (Str.regexp "[ \n\r\x0c\t]+") ls_output_str*)
       (*| Error msg -> let _ = print msg in [] in*)
       (*FileUtil.ls full_dir in*)
       Array.to_list (Sys.readdir full_dir) in
+    let targets = String.split ~on: ' ' (EJ.get_string (EJ.find config ["targets"])) in
+    let _ = List.iter targets ~f:(fun target -> print ("Target: " ^ target)) in
+    let is_target target_list file = true in
+(*      match target_list with*)
+      (*| [] -> false*)
+      (*| target :: tl -> *)
+        (*if Str.string_match (Str.regexp target) file 0 then true*)
+        (*else*)
+          (*is_target tl file in*)
+    let files = List.filter all_files ~f:(is_target targets) in
 
     List.iter files ~f:(fun file ->
       let full_filepath = full_dir ^ "/" ^ file in
-      let _ = print ("File: " ^ full_filepath) in
+      let _ = print ("File: " ^ file) in
       let command = ["./discover"; 
                       "--clang-option=" ^ clang_option]
-                      @ (String.split_on_chars ~on:[' '] discover_option)
+                      @ (String.split ~on:' ' discover_option)
                       @ [full_filepath] in
-      let _ = List.iter command ~f:(fun str -> print ("Comm: " ^ str)) in
+      (*let _ = List.iter command ~f:(fun str -> print ("Comm: " ^ str)) in*)
       let output = PS.run_command_get_output command in
 
       let output_str = match output with
       | Ok result -> result
       | Error msg -> msg in
       let log_file = full_log_dir ^ "/" ^ file^".log" in
-      let _ = print ("Log: " ^ log_file) in
+      (*let _ = print ("Log: " ^ log_file) in*)
       Out_channel.write_all log_file ~data:output_str
     )
   )
 ;;
 
-let _ =
-  let ls_test = PS.run_command_get_output ["ls"; "*.c"] in
-  let ls_str = match ls_test with
-    | Ok str -> str
-    | Error str -> str in
-  print ("ls:...\n" ^ ls_str)
-;;
+(*let _ =*)
+  (*let ls_test = PS.run_command_get_output ["ls"; "*.c"] in*)
+  (*let ls_str = match ls_test with*)
+    (*| Ok str -> str*)
+    (*| Error str -> str in*)
+  (*print ("ls:...\n" ^ ls_str)*)
+(*;;*)
 
 let benchmarks = [
   ("PTABEN", "ptaben/ptaben-updated/basic_c_tests")]
