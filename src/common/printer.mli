@@ -16,7 +16,7 @@ val pr_bool_option : bool option -> string
 
 val pr_list
   :  ?sep:string ->
-  ?obrace:Libstring.String.t ->
+  ?obrace:string ->
   ?cbrace:string ->
   ?indent:string ->
   ?extra:string ->
@@ -58,7 +58,7 @@ val pr_list_plain
 
 val pr_items
   :  ?bullet:string ->
-  ?obrace:Libstring.String.t ->
+  ?obrace:string ->
   ?cbrace:string ->
   ?extra:string ->
   f:('a -> string) ->
