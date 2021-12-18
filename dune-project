@@ -23,6 +23,7 @@
           yaml
           ezjsonm
           (ocamlformat :dev)  ;; use the developing version of Ocamlformat
+          (extcore :dev)
           menhir
           num
           ppx_deriving

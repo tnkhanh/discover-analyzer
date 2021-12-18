@@ -137,6 +137,7 @@ The following commands are tested and work well with Linux Mint / Ubuntu 20.
   eval $(opam env)
 
   # Install dependencies of this project
+  opam pin add extcore git://github.com/sbip-sg/ocaml-extcore.git
   opam install . --deps-only --with-test
   ```
 
