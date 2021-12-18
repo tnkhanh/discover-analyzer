@@ -13,13 +13,13 @@ include Core
  * Extended libraries
  *--------------------*)
 
-include Extcore.Libint
-include Extcore.Libhashtbl
-include Extcore.Liblist
-include Extcore.Libmath
-include Extcore.Libstring
-include Extcore.Libsys
-include Extcore.Libresult
+include Extcore.Int
+include Extcore.Hashtbl
+include Extcore.List
+include Extcore.Math
+include Extcore.String
+include Extcore.Sys
+include Extcore.Result
 
 (*---------------------
  * Discover's modules

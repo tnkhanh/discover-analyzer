@@ -7,7 +7,7 @@
 
 (* Printer module *)
 open Core
-open Extcore.Libstring
+open Extcore.String
 
 (*------------------
  * debugging flags

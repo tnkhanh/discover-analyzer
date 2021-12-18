@@ -9,7 +9,7 @@
 
 open Core
 open Global
-open Extcore.Libstring
+open Extcore.String
 module FM = CamlinternalFormat
 module FB = CamlinternalFormatBasics
 
