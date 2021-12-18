@@ -9,10 +9,10 @@ inter-procedural-all:
   targets: "*.c"
   exclude: global-array.c
   #output-log: ???
-inter-procedural-specific:
-  clang-option: -I lib/discover
-  discover-option: --dfa-pointer --dfa-inter --dfa-range --no-debug --no-print
-  targets: global-array.c
+#inter-procedural-specific:
+  #clang-option: -I lib/discover
+  #discover-option: --dfa-pointer --dfa-inter --dfa-range --no-debug --no-print
+  #targets: global-array.c
 #intra-procedural-all:
   #clang-option: -I lib/discover
   #discover-option: --dfa-pointer --dfa-intra --no-debug --no-print

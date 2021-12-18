@@ -40,7 +40,6 @@ let test benchmark =
         (*else*)
           (*is_target tl file in*)
     let files = List.filter all_files ~f:(is_target targets) in
-
     List.iter files ~f:(fun file ->
       let full_filepath = full_dir ^ "/" ^ file in
       let _ = print ("File: " ^ file) in
@@ -61,13 +60,13 @@ let test benchmark =
   )
 ;;
 
-(*let _ =*)
-  (*let ls_test = PS.run_command_get_output ["ls"; "*.c"] in*)
-  (*let ls_str = match ls_test with*)
-    (*| Ok str -> str*)
-    (*| Error str -> str in*)
-  (*print ("ls:...\n" ^ ls_str)*)
-(*;;*)
+let _ =
+  let ls_test = PS.run_command_get_output ["ls"] in
+  let ls_str = match ls_test with
+    | Ok str -> str
+    | Error str -> str in
+  print ("ls:...\n" ^ ls_str)
+;;
 
 let benchmarks = [
   ("PTABEN", "ptaben/ptaben-updated/basic_c_tests")]
