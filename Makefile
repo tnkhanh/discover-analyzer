@@ -4,6 +4,8 @@ all:
 	dune build src/Discover.exe
 	@echo ""
 	cp -f _build/default/src/Discover.exe discover
+	dune build src/Benchmark.exe
+	cp -f _build/default/src/Benchmark.exe benchmark
 
 clean:
 	dune clean
