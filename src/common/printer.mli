@@ -116,28 +116,6 @@ val nprint : 'a -> unit
 val nprintln : 'a -> unit
 val nhprint : 'a -> 'b -> unit
 
-(*** Reporting warning  ***)
-
-val warning : string -> unit
-val hwarning : string -> ('a -> string) -> 'a -> unit
-
-(** Report warning using format template similar to [printf] *)
-val warningf
-  :  ('a, out_channel, unit, unit, unit, unit) CamlinternalFormatBasics.format6 ->
-  'a
-
-(*** Reporting errors ***)
-
-val error : ?log:string -> string -> 't
-val herror : ?log:string -> string -> ('a -> string) -> 'a -> 't
-
-(** Report error using format template similar to [printf] *)
-val errorf
-  :  ?log:string ->
-  ('a, out_channel, unit, unit, unit, unit) CamlinternalFormatBasics.format6 ->
-  'a
 
 (*** Wrapping OCam printing functions ***)
 val sprintf : ('a, unit, string) format -> 'a
-val print_endline : string -> unit
-val print_string : string -> unit

@@ -16,6 +16,8 @@ let enable_only_bug_type (bug_type : bool ref) : unit =
   bug_type := true
 ;;
 
+let enable_concise_output () : unit = Report.disable_warning := true
+
 (*******************************************************************
  ** Arguments management
  *******************************************************************)
@@ -78,7 +80,7 @@ and arguments_raw =
     ( [ "--dis-pap" ],
       "Turn off printing analyzed programs",
       Arg.Clear print_analyzed_prog );
-    [ "--pco" ], "Print concise output", Arg.Set print_concise_output;
+    [ "--pco" ], "Print concise output", Arg.Unit enable_concise_output;
     [ "--pcd" ], "Print concise debug", Arg.Set print_concise_debug;
     [ "--no-debug" ], "No debugging", Arg.Set no_debug;
     [ "--no-print" ], "No printing", Arg.Set no_print;

@@ -6,7 +6,6 @@
  ********************************************************************)
 
 open Dcore
-open Printer
 open Slast
 
 type environment = string -> typ

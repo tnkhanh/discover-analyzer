@@ -28,3 +28,25 @@ include Extcore.Result
 include Global
 include Printer
 include Debugger
+include Report
+
+
+(*******************************************************************
+ ** Override default printing function to throw some warning
+ *******************************************************************)
+
+let print_endline (s : string) =
+  let _ =
+    warning
+      ("DO NOT USE print_endline DIRECTLY. "
+       ^ "Use printing functions in Printer.ml instead!") in
+  Core.print_endline s
+;;
+
+let print_string (s : string) =
+  let _ =
+    warning
+      ("DO NOT USE print_string directly. \n"
+       ^ "Use printing functions in Printer.ml instead!") in
+  Core.print_string s
+;;
