@@ -6,12 +6,12 @@
  ********************************************************************)
 
 open Dcore
+module PS = Extcore.Process
 module AG = Argument
 module AS = Assertion
 module CI = Commonir
 module DA = Dfanalyzer
 module CP = Compile
-module PS = Process
 module SE = Symexec
 module VS = Version
 
@@ -24,17 +24,17 @@ let print_discover_settings () =
       "  llvm-clang: " ^ !clang_exe;
       "  llvm-opt: " ^ !opt_exe;
       "  llvm-discover-normalizer: " ^ !normalizer_exe;
-      "  Z3 solver: " ^ !Z3.z3cmd ^ " (" ^ !Z3.z3version ^ ")"
+      "  Z3 solver: " ^ !Z3.z3exe ^ " (" ^ !Z3.z3version ^ ")"
     ] in
   debug (String.concat ~sep:"\n" info)
 ;;
 
 let init_solvers () =
   let _ =
-    match PS.run_command_get_output [ !Z3.z3cmd; "--version" ] with
+    match PS.run_command_get_output [ !Z3.z3exe; "--version" ] with
     | Ok res -> Z3.z3version := res
     | Error msg ->
-      let _ = debug ("Checking Z3 command: " ^ !Z3.z3cmd) in
+      let _ = debug ("Checking Z3 command: " ^ !Z3.z3exe) in
       error "Z3 solver not found!" in
   ()
 ;;
@@ -120,7 +120,7 @@ let handle_system_signals () =
 let analyze_program (prog : CI.program) : unit =
   match prog with
   | CI.Llprog prog ->
-    let _ = hprint "Work mode: " pr_work_mode !work_mode in
+    let _ = printh "Work mode: " pr_work_mode !work_mode in
     let num_assertions = AS.count_all_assertions prog in
     let _ = print ("Found total assertions: " ^ pr_int num_assertions) in
     (match !work_mode with

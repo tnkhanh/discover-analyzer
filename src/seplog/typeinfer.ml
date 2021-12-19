@@ -118,7 +118,7 @@ let annotate_typ_var prog env (v : var) : var * environment =
   | _, _ ->
     if equal_typ env_typ vtyp
     then v, env
-    else herror "annotate_typ_var: cannot annotate type of" pr_var v
+    else errorh "annotate_typ_var: cannot annotate type of" pr_var v
 ;;
 
 let annotate_typ_vars prog env vs : var list * environment =
@@ -309,7 +309,7 @@ let rec find_substitution_exp env sst expected_typ e : substitution =
       | TFunc (arg_typs, ret_typ) ->
         let sst = unify_typ sst ret_typ t in
         List.fold2_exn ~f:(find_substitution_exp env) ~init:sst arg_typs es
-      | t -> herror "find_substitution_exp: expect TFunc but found:" pr_type t)
+      | t -> errorh "find_substitution_exp: expect TFunc but found:" pr_type t)
   with exc -> error ("find_substitution_exp: " ^ pr_exp e ^ "\n")
 ;;
 

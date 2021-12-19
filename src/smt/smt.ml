@@ -59,7 +59,7 @@ module SmtSL = struct
     let check_sat =
       match !smt_solver with
       | SolverZ3 -> Z3SL.check_sat ~prog ~mvars
-      | _ -> herror "check_sat: unknown solver" pr_solver !smt_solver in
+      | _ -> errorh "check_sat: unknown solver" pr_solver !smt_solver in
     Sys.record_runtime (fun () -> check_sat fs) time_smt
   ;;
 
@@ -81,7 +81,7 @@ module SmtSL = struct
     let check_imply =
       match !smt_solver with
       | SolverZ3 -> Z3SL.check_imply
-      | _ -> herror "check_imply: unknown solver" pr_solver !smt_solver in
+      | _ -> errorh "check_imply: unknown solver" pr_solver !smt_solver in
     check_imply f1 f2
   ;;
 
@@ -96,12 +96,12 @@ module SmtSL = struct
           let lhs =
             match SI.is_f_pure e.SI.ent_lhs with
             | true -> SI.extract_pure_form e.SI.ent_lhs
-            | false -> herror "check_sat_horn: not a pure body" SI.pr_ent e
+            | false -> errorh "check_sat_horn: not a pure body" SI.pr_ent e
           in
           let rhs =
             match SI.is_f_pure e.SI.ent_rhs with
             | true -> SI.extract_pure_form e.SI.ent_rhs
-            | _ -> herror "check_sat_horn: not a pure horn" SI.pr_ent e in
+            | _ -> errorh "check_sat_horn: not a pure horn" SI.pr_ent e in
           let vs = SI.merge_vs [ SI.fv_pf lhs; SI.fv_pf rhs ] in
           let f = SI.mk_pdisj [ SI.mk_pneg lhs; rhs ] in
           if List.is_empty vs then f else SI.mk_pforall vs f)
@@ -119,7 +119,7 @@ module SmtLL = struct
     let check_sat =
       match !smt_solver with
       | SolverZ3 -> Z3LL.check_sat
-      | _ -> herror "check_sat: unknown solver" pr_solver !smt_solver in
+      | _ -> errorh "check_sat: unknown solver" pr_solver !smt_solver in
     Sys.record_runtime (fun () -> check_sat p) time_smt
   ;;
 

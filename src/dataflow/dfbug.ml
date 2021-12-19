@@ -27,7 +27,7 @@ let check_bug_integer_overflow (pdata : program_data) (pbug : potential_bug)
   | IntegerOverflow (Some iof) ->
     if !bug_integer_all || !bug_integer_overflow
     then (
-      let _ = hdebug "Checking Potential Bug: " pr_potential_bug pbug in
+      let _ = debugh "Checking Potential Bug: " pr_potential_bug pbug in
       let func = LI.func_of_instr iof.iof_instr in
       let%bind penv_rng = pdata.pdata_env_range in
       let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
@@ -130,7 +130,7 @@ let check_bug_division_by_zero (pdata : program_data) (pbug : potential_bug)
   | DivisionByZero None ->
     if !bug_all || !bug_integer_all || !bug_divizion_by_zero
     then (
-      let _ = hdebug "Checking Potential Bug: " pr_potential_bug pbug in
+      let _ = debugh "Checking Potential Bug: " pr_potential_bug pbug in
       let func = LI.func_of_instr pbug.pbug_instr in
       let%bind penv_rng = pdata.pdata_env_range in
       let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
@@ -284,7 +284,7 @@ let find_bug_memory_leak (pdata : program_data) : bug list =
 let find_bugs (pdata : program_data) : unit =
   let _ = println "Checking Bugs..." in
   let _ =
-    hddebug ~header:true "Annotated potential bugs: " pr_potential_bugs
+    ddebugh ~header:true "Annotated potential bugs: " pr_potential_bugs
       pdata.pdata_potential_bugs in
   let bugs =
     find_bug_memory_leak pdata

@@ -6,9 +6,9 @@
  ********************************************************************)
 
 open Dcore
+module PS = Extcore.Process
 module BC = Bitcode
 module LI = Llir
-module PS = Process
 
 let config_golang_compiler () =
   if String.equal !gollvm_path ""
@@ -39,16 +39,16 @@ let compile_program (input_file : string) : LI.program =
     let lines = String.split go_build_output_str ~on:'\n' in
     let work_line = List.find_exn lines ~f:(fun line ->
       String.is_prefix line ~prefix:"WORK=") in
-    let _ = hdebug "Line starting with WORK=: " pr_str work_line in
+    let _ = debugh "Line starting with WORK=: " pr_str work_line in
     let goc_line =
       try
         List.find_exn lines ~f:(fun line ->
           String.is_substring line ~substring:"llvm-goc -c")
       with Not_found_s _ -> error ("Remove go build cache and old output and rerun") in
-    let _ = hdebug "gollvm compiled with: " pr_str goc_line in
+    let _ = debugh "gollvm compiled with: " pr_str goc_line in
     let fixed_goc_line = String.substr_replace_all goc_line ~pattern:"$WORK"
       ~with_: (String.sub work_line ~pos:5 ~len:(String.length work_line - 5)) in
-    let _ = hdebug "replaced $WORK in command: " pr_str fixed_goc_line in
+    let _ = debugh "replaced $WORK in command: " pr_str fixed_goc_line in
     let cmd_replaced_work = (String.split fixed_goc_line ~on:' ') @ ["-emit-llvm"]  in
     let rec modify_output_file cmd =
       match cmd with

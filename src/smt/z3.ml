@@ -7,7 +7,7 @@
 
 open Dcore
 open Z3ir
-module PS = Process
+module PS = Extcore.Process
 module SI = Slir
 module LI = Llir
 module SP = Set.Poly
@@ -16,26 +16,34 @@ module SP = Set.Poly
  ** Z3 process management
  *******************************************************************)
 
-let z3cmd = ref "z3"
+let z3exe = ref "z3"
 let z3version = ref "unknown"
 let z3eof = "Z3EOF"
-let proc = ref (PS.mk_proc_dummy [ !z3cmd; "-smt2"; "-in"; "-t:5000" ])
+let z3cmd = [ !z3exe; "-smt2"; "-in"; "-t:5000" ]
+
+(* let proc = ref (PS.mk_proc_dummy [ !z3cmd; "-smt2"; "-in"; "-t:5000" ]) *)
+
+let z3proc = ref None
 
 let start_solver () =
   let send_config proc config =
     output_string proc.PS.proc_out_channel config;
     flush proc.PS.proc_out_channel in
-  if !proc.PS.proc_pid = PS.pid_dummy
-  then (
+  match !z3proc with
+  | None ->
     let config = [] in
-    let _ = proc := PS.start_process !proc.PS.proc_cmd in
-    List.iter ~f:(fun cfg -> send_config !proc cfg) config)
-  else ()
+    let proc = PS.start_process z3cmd in
+    let _ = z3proc := Some proc in
+    List.iter ~f:(fun cfg -> send_config proc cfg) config
+  | _ -> ()
 ;;
 
 let stop_solver () =
-  PS.close_process !proc;
-  proc := { !proc with PS.proc_pid = PS.pid_dummy }
+  match !z3proc with
+  | Some proc ->
+    let _ = PS.close_process proc in
+    z3proc := None
+  | None -> ()
 ;;
 
 let restart_solver () =
@@ -45,24 +53,30 @@ let restart_solver () =
   start_solver ()
 ;;
 
-let send_input proc input =
-  let input = "(reset)\n" ^ input ^ "(echo \"" ^ z3eof ^ "\")\n" in
-  (* let _ = hdebugc "Z3bin INPUT: \n" pr_str input in *)
-  output_string proc.PS.proc_out_channel input;
-  flush proc.PS.proc_out_channel
+let send_input_to_solver (input: string) : unit =
+  match !z3proc with
+  | None -> ()
+  | Some proc ->
+    let input = "(reset)\n" ^ input ^ "(echo \"" ^ z3eof ^ "\")\n" in
+    (* let _ = debughc "Z3bin INPUT: \n" pr_str input in *)
+    output_string proc.PS.proc_out_channel input;
+    flush proc.PS.proc_out_channel
 ;;
 
-let read_output proc : string =
-  let rec read acc =
-    try
-      let line = String.strip (input_line proc.PS.proc_in_channel) in
-      (* let _ = hdebugc "Z3bin OUTPUT: " pr_str line in *)
-      let nacc = acc @ [ line ] in
-      if String.equal line z3eof then nacc else read nacc
-    with End_of_file -> read acc in
-  let output = [] |> read |> String.concat ~sep:"\n" in
-  (* let _ = hdebugc "Z3bin OUTPUT FINAL: " pr_str output in *)
-  output
+let read_output_from_solver () : string =
+  match !z3proc with
+  | None -> ""
+  | Some proc ->
+    let rec read acc =
+      try
+        let line = String.strip (input_line proc.PS.proc_in_channel) in
+        (* let _ = debughc "Z3bin OUTPUT: " pr_str line in *)
+        let nacc = acc @ [ line ] in
+        if String.equal line z3eof then nacc else read nacc
+      with End_of_file -> read acc in
+    let output = [] |> read |> String.concat ~sep:"\n" in
+    (* let _ = debughc "Z3bin OUTPUT FINAL: " pr_str output in *)
+    output
 ;;
 
 let read_all_output proc : string =
@@ -74,7 +88,7 @@ let read_all_output proc : string =
       read nacc
     with End_of_file -> acc in
   let res = String.concat ~sep:"\n" (read []) in
-  (* let _ = hdebugc "Z3bin output: " pr_str res in *)
+  (* let _ = debughc "Z3bin output: " pr_str res in *)
   res
 ;;
 
@@ -293,8 +307,8 @@ module Z3SL = struct
       Printf.sprintf "%s%s\n%s\n\n%s\n%s" set_logic set_option_model
         (mk_input ~prog ~mvars fs) "(check-sat)" get_model in
     let _ = start_solver () in
-    let _ = send_input !proc z3_input in
-    let z3_output = read_output !proc in
+    let _ = send_input_to_solver z3_input in
+    let z3_output = read_output_from_solver () in
     let lexbuf = Lexing.from_string z3_output in
     let output = Z3parser.output Z3lexer.tokenizer lexbuf in
     match output with
@@ -334,7 +348,7 @@ module Z3LL = struct
     match LL.classify_type t with
     | LL.TypeKind.Integer -> "Int"
     | LL.TypeKind.Pointer -> "Int" (* handle pointer as Int type *)
-    | _ -> herror "Z3LL.transform_lltype: need to handle type: " LI.pr_type t
+    | _ -> errorh "Z3LL.transform_lltype: need to handle type: " LI.pr_type t
   ;;
 
   let transform_llvalue (v : LI.value) : string =
@@ -401,8 +415,8 @@ module Z3LL = struct
       ^ (mk_z3_input p ^ "\n")
       ^ "(check-sat)\n" in
     let _ = start_solver () in
-    let _ = send_input !proc z3_input in
-    let z3_output = read_output !proc in
+    let _ = send_input_to_solver z3_input in
+    let z3_output = read_output_from_solver () in
     let lexbuf = Lexing.from_string z3_output in
     let output = Z3parser.output Z3lexer.tokenizer lexbuf in
     match output with

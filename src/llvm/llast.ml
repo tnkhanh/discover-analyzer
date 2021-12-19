@@ -476,7 +476,7 @@ module Type = struct
   let memsize_of_type (typ : datatype) : int64 =
     match LL.classify_type typ with
     | LT.Integer -> Int64.of_int (LL.integer_bitwidth typ / 8)
-    | _ -> herror "memsize_of_size: need to implement: " pr_type typ
+    | _ -> errorh "memsize_of_size: need to implement: " pr_type typ
   ;;
 
   let rec get_elemptr_typ (typ : datatype) (idxs : expr list) : datatype =
@@ -493,7 +493,7 @@ module Type = struct
           Array.get (LL.subtypes typ) fld_idx
         | LT.Array -> LL.element_type typ
         | LT.Pointer -> LL.element_type typ
-        | _ -> herror "get_elemptr_typ: need to handle type: " pr_type typ
+        | _ -> errorh "get_elemptr_typ: need to handle type: " pr_type typ
       in
       get_elemptr_typ ntyp nidxs
   ;;
@@ -708,7 +708,7 @@ module Global = struct
   let mk_global (v : value) : global =
     match LL.classify_value v with
     | LV.GlobalVariable -> Global v
-    | _ -> herror "mk_global: not a global variable: " pr_value_detail v
+    | _ -> errorh "mk_global: not a global variable: " pr_value_detail v
   ;;
 
   let llvalue_of_global (g : global) : value =
@@ -784,7 +784,7 @@ module Const = struct
   let mk_const (v : value) : const =
     match LL.classify_value v with
     | LV.ConstantExpr -> Constant v
-    | _ -> herror "mk_const: not a constant: " pr_value_detail v
+    | _ -> errorh "mk_const: not a constant: " pr_value_detail v
   ;;
 
   (*** Conversions ***)
@@ -820,7 +820,7 @@ module Instr = struct
   let mk_instr (v : value) : instr =
     match LL.classify_value v with
     | LV.Instruction _ -> Instr v
-    | _ -> herror "mk_instr: not an instruction: " pr_value_detail v
+    | _ -> errorh "mk_instr: not an instruction: " pr_value_detail v
   ;;
 
   let llvalue_of_instr (i : instr) : value =
@@ -1120,7 +1120,7 @@ module Param = struct
   let mk_param (v : value) : param =
     match LL.classify_value v with
     | LV.Argument -> Param v
-    | _ -> herror "mk_param: not a formal parameter: " pr_value_detail v
+    | _ -> errorh "mk_param: not a formal parameter: " pr_value_detail v
   ;;
 
   let llvalue_of_param (p : param) : value =
@@ -1208,7 +1208,7 @@ module Func = struct
     | LV.Function ->
       let params = Array.to_list (LL.params v) in
       LL.value_name v ^ "(" ^ pr_args ~f:pr_value_detail params ^ ")"
-    | _ -> herror "func_name_and_params: not a function: " pr_value_detail v
+    | _ -> errorh "func_name_and_params: not a function: " pr_value_detail v
   ;;
 
   let func_names (fs : func list) : string = pr_list ~f:func_name fs
@@ -1219,7 +1219,7 @@ module Func = struct
     | LV.Function ->
       let vparams = Array.to_list (LL.params v) in
       List.map ~f:mk_param vparams
-    | _ -> herror "func_params: not a function: " pr_value_detail v
+    | _ -> errorh "func_params: not a function: " pr_value_detail v
   ;;
 
   let func_type (f : func) : datatype =

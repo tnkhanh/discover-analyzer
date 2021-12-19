@@ -326,7 +326,7 @@ let mk_potential_buffer_overflow (instr : instr) : potential_bug =
             match List.nth idxs 1 with
             | Some idx -> idx
             | None ->
-              herror "mk_potential_buffer_overflow: array index not available:"
+              errorh "mk_potential_buffer_overflow: array index not available:"
                 pr_instr instr in
           NumElem (size, elem_typ), array_idx
         (* pointer to a dynamically allocated memory *)

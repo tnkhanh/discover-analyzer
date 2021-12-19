@@ -886,13 +886,13 @@ let update_entail_core ?(lhs = []) ?(rhs = []) enc =
     match lhs with
     | [] -> enc
     | [ lhs ] -> { enc with enc_lhs = lhs; enc_lst = mk_formula_stats lhs }
-    | _ -> herror "update_entail_core: expect 1 lhs but found: " pr_fs lhs
+    | _ -> errorh "update_entail_core: expect 1 lhs but found: " pr_fs lhs
   in
   let enc =
     match rhs with
     | [] -> enc
     | [ rhs ] -> { enc with enc_rhs = rhs; enc_rst = mk_formula_stats rhs }
-    | _ -> herror "update_entail_core: expect 1 rhs but found: " pr_fs rhs
+    | _ -> errorh "update_entail_core: expect 1 rhs but found: " pr_fs rhs
   in
   enc
 ;;

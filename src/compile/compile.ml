@@ -6,9 +6,9 @@
  ********************************************************************)
 
 open Dcore
+module PS = Extcore.Process
 module BC = Bitcode
 module CI = Commonir
-module PS = Process
 module SE = Symexec
 
 (*********************************************************

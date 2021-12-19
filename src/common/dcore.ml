@@ -21,15 +21,16 @@ include Extcore.String
 include Extcore.Sys
 include Extcore.Result
 include Extcore.Printer
-include Extcore.Report
 include Extcore.Debugger
+include Extcore.Report
+(* module Report = Extcore.Report *)
+module Process = Extcore.Process
 
 (*---------------------
  * Discover's modules
  *--------------------*)
 
 include Global
-
 
 (*******************************************************************
  ** Override default printing function to throw some warning
@@ -39,7 +40,7 @@ let print_endline (s : string) =
   let _ =
     warning
       ("DO NOT USE print_endline DIRECTLY. "
-       ^ "Use printing functions in Printer.ml instead!") in
+     ^ "Use printing functions in Printer.ml instead!") in
   Core.print_endline s
 ;;
 
@@ -47,6 +48,6 @@ let print_string (s : string) =
   let _ =
     warning
       ("DO NOT USE print_string directly. \n"
-       ^ "Use printing functions in Printer.ml instead!") in
+     ^ "Use printing functions in Printer.ml instead!") in
   Core.print_string s
 ;;
