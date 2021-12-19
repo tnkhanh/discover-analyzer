@@ -152,7 +152,7 @@ def run_discover(discover_exe, benchmark_dir, options):
     global total_file_timeout, total_file_error
     global analyzer_timeout
 
-    for testcase in find_test_cases(benchmark_dir):
+    for idx, testcase in enumerate(find_test_cases(benchmark_dir)):
         # obtain specific configuration for each test case
         testcase_cfg = testcase + ".cfg.json"
         testcase_cfg_path = Path(testcase_cfg)
@@ -164,7 +164,7 @@ def run_discover(discover_exe, benchmark_dir, options):
                 options = options + ["--clang-extra-option", clang_extra_options]
 
         discover_command = [discover_exe, testcase] + options
-        print("\n" + testcase + ": ", end='')
+        print("Test " + str(idx) + ":\n" + testcase + ": ", end='')
 
         # run discover
         runtime = ""
