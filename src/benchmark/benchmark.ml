@@ -13,7 +13,8 @@ let test benchmark =
   let configs_str = In_channel.read_all config_filename in
   let configs_value = Yaml.of_string_exn configs_str in
   let configs_list = EJ.get_dict configs_value in
-  List.iter configs_list ~f:(fun (name, config) ->
+  List.iter
+    ~f:(fun (name, config) ->
       let clang_option = EJ.get_string (EJ.find config [ "clang-option" ]) in
       let discover_option =
         EJ.get_string (EJ.find config [ "discover-option" ]) in
@@ -46,7 +47,12 @@ let test benchmark =
             | Error msg -> msg in
           let log_file = full_log_dir ^ "/" ^ file ^ ".log" in
           Out_channel.write_all log_file ~data:output_str))
+    configs_list
 ;;
 
 let benchmarks = [ "PTABEN", "ptaben/ptaben-updated/basic_c_tests" ]
-let _ = List.iter benchmarks ~f:test
+
+let main () =
+  List.iter benchmarks ~f:test
+
+let _ = main ()
