@@ -46,7 +46,7 @@ let mk_verifier_state (prog : LI.program) =
   { vrs_core_prog = mk_program_empty ();
     vrs_llvm_prog = prog;
     vrs_recent_instr = None;
-    vrs_interact = !mode_interactive_prover
+    vrs_interact = !mode_interactive
   }
 ;;
 

@@ -862,7 +862,7 @@ let mk_proof_tree_invalid goal rule subtrees : proof_tree =
 let mk_proof_tree_unknown goal : proof_tree = mk_proof_tree goal None [] None
 
 let mk_prover_state prog : prover_state =
-  { prs_prog = prog; prs_interact = !mode_interactive_prover }
+  { prs_prog = prog; prs_interact = !mode_interactive }
 ;;
 
 (*******************************************************************

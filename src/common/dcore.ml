@@ -22,13 +22,13 @@ include Extcore.Sys
 include Extcore.Result
 include Extcore.Printer
 include Extcore.Report
+include Extcore.Debugger
 
 (*---------------------
  * Discover's modules
  *--------------------*)
 
 include Global
-include Debugger
 
 
 (*******************************************************************

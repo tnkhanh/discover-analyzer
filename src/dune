@@ -24,9 +24,9 @@
    ppx_let))
  (libraries
   core
+  str
   extcore
   unix
-  str
   ocamlgraph
   fileutils
   yaml
