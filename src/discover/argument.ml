@@ -7,6 +7,8 @@
 
 open Dcore
 
+module RP = Extcore.Report
+
 (*******************************************************************
  ** Auxiliary fucntions
  *******************************************************************)
@@ -16,7 +18,8 @@ let enable_only_bug_type (bug_type : bool ref) : unit =
   bug_type := true
 ;;
 
-let enable_concise_output () : unit = Report.disable_warning := true
+let enable_concise_output () : unit =
+  RP.hide_warning_message := true
 
 (*******************************************************************
  ** Arguments management

@@ -20,15 +20,15 @@ include Extcore.Math
 include Extcore.String
 include Extcore.Sys
 include Extcore.Result
+include Extcore.Printer
+include Extcore.Report
 
 (*---------------------
  * Discover's modules
  *--------------------*)
 
 include Global
-include Printer
 include Debugger
-include Report
 
 
 (*******************************************************************
