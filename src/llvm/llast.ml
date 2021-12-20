@@ -835,6 +835,7 @@ module Instr = struct
 
   let instr_opcode (i : instr) : LO.t = LL.instr_opcode (llvalue_of_instr i)
 
+  (** Get operand of an instruction, indexing starts from 0. *)
   let operand (i : instr) (idx : int) : value =
     LL.operand (llvalue_of_instr i) idx
   ;;
@@ -1333,6 +1334,16 @@ module Func = struct
     String.equal (func_name f) "llvm.dbg.declare"
   ;;
 
+  let is_func_llvm_memcpy (f : func) : bool =
+    let fname = func_name f in
+    String.is_prefix fname ~prefix:"llvm.memcpy"
+  ;;
+
+  let is_func_llvm_memmove (f : func) : bool =
+    let fname = func_name f in
+    String.is_prefix fname ~prefix:"llvm.memmove"
+  ;;
+
   let is_func_llvm_debug_value (f : func) : bool =
     String.equal (func_name f) "llvm.dbg.value"
   ;;
@@ -1806,8 +1817,9 @@ include Path
  *******************************************************************)
 
 module Metadata = struct
-  let get_source_file_name (m: bitcode_module) : string =
+  let get_source_file_name (m : bitcode_module) : string =
     LL.source_file_name m
+  ;;
 end
 
 include Metadata

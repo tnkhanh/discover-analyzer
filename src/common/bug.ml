@@ -84,8 +84,8 @@ module MemoryBug = struct
 
   type null_pointer_deref = { npe_pointer : value }
 
+  (* FIXME: need to change name of this variant type *)
   type buffer_size =
-    (* FIXME: need to change name of this variant type *)
     | NumElem of (int64 * datatype) (* number of element of type datatype *)
     | MemSizeOf of value
   (* size of allocated memory of pointer *)
@@ -316,6 +316,19 @@ let mk_potential_division_by_zero (ins : instr) : potential_bugs =
  * Potential memory bugs
  *------------------------------------------*)
 
+let compute_buffer_size (ptr : value) : buffer_size =
+  let elem_typ = LL.element_type (LL.type_of ptr) in
+  match LL.classify_type elem_typ with
+  (* pointer to an array *)
+  | LL.TypeKind.Array ->
+    let size = Int64.of_int (LL.array_length elem_typ) in
+    NumElem (size, elem_typ)
+  (* pointer to a dynamically allocated memory *)
+  | _ -> MemSizeOf ptr
+;;
+
+(* let compute_buffer_accessing_index () *)
+
 let mk_potential_buffer_overflow (ins : instr) : potential_bugs =
   if !bug_all || !bug_memory_all || !bug_buffer_overflow
   then (
@@ -323,32 +336,44 @@ let mk_potential_buffer_overflow (ins : instr) : potential_bugs =
       match instr_opcode ins with
       | LO.GetElementPtr ->
         let ptr = src_of_instr_gep ins in
-        let size, index =
+        let size = compute_buffer_size ptr in
+        let index =
           let elem_typ = LL.element_type (LL.type_of ptr) in
           let idxs = indexes_of_instr_gep ins in
           match LL.classify_type elem_typ with
           (* pointer to an array *)
           | LL.TypeKind.Array ->
-            let size = Int64.of_int (LL.array_length elem_typ) in
-            let array_idx =
-              match List.nth idxs 1 with
-              | Some idx -> idx
-              | None ->
-                errorh
-                  "mk_potential_buffer_overflow: array index not available:"
-                  pr_instr ins in
-            NumElem (size, elem_typ), array_idx
+            (match List.nth idxs 1 with
+            | Some idx -> idx
+            | None ->
+              errorh "mk_potential_buffer_overflow: array index not available:"
+                pr_instr ins)
           (* pointer to a dynamically allocated memory *)
-          | _ -> MemSizeOf ptr, List.hd_exn idxs in
+          | _ -> List.hd_exn idxs in
         { bof_instr = ins;
           bof_pointer = ptr;
           bof_buff_size = size;
           bof_elem_index = index;
-          bof_write_operation = false;
           (* FIXME: Khanh, please help to compute *)
+          bof_write_operation = false;
           bof_stack_based = false (* FIXME: Khanh, please help to compute *)
         }
-      | _ -> error "mk_buffer_overflow: expect GetElementPtr" in
+      | LO.Call | LO.Invoke ->
+        let dst_ptr = operand ins 0 in
+        let callee = callee_of_instr_func_call ins in
+        if is_func_llvm_memcpy callee || is_func_llvm_memmove callee
+        then (
+          let size = compute_buffer_size dst_ptr in
+          let index = operand ins 2 in
+          { bof_instr = ins;
+            bof_pointer = dst_ptr;
+            bof_buff_size = size;
+            bof_elem_index = index;
+            bof_write_operation = true;
+            bof_stack_based = false
+          })
+        else errorh "mk_buffer_overflow: need to hande: " pr_instr ins
+      | _ -> errorh "mk_buffer_overflow: need to hande: " pr_instr ins in
     [ mk_potential_bug ins (BufferOverflow (Some bof)) ])
   else []
 ;;
@@ -450,9 +475,11 @@ let mark_potential_bugs (prog : program) : potential_bugs =
       @ mk_potential_integer_underflow ins
       @ mk_potential_division_by_zero ins
     | LO.GetElementPtr -> acc @ mk_potential_buffer_overflow ins
-    | LO.Call ->
-      (* let callee = callee_of_instr_call ins in *)
-      []
+    | LO.Call | LO.Invoke ->
+      let callee = callee_of_instr_func_call ins in
+      if is_func_llvm_memcpy callee || is_func_llvm_memmove callee
+      then acc @ mk_potential_buffer_overflow ins
+      else acc
     | LO.Ret -> acc @ mk_potential_memory_leak ins
     | _ -> acc in
   let funcs = prog.prog_user_funcs in
