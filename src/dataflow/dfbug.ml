@@ -284,7 +284,7 @@ let find_bug_memory_leak (pdata : program_data) : bug list =
 let find_bugs (pdata : program_data) : unit =
   let _ = println "Checking Bugs..." in
   let _ =
-    ddebugh ~header:true "Annotated potential bugs: " pr_potential_bugs
+    ddebugh ~header:true "Marked potential bugs: " pr_potential_bugs
       pdata.pdata_potential_bugs in
   let bugs =
     find_bug_memory_leak pdata

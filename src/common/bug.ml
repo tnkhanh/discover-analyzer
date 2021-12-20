@@ -270,82 +270,95 @@ let mk_bug_type_division_by_zero () : bug_type = DivisionByZero None
  * Potential bugs
  *------------------------------------------*)
 
-let mk_potential_bug (instr : instr) (btype : bug_type) : potential_bug =
-  { pbug_instr = instr; pbug_func = func_of_instr instr; pbug_type = btype }
-;;
-
-(*-------------------------------------------
- * Potential division-by-zero bugs
- *------------------------------------------*)
-
-let mk_potential_division_by_zero (instr : instr) : potential_bug =
-  mk_potential_bug instr (mk_bug_type_division_by_zero ())
+let mk_potential_bug (ins : instr) (btype : bug_type) : potential_bug =
+  { pbug_instr = ins; pbug_func = func_of_instr ins; pbug_type = btype }
 ;;
 
 (*-------------------------------------------
  * Potential integer bugs
  *------------------------------------------*)
 
-let mk_potential_integer_overflow (instr : instr) : potential_bug =
-  let expr = llvalue_of_instr instr in
-  let iof =
-    { iof_expr = expr;
-      iof_bitwidth = LL.integer_bitwidth (LL.type_of expr);
-      iof_instr = instr
-    } in
-  mk_potential_bug instr (IntegerOverflow (Some iof))
+let mk_potential_integer_overflow (ins : instr) : potential_bugs =
+  if !bug_all || !bug_memory_all || !bug_integer_overflow
+  then (
+    let expr = llvalue_of_instr ins in
+    let iof =
+      { iof_expr = expr;
+        iof_bitwidth = LL.integer_bitwidth (LL.type_of expr);
+        iof_instr = ins
+      } in
+    [ mk_potential_bug ins (IntegerOverflow (Some iof)) ])
+  else []
 ;;
 
-let mk_potential_integer_underflow (instr : instr) : potential_bug =
-  let expr = llvalue_of_instr instr in
-  let iuf =
-    { iuf_expr = expr;
-      iuf_bitwidth = LL.integer_bitwidth (LL.type_of expr);
-      iuf_instr = instr
-    } in
-  mk_potential_bug instr (IntegerUnderflow (Some iuf))
+let mk_potential_integer_underflow (ins : instr) : potential_bugs =
+  if !bug_all || !bug_integer_all || !bug_integer_underflow
+  then (
+    let expr = llvalue_of_instr ins in
+    let iuf =
+      { iuf_expr = expr;
+        iuf_bitwidth = LL.integer_bitwidth (LL.type_of expr);
+        iuf_instr = ins
+      } in
+    [ mk_potential_bug ins (IntegerUnderflow (Some iuf)) ])
+  else []
+;;
+
+let mk_potential_division_by_zero (ins : instr) : potential_bugs =
+  if !bug_all || !bug_integer_all || !bug_divizion_by_zero
+  then (
+    let dbz = { dbz_expr = llvalue_of_instr ins; dbz_instr = ins } in
+    [ mk_potential_bug ins (DivisionByZero (Some dbz)) ])
+  else []
 ;;
 
 (*-------------------------------------------
  * Potential memory bugs
  *------------------------------------------*)
 
-let mk_potential_buffer_overflow (instr : instr) : potential_bug =
-  let bof =
-    match instr_opcode instr with
-    | LO.GetElementPtr ->
-      let ptr = src_of_instr_gep instr in
-      let size, index =
-        let elem_typ = LL.element_type (LL.type_of ptr) in
-        let idxs = indexes_of_instr_gep instr in
-        match LL.classify_type elem_typ with
-        (* pointer to an array *)
-        | LL.TypeKind.Array ->
-          let size = Int64.of_int (LL.array_length elem_typ) in
-          let array_idx =
-            match List.nth idxs 1 with
-            | Some idx -> idx
-            | None ->
-              errorh "mk_potential_buffer_overflow: array index not available:"
-                pr_instr instr in
-          NumElem (size, elem_typ), array_idx
-        (* pointer to a dynamically allocated memory *)
-        | _ -> MemSizeOf ptr, List.hd_exn idxs in
-      { bof_instr = instr;
-        bof_pointer = ptr;
-        bof_buff_size = size;
-        bof_elem_index = index;
-        bof_write_operation = false;
-        (* FIXME: Khanh, please help to compute *)
-        bof_stack_based = false (* FIXME: Khanh, please help to compute *)
-      }
-    | _ -> error "mk_buffer_overflow: expect GetElementPtr" in
-  mk_potential_bug instr (BufferOverflow (Some bof))
+let mk_potential_buffer_overflow (ins : instr) : potential_bugs =
+  if !bug_all || !bug_memory_all || !bug_buffer_overflow
+  then (
+    let bof =
+      match instr_opcode ins with
+      | LO.GetElementPtr ->
+        let ptr = src_of_instr_gep ins in
+        let size, index =
+          let elem_typ = LL.element_type (LL.type_of ptr) in
+          let idxs = indexes_of_instr_gep ins in
+          match LL.classify_type elem_typ with
+          (* pointer to an array *)
+          | LL.TypeKind.Array ->
+            let size = Int64.of_int (LL.array_length elem_typ) in
+            let array_idx =
+              match List.nth idxs 1 with
+              | Some idx -> idx
+              | None ->
+                errorh
+                  "mk_potential_buffer_overflow: array index not available:"
+                  pr_instr ins in
+            NumElem (size, elem_typ), array_idx
+          (* pointer to a dynamically allocated memory *)
+          | _ -> MemSizeOf ptr, List.hd_exn idxs in
+        { bof_instr = ins;
+          bof_pointer = ptr;
+          bof_buff_size = size;
+          bof_elem_index = index;
+          bof_write_operation = false;
+          (* FIXME: Khanh, please help to compute *)
+          bof_stack_based = false (* FIXME: Khanh, please help to compute *)
+        }
+      | _ -> error "mk_buffer_overflow: expect GetElementPtr" in
+    [ mk_potential_bug ins (BufferOverflow (Some bof)) ])
+  else []
 ;;
 
-let mk_potential_memory_leak (instr : instr) : potential_bug =
-  let mlk = { mlk_pointer = llvalue_of_instr instr; mlk_size = None } in
-  mk_potential_bug instr (MemoryLeak (Some mlk))
+let mk_potential_memory_leak (ins : instr) : potential_bugs =
+  if !bug_all || !bug_memory_all || !bug_memory_leak
+  then (
+    let mlk = { mlk_pointer = llvalue_of_instr ins; mlk_size = None } in
+    [ mk_potential_bug ins (MemoryLeak (Some mlk)) ])
+  else []
 ;;
 
 (*-------------------------------------------
@@ -424,22 +437,23 @@ let is_bug_integer_underflow (bug : bug) =
       function --> a list of bugs
 *)
 
-let record_potential_bugs (prog : program) : potential_bugs =
-  let process_instr acc instr =
-    match instr_opcode instr with
+let mark_potential_bugs (prog : program) : potential_bugs =
+  let process_instr acc (ins : instr) =
+    match instr_opcode ins with
     | LO.Add | LO.Sub | LO.Mul ->
       acc
-      @ [ mk_potential_integer_overflow instr ]
-      @ [ mk_potential_integer_underflow instr ]
+      @ mk_potential_integer_overflow ins
+      @ mk_potential_integer_underflow ins
     | LO.SDiv | LO.UDiv ->
-      (* TODO: annotate other kind of integer bugs like DivByZero *)
       acc
-      @ [ mk_potential_integer_overflow instr;
-          mk_potential_integer_underflow instr;
-          mk_potential_division_by_zero instr
-        ]
-    | LO.GetElementPtr -> acc @ [ mk_potential_buffer_overflow instr ]
-    | LO.Ret -> acc @ [ mk_potential_memory_leak instr ]
+      @ mk_potential_integer_overflow ins
+      @ mk_potential_integer_underflow ins
+      @ mk_potential_division_by_zero ins
+    | LO.GetElementPtr -> acc @ mk_potential_buffer_overflow ins
+    | LO.Call ->
+      (* let callee = callee_of_instr_call ins in *)
+      []
+    | LO.Ret -> acc @ mk_potential_memory_leak ins
     | _ -> acc in
   let funcs = prog.prog_user_funcs in
   List.fold_left
