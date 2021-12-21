@@ -172,35 +172,35 @@ type bugs = bug list
 let pr_bug_cwe (btype : bug_type) : string =
   match btype with
   (* Integer bugs *)
-  | IntegerOverflow _ -> "CWE-190 -- Integer Overflow"
-  | IntegerUnderflow _ -> "CWE-191 -- Integer Underflow"
-  | IntegerCoercionError _ -> "CWE-192 -- Integer Coercion Error"
-  | NumericTruncationError _ -> "CWE-197 -- Numeric Truncation Error"
-  | DivisionByZero _ -> "CWE-369 -- Divide By Zero"
+  | IntegerOverflow _ -> "CWE-190: Integer Overflow"
+  | IntegerUnderflow _ -> "CWE-191: Integer Underflow"
+  | IntegerCoercionError _ -> "CWE-192: Integer Coercion Error"
+  | NumericTruncationError _ -> "CWE-197: Numeric Truncation Error"
+  | DivisionByZero _ -> "CWE-369: Divide By Zero"
   (* Memory bugs *)
   | MemoryLeak _ ->
     "CWE-401 -- Missing Release of Memory after Effective Lifetime"
-  | NullPointerDeref _ -> "CWE-476 -- NULL Pointer Dereference"
+  | NullPointerDeref _ -> "CWE-476: NULL Pointer Dereference"
   | BufferOverflow bof_opt ->
     (match bof_opt with
-    | None -> "CWE-805 -- Buffer Access with Incorrect Length Value"
+    | None -> "CWE-805: Buffer Access with Incorrect Length Value"
     | Some bof ->
       if bof.bof_write_operation
       then
         if bof.bof_stack_based
-        then "CWE-121 -- Stack-based Buffer Overflow"
-        else "CWE-122 -- Heap-based Buffer Overflow"
-      else "CWE-125 -- Out-of-bounds Read")
+        then "CWE-121: Stack-based Buffer Overflow"
+        else "CWE-122: Heap-based Buffer Overflow"
+      else "CWE-125: Out-of-bounds Read")
   (* Resource bugs *)
   | ResourceLeak rlk_opt ->
     (match rlk_opt with
-    | None -> "CWE-772 -- Missing Release of Resource after Effective Lifetime"
+    | None -> "CWE-772: Missing Release of Resource after Effective Lifetime"
     | Some rlk ->
       if rlk.rlk_file_resource
       then
-        "CWE-775 -- Missing Release of File Descriptor or Handle"
+        "CWE-775: Missing Release of File Descriptor or Handle"
         ^ " after Effective Lifetime"
-      else "CWE-772 -- Missing Release of Resource after Effective Lifetime")
+      else "CWE-772: Missing Release of Resource after Effective Lifetime")
 ;;
 
 let pr_bug_type (btype : bug_type) : string =

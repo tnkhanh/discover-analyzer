@@ -121,7 +121,7 @@ let llvm_normalize = ref true
  *----------------------------*)
 
 (* General settings *)
-let bug_all = ref true
+let bug_all = ref false
 
 (* integer bugs *)
 let bug_integer_all = ref false

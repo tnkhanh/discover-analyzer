@@ -231,6 +231,7 @@ and arguments_raw =
       "Find all bugs",
       Arg.Unit
         (fun () ->
+          bug_all := true;
           bug_integer_all := true;
           bug_memory_all := true) );
     (*--------------------------------------------------------
