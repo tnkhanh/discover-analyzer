@@ -2,6 +2,9 @@ open Dcore
 module PS = Process
 module EJ = Ezjsonm
 
+let discover_exec = ref ""
+let conf_file = ref ""
+
 type config = {
   conf_name: string;
   conf_clang_opt: string;
@@ -31,9 +34,9 @@ let mk_config (name: string) (clang_opt: string) (dis_opt: string) (recurse: boo
 let str_of_config conf =
   "Config:\nName: " ^ conf.conf_name ^
   "\nClang_opt: " ^ conf.conf_clang_opt ^
-  "Discover_opt: " ^ conf.conf_discover_opt ^
+  "\nDiscover_opt: " ^ conf.conf_discover_opt ^
   "\nTargets: " ^ (String.concat ~sep:" " conf.conf_targets) ^
-  "Recurse: " ^ (string_of_bool conf.conf_recurse)
+  "\nRecurse: " ^ (string_of_bool conf.conf_recurse)
 
 let read_confs_from_file filename =
   let _ = print filename in
@@ -62,13 +65,13 @@ let read_confs_from_file filename =
 
 let log_dir = "benchmark-log/"
 
-let rec test ?(conf_file="") benchmark =
+let rec test benchmark =
   let description, dir = benchmark in
   let _ = print ("Testing " ^ description ^ " in " ^ dir) in
   let config_filename = 
-    if String.equal conf_file "" then dir ^ "/benchmark.yaml"
+    if String.equal !conf_file "" then dir ^ "/benchmark.yaml"
     else
-      conf_file
+      !conf_file
   in
   let configs = read_confs_from_file config_filename in
   List.iter
@@ -94,11 +97,11 @@ let rec test ?(conf_file="") benchmark =
       List.iter files ~f:(fun file ->
           let full_filepath = dir ^ "/" ^ file in
           match Sys.is_directory full_filepath with
-          | `Yes -> test ~conf_file:config_filename ("", full_filepath)
+          | `Yes -> test ("", full_filepath)
           | `No ->
             let _ = print ("File: " ^ file) in
             let command =
-              [ "./discover"; "--clang-option=" ^ conf.conf_clang_opt ]
+              [ !discover_exec; "--clang-option=" ^ conf.conf_clang_opt ]
               @ String.split ~on:' ' conf.conf_discover_opt
               @ [ full_filepath ] in
             (*let _ = List.iter command ~f:(fun str -> print ("Comm: " ^ str)) in*)
@@ -117,13 +120,16 @@ let rec test ?(conf_file="") benchmark =
 let default_benchmarks = [ "PTABEN", "benchmarks/ptaben/ptaben-updated/basic_c_tests" ]
 
 let main () =
+  let execname = Sys.argv.(0) in
+  let _ = discover_exec := (Filename.dirname execname) ^ "/discover" in
+  let _ = print ("Arg 0: " ^ execname) in
+  let _ = print ("Discover exec: " ^ !discover_exec) in
   let usage_msg = "./test_benchmark [benchmark1] [benchmark2]" in
   let benchmarks = ref [] in
-  let arg_conf_file = ref "" in
   let anon_fun benchmark =
     benchmarks := ("X", benchmark) :: !benchmarks in
   let speclist =
-    [("-conf", Arg.Set_string arg_conf_file, "Set config file")] in
+    [("-conf", Arg.Set_string conf_file, "Set config file")] in
   let _ = Arg.parse speclist anon_fun usage_msg in
   let _ = if List.is_empty !benchmarks then benchmarks := default_benchmarks else () in
   List.iter !benchmarks ~f:test
