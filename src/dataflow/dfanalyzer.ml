@@ -32,7 +32,7 @@ let mark_potential_bugs (pdata : program_data) : program_data =
   let _ = ddebug "Annotating Potential Bug..." in
   let prog = pdata.pdata_program in
   let pbugs = BG.mark_potential_bugs prog in
-  let _ = ddebugh "Potential Bugs:" BG.pr_potential_bugs pbugs in
+  let _ = ddebugh "POTENTIAL BUGS:" BG.pr_potential_bugs pbugs in
   { pdata with pdata_potential_bugs = pbugs }
 ;;
 

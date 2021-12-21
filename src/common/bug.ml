@@ -172,38 +172,38 @@ type bugs = bug list
 let pr_bug_cwe (btype : bug_type) : string =
   match btype with
   (* Integer bugs *)
-  | IntegerOverflow _ -> "CWE-190 (Integer Overflow)"
-  | IntegerUnderflow _ -> "CWE-191 (Integer Underflow)"
-  | IntegerCoercionError _ -> "CWE-192 (Integer Coercion Error)"
-  | NumericTruncationError _ -> "CWE-197 (Numeric Truncation Error)"
-  | DivisionByZero _ -> "CWE-369 (Divide By Zero)"
+  | IntegerOverflow _ -> "CWE-190 -- Integer Overflow"
+  | IntegerUnderflow _ -> "CWE-191 -- Integer Underflow"
+  | IntegerCoercionError _ -> "CWE-192 -- Integer Coercion Error"
+  | NumericTruncationError _ -> "CWE-197 -- Numeric Truncation Error"
+  | DivisionByZero _ -> "CWE-369 -- Divide By Zero"
   (* Memory bugs *)
   | MemoryLeak _ ->
-    "CWE-401 (Missing Release of Memory after Effective Lifetime)"
-  | NullPointerDeref _ -> "CWE-476 (NULL Pointer Dereference)"
+    "CWE-401 -- Missing Release of Memory after Effective Lifetime"
+  | NullPointerDeref _ -> "CWE-476 -- NULL Pointer Dereference"
   | BufferOverflow bof_opt ->
     (match bof_opt with
-    | None -> "CWE-805 (Buffer Access with Incorrect Length Value)"
+    | None -> "CWE-805 -- Buffer Access with Incorrect Length Value"
     | Some bof ->
       if bof.bof_write_operation
       then
         if bof.bof_stack_based
-        then "CWE-121 (Stack-based Buffer Overflow)"
-        else "CWE-122 (Heap-based Buffer Overflow)"
-      else "CWE-125 (Out-of-bounds Read)")
+        then "CWE-121 -- Stack-based Buffer Overflow"
+        else "CWE-122 -- Heap-based Buffer Overflow"
+      else "CWE-125 -- Out-of-bounds Read")
   (* Resource bugs *)
   | ResourceLeak rlk_opt ->
     (match rlk_opt with
-    | None -> "CWE-772 (Missing Release of Resource after Effective Lifetime)"
+    | None -> "CWE-772 -- Missing Release of Resource after Effective Lifetime"
     | Some rlk ->
       if rlk.rlk_file_resource
       then
-        "CWE-775 (Missing Release of File Descriptor or Handle"
-        ^ " after Effective Lifetime)"
-      else "CWE-772 (Missing Release of Resource after Effective Lifetime)")
+        "CWE-775 -- Missing Release of File Descriptor or Handle"
+        ^ " after Effective Lifetime"
+      else "CWE-772 -- Missing Release of Resource after Effective Lifetime")
 ;;
 
-let pr_bug_type ?(detailed = true) (btype : bug_type) : string =
+let pr_bug_type (btype : bug_type) : string =
   match btype with
   (* Integer bugs *)
   | IntegerOverflow _ -> "Integer Overflow"
@@ -220,9 +220,10 @@ let pr_bug_type ?(detailed = true) (btype : bug_type) : string =
 ;;
 
 let pr_potential_bug (pbug : potential_bug) : string =
-  (pr_bug_type ~detailed:false pbug.pbug_type ^ "\n")
-  ^ sprintf "  Instruction: %s\n" (pr_instr pbug.pbug_instr)
-  ^ sprintf "  Function: %s\n" (func_name pbug.pbug_func)
+  "Potential "
+  ^ (pr_bug_type pbug.pbug_type ^ " bug at instruction: \n")
+  ^ sprintf "  %s\n" (pr_instr pbug.pbug_instr)
+  ^ sprintf "of function: %s\n" (func_name pbug.pbug_func)
 ;;
 
 let pr_potential_bugs (pbugs : potential_bug list) : string =
@@ -233,20 +234,26 @@ let pr_bug (bug : bug) : string =
   let bug_type_info =
     let btype = pr_bug_type bug.bug_type in
     let cwe = pr_bug_cwe bug.bug_type in
-    btype ^ String.surround_if_not_empty ~prefix:" (" ~suffix:")" cwe in
+    btype
+    ^ String.surround_if_not_empty ~prefix:" (" ~suffix:")" cwe
+    ^ " at instruction: \n" in
   let location =
     match !llvm_orig_source_name with
-    | false -> ""
+    | false ->
+      sprintf "    %s\n" (pr_instr bug.bug_instr)
+      ^ sprintf "  in function: %s\n" (func_name bug.bug_func)
     | true ->
       (match position_of_instr bug.bug_instr with
       | None -> ""
       | Some p -> "  " ^ pr_file_position_and_excerpt p ^ "\n") in
-  "BUG: " ^ bug_type_info ^ "\n" ^ location
-  ^ String.indent 2 (String.align_line "Reason: " bug.bug_reason)
+  let reason = String.align_line "  Reason: " bug.bug_reason in
+  "BUG: " ^ bug_type_info ^ location ^ reason
 ;;
 
-let pr_bug_name (bug : bug) : string = pr_bug_type ~detailed:false bug.bug_type
-let pr_bugs (bugs : bug list) : string = pr_items ~f:pr_bug bugs
+let pr_bug_name (bug : bug) : string = pr_bug_type bug.bug_type
+
+let pr_bugs (bugs : bug list) : string =
+  pr_list_plain ~sep:"\n\n" ~f:pr_bug bugs
 
 (*******************************************************************
  ** constructors

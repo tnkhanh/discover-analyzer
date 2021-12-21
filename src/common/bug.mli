@@ -90,7 +90,7 @@ type bugs = bug list
 
 (*** printing ***)
 
-val pr_bug_type : ?detailed:bool -> bug_type -> string
+val pr_bug_type : bug_type -> string
 val pr_potential_bug : potential_bug -> string
 val pr_potential_bugs : potential_bug list -> string
 val pr_bug : bug -> string

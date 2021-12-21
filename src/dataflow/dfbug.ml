@@ -183,6 +183,7 @@ let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
   let open Option.Let_syntax in
   match pbug.pbug_type with
   | BufferOverflow (Some bof) ->
+    let _ = debugh "CHECKING BUFFER OVERFLOW: " pr_potential_bug pbug in
     let ptr = bof.bof_pointer in
     let func = LI.func_of_instr bof.bof_instr in
     let%bind penv_rng = pdata.pdata_env_range in
@@ -284,7 +285,7 @@ let find_bug_memory_leak (pdata : program_data) : bug list =
 let find_bugs (pdata : program_data) : unit =
   let _ = println "Checking Bugs..." in
   let _ =
-    ddebugh ~header:true "Marked potential bugs: " pr_potential_bugs
+    ddebugh ~header:true "Potential bugs: " pr_potential_bugs
       pdata.pdata_potential_bugs in
   let bugs =
     find_bug_memory_leak pdata
@@ -292,7 +293,7 @@ let find_bugs (pdata : program_data) : unit =
     @ find_bug_integer_overflow pdata
     @ find_bug_integer_underflow pdata
     @ find_bug_division_by_zero pdata in
-  let _ = List.iter ~f:(fun bug -> print ~marker:false (pr_bug bug)) bugs in
+  let _ = print ~marker:false (pr_bugs bugs) in
   let _ = num_of_bugs := List.length bugs in
   report_bug_stats bugs
 ;;
