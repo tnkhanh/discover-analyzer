@@ -1,12 +1,12 @@
 standard:
   clang-option: -I lib/discover
   discover-option: --dfa-pointer --no-debug --no-print
-  targets: "*.c"
+  targets: .c
 inter-procedural-all:
   clang-option: -I lib/discover
   discover-option: --dfa-pointer --dfa-inter --no-debug --no-print
   timeout: 10
-  targets: "*.c"
+  targets: .c
   exclude: global-array.c
   #output-log: ???
 #inter-procedural-specific:
