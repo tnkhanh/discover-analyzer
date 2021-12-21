@@ -123,4 +123,6 @@ extern int globalFive; /* 5 */
 
 #include "std_testcase_io.h"
 
+// Discover: include discover header to check bugs
+#include "std_discover.h"
 #endif

@@ -90,7 +90,7 @@ type bugs = bug list
 
 (*** printing ***)
 
-val pr_bug_type : ?detailed:bool -> bug_type -> string
+val pr_bug_type : bug_type -> string
 val pr_potential_bug : potential_bug -> string
 val pr_potential_bugs : potential_bug list -> string
 val pr_bug : bug -> string
@@ -108,10 +108,6 @@ val mk_bug_type_coercion_error : unit -> bug_type
 val mk_bug_type_truncation_error : unit -> bug_type
 val mk_bug_type_division_by_zero : unit -> bug_type
 val mk_potential_bug : Llir.instr -> bug_type -> potential_bug
-val mk_potential_integer_overflow : Llir.instr -> potential_bug
-val mk_potential_integer_underflow : Llir.instr -> potential_bug
-val mk_potential_buffer_overflow : Llir.instr -> potential_bug
-val mk_potential_memory_leak : Llir.instr -> potential_bug
 val mk_real_bug : reason:string -> checker:string -> potential_bug -> bug
 
 (*** queries ***)
@@ -120,7 +116,7 @@ val is_bug_memory_leak : bug -> bool
 val is_bug_integer_overflow : bug -> bool
 val is_bug_integer_underflow : bug -> bool
 
-(*** annotating and reporting ***)
+(*** reporting ***)
 
 val report_bug_stats : bug list -> unit
-val record_potential_bugs : Llir.program -> potential_bugs
+val mark_potential_bugs : Llir.program -> potential_bugs

@@ -200,37 +200,43 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
     input
   ;;
 
-  let analyze_instr ?(widen = false) penv fenv (instr : instr) (input : t) : t =
-    let vinstr = llvalue_of_instr instr in
-    match instr_opcode instr with
+  let analyze_instr ?(widen = false) penv fenv (ins : instr) (input : t) : t =
+    let vins = llvalue_of_instr ins in
+    match instr_opcode ins with
     | LO.Unreachable -> least_data
+    | LO.Alloca ->
+      let size =
+        match int64_of_const (operand ins 0) with
+        | None -> Int64.zero
+        | Some i -> i in
+      update_size vins (SD.mk_size_const size) input
     | LO.Call ->
-      let func = callee_of_instr_call instr in
+      let func = callee_of_instr_call ins in
       if is_func_malloc func
       then (
         let size =
-          match int64_of_const (operand instr 0) with
+          match int64_of_const (operand ins 0) with
           | None -> Int64.zero
           | Some i -> i in
-        update_size vinstr (SD.mk_size_const size) input)
+        update_size vins (SD.mk_size_const size) input)
       else if is_func_free func
-      then update_size vinstr (SD.mk_size_const Int64.zero) input
+      then update_size vins (SD.mk_size_const Int64.zero) input
       else input
     | LO.BitCast ->
-      let size = get_size (operand instr 0) input in
-      update_size vinstr size input
+      let size = get_size (operand ins 0) input in
+      update_size vins size input
     | LO.PHI ->
       (* TODO: need alias analysis to clear off some variables
          overshadowing by PHI node *)
-      let ns = ref (get_size (operand instr 0) input) in
+      let ns = ref (get_size (operand ins 0) input) in
       let _ = debugh " PHI original: " SD.pr_size !ns in
-      for i = 1 to num_operands instr - 1 do
-        let cs = get_size (operand instr i) input in
+      for i = 1 to num_operands ins - 1 do
+        let cs = get_size (operand ins i) input in
         let _ = debugh " PHI current range: " SD.pr_size cs in
         ns := combine_size !ns cs
       done;
       let _ = debugh " PHI final: " SD.pr_size !ns in
-      update_size vinstr !ns input
+      update_size vins !ns input
     | _ -> input
   ;;
 
