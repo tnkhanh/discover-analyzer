@@ -15,7 +15,7 @@ let default_config =
     conf_name = "default"; 
     conf_clang_opt = "";
     conf_discover_opt= "";
-    conf_targets = [];
+    conf_targets = [".c"];
     conf_recurse = false;
   }
 
@@ -27,6 +27,13 @@ let mk_config (name: string) (clang_opt: string) (dis_opt: string) (recurse: boo
     conf_recurse = recurse;
     conf_targets = targets;
   }
+
+let str_of_config conf =
+  "Config:\nName: " ^ conf.conf_name ^
+  "\nClang_opt: " ^ conf.conf_clang_opt ^
+  "Discover_opt: " ^ conf.conf_discover_opt ^
+  "\nTargets: " ^ (String.concat ~sep:" " conf.conf_targets) ^
+  "Recurse: " ^ (string_of_bool conf.conf_recurse)
 
 let read_confs_from_file filename =
   let _ = print filename in
@@ -53,15 +60,13 @@ let read_confs_from_file filename =
     mk_config name clang_option discover_option recurse targets
   )
 
-let dir_prefix = "benchmarks/"
 let log_dir = "benchmark-log/"
 
 let rec test ?(conf_file="") benchmark =
   let description, dir = benchmark in
-  let full_dir = dir_prefix ^ dir in
   let _ = print ("Testing " ^ description ^ " in " ^ dir) in
   let config_filename = 
-    if String.equal conf_file "" then full_dir ^ "/benchmark.yaml"
+    if String.equal conf_file "" then dir ^ "/benchmark.yaml"
     else
       conf_file
   in
@@ -70,8 +75,9 @@ let rec test ?(conf_file="") benchmark =
     ~f:(fun conf ->
       let full_log_dir = log_dir ^ dir ^ "/" ^ conf.conf_name in
       let _ = PS.run_command [ "mkdir"; "-p"; full_log_dir ] in
-      let _ = print ("\n" ^ conf.conf_name ^ ":________") in
-      let all_files = Array.to_list (Sys.readdir full_dir) in
+      let _ = print (str_of_config conf) in
+      let _ = List.iter conf.conf_targets ~f:print in
+      let all_files = Array.to_list (Sys.readdir dir) in
       let _ =
         List.iter conf.conf_targets ~f:(fun target -> print ("Target: " ^ target)) in
       (* TODO: Do better than suffix check *)
@@ -86,7 +92,7 @@ let rec test ?(conf_file="") benchmark =
       (* TODO: Make a function that runs each file *)
       let files = List.filter all_files ~f:(is_target conf.conf_targets) in
       List.iter files ~f:(fun file ->
-          let full_filepath = full_dir ^ "/" ^ file in
+          let full_filepath = dir ^ "/" ^ file in
           match Sys.is_directory full_filepath with
           | `Yes -> test ~conf_file:config_filename ("", full_filepath)
           | `No ->
@@ -108,9 +114,18 @@ let rec test ?(conf_file="") benchmark =
     configs
 ;;
 
-let benchmarks = [ "PTABEN", "ptaben/ptaben-updated/basic_c_tests" ]
+let default_benchmarks = [ "PTABEN", "benchmarks/ptaben/ptaben-updated/basic_c_tests" ]
 
 let main () =
-  List.iter benchmarks ~f:test
+  let usage_msg = "./test_benchmark [benchmark1] [benchmark2]" in
+  let benchmarks = ref [] in
+  let arg_conf_file = ref "" in
+  let anon_fun benchmark =
+    benchmarks := ("X", benchmark) :: !benchmarks in
+  let speclist =
+    [("-conf", Arg.Set_string arg_conf_file, "Set config file")] in
+  let _ = Arg.parse speclist anon_fun usage_msg in
+  let _ = if List.is_empty !benchmarks then benchmarks := default_benchmarks else () in
+  List.iter !benchmarks ~f:test
 
 let _ = main ()
