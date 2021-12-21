@@ -1,0 +1,5 @@
+# ../../../../../../discover --clang-option "-I ../../testcasesupport/" CWE121_Stack_Based_Buffer_Overflow__CWE131_memcpy_01.c --dfa-pointer --dfa-memsize --dfa-range --bug-buffer-overflow
+standard:
+  clang-option: -I ../../testcasesupport/
+  discover-option: --dfa-pointer --dfa-memsize --dfa-range --bug-buffer-overflow
+  targets: CWE121_Stack_Based_Buffer_Overflow__CWE131_memcpy_01.c
