@@ -178,6 +178,16 @@ let find_bug_division_by_zero (pdata : program_data) : bugs =
  * Buffer overflown
  *------------------*)
 
+let compute_buffer_total_elements (ptr : value) : int64 =
+  let elem_typ = LL.element_type (LL.type_of ptr) in
+  match LL.classify_type elem_typ with
+  (* pointer to an array *)
+  | LL.TypeKind.Array ->
+    Int64.of_int (LL.array_length elem_typ)
+  (* pointer to a dynamically allocated memory *)
+  | _ ->
+;;
+
 let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
     : bug option
   =
@@ -198,8 +208,11 @@ let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
             RG.get_interval (LI.expr_of_llvalue bof.bof_elem_index) data_rng
           in
           match bof.bof_buff_size with
-          | NumElem (n, t) ->
-            if II.compare_interval_ub_int itv n >= 0
+          | Sone buff_size ->
+            let elem_typ = LL.element_type (LL.type_of bof.bof_pointer) in
+            let elem_size = Int64.of_int (LL.size_of elem_typ) in
+            let num_elem = Int64.(buff_size / elem_size) in
+            if II.compare_interval_ub_int itv num_elem >= 0
             then (
               let reason =
                 ("Buffer at pointer " ^ LI.pr_value ptr)

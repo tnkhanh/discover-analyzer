@@ -84,16 +84,10 @@ module MemoryBug = struct
 
   type null_pointer_deref = { npe_pointer : value }
 
-  (* FIXME: need to change name of this variant type *)
-  type buffer_size =
-    | NumElem of (int64 * datatype) (* number of element of type datatype *)
-    | MemSizeOf of value
-  (* size of allocated memory of pointer *)
-
   type buffer_overflow =
     { bof_pointer : value;
       bof_elem_index : value;
-      bof_buff_size : buffer_size;
+      bof_buff_size_in_bytes : int64 option;
       bof_write_operation : bool;
       bof_stack_based : bool;
       bof_instr : instr
@@ -323,16 +317,6 @@ let mk_potential_division_by_zero (ins : instr) : potential_bugs =
  * Potential memory bugs
  *------------------------------------------*)
 
-let compute_buffer_size (ptr : value) : buffer_size =
-  let elem_typ = LL.element_type (LL.type_of ptr) in
-  match LL.classify_type elem_typ with
-  (* pointer to an array *)
-  | LL.TypeKind.Array ->
-    let size = Int64.of_int (LL.array_length elem_typ) in
-    NumElem (size, elem_typ)
-  (* pointer to a dynamically allocated memory *)
-  | _ -> MemSizeOf ptr
-;;
 
 (* let compute_buffer_accessing_index () *)
 
@@ -343,7 +327,7 @@ let mk_potential_buffer_overflow (ins : instr) : potential_bugs =
       match instr_opcode ins with
       | LO.GetElementPtr ->
         let ptr = src_of_instr_gep ins in
-        let size = compute_buffer_size ptr in
+        let size = compute_buffer_size_in_bytes ptr in
         let index =
           let elem_typ = LL.element_type (LL.type_of ptr) in
           let idxs = indexes_of_instr_gep ins in
@@ -359,7 +343,7 @@ let mk_potential_buffer_overflow (ins : instr) : potential_bugs =
           | _ -> List.hd_exn idxs in
         { bof_instr = ins;
           bof_pointer = ptr;
-          bof_buff_size = size;
+          bof_buff_size_in_bytes = size;
           bof_elem_index = index;
           (* FIXME: Khanh, please help to compute *)
           bof_write_operation = false;
@@ -370,11 +354,11 @@ let mk_potential_buffer_overflow (ins : instr) : potential_bugs =
         let callee = callee_of_instr_func_call ins in
         if is_func_llvm_memcpy callee || is_func_llvm_memmove callee
         then (
-          let size = compute_buffer_size dst_ptr in
+          let size = compute_buffer_size_in_bytes dst_ptr in
           let index = operand ins 2 in
           { bof_instr = ins;
             bof_pointer = dst_ptr;
-            bof_buff_size = size;
+            bof_buff_size_in_bytes = size;
             bof_elem_index = index;
             bof_write_operation = true;
             bof_stack_based = false
