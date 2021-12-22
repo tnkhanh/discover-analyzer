@@ -9,16 +9,16 @@ open Dcore
 open Llir
 
 type bound =
-  | PInf (* positive infinity *)
-  | NInf (* negative infinity *)
+  | PInf           (* positive infinity *)
+  | NInf           (* negative infinity *)
   | Int64 of int64 (* integer 64 bit *)
-  | EInt of eint (* aas *)
-  | BInt of bint
+  | EInt of eint   (* integer in 2-exponential representation *)
+  | BInt of bint   (* big integer *)
+[@@ocamlformat "disable"]
 
-(* lower bound, upper bound, and bound inclusiveness *)
 type range =
-  { range_lb : bound; (* inclusive *)
-    range_lb_incl : bool;
+  { range_lb : bound; (* lower bound *)
+    range_lb_incl : bool; (* lower bound is included *)
     range_ub : bound;
     range_ub_incl : bool
   }
@@ -74,6 +74,16 @@ let mk_interval_range ?(li = false) ?(ui = false) (lb : bound) (ub : bound)
 ;;
 
 let mk_interval_bottom () : interval = Bottom
+
+let mk_interval_int (i : int) : interval =
+  let b = Int64 (Int64.of_int i) in
+  mk_interval_range ~li:true ~ui:true b b
+;;
+
+let mk_interval_int64 (i : int64) : interval =
+  let b = Int64 i in
+  mk_interval_range ~li:true ~ui:true b b
+;;
 
 (* let compute_int_max_interval (bitwidth : int) : interval = *)
 (*   let lb, ub = BInt.compute_range_two_complement bitwidth in *)
@@ -470,6 +480,13 @@ let combine_range ?(widen = false) (a : range) (b : range) : range =
   else union_range a b
 ;;
 
+let union_interval (a : interval) (b : interval) : interval =
+  match a, b with
+  | Bottom, _ -> b
+  | _, Bottom -> a
+  | Range ra, Range rb -> Range (union_range ra rb)
+;;
+
 let add_interval (a : interval) (b : interval) =
   match a, b with
   | Bottom, _ -> Bottom
@@ -569,4 +586,10 @@ let compare_interval_ub_int (itv : interval) (i : int64) : int =
   match itv with
   | Bottom -> -1
   | Range r -> compare_range_ub_int r i
+;;
+
+let compare_interval_ub_bound (itv : interval) (b : bound) : int =
+  match itv with
+  | Bottom -> -1
+  | Range r -> compare_bound r.range_ub b
 ;;
