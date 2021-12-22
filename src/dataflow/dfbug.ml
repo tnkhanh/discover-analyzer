@@ -10,6 +10,7 @@ open Dfdata
 open Bug
 module LL = Llvm
 module LI = Llir
+module II = Int_interval
 
 (*******************************************************************
  ** Integer bugs
@@ -43,7 +44,7 @@ let check_bug_integer_overflow (pdata : program_data) (pbug : potential_bug)
             | Range r ->
               let ub =
                 EInt.compute_upper_bound_two_complement iof.iof_bitwidth in
-              if RG.ID.compare_bound r.range_ub (EInt ub) > 0
+              if II.compare_bound r.range_ub (EInt ub) > 0
               then (
                 let reason =
                   ("Variable " ^ LI.pr_value iof.iof_expr ^ " can take only ")
@@ -94,7 +95,7 @@ let check_bug_integer_underflow (pdata : program_data) (pbug : potential_bug)
             | Range r ->
               let lb =
                 EInt.compute_lower_bound_two_complement iuf.iuf_bitwidth in
-              if RG.ID.compare_bound r.range_lb (EInt lb) < 0
+              if II.compare_bound r.range_lb (EInt lb) < 0
               then (
                 let reason =
                   ("Variable " ^ LI.pr_value iuf.iuf_expr ^ " can take only ")
@@ -145,8 +146,8 @@ let check_bug_division_by_zero (pdata : program_data) (pbug : potential_bug)
             match itv with
             | Bottom -> None
             | Range r ->
-              if RG.ID.compare_bound r.range_lb (Int64 Int64.zero) <= 0
-                 && RG.ID.compare_bound r.range_ub (Int64 Int64.zero) >= 0
+              if II.compare_bound r.range_lb (Int64 Int64.zero) <= 0
+                 && II.compare_bound r.range_ub (Int64 Int64.zero) >= 0
               then (
                 let reason =
                   ("Divisor " ^ LI.pr_value divisor ^ " can take values from ")
@@ -183,7 +184,6 @@ let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
   let open Option.Let_syntax in
   match pbug.pbug_type with
   | BufferOverflow (Some bof) ->
-    let _ = debugh "CHECKING BUFFER OVERFLOW: " pr_potential_bug pbug in
     let ptr = bof.bof_pointer in
     let func = LI.func_of_instr bof.bof_instr in
     let%bind penv_rng = pdata.pdata_env_range in
@@ -199,7 +199,7 @@ let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
           in
           match bof.bof_buff_size with
           | NumElem (n, t) ->
-            if RG.ID.compare_interval_ub_int itv n >= 0
+            if II.compare_interval_ub_int itv n >= 0
             then (
               let reason =
                 ("Buffer at pointer " ^ LI.pr_value ptr)
@@ -222,7 +222,7 @@ let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
                   let elem_size = LI.memsize_of_type elem_typ in
                   let max_num_elem = Int64.( / ) sz.size_max elem_size in
                   let min_num_elem = Int64.( / ) sz.size_min elem_size in
-                  if RG.ID.compare_interval_ub_int itv max_num_elem >= 0
+                  if II.compare_interval_ub_int itv max_num_elem >= 0
                   then (
                     let reason =
                       ("Buffer at pointer " ^ LI.pr_value ptr ^ " contains ")
@@ -230,7 +230,7 @@ let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
                       ^ "accessing index is " ^ RG.pr_interval_concise itv
                     in
                     Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
-                  else if RG.ID.compare_interval_ub_int itv min_num_elem >= 0
+                  else if II.compare_interval_ub_int itv min_num_elem >= 0
                   then (
                     let reason =
                       ("Buffer at pointer " ^ LI.pr_value ptr ^ " may contain ")

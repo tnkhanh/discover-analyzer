@@ -221,9 +221,9 @@ let pr_bug_type (btype : bug_type) : string =
 
 let pr_potential_bug (pbug : potential_bug) : string =
   "Potential "
-  ^ (pr_bug_type pbug.pbug_type ^ " bug at instruction: \n")
-  ^ sprintf "  %s\n" (pr_instr pbug.pbug_instr)
-  ^ sprintf "of function: %s\n" (func_name pbug.pbug_func)
+  ^ (pr_bug_type pbug.pbug_type ^ " bug at:\n")
+  ^ sprintf "+ instruction:\n  %s\n" (pr_instr pbug.pbug_instr)
+  ^ sprintf "+ function: %s\n" (func_name pbug.pbug_func)
 ;;
 
 let pr_potential_bugs (pbugs : potential_bug list) : string =
