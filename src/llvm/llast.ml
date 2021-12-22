@@ -18,6 +18,10 @@ module SP = Set.Poly
  *******************************************************************)
 
 module AST = struct
+  (*----------------------------
+   * Core LLVM data structures
+   *---------------------------*)
+
   (** [Value] is an important data structure in LLVM IR.
     It's a base data structure for instructions, functions,
     global variables, constant, etc. *)
@@ -56,13 +60,24 @@ module AST = struct
   (** Function in programs *)
   type func = Func of value
 
-  (** A [callable] is a function or a function pointer *)
-  type callable =
-    | ClFunc of func
-    | ClFPtr of value
-
   (** Bitcode module of a program *)
   type bitcode_module = LL.llmodule
+
+  (* Some convenient types *)
+
+  type values = value list
+  type datatypes = datatype list
+  type uses = use list
+  type params = param list
+  type instrs = instr list
+  type globals = global list
+  type consts = const list
+  type blocks = block list
+  type funcs = func list
+
+  (*----------------------------
+   * Auxiliary data structures
+   *---------------------------*)
 
   (** Expression *)
   type expr =
@@ -78,24 +93,12 @@ module AST = struct
     | FuncRes of func (* returned value of a function *)
     | Exn of expr
 
-  (* Some convenient types *)
+  (** A [callable] is a function or a function pointer *)
+  type callable =
+    | ClFunc of func
+    | ClFPtr of value
 
-  type values = value list
-  type datatypes = datatype list
-  type uses = use list
-  type params = param list
-  type instrs = instr list
-  type globals = global list
-  type consts = const list
-  type exprs = expr list
-  type blocks = block list
-  type funcs = func list
-  type callables = callable list
-
-  (*----------------------------
-   * Auxiliary data structures
-   *---------------------------*)
-
+  (** Predicate used for path condition *)
   type predicate =
     | PBool of bool
     | PIcmp of (icompare * value * value)
@@ -104,21 +107,20 @@ module AST = struct
     | PConj of predicate list
     | PDisj of predicate list
 
-  (* preceding block of a block *)
+  (** A [prec_block] is a preceding block of a block *)
   type prec_block =
     { pblk_block : block;
       pblk_pathcond : predicate
     }
 
-  (* succeeding block of a block *)
+  (** A [succ_block] is a succeeding block of a block *)
   type succ_block =
     { sblk_block : block;
       sblk_pathcond : predicate
     }
 
-  type prec_blocks = prec_block list
-  type succ_blocks = succ_block list
-
+  (** A [loop] captures necessary information related to a loop structure
+      in programs *)
   type loop =
     { loop_head : block;
       loop_body : block list;
@@ -128,7 +130,13 @@ module AST = struct
       loop_outers : loop option
     }
 
+  (* Some convenient types *)
+
   type loops = loop list
+  type exprs = expr list
+  type callables = callable list
+  type prec_blocks = prec_block list
+  type succ_blocks = succ_block list
 
   (*----------------------------------------------
    * Modules of data structures used for Hashtbl
