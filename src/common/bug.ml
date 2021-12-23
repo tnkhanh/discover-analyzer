@@ -87,7 +87,6 @@ module MemoryBug = struct
   type buffer_overflow =
     { bof_pointer : value;
       bof_elem_index : value;
-      bof_buff_size_in_bytes : int64 option;
       bof_write_operation : bool;
       bof_stack_based : bool;
       bof_instr : instr
@@ -248,6 +247,7 @@ let pr_bug_name (bug : bug) : string = pr_bug_type bug.bug_type
 
 let pr_bugs (bugs : bug list) : string =
   pr_list_plain ~sep:"\n\n" ~f:pr_bug bugs
+;;
 
 (*******************************************************************
  ** constructors
@@ -317,7 +317,6 @@ let mk_potential_division_by_zero (ins : instr) : potential_bugs =
  * Potential memory bugs
  *------------------------------------------*)
 
-
 (* let compute_buffer_accessing_index () *)
 
 let mk_potential_buffer_overflow (ins : instr) : potential_bugs =
@@ -327,7 +326,6 @@ let mk_potential_buffer_overflow (ins : instr) : potential_bugs =
       match instr_opcode ins with
       | LO.GetElementPtr ->
         let ptr = src_of_instr_gep ins in
-        let size = compute_buffer_size_in_bytes ptr in
         let index =
           let elem_typ = LL.element_type (LL.type_of ptr) in
           let idxs = indexes_of_instr_gep ins in
@@ -343,22 +341,18 @@ let mk_potential_buffer_overflow (ins : instr) : potential_bugs =
           | _ -> List.hd_exn idxs in
         { bof_instr = ins;
           bof_pointer = ptr;
-          bof_buff_size_in_bytes = size;
           bof_elem_index = index;
-          (* FIXME: Khanh, please help to compute *)
           bof_write_operation = false;
-          bof_stack_based = false (* FIXME: Khanh, please help to compute *)
+          bof_stack_based = false
         }
       | LO.Call | LO.Invoke ->
         let dst_ptr = operand ins 0 in
         let callee = callee_of_instr_func_call ins in
         if is_func_llvm_memcpy callee || is_func_llvm_memmove callee
         then (
-          let size = compute_buffer_size_in_bytes dst_ptr in
           let index = operand ins 2 in
           { bof_instr = ins;
             bof_pointer = dst_ptr;
-            bof_buff_size_in_bytes = size;
             bof_elem_index = index;
             bof_write_operation = true;
             bof_stack_based = false

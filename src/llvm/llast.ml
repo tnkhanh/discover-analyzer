@@ -816,6 +816,32 @@ end
 include Const
 
 (*******************************************************************
+ * Pointer
+ *******************************************************************)
+
+module Pointer = struct
+  (*-------------------------------------------------------------
+   * This module contains utilities functions handling pointers
+   *------------------------------------------------------------*)
+
+  let is_pointer_to_array (ptr : value) : bool = is_type_array (LL.type_of ptr)
+
+  (** Return the array length if [ptr] points to an array *)
+  let compute_array_length (ptr : value) : int option =
+    let typ = LL.type_of ptr in
+    if is_type_array typ
+    then (
+      let elem_typ = LL.element_type (LL.type_of ptr) in
+      match LL.classify_type elem_typ with
+      | LL.TypeKind.Array -> Some (LL.array_length elem_typ)
+      | _ -> None)
+    else None
+  ;;
+end
+
+include Pointer
+
+(*******************************************************************
  * Instruction
  *******************************************************************)
 

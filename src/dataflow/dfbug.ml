@@ -178,16 +178,6 @@ let find_bug_division_by_zero (pdata : program_data) : bugs =
  * Buffer overflown
  *------------------*)
 
-let compute_buffer_total_elements (ptr : value) : int64 =
-  let elem_typ = LL.element_type (LL.type_of ptr) in
-  match LL.classify_type elem_typ with
-  (* pointer to an array *)
-  | LL.TypeKind.Array ->
-    Int64.of_int (LL.array_length elem_typ)
-  (* pointer to a dynamically allocated memory *)
-  | _ ->
-;;
-
 let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
     : bug option
   =
@@ -204,24 +194,21 @@ let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
         then acc
         else (
           let%bind data_rng = RG.get_instr_output fenv_rng bof.bof_instr in
-          let itv =
+          let index_itv =
             RG.get_interval (LI.expr_of_llvalue bof.bof_elem_index) data_rng
           in
-          match bof.bof_buff_size with
-          | Sone buff_size ->
-            let elem_typ = LL.element_type (LL.type_of bof.bof_pointer) in
-            let elem_size = Int64.of_int (LL.size_of elem_typ) in
-            let num_elem = Int64.(buff_size / elem_size) in
-            if II.compare_interval_ub_int itv num_elem >= 0
+          if LI.is_pointer_to_array ptr
+          then (
+            let%bind num_elem = LI.compute_array_length ptr in
+            if II.compare_interval_ub_int index_itv num_elem >= 0
             then (
               let reason =
                 ("Buffer at pointer " ^ LI.pr_value ptr)
-                ^ (" contains " ^ pr_int64 n ^ " elements;\n")
-                ^ "accessing index is " ^ RG.pr_interval_concise itv in
+                ^ (" contains " ^ pr_int num_elem ^ " elements;\n")
+                ^ "accessing index is " ^ RG.pr_interval_concise index_itv in
               Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
-            else None
-          | MemSizeOf v ->
-            let vinstr = LI.mk_instr v in
+            else None)
+          else (
             let%bind penv_msz = pdata.pdata_env_memsize in
             let%bind fenvs_msz = Hashtbl.find penv_msz.penv_func_envs func in
             List.fold_left
@@ -229,33 +216,34 @@ let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
                 if acc != None
                 then acc
                 else (
-                  let%bind data_msz = MS.get_instr_output fenv_msz vinstr in
-                  match MS.get_size v data_msz with
+                  let%bind data_msz = MS.get_instr_output fenv_msz bof.bof_instr in
+                  match MS.get_size ptr data_msz with
                   | Bottom -> None
                   | Range sz ->
-                    let elem_typ = LL.element_type (LL.type_of v) in
+                    let elem_typ = LL.element_type (LL.type_of ptr) in
                     let elem_size = II.Int64 (LI.memsize_of_type elem_typ) in
                     let max_num_elem = II.udiv_bound sz.range_ub elem_size in
                     let min_num_elem = II.udiv_bound sz.range_lb elem_size in
-                    if II.compare_interval_ub_bound itv max_num_elem >= 0
+                    if II.compare_interval_ub_bound index_itv max_num_elem >= 0
                     then (
                       let reason =
                         ("Buffer at pointer " ^ LI.pr_value ptr ^ " contains ")
-                        ^ ("at most " ^ II.pr_bound max_num_elem ^ " elements;\n")
-                        ^ "accessing index is " ^ RG.pr_interval_concise itv
+                        ^ ("at most " ^ II.pr_bound max_num_elem
+                         ^ " elements;\n")
+                        ^ "accessing index is " ^ RG.pr_interval_concise index_itv
                       in
                       Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
-                    else if II.compare_interval_ub_bound itv min_num_elem >= 0
+                    else if II.compare_interval_ub_bound index_itv min_num_elem >= 0
                     then (
                       let reason =
                         ("Buffer at pointer " ^ LI.pr_value ptr
                        ^ " may contain ")
                         ^ ("only " ^ II.pr_bound min_num_elem ^ " elements;\n")
-                        ^ "accessing index is " ^ RG.pr_interval_concise itv
+                        ^ "accessing index is " ^ RG.pr_interval_concise index_itv
                       in
                       Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
                     else None))
-              ~init:None fenvs_msz))
+              ~init:None fenvs_msz)))
       ~init:None fenvs_rng
   | _ -> None
 ;;

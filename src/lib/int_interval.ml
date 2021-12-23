@@ -582,7 +582,13 @@ let compare_range_ub_int (r : range) (i : int64) : int =
     else BInt.compare (BInt.sub x BInt.one) bi
 ;;
 
-let compare_interval_ub_int (itv : interval) (i : int64) : int =
+let compare_interval_ub_int (itv : interval) (i : int) : int =
+  match itv with
+  | Bottom -> -1
+  | Range r -> compare_range_ub_int r (Int64.of_int i)
+;;
+
+let compare_interval_ub_int64 (itv : interval) (i : int64) : int =
   match itv with
   | Bottom -> -1
   | Range r -> compare_range_ub_int r i
