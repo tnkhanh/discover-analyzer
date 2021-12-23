@@ -1,0 +1,5 @@
+standard:
+  clang-option: -g
+  discover-option: --bug-all --dfa-range --enable-instrument
+  targets: .c
+
