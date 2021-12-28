@@ -8,7 +8,6 @@
 open Dcore
 open Graph
 open Llir
-module AS = Assertion
 module DF = Dataflow
 module LL = Llvm
 module LI = Llir

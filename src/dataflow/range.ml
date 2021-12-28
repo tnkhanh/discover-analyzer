@@ -8,7 +8,6 @@
 open Dcore
 open Llir
 open Int_interval
-module AS = Assertion
 module DF = Dataflow
 module LL = Llvm
 module LO = Llvm.Opcode

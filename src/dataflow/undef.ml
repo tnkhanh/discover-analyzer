@@ -213,24 +213,6 @@ struct
       else input
     | _ -> input
   ;;
-
-  (*******************************************************************
-   ** Checking assertions
-   *******************************************************************)
-
-  let count_assertions (prog : program) : int =
-    (* TODO: implement later if necessary *)
-    0
-  ;;
-
-  let check_assertions (penv : prog_env) func : int =
-    (* TODO: implement later if necessary *)
-    0
-  ;;
-
-  (*******************************************************************
-   ** Pre- and post- analysis
-   *******************************************************************)
 end
 
 (*******************************************************************

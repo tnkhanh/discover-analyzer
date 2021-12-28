@@ -292,6 +292,7 @@ let count_assertions (prog : program) : int =
 ;;
 
 let check_assertions (pdata : program_data) : unit =
+  let _ = print "Checking assertions..." in
   let prog = pdata.pdata_program in
   let total_asserts = count_assertions prog in
   let checked_asserts = ref 0 in

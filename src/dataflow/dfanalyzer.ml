@@ -99,7 +99,13 @@ let perform_pointer_analysis (pdata : program_data) : program_data =
   else pdata
 ;;
 
+let reorder_analysis_passes () =
+  let _ = warning "TO IMPLEMENET: reorder_analysis passes" in
+  ()
+;;
+
 let perform_main_analysis_passes (pdata : program_data) : program_data =
+  let _ = reorder_analysis_passes () in
   pdata |> perform_undef_analysis |> perform_pointer_analysis
   |> perform_memsize_analysis |> perform_range_analysis
 ;;

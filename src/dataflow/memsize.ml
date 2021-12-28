@@ -245,20 +245,6 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
       update_size vins !ns input
     | _ -> input
   ;;
-
-  (*******************************************************************
-   ** Checking assertions
-   *******************************************************************)
-
-  let count_assertions (prog : program) : int =
-    (* TODO: implement later if necessary *)
-    0
-  ;;
-
-  let check_assertions (penv : prog_env) func : int =
-    (* TODO: implement later if necessary *)
-    0
-  ;;
 end
 
 (*******************************************************************
