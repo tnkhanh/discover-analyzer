@@ -399,16 +399,6 @@ module type ForwardDataTransfer = sig
 
   val analyze_global : global -> t -> t
   val analyze_instr : ?widen:bool -> prog_env -> func_env -> instr -> t -> t
-
-  (*-----------------------------------------
-   * Checking assertions
-   *-----------------------------------------*)
-
-  (** Count the number of assertions relevant to an analysis *)
-  val count_assertions : program -> int
-
-  (** Return the number of checked assertions *)
-  val check_assertions : prog_env -> func -> int
 end
 
 (*******************************************************************
@@ -2819,30 +2809,6 @@ functor
       penv
     ;;
 
-    (*----------------------
-     * Checking assertions
-     *---------------------*)
-
-    let check_assertions (penv : T.prog_env) : unit =
-      let prog = penv.penv_prog in
-      let num_total = T.count_assertions prog in
-      let funcs = Hashtbl.keys penv.penv_func_envs in
-      let num_checked =
-        List.fold
-          ~f:(fun acc func -> acc + T.check_assertions penv func)
-          ~init:0 funcs in
-      let num_skipped = num_total - num_checked in
-      let msg =
-        if num_total = 0
-        then "No assertion is found!"
-        else if num_skipped == 0
-        then sprintf "%d/%d assertion(s) are checked!\n" num_checked num_total
-        else
-          sprintf "%d/%d assertion(s) are checked, %d are skipped!\n"
-            num_checked num_total num_skipped in
-      println msg
-    ;;
-
     let report_analysis_stats (penv : T.prog_env) : unit =
       (* if not !print_concise_output || !print_concise_debug then *)
       println ~autoformat:false (* ~always:true *)
@@ -2850,10 +2816,3 @@ functor
         ^ pr_analysis_stats penv)
     ;;
   end
-
-let foo () =
-  let s1, s2, s3 = "first", "second", "third" in
-  ("This is the " ^ s1 ^ " string")
-  ^ ("This is the " ^ s2 ^ " string")
-  ^ "This is the " ^ s3 ^ " string"
-;;

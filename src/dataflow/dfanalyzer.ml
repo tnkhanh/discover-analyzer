@@ -6,8 +6,9 @@
  ********************************************************************)
 
 open Dcore
-open Dfbug
 open Dfdata
+open Dfbug
+open Dfassertion
 module LI = Llir
 module BG = Bug
 module PA = Pointer.Analysis
@@ -107,11 +108,10 @@ let perform_main_analysis_passes (pdata : program_data) : program_data =
  ** Check assertions
  *******************************************************************)
 
-let check_assertions (pdata : program_data) : unit =
-  let _ = print "Checking assertions..." in
-  Option.iter ~f:PA.check_assertions pdata.pdata_env_pointer;
-  Option.iter ~f:RG.check_assertions pdata.pdata_env_range
-;;
+(* let check_assertions (pdata : program_data) : unit = *)
+(*   Option.iter ~f:PA.check_assertions pdata.pdata_env_pointer; *)
+(*   Option.iter ~f:RG.check_assertions pdata.pdata_env_range *)
+(* ;; *)
 
 let report_analysis_stats (pdata : program_data) : unit =
   Option.iter ~f:PA.report_analysis_stats pdata.pdata_env_pointer

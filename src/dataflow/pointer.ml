@@ -3602,125 +3602,6 @@ struct
 
   let pre_analyze_func penv fenv = ()
 
-  (*******************************************************************
-   ** Checking assertions
-   *******************************************************************)
-
-  (** Count the number of assertions in a program *)
-
-  let count_assertions (prog : program) : int =
-    let assertions =
-      List.fold_left
-        ~f:(fun acc func -> acc @ AS.find_alias_assertions func)
-        ~init:[] prog.prog_user_funcs in
-    List.length assertions
-  ;;
-
-  let check_may_alias (fenv : func_env) (instr : instr) v1 v2 : bool =
-    match get_instr_output fenv instr with
-    | None -> false
-    | Some data ->
-      let u1, u2 = expr_of_llvalue v1, expr_of_llvalue v2 in
-      is_may_alias_exp fenv.fenv_prog data u1 u2
-  ;;
-
-  let check_must_alias (fenv : func_env) (instr : instr) v1 v2 : bool =
-    let _ =
-      debug
-        ("Checking MustAlias in env(" ^ fenv.fenv_id ^ ")" ^ " of function: "
-       ^ func_name fenv.fenv_func) in
-    match get_instr_output fenv instr with
-    | None -> false
-    | Some data ->
-      let u1, u2 = expr_of_llvalue v1, expr_of_llvalue v2 in
-      is_must_alias_exp fenv.fenv_prog data u1 u2
-  ;;
-
-  let check_no_alias (fenv : func_env) (instr : instr) v1 v2 : bool =
-    match get_instr_output fenv instr with
-    | None -> false
-    | Some data ->
-      let u1, u2 = expr_of_llvalue v1, expr_of_llvalue v2 in
-      is_no_alias_exp fenv.fenv_prog data u1 u2
-  ;;
-
-  let check_assertion (fenvs : func_env list) (ast : AS.assertion)
-      : bool option
-    =
-    let instr = ast.AS.ast_instr in
-    match ast.AS.ast_type with
-    | AS.Assert ->
-      (match ast.AS.ast_predicate with
-      | AS.NoAlias (v1, v2) ->
-        let res =
-          List.for_all ~f:(fun fe -> check_no_alias fe instr v1 v2) fenvs in
-        Some res
-      | AS.MayAlias (v1, v2) ->
-        let res =
-          List.exists
-            ~f:(fun fe ->
-              if !dfa_pointer_conservative
-              then check_may_alias fe instr v1 v2
-              else true)
-            fenvs in
-        Some res
-      | AS.MustAlias (v1, v2) ->
-        let res =
-          List.for_all ~f:(fun fe -> check_must_alias fe instr v1 v2) fenvs
-        in
-        Some res
-      | _ -> None)
-    | AS.Refute ->
-      (match ast.AS.ast_predicate with
-      | AS.NoAlias (v1, v2) ->
-        let res =
-          List.exists
-            ~f:(fun fe ->
-              if !dfa_pointer_conservative
-              then check_may_alias fe instr v1 v2
-              else true)
-            fenvs in
-        Some res
-      | AS.MayAlias (v1, v2) ->
-        let res =
-          List.for_all
-            ~f:(fun fe ->
-              if !dfa_pointer_conservative
-              then check_no_alias fe instr v1 v2
-              else true)
-            fenvs in
-        Some res
-      | AS.MustAlias (v1, v2) ->
-        let res =
-          List.for_all
-            ~f:(fun fe ->
-              check_no_alias fe instr v1 v2 || check_may_alias fe instr v1 v2)
-            fenvs in
-        Some res
-      | _ -> None)
-  ;;
-
-  let check_assertions (penv : prog_env) (func : func) : int =
-    let assertions = AS.find_alias_assertions func in
-    let fenvs =
-      match Hashtbl.find penv.penv_func_envs func with
-      | None -> []
-      | Some fenvs -> fenvs in
-    let num_checked_assertions = ref 0 in
-    let _ =
-      List.iter
-        ~f:(fun ast ->
-          match check_assertion fenvs ast with
-          | Some res ->
-            let _ = incr num_checked_assertions in
-            let _ =
-              if res then incr num_valid_asserts else incr num_invalid_asserts
-            in
-            print (AS.pr_assertion_status func ast res)
-          | None -> ())
-        assertions in
-    !num_checked_assertions
-  ;;
 end
 
 (*******************************************************************
@@ -3730,4 +3611,8 @@ end
 module Analysis = struct
   include PointerTransfer
   include DF.ForwardDataFlow (PointerTransfer)
+
+  let is_may_alias_exp = PointerDomain.is_may_alias_exp
+  let is_must_alias_exp = PointerDomain.is_must_alias_exp
+  let is_no_alias_exp = PointerDomain.is_no_alias_exp
 end

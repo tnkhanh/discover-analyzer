@@ -116,6 +116,15 @@ let llvm_simplify = ref true
 let llvm_optimize = ref true
 let llvm_normalize = ref true
 
+(*----------------------------------
+ * Settings for assertion checking
+ *---------------------------------*)
+
+let assert_all = ref false
+let assert_range = ref false
+let assert_pointer = ref false
+
+
 (*-----------------------------
  * Settings for bug detection
  *----------------------------*)

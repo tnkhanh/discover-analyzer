@@ -18,6 +18,11 @@ let enable_only_bug_type (bug_type : bool ref) : unit =
   bug_type := true
 ;;
 
+let enable_only_assertion_type (assert_type : bool ref) : unit =
+  let _ = assert_all := false in
+  assert_type := true
+;;
+
 let enable_concise_output () : unit =
   RP.hide_warning_message := true
 
@@ -204,7 +209,16 @@ and arguments_raw =
       "Enable/disable compute used globals in function pointers",
       Arg.Bool (fun b -> dfa_used_globals_in_func_ptrs := b) );
     (*--------------------------------------------------------
-     * bug passes
+     * Assertion checking
+     *--------------------------------------------------------*)
+    ( [ "--assertion-range" ],
+      "Check range assertions",
+      Arg.Unit (fun () -> enable_only_assertion_type assert_range) );
+    ( [ "--assertion-pointer" ],
+      "Check pointer assertions",
+      Arg.Unit (fun () -> enable_only_assertion_type assert_pointer) );
+    (*--------------------------------------------------------
+     * bug findings
      *--------------------------------------------------------*)
     ( [ "--bug-integer-overflow" ],
       "Find integer-overflow bugs",
