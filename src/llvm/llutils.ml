@@ -786,7 +786,7 @@ module Instr = struct
   let dst_of_instr_alloca (i : instr) : value =
     match instr_opcode i with
     | LO.Alloca -> llvalue_of_instr i
-    | _ -> errorh "dst_of_instr: not an instr Alloca: " pr_instr i
+    | _ -> herror "dst_of_instr: not an instr Alloca: " pr_instr i
   ;;
 
   (* Store *)
@@ -794,13 +794,13 @@ module Instr = struct
   let src_of_instr_store (i : instr) : value =
     match instr_opcode i with
     | LO.Store -> operand i 0
-    | _ -> errorh "src_of_instr: not an instr Store: " pr_instr i
+    | _ -> herror "src_of_instr: not an instr Store: " pr_instr i
   ;;
 
   let dst_of_instr_store (i : instr) : value =
     match instr_opcode i with
     | LO.Store -> operand i 1
-    | _ -> errorh "dst_of_instr: not an instr Store: " pr_instr i
+    | _ -> herror "dst_of_instr: not an instr Store: " pr_instr i
   ;;
 
   (* Load *)
@@ -808,13 +808,13 @@ module Instr = struct
   let src_of_instr_load (i : instr) : value =
     match instr_opcode i with
     | LO.Load -> operand i 0
-    | _ -> errorh "src_of_instr: not an instr Load: " pr_instr i
+    | _ -> herror "src_of_instr: not an instr Load: " pr_instr i
   ;;
 
   let dst_of_instr_load (i : instr) : value =
     match instr_opcode i with
     | LO.Load -> llvalue_of_instr i
-    | _ -> errorh "dst_of_instr: not an instr Load: " pr_instr i
+    | _ -> herror "dst_of_instr: not an instr Load: " pr_instr i
   ;;
 
   (* InsertValue *)
@@ -822,13 +822,13 @@ module Instr = struct
   let src_of_instr_insertvalue (i : instr) : value =
     match instr_opcode i with
     | LO.InsertValue -> operand i 1
-    | _ -> errorh "src_of_instr: not an instr InsertValue: " pr_instr i
+    | _ -> herror "src_of_instr: not an instr InsertValue: " pr_instr i
   ;;
 
   let dst_of_instr_insertvalue (i : instr) : value =
     match instr_opcode i with
     | LO.InsertValue -> operand i 0
-    | _ -> errorh "dst_of_instr: not an instr InsertValue: " pr_instr i
+    | _ -> herror "dst_of_instr: not an instr InsertValue: " pr_instr i
   ;;
 
   (* ExtractValue *)
@@ -836,13 +836,13 @@ module Instr = struct
   let src_of_instr_extractvalue (i : instr) : value =
     match instr_opcode i with
     | LO.ExtractValue -> operand i 0
-    | _ -> errorh "src_of_instr: not an instr ExtractValue: " pr_instr i
+    | _ -> herror "src_of_instr: not an instr ExtractValue: " pr_instr i
   ;;
 
   let dst_of_instr_extractvalue (i : instr) : value =
     match instr_opcode i with
     | LO.ExtractValue -> llvalue_of_instr i
-    | _ -> errorh "dst_of_instr: not an instr ExtractValue: " pr_instr i
+    | _ -> herror "dst_of_instr: not an instr ExtractValue: " pr_instr i
   ;;
 
   (* GetElementPointer *)
@@ -850,13 +850,13 @@ module Instr = struct
   let src_of_instr_gep (i : instr) : value =
     match instr_opcode i with
     | LO.GetElementPtr -> operand i 0
-    | _ -> errorh "src_of_instr: not an instr GEP: " pr_instr i
+    | _ -> herror "src_of_instr: not an instr GEP: " pr_instr i
   ;;
 
   let dst_of_instr_gep (i : instr) : value =
     match instr_opcode i with
     | LO.GetElementPtr -> llvalue_of_instr i
-    | _ -> errorh "dst_of_instr: not an instr GEP: " pr_instr i
+    | _ -> herror "dst_of_instr: not an instr GEP: " pr_instr i
   ;;
 
   let indexes_of_instr_gep (i : instr) : value list =
@@ -873,14 +873,14 @@ module Instr = struct
     match instr_opcode i with
     | LO.GetElementPtr -> operand i 0
     | LO.ExtractValue -> operand i 0
-    | _ -> errorh "src_of_instr: not an instr GEP/ExtractValue: " pr_instr i
+    | _ -> herror "src_of_instr: not an instr GEP/ExtractValue: " pr_instr i
   ;;
 
   let dst_of_instr_gep_extract_value (i : instr) : value =
     match instr_opcode i with
     | LO.GetElementPtr -> llvalue_of_instr i
     | LO.ExtractValue -> llvalue_of_instr i
-    | _ -> errorh "dst_of_instr: not an instr GEP/ExtractValue: " pr_instr i
+    | _ -> herror "dst_of_instr: not an instr GEP/ExtractValue: " pr_instr i
   ;;
 
   let indexes_of_instr_gep_extract_value (i : instr) : value list =
@@ -896,13 +896,13 @@ module Instr = struct
   let src_of_instr_bitcast (i : instr) : value =
     match instr_opcode i with
     | LO.BitCast -> operand i 0
-    | _ -> errorh "src_of_instr: not an instr BitCast: " pr_instr i
+    | _ -> herror "src_of_instr: not an instr BitCast: " pr_instr i
   ;;
 
   let dst_of_instr_bitcast (i : instr) : value =
     match instr_opcode i with
     | LO.BitCast -> llvalue_of_instr i
-    | _ -> errorh "dst_of_instr: not an instr BitCast: " pr_instr i
+    | _ -> herror "dst_of_instr: not an instr BitCast: " pr_instr i
   ;;
 
   let rec get_root_src_of_bitcast (v : value) : value =
@@ -916,7 +916,7 @@ module Instr = struct
   let src_of_instr_return (i : instr) : value =
     match instr_opcode i with
     | LO.Ret -> operand i 0
-    | _ -> errorh "src_of_instr: not an instr FuncRes: " pr_instr i
+    | _ -> herror "src_of_instr: not an instr FuncRes: " pr_instr i
   ;;
 
   (* SExt *)
@@ -924,13 +924,13 @@ module Instr = struct
   let src_of_instr_sext (i : instr) : value =
     match instr_opcode i with
     | LO.SExt -> operand i 0
-    | _ -> errorh "src_of_instr: not an instr SExt: " pr_instr i
+    | _ -> herror "src_of_instr: not an instr SExt: " pr_instr i
   ;;
 
   let dst_of_instr_sext (i : instr) : value =
     match instr_opcode i with
     | LO.SExt -> llvalue_of_instr i
-    | _ -> errorh "dst_of_instr: not an instr SExt: " pr_instr i
+    | _ -> herror "dst_of_instr: not an instr SExt: " pr_instr i
   ;;
 
   (* ZExt *)
@@ -938,13 +938,13 @@ module Instr = struct
   let src_of_instr_zext (i : instr) : value =
     match instr_opcode i with
     | LO.ZExt -> operand i 0
-    | _ -> errorh "src_of_instr: not an instr ZExt: " pr_instr i
+    | _ -> herror "src_of_instr: not an instr ZExt: " pr_instr i
   ;;
 
   let dst_of_instr_zext (i : instr) : value =
     match instr_opcode i with
     | LO.ZExt -> llvalue_of_instr i
-    | _ -> errorh "dst_of_instr: not an instr ZExt: " pr_instr i
+    | _ -> herror "dst_of_instr: not an instr ZExt: " pr_instr i
   ;;
 
   (* Call *)
@@ -952,7 +952,7 @@ module Instr = struct
   let num_args_of_instr_call (i : instr) : int =
     match instr_opcode i with
     | LO.Call -> LL.num_arg_operands (llvalue_of_instr i)
-    | _ -> errorh "num_args_of: not an instr Call: " pr_instr i
+    | _ -> herror "num_args_of: not an instr Call: " pr_instr i
   ;;
 
   let callee_of_instr_call (i : instr) : func =
@@ -960,7 +960,7 @@ module Instr = struct
     | LO.Call ->
       let num_args = num_args_of_instr_call i in
       mk_func (operand i num_args)
-    | _ -> errorh "callee_of: not an instr Call: " pr_instr i
+    | _ -> herror "callee_of: not an instr Call: " pr_instr i
   ;;
 
   let arg_of_instr_call (i : instr) (idx : int) : value =
@@ -968,8 +968,8 @@ module Instr = struct
     | LO.Call ->
       if idx < num_args_of_instr_call i
       then operand i idx
-      else errorh "arg_of_instr_call: idx out of bound" pr_int idx
-    | _ -> errorh "arg_of: not an instr Call: " pr_instr i
+      else herror "arg_of_instr_call: idx out of bound" pr_int idx
+    | _ -> herror "arg_of: not an instr Call: " pr_instr i
   ;;
 
   let args_of_instr_call (i : instr) : values =
@@ -981,7 +981,7 @@ module Instr = struct
         args := !args @ [ operand i idx ]
       done;
       !args
-    | _ -> errorh "operand_args: not an instr Call: " pr_instr i
+    | _ -> herror "operand_args: not an instr Call: " pr_instr i
   ;;
 
   (* CallBr *)
@@ -989,7 +989,7 @@ module Instr = struct
   let num_args_of_instr_callbr (i : instr) : int =
     match instr_opcode i with
     | LO.CallBr -> LL.num_arg_operands (llvalue_of_instr i)
-    | _ -> errorh "num_args_of: not an instr CallBr: " pr_instr i
+    | _ -> herror "num_args_of: not an instr CallBr: " pr_instr i
   ;;
 
   let arg_of_instr_callbr (i : instr) (idx : int) : value =
@@ -997,8 +997,8 @@ module Instr = struct
     | LO.CallBr ->
       if idx < num_args_of_instr_call i
       then operand i idx
-      else errorh "arg_of_instr_call: idx out of bound" pr_int idx
-    | _ -> errorh "arg_of: not an instr Call: " pr_instr i
+      else herror "arg_of_instr_call: idx out of bound" pr_int idx
+    | _ -> herror "arg_of: not an instr Call: " pr_instr i
   ;;
 
   let args_of_instr_callbr (i : instr) : values =
@@ -1010,7 +1010,7 @@ module Instr = struct
         args := !args @ [ operand i idx ]
       done;
       !args
-    | _ -> errorh "operand_args: not an instr CallBr: " pr_instr i
+    | _ -> herror "operand_args: not an instr CallBr: " pr_instr i
   ;;
 
   let callee_of_instr_callbr (i : instr) : func =
@@ -1018,7 +1018,7 @@ module Instr = struct
     | LO.CallBr ->
       let num_args = num_args_of_instr_callbr i in
       mk_func (operand i num_args)
-    | _ -> errorh "callee_of: not an instr CallBr: " pr_instr i
+    | _ -> herror "callee_of: not an instr CallBr: " pr_instr i
   ;;
 
   (* Invoke *)
@@ -1026,7 +1026,7 @@ module Instr = struct
   let num_args_of_instr_invoke (i : instr) : int =
     match instr_opcode i with
     | LO.Invoke -> LL.num_arg_operands (llvalue_of_instr i)
-    | _ -> errorh "num_args_of: not an instr Invoke: " pr_instr i
+    | _ -> herror "num_args_of: not an instr Invoke: " pr_instr i
   ;;
 
   let callee_of_instr_invoke (i : instr) : func =
@@ -1034,19 +1034,19 @@ module Instr = struct
     | LO.Invoke ->
       let num_args = num_args_of_instr_invoke i in
       mk_func (operand i (num_args + 2))
-    | _ -> errorh "callee_of: not an instr Invoke: " pr_instr i
+    | _ -> herror "callee_of: not an instr Invoke: " pr_instr i
   ;;
 
   let unwind_dest_of_instr_invoke (i : instr) : block =
     match instr_opcode i with
     | LO.Invoke -> LL.get_unwind_dest (llvalue_of_instr i)
-    | _ -> errorh "unwind_dest_of: not an instr Invoke: " pr_instr i
+    | _ -> herror "unwind_dest_of: not an instr Invoke: " pr_instr i
   ;;
 
   let normal_dest_of_instr_invoke (i : instr) : block =
     match instr_opcode i with
     | LO.Invoke -> LL.get_normal_dest (llvalue_of_instr i)
-    | _ -> errorh "normal_dest_of: not an instr Invoke: " pr_instr i
+    | _ -> herror "normal_dest_of: not an instr Invoke: " pr_instr i
   ;;
 
   let arg_of_instr_invoke (i : instr) (idx : int) : value =
@@ -1054,8 +1054,8 @@ module Instr = struct
     | LO.Invoke ->
       if idx < num_args_of_instr_call i
       then operand i idx
-      else errorh "arg_of_instr_invoke: idx out of bound" pr_int idx
-    | _ -> errorh "arg_of: not an instr Invoke: " pr_instr i
+      else herror "arg_of_instr_invoke: idx out of bound" pr_int idx
+    | _ -> herror "arg_of: not an instr Invoke: " pr_instr i
   ;;
 
   let args_of_instr_invoke (i : instr) : values =
@@ -1067,7 +1067,7 @@ module Instr = struct
         args := !args @ [ operand i idx ]
       done;
       !args
-    | _ -> errorh "operand_args: not an instr Invoke: " pr_instr i
+    | _ -> herror "operand_args: not an instr Invoke: " pr_instr i
   ;;
 
   (* Function application instructions are: Call, CallBr, Invoke *)
@@ -1078,7 +1078,7 @@ module Instr = struct
     | LO.CallBr -> num_args_of_instr_call i
     | LO.Invoke -> num_args_of_instr_invoke i
     | _ ->
-      errorh "num_args_of_instr_func_app: not a callable instr: " pr_instr i
+      herror "num_args_of_instr_func_app: not a callable instr: " pr_instr i
   ;;
 
   let callee_of_instr_func_call (i : instr) : func =
@@ -1087,7 +1087,7 @@ module Instr = struct
     | LO.CallBr -> callee_of_instr_callbr i
     | LO.Invoke -> callee_of_instr_invoke i
     | _ ->
-      errorh "callee_of_instr_func_call: not a callable instr: " pr_instr i
+      herror "callee_of_instr_func_call: not a callable instr: " pr_instr i
   ;;
 
   let arg_of_instr_func_app (i : instr) (idx : int) : value =
@@ -1095,7 +1095,7 @@ module Instr = struct
     | LO.Call -> arg_of_instr_call i idx
     | LO.CallBr -> arg_of_instr_callbr i idx
     | LO.Invoke -> arg_of_instr_invoke i idx
-    | _ -> errorh "arg_of_instr_func_app: not a callable instr: " pr_instr i
+    | _ -> herror "arg_of_instr_func_app: not a callable instr: " pr_instr i
   ;;
 
   let args_of_instr_func_app (i : instr) : values =
@@ -1103,21 +1103,21 @@ module Instr = struct
     | LO.Call -> args_of_instr_call i
     | LO.CallBr -> args_of_instr_callbr i
     | LO.Invoke -> args_of_instr_invoke i
-    | _ -> errorh "args_of_instr_func_app: not a callable instr: " pr_instr i
+    | _ -> herror "args_of_instr_func_app: not a callable instr: " pr_instr i
   ;;
 
   let get_origin_src_of_memcpy (i : instr) : value =
     let callee = callee_of_instr_func_call i in
     if is_func_memcpy callee
     then operand (mk_instr (operand i 0)) 0
-    else errorh "get_origin_src_of_memcpy: not a memcopy Call: " pr_instr i
+    else herror "get_origin_src_of_memcpy: not a memcopy Call: " pr_instr i
   ;;
 
   let get_origin_dst_of_memcpy (i : instr) : value =
     let callee = callee_of_instr_func_call i in
     if is_func_memcpy callee
     then operand (mk_instr (operand i 1)) 0
-    else errorh "get_origin_dst_of_memcpy: not a memcopy Call: " pr_instr i
+    else herror "get_origin_dst_of_memcpy: not a memcopy Call: " pr_instr i
   ;;
 
   (* Icmp *)
@@ -1125,7 +1125,7 @@ module Instr = struct
   let predicate_of_instr_icmp (i : instr) : LL.Icmp.t option =
     match instr_opcode i with
     | LO.ICmp -> LL.icmp_predicate (llvalue_of_instr i)
-    | _ -> errorh "predicate: not an instr Icmp: " pr_instr i
+    | _ -> herror "predicate: not an instr Icmp: " pr_instr i
   ;;
 
   (* Fcmp *)
@@ -1133,7 +1133,7 @@ module Instr = struct
   let predicate_of_instr_fcmp (i : instr) : LL.Fcmp.t option =
     match instr_opcode i with
     | LO.FCmp -> LL.fcmp_predicate (llvalue_of_instr i)
-    | _ -> errorh "predicate: not an instr FCmp: " pr_instr i
+    | _ -> herror "predicate: not an instr FCmp: " pr_instr i
   ;;
 
   (* Br *)
@@ -1141,7 +1141,7 @@ module Instr = struct
   let branch_of_instr_br (i : instr) =
     match instr_opcode i with
     | LO.Br | LO.IndirectBr -> LL.get_branch (llvalue_of_instr i)
-    | _ -> errorh "branch: not an instr Br: " pr_instr i
+    | _ -> herror "branch: not an instr Br: " pr_instr i
   ;;
 
   (* PHI Node *)
@@ -1154,19 +1154,19 @@ module Instr = struct
         operands := !operands @ [ operand i idx ]
       done;
       !operands
-    | _ -> errorh "operands: not an instr PHI: " pr_instr i
+    | _ -> herror "operands: not an instr PHI: " pr_instr i
   ;;
 
   let src_and_origin_of_instr_phi (i : instr) : (value * block) list =
     match instr_opcode i with
     | LO.PHI -> LL.incoming (llvalue_of_instr i)
-    | _ -> errorh "operands: not an instr PHI: " pr_instr i
+    | _ -> herror "operands: not an instr PHI: " pr_instr i
   ;;
 
   let dst_of_instr_phi (i : instr) : value =
     match instr_opcode i with
     | LO.PHI -> llvalue_of_instr i
-    | _ -> errorh "dst_of_instr: not an instr PHI: " pr_instr i
+    | _ -> herror "dst_of_instr: not an instr PHI: " pr_instr i
   ;;
 
   let is_phi_of_same_src_and_origin (i1 : instr) (i2 : instr) : bool =
@@ -1308,7 +1308,7 @@ module Path = struct
 
   let extract_icmp_predicate (cond : value) : predicate =
     match LL.icmp_predicate cond with
-    | None -> errorh "extract_icmp_predicate: not Icmp cond: " pr_value cond
+    | None -> herror "extract_icmp_predicate: not Icmp cond: " pr_value cond
     | Some cmp ->
       let lhs, rhs = LL.operand cond 0, LL.operand cond 1 in
       mk_pred_icmp cmp lhs rhs
@@ -1316,7 +1316,7 @@ module Path = struct
 
   let extract_fcmp_predicate (cond : value) : predicate =
     match LL.fcmp_predicate cond with
-    | None -> errorh "extract_fcmp_predicate: not Fcmp cond: " pr_value cond
+    | None -> herror "extract_fcmp_predicate: not Fcmp cond: " pr_value cond
     | Some cmp ->
       let lhs, rhs = LL.operand cond 0, LL.operand cond 1 in
       mk_pred_fcmp cmp lhs rhs
@@ -1327,7 +1327,7 @@ module Path = struct
     | LO.Trunc ->
       (* FIXME: need better handling of Trunc, maybe by unfolding? *)
       mk_pred_true ()
-    | _ -> errorh "extract_trunc_predicate: not a Trunc cond: " pr_value cond
+    | _ -> herror "extract_trunc_predicate: not a Trunc cond: " pr_value cond
   ;;
 
   let extract_zext_predicate (cond : value) : predicate =
@@ -1335,7 +1335,7 @@ module Path = struct
     | LO.ZExt ->
       (* FIXME: need better handling of ZExt? *)
       mk_pred_true ()
-    | _ -> errorh "extract_zext_predicate: not a ZExt cond: " pr_value cond
+    | _ -> herror "extract_zext_predicate: not a ZExt cond: " pr_value cond
   ;;
 
   let extract_br_cond_predicate (cond : value) : predicate =
@@ -1538,7 +1538,7 @@ module Func = struct
     let v = llvalue_of_func f in
     match LL.classify_value v with
     | LV.Function -> fold_left_params ~f:(fun acc p -> acc @ [ p ]) ~init:[] f
-    | _ -> errorh "formal_params_of_func: not an actual function: " pr_value v
+    | _ -> herror "formal_params_of_func: not an actual function: " pr_value v
   ;;
 
   let entry_block (f : func) : block = LL.entry_block (llvalue_of_func f)
@@ -1585,7 +1585,7 @@ module Func = struct
     if is_user_func f || is_init_func f
     then (
       match Hashtbl.find prog.prog_func_data.pfd_used_globals f with
-      | None -> errorh "get_func_used_globals: no infor of: " func_name f
+      | None -> herror "get_func_used_globals: no infor of: " func_name f
       | Some gs -> gs)
     else []
   ;;
@@ -1650,7 +1650,7 @@ module Metadata = struct
   ;;
 
   let get_original_name_of_llvalue (v : LL.llvalue) : string option =
-    (* let _ = printh "get_original_name_of_llvalue: " LI.pr_value v in *)
+    (* let _ = hprint "get_original_name_of_llvalue: " LI.pr_value v in *)
     match LL.classify_value v with
     | LV.Instruction _ ->
       let func = func_of_instr (mk_instr v) in
@@ -1664,7 +1664,7 @@ module Metadata = struct
                   let callee = callee_of_instr_func_call instr in
                   if is_func_llvm_debug_declare callee
                      || is_func_llvm_debug_value callee
-                  then () (* printh "Instr: " pr_instr instr *)
+                  then () (* hprint "Instr: " pr_instr instr *)
                   else ()))
               blk)
           func in
@@ -1683,13 +1683,13 @@ module Metadata = struct
       let line = LD.di_location_get_line ~location:instr_md in
       let column = LD.di_location_get_column ~location:instr_md in
       let scope_md = LD.di_location_get_scope ~location:instr_md in
-      (* let _ = printh "Line: " pr_int line in *)
-      (* let _ = printh "Column: " pr_int column in *)
+      (* let _ = hprint "Line: " pr_int line in *)
+      (* let _ = hprint "Column: " pr_int column in *)
       let filename =
         match LD.di_scope_get_file ~scope:scope_md with
         | None -> ""
         | Some file_md -> LD.di_file_get_filename ~file:file_md in
-      (* let _ = printh "Filename: " pr_id filename in *)
+      (* let _ = hprint "Filename: " pr_id filename in *)
       Some (mk_position filename line line column column)
   ;;
 
@@ -1931,8 +1931,8 @@ module Program = struct
   let update_funcs_of_pointer (prog : program) (v : value) (funcs : funcs) =
     let curr_funcs = get_current_funcs_of_pointer prog v in
     let new_funcs = List.concat_dedup curr_funcs funcs ~equal:equal_func in
-    let _ = debugh "update func pointer of: " pr_value v in
-    let _ = debugh "   new funcs: " func_names new_funcs in
+    let _ = hdebug "update func pointer of: " pr_value v in
+    let _ = hdebug "   new funcs: " func_names new_funcs in
     Hashtbl.set prog.prog_func_data.pfd_funcs_of_pointer ~key:v ~data:new_funcs
   ;;
 
@@ -1943,7 +1943,7 @@ module Program = struct
       | LO.Call | LO.Invoke ->
         if is_func_llvm_debug (callee_of_instr_func_call instr)
         then (
-          let _ = printh "instr: " pr_instr instr in
+          let _ = hprint "instr: " pr_instr instr in
           (* let v0, v1 = operand instr 0, operand instr 1 in *)
           let vname = pr_value (operand instr 0) in
           let sname = extract_name_from_metadata (operand instr 1) in
@@ -2058,7 +2058,7 @@ module Program = struct
         match fs with
         | [] -> acc
         | f :: nfs ->
-          (* let _ = printh "Update globals of func: " func_name f in *)
+          (* let _ = hprint "Update globals of func: " func_name f in *)
           let gs = Hashtbl.find_default tbl_used_globals f ~default:[] in
           let ngs = ref gs in
           let callees =

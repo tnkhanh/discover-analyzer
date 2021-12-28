@@ -28,7 +28,7 @@ let check_bug_integer_overflow (pdata : program_data) (pbug : potential_bug)
   | IntegerOverflow (Some iof) ->
     if !bug_integer_all || !bug_integer_overflow
     then (
-      let _ = debugh "Checking Potential Bug: " pr_potential_bug pbug in
+      let _ = hdebug "Checking Potential Bug: " pr_potential_bug pbug in
       let func = LI.func_of_instr iof.iof_instr in
       let%bind penv_rng = pdata.pdata_env_range in
       let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
@@ -131,7 +131,7 @@ let check_bug_division_by_zero (pdata : program_data) (pbug : potential_bug)
   | DivisionByZero None ->
     if !bug_all || !bug_integer_all || !bug_divizion_by_zero
     then (
-      let _ = debugh "Checking Potential Bug: " pr_potential_bug pbug in
+      let _ = hdebug "Checking Potential Bug: " pr_potential_bug pbug in
       let func = LI.func_of_instr pbug.pbug_instr in
       let%bind penv_rng = pdata.pdata_env_range in
       let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
@@ -205,7 +205,8 @@ let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
               let reason =
                 ("Buffer at pointer " ^ LI.pr_value ptr)
                 ^ (" contains " ^ pr_int num_elem ^ " elements;\n")
-                ^ "accessing index is " ^ RG.pr_interval_concise index_itv in
+                ^ "accessing index is "
+                ^ RG.pr_interval_concise index_itv in
               Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
             else None)
           else (
@@ -216,7 +217,8 @@ let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
                 if acc != None
                 then acc
                 else (
-                  let%bind data_msz = MS.get_instr_output fenv_msz bof.bof_instr in
+                  let%bind data_msz =
+                    MS.get_instr_output fenv_msz bof.bof_instr in
                   match MS.get_size ptr data_msz with
                   | Bottom -> None
                   | Range sz ->
@@ -230,17 +232,18 @@ let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
                         ("Buffer at pointer " ^ LI.pr_value ptr ^ " contains ")
                         ^ ("at most " ^ II.pr_bound max_num_elem
                          ^ " elements;\n")
-                        ^ "accessing index is " ^ RG.pr_interval_concise index_itv
-                      in
+                        ^ "accessing index is "
+                        ^ RG.pr_interval_concise index_itv in
                       Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
-                    else if II.compare_interval_ub_bound index_itv min_num_elem >= 0
+                    else if II.compare_interval_ub_bound index_itv min_num_elem
+                            >= 0
                     then (
                       let reason =
                         ("Buffer at pointer " ^ LI.pr_value ptr
                        ^ " may contain ")
                         ^ ("only " ^ II.pr_bound min_num_elem ^ " elements;\n")
-                        ^ "accessing index is " ^ RG.pr_interval_concise index_itv
-                      in
+                        ^ "accessing index is "
+                        ^ RG.pr_interval_concise index_itv in
                       Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
                     else None))
               ~init:None fenvs_msz)))
@@ -289,7 +292,7 @@ let find_bug_memory_leak (pdata : program_data) : bug list =
 let find_bugs (pdata : program_data) : unit =
   let _ = println "Checking Bugs..." in
   let _ =
-    ddebugh ~header:true "Potential bugs: " pr_potential_bugs
+    hddebug ~header:true "Potential bugs: " pr_potential_bugs
       pdata.pdata_potential_bugs in
   let bugs =
     find_bug_memory_leak pdata

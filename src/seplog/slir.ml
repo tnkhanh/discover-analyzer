@@ -470,7 +470,7 @@ let typ_of_exp e =
 let get_pointer_elem_typ t =
   match t with
   | TPointer elem_typ -> elem_typ
-  | _ -> errorh "get_elem_typ: not a pointer type" pr_type t
+  | _ -> herror "get_elem_typ: not a pointer type" pr_type t
 ;;
 
 (*******************************************************************
@@ -1426,8 +1426,8 @@ let translate_llvalue (v : LL.llvalue) : exp =
         | Some i -> mk_exp_string i)
       | TStruct _ | TPointer _ -> mk_exp_var_typ vname typ
       | TVoid -> mk_void ()
-      | TUnk -> errorh "translate_llvalue: unknown type of: " LI.pr_value v
-      | _ -> errorh "translate_llvalue: unhandled typ of" LI.pr_value v in
+      | TUnk -> herror "translate_llvalue: unknown type of: " LI.pr_value v
+      | _ -> herror "translate_llvalue: unhandled typ of" LI.pr_value v in
     res)
 ;;
 
@@ -1461,7 +1461,7 @@ let extract_pure_form (f : formula) : pure_form =
     | Pure p -> p
     | Emp -> mk_pf_true ()
     | Data _ | View _ | Iter _ | Array _ | Star _ | Wand _ | Septract _ ->
-      errorh "extract_pure_form: not a pure formula" pr_f f
+      herror "extract_pure_form: not a pure formula" pr_f f
     | Exists (vs, g) -> mk_pexists vs (extract g) in
   extract f
 ;;

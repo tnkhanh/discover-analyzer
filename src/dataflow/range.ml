@@ -115,7 +115,7 @@ struct
         match MP.add acc ~key:ne ~data:i with
         | `Ok res -> res
         | `Duplicate ->
-          let _ = warningh "Range.subst_data: duplicate expr: " pr_expr ne in
+          let _ = hwarning "Range.subst_data: duplicate expr: " pr_expr ne in
           acc)
       ~init:MP.empty d
   ;;
@@ -156,7 +156,7 @@ struct
         let b =
           match extract_constant_bound lhs with
           | Some b -> b
-          | None -> errorh "extract_const_bound_lhs: not found:" pr_expr lhs
+          | None -> herror "extract_const_bound_lhs: not found:" pr_expr lhs
         in
         match cmp with
         | LC.Eq -> MP.of_alist_exn [ rhs, interval_of_bound b ]
@@ -174,7 +174,7 @@ struct
         let b =
           match extract_constant_bound rhs with
           | Some b -> b
-          | None -> errorh "extract_const_bound_rhs: not found:" pr_expr rhs
+          | None -> herror "extract_const_bound_rhs: not found:" pr_expr rhs
         in
         match cmp with
         | LC.Eq -> MP.of_alist_exn [ lhs, interval_of_bound b ]
@@ -258,7 +258,7 @@ struct
           MP.of_alist_exn [ lhs, nilhs; rhs, nirhs ])
     | PFcmp _ -> MP.empty
     | PNeg _ | PConj _ | PDisj _ ->
-      errorh "extract_data_from_predicate: need to handle: " pr_predicate p
+      herror "extract_data_from_predicate: need to handle: " pr_predicate p
   ;;
 
   let is_data_satisfied_predicate (d : t) (p : predicate) : bool =
@@ -326,7 +326,7 @@ struct
     let params = func_params func in
     List.fold_left
       ~f:(fun acc param ->
-        let _ = debugh "param: " pr_param param in
+        let _ = hdebug "param: " pr_param param in
         let expr = mk_expr_var (llvalue_of_param param) in
         if is_type_integer (type_of_expr expr)
         then (
@@ -413,9 +413,9 @@ struct
     | LO.PHI ->
       let opr0 = expr_operand ins 0 in
       let itv = ref (get_interval opr0 input) in
-      let _ = debugh "Before refine widening: " pr_bool widen in
+      let _ = hdebug "Before refine widening: " pr_bool widen in
       let widen = refine_widening func ins widen in
-      let _ = debugh "After refine widening: " pr_bool widen in
+      let _ = hdebug "After refine widening: " pr_bool widen in
       for i = 1 to num_operands ins - 1 do
         let opri = expr_operand ins i in
         let itvi = get_interval opri input in
@@ -457,7 +457,7 @@ struct
       (* TODO: function call for inter-procedural analysis *)
       let callee = callee_of_instr_func_call ins in
       let fname = func_name callee in
-      let _ = printh "Function name: " pr_str fname in
+      let _ = hprint "Function name: " pr_str fname in
       if String.equal fname __assume_range
       then (
         let v = operand ins 0 in

@@ -32,7 +32,7 @@ let mark_potential_bugs (pdata : program_data) : program_data =
   let _ = ddebug "Annotating Potential Bug..." in
   let prog = pdata.pdata_program in
   let pbugs = BG.mark_potential_bugs prog in
-  let _ = ddebugh "POTENTIAL BUGS:" BG.pr_potential_bugs pbugs in
+  let _ = hddebug "POTENTIAL BUGS:" BG.pr_potential_bugs pbugs in
   { pdata with pdata_potential_bugs = pbugs }
 ;;
 
@@ -52,7 +52,7 @@ let perform_range_analysis (pdata : program_data) : program_data =
     let penv = RG.analyze_program prog in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then printh ~header:true "RANGE INFO" RG.pr_prog_env penv in
+      then hprint ~header:true "RANGE INFO" RG.pr_prog_env penv in
     { pdata with pdata_env_range = Some penv })
   else pdata
 ;;
@@ -66,7 +66,7 @@ let perform_undef_analysis (pdata : program_data) : program_data =
     let _ = record_task_time "Undef analysis" time in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then printh ~header:true "UNDEF INFO" UA.pr_prog_env penv in
+      then hprint ~header:true "UNDEF INFO" UA.pr_prog_env penv in
     { pdata with pdata_env_undef = Some penv })
   else pdata
 ;;
@@ -79,7 +79,7 @@ let perform_memsize_analysis (pdata : program_data) : program_data =
     let penv = MS.analyze_program prog in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then printh ~header:true "MEMSIZE INFO" MS.pr_prog_env penv in
+      then hprint ~header:true "MEMSIZE INFO" MS.pr_prog_env penv in
     { pdata with pdata_env_memsize = Some penv })
   else pdata
 ;;
@@ -93,7 +93,7 @@ let perform_pointer_analysis (pdata : program_data) : program_data =
     let _ = record_task_time "Pointer analysis" time in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then printh ~header:true "POINTER INFO" PA.pr_prog_env penv in
+      then hprint ~header:true "POINTER INFO" PA.pr_prog_env penv in
     { pdata with pdata_env_pointer = Some penv })
   else pdata
 ;;
@@ -122,7 +122,7 @@ let report_analysis_stats (pdata : program_data) : unit =
  *******************************************************************)
 
 let analyze_program (prog : LI.program) : unit =
-  let _ = printh ~ruler:`Long "Analyze program by " pr_dfa_mode !dfa_mode in
+  let _ = hprint ~ruler:`Long "Analyze program by " pr_dfa_mode !dfa_mode in
   let pdata =
     prog |> mk_program_data |> perform_pre_analysis_passes
     |> perform_main_analysis_passes in
