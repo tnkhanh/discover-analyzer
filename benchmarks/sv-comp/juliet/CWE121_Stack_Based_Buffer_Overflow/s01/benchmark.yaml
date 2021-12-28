@@ -1,0 +1,4 @@
+standard:
+  clang-option: -I lib/discover
+  discover-option: --dfa-pointer --no-debug --no-print
+  targets: "*.c"
