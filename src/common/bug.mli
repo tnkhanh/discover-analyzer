@@ -39,14 +39,9 @@ type memory_leak =
 
 type null_pointer_deref = { npe_pointer : Llir.value }
 
-type buffer_size =
-  | NumElem of (int64 * Llir.datatype)
-  | MemSizeOf of Llir.value
-
 type buffer_overflow =
   { bof_pointer : Llir.value;
     bof_elem_index : Llir.value;
-    bof_buff_size : buffer_size;
     bof_write_operation : bool;
     bof_stack_based : bool;
     bof_instr : Llir.instr

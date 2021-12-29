@@ -41,7 +41,16 @@ Coding convention
 
        let do_not_touch (x : t) (y : t) (z : t) = [
          x; y; z
-       ] [@ocamlformat "disable"]
+       ] [@@ocamlformat "disable"]
+
+       type bound =
+         | PInf (* positive infinity *)
+         | NInf (* negative infinity *)
+         | Int64 of int64 (* integer 64 bit *)
+         | EInt of eint (* integer in 2-exponential representation *)
+         | BInt of bint (* big integer *)
+       [@@ocamlformat "disable"]
+
 
 - Coding standards follow the book `Real World Ocaml
   <https://dev.realworldocaml.org/index.html>`_ (free, online).

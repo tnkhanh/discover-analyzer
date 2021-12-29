@@ -126,7 +126,7 @@ let generate_instrumented_func_name anntyp (bug : BG.bug_type) ins_type =
       | DivisionByZero _ -> "__assert_division_by_zero"
       | _ ->
         let _ =
-          warningh
+          hwarning
             "generate_instrumented_func_name: bug type not yet supported: "
             BG.pr_bug_type bug in
         "__assert_unsupported_instrumented_func")
@@ -140,7 +140,7 @@ let generate_instrumented_func_name anntyp (bug : BG.bug_type) ins_type =
       | DivisionByZero _ -> "__refute_division_by_zero"
       | _ ->
         let _ =
-          warningh
+          hwarning
             "generate_instrumented_func_name: bug type not yet supported: "
             BG.pr_bug_type bug in
         "__refute_unsupported_instrumented_func") in
@@ -223,18 +223,18 @@ let apply_bug_annotation
   let pos = get_annot_position end_ann in
   match matched_anns with
   | [] ->
-    errorh "Bug annotation: ending without start at " pr_annot_position pos
+    herror "Bug annotation: ending without start at " pr_annot_position pos
   | (ann, ins_op) :: other_matched_anns ->
     (match ann with
     | Bug_start (pos, bugs) ->
       (match ins_op with
       | None ->
-        errorh "Bug annotation: no instr for annot at " pr_annot_position pos
+        herror "Bug annotation: no instr for annot at " pr_annot_position pos
       | Some instr ->
         let _ = apply_annotation ann_type instr bugs modul in
         other_matched_anns)
     | Bug_end _ | Safe_start _ | Safe_end _ | Skip ->
-      errorh "Bug annotation: unmatch ending at " pr_annot_position pos)
+      herror "Bug annotation: unmatch ending at " pr_annot_position pos)
 ;;
 
 let rec resolve
@@ -289,7 +289,7 @@ let rec resolve
 let instrument_bug_annotation annots source_name (modul : LL.llmodule) : unit =
   let _ =
     if !print_instrumented_prog
-    then debugh ~ruler:`Long "Uninstrumented: " LL.string_of_llmodule modul
+    then hdebug ~ruler:`Long "Uninstrumented: " LL.string_of_llmodule modul
   in
   let finstr =
     Some
@@ -313,7 +313,7 @@ let instrument_bug_annotation annots source_name (modul : LL.llmodule) : unit =
   let sorted_ins = List.stable_sort ~compare tagged_instr in
   let _ = resolve annots sorted_ins [] modul in
   if !print_instrumented_prog
-  then debugh ~ruler:`Long "Instrumented" LL.string_of_llmodule modul
+  then hdebug ~ruler:`Long "Instrumented" LL.string_of_llmodule modul
 ;;
 
 (*we need source_name to ignore instructions with location outside the source file *)

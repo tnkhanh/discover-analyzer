@@ -84,16 +84,9 @@ module MemoryBug = struct
 
   type null_pointer_deref = { npe_pointer : value }
 
-  (* FIXME: need to change name of this variant type *)
-  type buffer_size =
-    | NumElem of (int64 * datatype) (* number of element of type datatype *)
-    | MemSizeOf of value
-  (* size of allocated memory of pointer *)
-
   type buffer_overflow =
     { bof_pointer : value;
       bof_elem_index : value;
-      bof_buff_size : buffer_size;
       bof_write_operation : bool;
       bof_stack_based : bool;
       bof_instr : instr
@@ -221,9 +214,9 @@ let pr_bug_type (btype : bug_type) : string =
 
 let pr_potential_bug (pbug : potential_bug) : string =
   "Potential "
-  ^ (pr_bug_type pbug.pbug_type ^ " bug at instruction: \n")
-  ^ sprintf "  %s\n" (pr_instr pbug.pbug_instr)
-  ^ sprintf "of function: %s\n" (func_name pbug.pbug_func)
+  ^ (pr_bug_type pbug.pbug_type ^ " bug at:\n")
+  ^ sprintf "+ instruction:\n  %s\n" (pr_instr pbug.pbug_instr)
+  ^ sprintf "+ function: %s\n" (func_name pbug.pbug_func)
 ;;
 
 let pr_potential_bugs (pbugs : potential_bug list) : string =
@@ -254,6 +247,7 @@ let pr_bug_name (bug : bug) : string = pr_bug_type bug.bug_type
 
 let pr_bugs (bugs : bug list) : string =
   pr_list_plain ~sep:"\n\n" ~f:pr_bug bugs
+;;
 
 (*******************************************************************
  ** constructors
@@ -323,17 +317,6 @@ let mk_potential_division_by_zero (ins : instr) : potential_bugs =
  * Potential memory bugs
  *------------------------------------------*)
 
-let compute_buffer_size (ptr : value) : buffer_size =
-  let elem_typ = LL.element_type (LL.type_of ptr) in
-  match LL.classify_type elem_typ with
-  (* pointer to an array *)
-  | LL.TypeKind.Array ->
-    let size = Int64.of_int (LL.array_length elem_typ) in
-    NumElem (size, elem_typ)
-  (* pointer to a dynamically allocated memory *)
-  | _ -> MemSizeOf ptr
-;;
-
 (* let compute_buffer_accessing_index () *)
 
 let mk_potential_buffer_overflow (ins : instr) : potential_bugs =
@@ -343,7 +326,6 @@ let mk_potential_buffer_overflow (ins : instr) : potential_bugs =
       match instr_opcode ins with
       | LO.GetElementPtr ->
         let ptr = src_of_instr_gep ins in
-        let size = compute_buffer_size ptr in
         let index =
           let elem_typ = LL.element_type (LL.type_of ptr) in
           let idxs = indexes_of_instr_gep ins in
@@ -353,34 +335,30 @@ let mk_potential_buffer_overflow (ins : instr) : potential_bugs =
             (match List.nth idxs 1 with
             | Some idx -> idx
             | None ->
-              errorh "mk_potential_buffer_overflow: array index not available:"
+              herror "mk_potential_buffer_overflow: array index not available:"
                 pr_instr ins)
           (* pointer to a dynamically allocated memory *)
           | _ -> List.hd_exn idxs in
         { bof_instr = ins;
           bof_pointer = ptr;
-          bof_buff_size = size;
           bof_elem_index = index;
-          (* FIXME: Khanh, please help to compute *)
           bof_write_operation = false;
-          bof_stack_based = false (* FIXME: Khanh, please help to compute *)
+          bof_stack_based = false
         }
       | LO.Call | LO.Invoke ->
         let dst_ptr = operand ins 0 in
         let callee = callee_of_instr_func_call ins in
         if is_func_llvm_memcpy callee || is_func_llvm_memmove callee
         then (
-          let size = compute_buffer_size dst_ptr in
           let index = operand ins 2 in
           { bof_instr = ins;
             bof_pointer = dst_ptr;
-            bof_buff_size = size;
             bof_elem_index = index;
             bof_write_operation = true;
             bof_stack_based = false
           })
-        else errorh "mk_buffer_overflow: need to hande: " pr_instr ins
-      | _ -> errorh "mk_buffer_overflow: need to hande: " pr_instr ins in
+        else herror "mk_buffer_overflow: need to hande: " pr_instr ins
+      | _ -> herror "mk_buffer_overflow: need to hande: " pr_instr ins in
     [ mk_potential_bug ins (BufferOverflow (Some bof)) ])
   else []
 ;;

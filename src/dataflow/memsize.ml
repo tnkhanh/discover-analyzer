@@ -15,66 +15,71 @@ module LA = List.Assoc
 module BG = Bug
 module Opt = Option
 module SP = Set.Poly
+module II = Int_interval
 
 (*******************************************************************
  ** Abstract domain for the analysis
  *******************************************************************)
 
-module SizeDomain = struct
-  type size =
-    { size_min : int64;
-      (* minimum size in bytes, inclusive *)
-      size_max : int64 (* maximum size in bytes, inclusive *)
-    }
+(* module SizeDomain = struct *)
+(*   type size = *)
+(*     { size_min : int64; *)
+(*       (\* minimum size in bytes, inclusive *\) *)
+(*       size_max : int64 (\* maximum size in bytes, inclusive *\) *)
+(*     } *)
 
-  let pr_size s =
-    if Int64.equal s.size_min s.size_max
-    then pr_int64 s.size_min
-    else "[" ^ pr_int64 s.size_min ^ "," ^ pr_int64 s.size_max ^ "]"
-  ;;
+(*   let pr_size s = *)
+(*     if Int64.equal s.size_min s.size_max *)
+(*     then pr_int64 s.size_min *)
+(*     else "[" ^ pr_int64 s.size_min ^ "," ^ pr_int64 s.size_max ^ "]" *)
+(*   ;; *)
 
-  let mk_size_range min max = { size_min = min; size_max = max }
-  let mk_size_const c = mk_size_range c c
-  let least_size = mk_size_const Int64.zero
+(*   let mk_size_range min max = { size_min = min; size_max = max } *)
+(*   let mk_size_const c = mk_size_range c c *)
+(*   let least_size = mk_size_const Int64.zero *)
 
-  let equal_size (a : size) (b : size) =
-    Int64.equal a.size_min b.size_min && Int64.equal a.size_max b.size_max
-  ;;
+(*   let equal_size (a : size) (b : size) = *)
+(*     Int64.equal a.size_min b.size_min && Int64.equal a.size_max b.size_max *)
+(*   ;; *)
 
-  let lequal_size (a : size) (b : size) =
-    Int64.( >= ) a.size_min b.size_min && Int64.( <= ) a.size_max b.size_max
-  ;;
+(*   let lequal_size (a : size) (b : size) = *)
+(*     Int64.( >= ) a.size_min b.size_min && Int64.( <= ) a.size_max b.size_max *)
+(*   ;; *)
 
-  let union_size (a : size) (b : size) =
-    mk_size_range
-      (Int64.min a.size_min b.size_min)
-      (Int64.max a.size_max b.size_max)
-  ;;
+(*   let union_size (a : size) (b : size) = *)
+(*     mk_size_range *)
+(*       (Int64.min a.size_min b.size_min) *)
+(*       (Int64.max a.size_max b.size_max) *)
+(*   ;; *)
 
-  let intersect_size (a : size) (b : size) =
-    mk_size_range
-      (Int64.max a.size_min b.size_min)
-      (Int64.min a.size_max b.size_max)
-  ;;
+(*   let intersect_size (a : size) (b : size) = *)
+(*     mk_size_range *)
+(*       (Int64.max a.size_min b.size_min) *)
+(*       (Int64.min a.size_max b.size_max) *)
+(*   ;; *)
 
-  let widen_size (a : size) (b : size) = union_size a b
-end
+(*   let widen_size (a : size) (b : size) = union_size a b *)
+(* end *)
 
-module SD = SizeDomain
+(* module SD = SizeDomain *)
+
+type size = Int_interval.interval
+
+let pr_size = Int_interval.pr_interval
 
 (*******************************************************************
  ** Core data transfer modules
  *******************************************************************)
 
 module SizeData = struct
-  type t = (value * SD.size) list (* maintained as a sorted list *)
+  type t = (value * II.interval) list (* maintained as a sorted list *)
 end
 
 module SizeUtil = struct
   include SizeData
 
-  let get_size (v : value) (d : t) : SD.size =
-    try LA.find_exn d ~equal:( == ) v with _ -> SD.least_size
+  let get_size (v : value) (d : t) : II.interval =
+    try LA.find_exn d ~equal:( == ) v with _ -> II.least_interval
   ;;
 end
 
@@ -93,7 +98,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
 
   let pr_data d =
     "MemSize: "
-    ^ pr_list_square ~f:(fun (v, s) -> pr_value v ^ ": " ^ SD.pr_size s) d
+    ^ pr_list_square ~f:(fun (v, s) -> pr_value v ^ ": " ^ II.pr_interval s) d
   ;;
 
   let pr_data_checksum = pr_data
@@ -102,7 +107,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
     match d1, d2 with
     | [], [] -> true
     | (v1, s1) :: nd1, (v2, s2) :: nd2 ->
-      equal_value v1 v2 && SD.equal_size s1 s2 && equal_data nd1 nd2
+      equal_value v1 v2 && II.equal_interval s1 s2 && equal_data nd1 nd2
     | _ -> false
   ;;
 
@@ -112,7 +117,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
       | [], [] -> true
       | [], _ | _, [] -> false
       | (xv, xr) :: nxs, (yv, yr) :: nys ->
-        if equal_value xv yv && SD.lequal_size xr yr
+        if equal_value xv yv && II.lequal_interval xr yr
         then leq nxs nys
         else false in
     leq a b
@@ -138,7 +143,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
       | (xv, xr) :: nxs, (yv, yr) :: nys ->
         let cmp = String.compare (pr_value xv) (pr_value yv) in
         if cmp = 0
-        then combine nxs nys (acc @ [ xv, SD.union_size xr yr ])
+        then combine nxs nys (acc @ [ xv, II.union_interval xr yr ])
         else if cmp < 0
         then combine nxs ys (acc @ [ xv, xr ])
         else combine xs nys (acc @ [ yv, yr ]) in
@@ -161,7 +166,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
 
   let join_data (a : t) (b : t) : t = merge_data a b
 
-  let update_size (v : value) (s : SD.size) (d : t) : t =
+  let update_size (v : value) (s : size) (d : t) : t =
     let rec replace xs acc =
       match xs with
       | [] -> acc @ [ v, s ]
@@ -175,7 +180,8 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
     replace d []
   ;;
 
-  let combine_size (a : SD.size) (b : SD.size) = SD.union_size a b
+  let combine_size (a : size) (b : size) =
+    II.union_interval a b
 
   (*******************************************************************
    ** Core analysis functions
@@ -209,7 +215,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
         match int64_of_const (operand ins 0) with
         | None -> Int64.zero
         | Some i -> i in
-      update_size vins (SD.mk_size_const size) input
+      update_size vins (II.mk_interval_int64 size) input
     | LO.Call ->
       let func = callee_of_instr_call ins in
       if is_func_malloc func
@@ -218,9 +224,9 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
           match int64_of_const (operand ins 0) with
           | None -> Int64.zero
           | Some i -> i in
-        update_size vins (SD.mk_size_const size) input)
+        update_size vins (II.mk_interval_int64 size) input)
       else if is_func_free func
-      then update_size vins (SD.mk_size_const Int64.zero) input
+      then update_size vins (II.mk_interval_int64 Int64.zero) input
       else input
     | LO.BitCast ->
       let size = get_size (operand ins 0) input in
@@ -229,13 +235,13 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
       (* TODO: need alias analysis to clear off some variables
          overshadowing by PHI node *)
       let ns = ref (get_size (operand ins 0) input) in
-      let _ = debugh " PHI original: " SD.pr_size !ns in
+      let _ = hdebug " PHI original: " pr_size !ns in
       for i = 1 to num_operands ins - 1 do
         let cs = get_size (operand ins i) input in
-        let _ = debugh " PHI current range: " SD.pr_size cs in
+        let _ = hdebug " PHI current range: " pr_size cs in
         ns := combine_size !ns cs
       done;
-      let _ = debugh " PHI final: " SD.pr_size !ns in
+      let _ = hdebug " PHI final: " pr_size !ns in
       update_size vins !ns input
     | _ -> input
   ;;
@@ -262,10 +268,9 @@ end
 module Analysis = struct
   include SizeTransfer
   include DF.ForwardDataFlow (SizeTransfer)
-  module SD = SizeDomain
   module SU = SizeUtil
   module ST = SizeTransfer
 
-  let get_size (v : value) (d : t) : SD.size = SU.get_size v d
-  let pr_size = SD.pr_size
+  let get_size (v : value) (d : t) : size = SU.get_size v d
+  let pr_size = pr_size
 end

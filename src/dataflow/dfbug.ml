@@ -10,6 +10,7 @@ open Dfdata
 open Bug
 module LL = Llvm
 module LI = Llir
+module II = Int_interval
 
 (*******************************************************************
  ** Integer bugs
@@ -27,7 +28,7 @@ let check_bug_integer_overflow (pdata : program_data) (pbug : potential_bug)
   | IntegerOverflow (Some iof) ->
     if !bug_integer_all || !bug_integer_overflow
     then (
-      let _ = debugh "Checking Potential Bug: " pr_potential_bug pbug in
+      let _ = hdebug "Checking Potential Bug: " pr_potential_bug pbug in
       let func = LI.func_of_instr iof.iof_instr in
       let%bind penv_rng = pdata.pdata_env_range in
       let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
@@ -43,7 +44,7 @@ let check_bug_integer_overflow (pdata : program_data) (pbug : potential_bug)
             | Range r ->
               let ub =
                 EInt.compute_upper_bound_two_complement iof.iof_bitwidth in
-              if RG.ID.compare_bound r.range_ub (EInt ub) > 0
+              if II.compare_bound r.range_ub (EInt ub) > 0
               then (
                 let reason =
                   ("Variable " ^ LI.pr_value iof.iof_expr ^ " can take only ")
@@ -94,12 +95,12 @@ let check_bug_integer_underflow (pdata : program_data) (pbug : potential_bug)
             | Range r ->
               let lb =
                 EInt.compute_lower_bound_two_complement iuf.iuf_bitwidth in
-              if RG.ID.compare_bound r.range_lb (EInt lb) < 0
+              if II.compare_bound r.range_ub (EInt lb) < 0
               then (
                 let reason =
                   ("Variable " ^ LI.pr_value iuf.iuf_expr ^ " can take only ")
                   ^ ("the minimum value of: " ^ EInt.pr_eint lb ^ ",\n")
-                  ^ "but is assigned with: " ^ RG.pr_bound r.range_lb ^ ".\n"
+                  ^ "but is assigned with: " ^ RG.pr_bound r.range_ub ^ ".\n"
                 in
                 Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
               else None))
@@ -130,7 +131,7 @@ let check_bug_division_by_zero (pdata : program_data) (pbug : potential_bug)
   | DivisionByZero None ->
     if !bug_all || !bug_integer_all || !bug_divizion_by_zero
     then (
-      let _ = debugh "Checking Potential Bug: " pr_potential_bug pbug in
+      let _ = hdebug "Checking Potential Bug: " pr_potential_bug pbug in
       let func = LI.func_of_instr pbug.pbug_instr in
       let%bind penv_rng = pdata.pdata_env_range in
       let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
@@ -145,12 +146,12 @@ let check_bug_division_by_zero (pdata : program_data) (pbug : potential_bug)
             match itv with
             | Bottom -> None
             | Range r ->
-              if RG.ID.compare_bound r.range_lb (Int64 Int64.zero) <= 0
-                 && RG.ID.compare_bound r.range_ub (Int64 Int64.zero) >= 0
+              if II.compare_bound r.range_ub (Int64 Int64.zero) <= 0
+                 && II.compare_bound r.range_ub (Int64 Int64.zero) >= 0
               then (
                 let reason =
                   ("Divisor " ^ LI.pr_value divisor ^ " can take values from ")
-                  ^ (RG.pr_bound r.range_lb ^ " to " ^ RG.pr_bound r.range_ub)
+                  ^ (RG.pr_bound r.range_ub ^ " to " ^ RG.pr_bound r.range_ub)
                   ^ " and can be zero.\n" in
                 return (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
               else None))
@@ -183,7 +184,6 @@ let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
   let open Option.Let_syntax in
   match pbug.pbug_type with
   | BufferOverflow (Some bof) ->
-    let _ = debugh "CHECKING BUFFER OVERFLOW: " pr_potential_bug pbug in
     let ptr = bof.bof_pointer in
     let func = LI.func_of_instr bof.bof_instr in
     let%bind penv_rng = pdata.pdata_env_range in
@@ -194,21 +194,22 @@ let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
         then acc
         else (
           let%bind data_rng = RG.get_instr_output fenv_rng bof.bof_instr in
-          let itv =
+          let index_itv =
             RG.get_interval (LI.expr_of_llvalue bof.bof_elem_index) data_rng
           in
-          match bof.bof_buff_size with
-          | NumElem (n, t) ->
-            if RG.ID.compare_interval_ub_int itv n >= 0
+          if LI.is_pointer_to_array ptr
+          then (
+            let%bind num_elem = LI.compute_array_length ptr in
+            if II.compare_interval_ub_int index_itv num_elem >= 0
             then (
               let reason =
                 ("Buffer at pointer " ^ LI.pr_value ptr)
-                ^ (" contains " ^ pr_int64 n ^ " elements;\n")
-                ^ "accessing index is " ^ RG.pr_interval_concise itv in
+                ^ (" contains " ^ pr_int num_elem ^ " elements;\n")
+                ^ "accessing index is "
+                ^ RG.pr_interval_concise index_itv in
               Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
-            else None
-          | MemSizeOf v ->
-            let vinstr = LI.mk_instr v in
+            else None)
+          else (
             let%bind penv_msz = pdata.pdata_env_memsize in
             let%bind fenvs_msz = Hashtbl.find penv_msz.penv_func_envs func in
             List.fold_left
@@ -216,30 +217,36 @@ let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
                 if acc != None
                 then acc
                 else (
-                  let%bind data_msz = MS.get_instr_output fenv_msz vinstr in
-                  let sz = MS.get_size v data_msz in
-                  let elem_typ = LL.element_type (LL.type_of v) in
-                  let elem_size = LI.memsize_of_type elem_typ in
-                  let max_num_elem = Int64.( / ) sz.size_max elem_size in
-                  let min_num_elem = Int64.( / ) sz.size_min elem_size in
-                  if RG.ID.compare_interval_ub_int itv max_num_elem >= 0
-                  then (
-                    let reason =
-                      ("Buffer at pointer " ^ LI.pr_value ptr ^ " contains ")
-                      ^ ("at most " ^ pr_int64 max_num_elem ^ " elements;\n")
-                      ^ "accessing index is " ^ RG.pr_interval_concise itv
-                    in
-                    Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
-                  else if RG.ID.compare_interval_ub_int itv min_num_elem >= 0
-                  then (
-                    let reason =
-                      ("Buffer at pointer " ^ LI.pr_value ptr ^ " may contain ")
-                      ^ ("only " ^ pr_int64 min_num_elem ^ " elements;\n")
-                      ^ "accessing index is " ^ RG.pr_interval_concise itv
-                    in
-                    Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
-                  else None))
-              ~init:None fenvs_msz))
+                  let%bind data_msz =
+                    MS.get_instr_output fenv_msz bof.bof_instr in
+                  match MS.get_size ptr data_msz with
+                  | Bottom -> None
+                  | Range sz ->
+                    let elem_typ = LL.element_type (LL.type_of ptr) in
+                    let elem_size = II.Int64 (LI.memsize_of_type elem_typ) in
+                    let max_num_elem = II.udiv_bound sz.range_ub elem_size in
+                    let min_num_elem = II.udiv_bound sz.range_lb elem_size in
+                    if II.compare_interval_ub_bound index_itv max_num_elem >= 0
+                    then (
+                      let reason =
+                        ("Buffer at pointer " ^ LI.pr_value ptr ^ " contains ")
+                        ^ ("at most " ^ II.pr_bound max_num_elem
+                         ^ " elements;\n")
+                        ^ "accessing index is "
+                        ^ RG.pr_interval_concise index_itv in
+                      Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
+                    else if II.compare_interval_ub_bound index_itv min_num_elem
+                            >= 0
+                    then (
+                      let reason =
+                        ("Buffer at pointer " ^ LI.pr_value ptr
+                       ^ " may contain ")
+                        ^ ("only " ^ II.pr_bound min_num_elem ^ " elements;\n")
+                        ^ "accessing index is "
+                        ^ RG.pr_interval_concise index_itv in
+                      Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
+                    else None))
+              ~init:None fenvs_msz)))
       ~init:None fenvs_rng
   | _ -> None
 ;;
@@ -285,7 +292,7 @@ let find_bug_memory_leak (pdata : program_data) : bug list =
 let find_bugs (pdata : program_data) : unit =
   let _ = println "Checking Bugs..." in
   let _ =
-    ddebugh ~header:true "Potential bugs: " pr_potential_bugs
+    hddebug ~header:true "Potential bugs: " pr_potential_bugs
       pdata.pdata_potential_bugs in
   let bugs =
     find_bug_memory_leak pdata

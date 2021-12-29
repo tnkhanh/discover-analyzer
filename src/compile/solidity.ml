@@ -25,7 +25,7 @@ let post_process_program (prog : LI.program) : LI.program =
   let entry_funcs = find_entry_functions prog in
   let prog = { prog with LI.prog_entry_funcs = entry_funcs } in
   let _ =
-    debugh ~header:true ~enable:!llvm_print_prog_info
+    hdebug ~header:true ~enable:!llvm_print_prog_info
       "PROGRAM INFORMATION AFTER POST-PROCESSING" LI.pr_program_info prog in
   prog
 ;;
@@ -51,7 +51,7 @@ let compile_program (input_file : string) : LI.program =
       @ [ "-o"; output_dir ] @ user_options in
     PS.run_command cmd in
   let generated_files = Sys.ls_dir output_dir in
-  let _ = debugh "Generated files: " (pr_list ~f:pr_str) generated_files in
+  let _ = hdebug "Generated files: " (pr_list ~f:pr_str) generated_files in
   let deploy_file =
     List.find ~f:(String.is_suffix ~suffix:"_deploy.bc") generated_files in
   match deploy_file with

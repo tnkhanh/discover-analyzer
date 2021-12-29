@@ -18,6 +18,7 @@ include Llast.Value
 include Llast.Type
 include Llast.Global
 include Llast.Expr
+include Llast.Pointer
 include Llast.Instr
 include Llast.Use
 include Llast.Opcode
