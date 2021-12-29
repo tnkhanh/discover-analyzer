@@ -15,7 +15,6 @@ depends: [
   "yaml"
   "ezjsonm"
   "ocamlformat" {dev}
-  "extcore" {dev}
   "menhir"
   "num"
   "ppx_deriving"
