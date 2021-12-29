@@ -234,13 +234,9 @@ module MemoryBug = struct
                     match MS.get_size ptr data_msz with
                     | Bottom -> None
                     | Range sz ->
-                      let _ = hdebug "PTR: " LI.pr_value ptr in
-                      let _ = hdebug "SIZE: " II.pr_range sz in
                       let elem_typ = LL.element_type (LL.type_of ptr) in
-                      let _ = hdebug "ELEM TYPE: " LI.pr_type elem_typ in
                       let elem_size =
                         II.Int64 (LI.size_of_type elem_typ data_layout) in
-                      let _ = hdebug "ELEM SIZE: " II.pr_bound elem_size in
                       let max_num_elem = II.udiv_bound sz.range_ub elem_size in
                       let min_num_elem = II.udiv_bound sz.range_lb elem_size in
                       if II.compare_interval_ub_bound index_itv max_num_elem

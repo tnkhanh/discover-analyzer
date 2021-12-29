@@ -213,7 +213,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
     match instr_opcode ins with
     | LO.Unreachable -> least_data
     | LO.Alloca ->
-      let elem_typ = type_of_instr ins in
+      let elem_typ = LL.element_type (type_of_instr ins) in
       let elem_size = size_of_type elem_typ data_layout in
       let num_elem =
         match int64_of_const (operand ins 0) with
