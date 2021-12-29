@@ -30,6 +30,7 @@ type exp =
   | Void
   | Null
   | Int of int
+  | Int64 of int64
   | Float of float
   | String of string
   | Var of var
@@ -211,6 +212,7 @@ let rec pr_exp (e : exp) : string =
   | Void -> "void"
   | Null -> "null"
   | Int i -> pr_int i
+  | Int64 i -> pr_int64 i
   | Float f -> pr_float f
   | String s -> "\"" ^ s ^ "\""
   | Var v -> pr_var v
@@ -460,6 +462,7 @@ let typ_of_exp e =
   | Void _ -> TVoid
   | Null _ -> TPointer TVoid
   | Int _ -> TInt 32
+  | Int64 _ -> TInt 64
   | Float _ -> TFloat
   | String _ -> TString
   | Var v -> typ_of_var v
@@ -480,7 +483,7 @@ let get_pointer_elem_typ t =
 let fv_exp (e : exp) : var list =
   let rec fv acc e =
     match e with
-    | Void _ | Null _ | Int _ | Float _ | String _ -> acc
+    | Void _ | Null _ | Int _ | Int64 _ | Float _ | String _ -> acc
     | Var v -> insert_vs v acc
     | Cast (e, _, _) -> fv acc e
     | Func (_, es, _) -> List.fold_left ~f:fv ~init:acc es in
@@ -691,6 +694,7 @@ let rec has_f_qvars (f : formula) =
  *******************************************************************)
 
 let mk_exp_int i = Int i
+let mk_exp_int64 i = Int64 i
 let mk_exp_float f = Float f
 let mk_exp_string s = String s
 let mk_exp_var v = Var v
@@ -1055,7 +1059,7 @@ let extend_subst (sst : substitution) (v : var) (e : exp) : substitution =
 let substitute_exp (sst : substitution) (e : exp) : exp =
   let rec subst e =
     match e with
-    | Void _ | Null _ | Int _ | Float _ | String _ -> e
+    | Void _ | Null _ | Int _ | Int64 _ | Float _ | String _ -> e
     | Var v -> sst v
     | Cast (e, t1, t2) -> Cast (subst e, t1, t2)
     | Func (f, es, t) -> Func (f, List.map ~f:subst es, t) in
@@ -1214,7 +1218,7 @@ let rename_vs (rnm : renaming) (vs : var list) : var list = List.map ~f:rnm vs
 let rename_exp (rnm : renaming) (e : exp) : exp =
   let rec rename e =
     match e with
-    | Void _ | Null _ | Int _ | Float _ | String _ -> e
+    | Void _ | Null _ | Int _ | Int64 _ | Float _ | String _ -> e
     | Var v -> Var (rnm v)
     | Cast (e, t1, t2) -> Cast (rename e, t1, t2)
     | Func (f, es, t) -> Func (f, List.map ~f:rename es, t) in
@@ -1412,10 +1416,10 @@ let translate_llvalue (v : LL.llvalue) : exp =
     let vname = LL.value_name v in
     let res =
       match typ with
-      | TInt _ ->
-        (match LI.int_of_const v with
+      | TInt bw ->
+        (match LI.int64_of_const v with
         | None -> mk_exp_var_typ vname typ
-        | Some i -> mk_exp_int i)
+        | Some i -> mk_exp_int64 i)
       | TFloat ->
         (match LL.float_of_const v with
         | None -> mk_exp_var_typ (LL.value_name v) typ

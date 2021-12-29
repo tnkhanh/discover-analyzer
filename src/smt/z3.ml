@@ -99,6 +99,7 @@ let read_all_output proc : string =
 module Z3SL = struct
   let transform_bool b = if b then "true" else "false"
   let transform_int i = pr_int i
+  let transform_int64 i = pr_int64 i
   let transform_float f = pr_float f
   let transform_string s = "\"" ^ s ^ "\""
 
@@ -125,6 +126,7 @@ module Z3SL = struct
     | Void _ -> "0"
     | Null _ -> "0"
     | Int i -> transform_int i
+    | Int64 i -> transform_int64 i
     | Float f -> transform_float f
     | String s -> transform_string s
     | Var v -> transform_var v
