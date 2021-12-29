@@ -12,7 +12,7 @@ open Rule
 module NO = Normalize
 
 let iprint pstate msg =
-  if pstate.prs_interact then debug ~marker:"" msg else ()
+  if pstate.prs_interact then debug ~mtype:"" msg else ()
 ;;
 
 (*******************************************************************

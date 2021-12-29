@@ -290,7 +290,7 @@ module MemoryBug = struct
     match pbug.pbug_type with
     | MemoryLeak (Some mlk) ->
       let _ =
-        print ~marker:"TODO"
+        print ~mtype:"TODO"
           "check_bug_memory_leak: IMPLEMENT CHECK MEMORY LEAK" in
       None
     | _ -> None
@@ -328,7 +328,7 @@ let find_bugs (pdata : program_data) : unit =
     @ find_bug_integer_overflow pdata
     @ find_bug_integer_underflow pdata
     @ find_bug_division_by_zero pdata in
-  let _ = print ~marker:"" (pr_bugs bugs) in
+  let _ = print ~mtype:"" (pr_bugs bugs) in
   let _ = num_of_bugs := List.length bugs in
   report_bug_stats bugs
 ;;

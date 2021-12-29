@@ -100,7 +100,7 @@ let print_analysis_summary () =
       ^ sprintf "- Analysis time: %.2fs\n" !analysis_time
       ^ sprintf "- Total runtime: %.2fs" !total_time
       ^ detailed_runtime in
-    println ~marker:"" ~always:true ~autoformat:false ~ruler:`Long msg
+    println ~mtype:"" ~always:true ~autoformat:false ~ruler:`Long msg
 ;;
 
 let handle_system_signals () =

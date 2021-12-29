@@ -908,7 +908,7 @@ let symexc_function vstate (func : LI.func) : entailment list =
   if List.is_empty (LI.blocks_of_func func)
   then []
   else (
-    hdebug ~marker:"" "Analyzing function: " LI.func_name func;
+    hdebug ~mtype:"" "Analyzing function: " LI.func_name func;
     LI.fold_left_blocks
       ~f:(fun acc blk -> acc @ symexec_block vstate blk)
       ~init:[] func)
