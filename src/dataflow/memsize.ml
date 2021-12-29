@@ -207,15 +207,20 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
   ;;
 
   let analyze_instr ?(widen = false) penv fenv (ins : instr) (input : t) : t =
+    let prog = penv.penv_prog in
+    let data_layout = get_program_data_layout prog in
     let vins = llvalue_of_instr ins in
     match instr_opcode ins with
     | LO.Unreachable -> least_data
     | LO.Alloca ->
-      let size =
+      let elem_typ = type_of_instr ins in
+      let elem_size = size_of_type elem_typ data_layout in
+      let num_elem =
         match int64_of_const (operand ins 0) with
         | None -> Int64.zero
         | Some i -> i in
-      update_size vins (II.mk_interval_int64 size) input
+      let buffer_size = Int64.( elem_size * num_elem) in
+      update_size vins (II.mk_interval_int64 buffer_size) input
     | LO.Call ->
       let func = callee_of_instr_call ins in
       if is_func_malloc func
