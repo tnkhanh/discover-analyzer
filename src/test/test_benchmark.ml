@@ -76,6 +76,13 @@ let rec test benchmark =
   let configs = read_confs_from_file config_filename in
   List.iter
     ~f:(fun conf ->
+(*      let total_assert_ok = ref 0 in*)
+      (*let total_assert_failed = ref 0 in*)
+      (*let total_refute_ok = ref 0 in*)
+      (*let total_refute_failed = ref 0 in*)
+      let total_valid_assert = ref 0 in
+      let total_invalid_assert = ref 0 in
+
       let full_log_dir = log_dir ^ dir ^ "/" ^ conf.conf_name in
       let _ = PS.run_command [ "mkdir"; "-p"; full_log_dir ] in
       let _ = print (str_of_config conf) in
@@ -94,7 +101,7 @@ let rec test benchmark =
         in
       (* TODO: Make a function that runs each file *)
       let files = List.filter all_files ~f:(is_target conf.conf_targets) in
-      List.iter files ~f:(fun file ->
+      let _ = List.iter files ~f:(fun file ->
           let full_filepath = dir ^ "/" ^ file in
           match Sys.is_directory full_filepath with
           | `Yes -> test ("", full_filepath)
@@ -111,9 +118,51 @@ let rec test benchmark =
               match output with
               | Ok result -> result
               | Error msg -> msg in
+
+            let output_lines = String.split ~on:'\n' output_str in
+            let _ = List.iter output_lines ~f:(fun line ->
+              if String.is_prefix line ~prefix:__valid_assert
+              then
+                total_valid_assert :=
+                  !total_valid_assert +
+                  int_of_string (String.sub line
+                                   ~pos:(String.length __valid_assert)
+                                   ~len:((String.length line) - (String.length __valid_assert)))
+              else
+              if String.is_prefix line ~prefix:__invalid_assert
+              then
+                total_invalid_assert :=
+                  !total_invalid_assert +
+                  int_of_string (String.sub line
+                                   ~pos:(String.length __invalid_assert)
+                                   ~len:((String.length line) - (String.length __invalid_assert)))
+              else ()
+
+(*              if String.is_substring ~substring:__assert line then *)
+                (*(if String.is_substring ~substring:_ok_status line then*)
+                   (*total_assert_ok := !total_assert_ok + 1*)
+                 (*else if String.is_substring ~substring:_failed_status line then*)
+                   (*total_assert_failed := !total_assert_failed + 1*)
+                 (*else ()*)
+              (*else *)
+              (*if String.is_substring ~substring:__refute line then*)
+                (*(if String.is_substring ~substring:_ok_status line then*)
+                   (*total_refute_ok := !total_refute_ok + 1*)
+                 (*else if String.is_substring ~substring:_failed_status line then*)
+                   (*total_refute_failed := !total_refute_failed + 1*)
+                 (*else ()*)
+              (*else*)
+                (*()*)
+            ) in
+
             let log_file = full_log_dir ^ "/" ^ file ^ ".log" in
             Out_channel.write_all log_file ~data:output_str
-          | `Unknown -> ()))
+          | `Unknown -> ()) in
+      let summary =
+        "Summary of assertions: " ^
+        "  Valid asssertions: " ^ (pr_int !total_valid_assert) ^
+        "  Invalid asssertions: " ^ (pr_int !total_invalid_assert) in
+      print summary)
     configs
 ;;
 
@@ -124,7 +173,7 @@ let main () =
   let _ = discover_exec := (Filename.dirname execname) ^ "/discover" in
   let _ = print ("Arg 0: " ^ execname) in
   let _ = print ("Discover exec: " ^ !discover_exec) in
-  let usage_msg = "./test_benchmark [benchmark1] [benchmark2]" in
+  let usage_msg = "./test_benchmark [benchmark1] [benchmark2] [..] [-conf some_config.yaml]" in
   let benchmarks = ref [] in
   let anon_fun benchmark =
     benchmarks := ("X", benchmark) :: !benchmarks in
