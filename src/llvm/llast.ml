@@ -11,6 +11,7 @@ module LD = Llvm_debuginfo
 module LT = LL.TypeKind
 module LV = LL.ValueKind
 module LO = LL.Opcode
+module LTg = Llvm_target
 module SP = Set.Poly
 
 (*******************************************************************
@@ -481,10 +482,8 @@ module Type = struct
 
   (** Memory size in bytes of an element of type `typ' *)
 
-  let memsize_of_type (typ : datatype) : int64 =
-    match LL.classify_type typ with
-    | LT.Integer -> Int64.of_int (LL.integer_bitwidth typ / 8)
-    | _ -> herror "memsize_of_size: need to implement: " pr_type typ
+  let size_of_type (typ : datatype) (layout : LTg.DataLayout.t) : int64 =
+    LTg.DataLayout.store_size typ layout
   ;;
 
   let rec get_elemptr_typ (typ : datatype) (idxs : expr list) : datatype =
@@ -800,12 +799,6 @@ module Const = struct
   let llvalue_of_const (c : const) : value =
     match c with
     | Constant v -> v
-  ;;
-
-  let int_of_const (v : value) : int option =
-    match LL.int64_of_const v with
-    | None -> None
-    | Some i -> Int64.to_int i
   ;;
 
   let int64_of_const (v : value) : int64 option = LL.int64_of_const v
@@ -1944,6 +1937,10 @@ module Program = struct
       prog_block_data = mk_program_block_data modul;
       prog_bitcode_module = modul
     }
+  ;;
+
+  let get_program_data_layout (prog : program) : LTg.DataLayout.t =
+    LTg.DataLayout.of_string (LL.data_layout prog.prog_bitcode_module)
   ;;
 end
 

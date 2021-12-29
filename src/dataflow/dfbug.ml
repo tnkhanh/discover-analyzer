@@ -192,6 +192,8 @@ module MemoryBug = struct
       : bug option
     =
     let open Option.Let_syntax in
+    let prog = pdata.pdata_program in
+    let data_layout = LI.get_program_data_layout prog in
     match pbug.pbug_type with
     | BufferOverflow (Some bof) ->
       let ptr = bof.bof_pointer in
@@ -233,7 +235,7 @@ module MemoryBug = struct
                     | Bottom -> None
                     | Range sz ->
                       let elem_typ = LL.element_type (LL.type_of ptr) in
-                      let elem_size = II.Int64 (LI.memsize_of_type elem_typ) in
+                      let elem_size = II.Int64 (LI.size_of_type elem_typ data_layout) in
                       let max_num_elem = II.udiv_bound sz.range_ub elem_size in
                       let min_num_elem = II.udiv_bound sz.range_lb elem_size in
                       if II.compare_interval_ub_bound index_itv max_num_elem
