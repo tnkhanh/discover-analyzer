@@ -10,8 +10,8 @@ discover:
 
 test:
 	@echo ""
-	dune build src/Benchmark.exe
-	cp -f _build/default/src/Benchmark.exe benchmark
+	dune build src/Test_benchmark.exe
+	cp -f _build/default/src/Test_benchmark.exe test_benchmark
 
 clean:
 	dune clean

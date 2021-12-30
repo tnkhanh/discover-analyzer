@@ -213,6 +213,10 @@ let __assert_range_upper_bound = __assert ^ "range_upper_bound"
 let __assert_range_full = __assert ^ "range_full"
 let __assume_range = __assume ^ "range"
 let __init_globals = __init ^ "globals"
+let __valid_assert = "- Valid assertions: "
+let __invalid_assert = "- Invalid assertions: "
+(*let _ok_status = "OK!"*)
+(*let _failed_status = "FAILED!"*)
 
 (*------------------
  * Time statistics
