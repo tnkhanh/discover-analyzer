@@ -166,7 +166,7 @@ let rec test default_conf benchmark =
 
                 let output_lines = String.split ~on:'\n' output_str in
                 let _ =
-                  List.iter output_lines ~f:(fun line ->
+                  List.iter ~f:(fun line ->
                       if String.is_prefix line ~prefix:__valid_assert
                       then (
                         let prefix_length = String.length __valid_assert in
@@ -190,22 +190,7 @@ let rec test default_conf benchmark =
                                  (String.sub line ~pos:prefix_length
                                     ~len:number_length))
                       else
-                        ()
-                        (*              if String.is_substring ~substring:__assert line then *)
-                        (*(if String.is_substring ~substring:_ok_status line then*)
-                        (*total_assert_ok := !total_assert_ok + 1*)
-                        (*else if String.is_substring ~substring:_failed_status line then*)
-                        (*total_assert_failed := !total_assert_failed + 1*)
-                        (*else ()*)
-                        (*else *)
-                        (*if String.is_substring ~substring:__refute line then*)
-                        (*(if String.is_substring ~substring:_ok_status line then*)
-                        (*total_refute_ok := !total_refute_ok + 1*)
-                        (*else if String.is_substring ~substring:_failed_status line then*)
-                        (*total_refute_failed := !total_refute_failed + 1*)
-                        (*else ()*)
-                        (*else*)
-                        (*()*)) in
+                        ()) output_lines in
 
                 let log_file = full_log_dir ^ "/" ^ file ^ ".log" in
                 Out_channel.write_all log_file ~data:output_str)
