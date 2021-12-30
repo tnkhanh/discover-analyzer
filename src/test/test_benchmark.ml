@@ -117,11 +117,7 @@ let rec test default_conf benchmark =
       let _ = print ("Config for " ^ dir ^ ":\n" ^ str_of_config conf) in
       let full_log_dir = log_dir ^ dir ^ "/" ^ conf.conf_name in
       let _ = PS.run_command [ "mkdir"; "-p"; full_log_dir ] in
-      let _ = List.iter conf.conf_targets ~f:print in
       let all_files = Array.to_list (Sys.readdir dir) in
-      let _ =
-        List.iter conf.conf_targets ~f:(fun target ->
-            print ("Target: " ^ target)) in
       (* TODO: Do better than suffix check *)
       let rec is_target target_list file =
         match target_list with
@@ -143,7 +139,6 @@ let rec test default_conf benchmark =
         is_target conf.conf_targets file && is_included conf.conf_excludes file
       in
 
-      (*let test_files = List.filter all_files ~f:is_test_file in*)
       let _ =
         List.iter all_files ~f:(fun file ->
             let full_filepath = dir ^ "/" ^ file in
@@ -229,10 +224,10 @@ let default_benchmarks =
 let main () =
   let execname = Sys.argv.(0) in
   let _ = discover_exec := Filename.dirname execname ^ "/discover" in
-  let _ = print ("Arg 0: " ^ execname) in
+  let _ = print ("Exec file: " ^ execname) in
   let _ = print ("Discover exec: " ^ !discover_exec) in
   let usage_msg =
-    "./test_benchmark [benchmark1] [benchmark2] [..] [-conf some_config.yaml]"
+    "./test_benchmark [benchmark1] [benchmark2] [..] [-conf some_config.yaml]\nif no benchmark is specified, default benchmark PTABEN is run"
   in
   let benchmarks = ref [] in
   let anon_fun benchmark = benchmarks := ("X", benchmark) :: !benchmarks in
