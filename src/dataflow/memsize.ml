@@ -11,7 +11,8 @@ module DF = Dataflow
 module LL = Llvm
 module LO = Llvm.Opcode
 module LC = Llvm.Icmp
-module LA = List.Assoc
+module ListA = List.Assoc
+module ListO = List.OrderedList
 module BG = Bug
 module Opt = Option
 module SP = Set.Poly
@@ -33,14 +34,17 @@ let pr_size = II.pr_interval
  *******************************************************************)
 
 module SizeData = struct
-  type t = (value * size) list (* maintained as a sorted list *)
+  type t = (value * size) ListO.t
 end
 
 module SizeUtil = struct
   include SizeData
 
   let get_size (v : value) (d : t) : size =
-    try LA.find_exn d ~equal:( == ) v with _ -> least_size
+    let elems = ListO.to_list d in
+    match ListA.find elems v ~equal:( == ) with
+    | Some s -> s
+    | None -> least_size
   ;;
 end
 
