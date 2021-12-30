@@ -168,25 +168,27 @@ let rec test default_conf benchmark =
                 let _ =
                   List.iter output_lines ~f:(fun line ->
                       if String.is_prefix line ~prefix:__valid_assert
-                      then
+                      then (
+                        let prefix_length = String.length __valid_assert in
+                        let number_length =
+                          String.length line - String.length __valid_assert
+                        in
                         total_valid_assert
                           := !total_valid_assert
                              + int_of_string
-                                 (String.sub line
-                                    ~pos:(String.length __valid_assert)
-                                    ~len:
-                                      (String.length line
-                                      - String.length __valid_assert))
+                                 (String.sub line ~pos:prefix_length
+                                    ~len:number_length))
                       else if String.is_prefix line ~prefix:__invalid_assert
-                      then
+                      then (
+                        let prefix_length = String.length __invalid_assert in
+                        let number_length =
+                          String.length line - String.length __invalid_assert
+                        in
                         total_invalid_assert
                           := !total_invalid_assert
                              + int_of_string
-                                 (String.sub line
-                                    ~pos:(String.length __invalid_assert)
-                                    ~len:
-                                      (String.length line
-                                      - String.length __invalid_assert))
+                                 (String.sub line ~pos:prefix_length
+                                    ~len:number_length))
                       else
                         ()
                         (*              if String.is_substring ~substring:__assert line then *)
