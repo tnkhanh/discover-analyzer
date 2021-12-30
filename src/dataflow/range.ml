@@ -486,7 +486,7 @@ end
 
 module Analysis = struct
   include RangeTransfer
-  include DF.ForwardDataFlow (RangeTransfer)
+  include DF.MakeForwardDataFlow (RangeTransfer)
   module RU = RangeUtil
   module RT = RangeTransfer
 

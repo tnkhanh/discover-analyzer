@@ -217,7 +217,7 @@ end
 
 module Analysis = struct
   include SizeTransfer
-  include DF.ForwardDataFlow (SizeTransfer)
+  include DF.MakeForwardDataFlow (SizeTransfer)
   module SU = SizeUtil
   module ST = SizeTransfer
 

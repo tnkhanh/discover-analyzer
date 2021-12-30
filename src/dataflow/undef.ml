@@ -221,5 +221,5 @@ end
 
 module Analysis = struct
   include UndefTransfer
-  include DF.ForwardDataFlow (UndefTransfer)
+  include DF.MakeForwardDataFlow (UndefTransfer)
 end

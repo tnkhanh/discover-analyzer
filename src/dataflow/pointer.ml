@@ -3609,7 +3609,7 @@ end
 
 module Analysis = struct
   include PointerTransfer
-  include DF.ForwardDataFlow (PointerTransfer)
+  include DF.MakeForwardDataFlow (PointerTransfer)
 
   let is_may_alias_exp = PointerDomain.is_may_alias_exp
   let is_must_alias_exp = PointerDomain.is_must_alias_exp

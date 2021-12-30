@@ -405,7 +405,7 @@ end
  ** ForwardDataFlow Analysis
  *******************************************************************)
 
-module ForwardDataFlow =
+module MakeForwardDataFlow =
 functor
   (T : ForwardDataTransfer)
   ->

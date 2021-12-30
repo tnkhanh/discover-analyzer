@@ -198,7 +198,7 @@ end
  ** Forward Data-flow Analysis
  *******************************************************************)
 
-module ForwardDataFlow : functor (T : ForwardDataTransfer) -> sig
+module MakeForwardDataFlow : functor (T : ForwardDataTransfer) -> sig
   val pr_prog_env : T.prog_env -> string
   val is_intra_proc_dfa_mode : unit -> bool
   val get_func_analyzed_times : T.prog_env -> func -> int
