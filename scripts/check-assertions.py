@@ -191,13 +191,9 @@ def run_discover(discover_exe, benchmark_dir, options):
 
         print(runtime)
 
-        # read and process output and error
+        # read and process output
         output = stdout.decode("utf-8")
-        if stderr:
-            total_file_error += 1
-            log_error(testcase, stderr.decode("utf-8"))
-            print_test_error(output)
-        elif ERROR in output:
+        if ERROR in output:
             total_file_error += 1
             log_error(testcase, output)
             print_test_error(output)
@@ -237,6 +233,12 @@ def run_discover(discover_exe, benchmark_dir, options):
                 num_total, num_skipped = str(num_asserts), str(num_asserts)
                 print("  0/" + num_total + " assertion(s) are checked, " +
                       num_skipped + " are skipped!")
+
+        # log error if any
+        if stderr:
+            # total_file_error += 1
+            log_error(testcase, stderr.decode("utf-8"))
+            print_test_error(output)
 
 
 
