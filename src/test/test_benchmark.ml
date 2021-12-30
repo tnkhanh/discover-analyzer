@@ -45,6 +45,8 @@ let str_of_config conf =
   "Config:\nName: " ^ conf.conf_name ^ "\nClang_opt: " ^ conf.conf_clang_opt
   ^ "\nDiscover_opt: " ^ conf.conf_discover_opt ^ "\nTargets: "
   ^ String.concat ~sep:" " conf.conf_targets
+  ^ "\nExcludes: "
+  ^ String.concat ~sep:" " conf.conf_excludes
   ^ "\nRecurse: "
   ^ string_of_bool conf.conf_recurse
 ;;
@@ -88,6 +90,17 @@ let read_confs_from_file filename =
 
 let log_dir = "benchmark-log/"
 
+(* TODO: Do better than suffix check *)
+
+let is_test_file (conf : config) (file : string) : bool =
+  List.exists
+    ~f:(fun target -> String.is_suffix ~suffix:target file)
+    conf.conf_targets
+  && List.for_all
+       ~f:(fun exclude -> not (String.equal exclude file))
+       conf.conf_excludes
+;;
+
 let rec test default_conf benchmark =
   let description, dir = benchmark in
   let _ = print ("Testing " ^ description ^ " in " ^ dir) in
@@ -118,29 +131,36 @@ let rec test default_conf benchmark =
       let full_log_dir = log_dir ^ dir ^ "/" ^ conf.conf_name in
       let _ = PS.run_command [ "mkdir"; "-p"; full_log_dir ] in
       let all_files = Array.to_list (Sys.readdir dir) in
-      (* TODO: Do better than suffix check *)
-      let rec is_target target_list file =
-        match target_list with
-        | [] -> false
-        | target :: tl ->
-          if String.is_suffix file ~suffix:target
-          then true
-          else is_target tl file in
 
-      (* exclude needs to match the full file name *)
-      let rec is_included excludes file =
-        match excludes with
-        | [] -> true
-        | exclude :: tl ->
-          if String.equal file exclude then false else is_included tl file
-      in
+      let update_summary test_output =
+        let output_lines = String.split ~on:'\n' test_output in
+        List.iter
+          ~f:(fun line ->
+            if String.is_prefix ~prefix:__valid_assert line
+            then (
+              let prefix_length = String.length __valid_assert in
+              let number_length =
+                String.length line - String.length __valid_assert in
+              let added_valid_assert =
+                int_of_string
+                  (String.sub line ~pos:prefix_length ~len:number_length) in
+              total_valid_assert := !total_valid_assert + added_valid_assert)
+            else if String.is_prefix ~prefix:__invalid_assert line
+            then (
+              let prefix_length = String.length __invalid_assert in
+              let number_length =
+                String.length line - String.length __invalid_assert in
+              let added_invalid_assert =
+                int_of_string
+                  (String.sub line ~pos:prefix_length ~len:number_length) in
 
-      let is_test_file file =
-        is_target conf.conf_targets file && is_included conf.conf_excludes file
-      in
+              total_invalid_assert
+                := !total_invalid_assert + added_invalid_assert))
+          output_lines in
 
       let _ =
-        List.iter all_files ~f:(fun file ->
+        List.iter
+          ~f:(fun file ->
             let full_filepath = dir ^ "/" ^ file in
             match Sys.is_directory full_filepath with
             | `Yes ->
@@ -148,9 +168,8 @@ let rec test default_conf benchmark =
               then test conf ("rec", full_filepath)
               else ()
             | `No ->
-              if not (is_test_file file)
-              then ()
-              else (
+              if is_test_file conf file
+              then (
                 let _ = print ("File: " ^ file) in
                 let command =
                   [ !discover_exec; "--clang-option=" ^ conf.conf_clang_opt ]
@@ -164,37 +183,11 @@ let rec test default_conf benchmark =
                   | Ok result -> result
                   | Error msg -> msg in
 
-                let output_lines = String.split ~on:'\n' output_str in
-                let _ =
-                  List.iter ~f:(fun line ->
-                      if String.is_prefix line ~prefix:__valid_assert
-                      then (
-                        let prefix_length = String.length __valid_assert in
-                        let number_length =
-                          String.length line - String.length __valid_assert
-                        in
-                        total_valid_assert
-                          := !total_valid_assert
-                             + int_of_string
-                                 (String.sub line ~pos:prefix_length
-                                    ~len:number_length))
-                      else if String.is_prefix line ~prefix:__invalid_assert
-                      then (
-                        let prefix_length = String.length __invalid_assert in
-                        let number_length =
-                          String.length line - String.length __invalid_assert
-                        in
-                        total_invalid_assert
-                          := !total_invalid_assert
-                             + int_of_string
-                                 (String.sub line ~pos:prefix_length
-                                    ~len:number_length))
-                      else
-                        ()) output_lines in
-
+                let _ = update_summary output_str in
                 let log_file = full_log_dir ^ "/" ^ file ^ ".log" in
                 Out_channel.write_all log_file ~data:output_str)
-            | `Unknown -> ()) in
+            | `Unknown -> ())
+          all_files in
       let summary =
         "Summary of config " ^ conf.conf_name ^ " of benchmark " ^ dir ^ ":\n"
         ^ "  Valid asssertions: " ^ pr_int !total_valid_assert
@@ -223,7 +216,7 @@ let main () =
   let _ =
     if List.is_empty !benchmarks then benchmarks := default_benchmarks else ()
   in
-  List.iter !benchmarks ~f:(test default_config)
+  List.iter ~f:(test default_config) !benchmarks
 ;;
 
 let _ = main ()
