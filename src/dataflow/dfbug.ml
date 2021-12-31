@@ -12,6 +12,14 @@ module LL = Llvm
 module LI = Llir
 module II = Int_interval
 
+(* analysis *)
+(* module PT = Pointer.Analysis *)
+module MS = Memsize.Analysis
+
+(* module MT = Memtype.Analysis *)
+module RG = Range.Analysis
+(* module UD = Undef.Analysis *)
+
 (*******************************************************************
  ** Integer bugs
  *******************************************************************)
@@ -39,8 +47,7 @@ module IntegerBug = struct
             then acc
             else (
               let%bind data = RG.get_instr_output fenv iof.iof_instr in
-              let itv =
-                RG.get_interval (LI.expr_of_value iof.iof_expr) data in
+              let itv = RG.get_interval (LI.expr_of_value iof.iof_expr) data in
               match itv with
               | Bottom -> None
               | Range r ->
@@ -92,8 +99,7 @@ module IntegerBug = struct
             then acc
             else (
               let%bind data = RG.get_instr_output fenv iuf.iuf_instr in
-              let itv =
-                RG.get_interval (LI.expr_of_value iuf.iuf_expr) data in
+              let itv = RG.get_interval (LI.expr_of_value iuf.iuf_expr) data in
               match itv with
               | Bottom -> None
               | Range r ->
@@ -188,6 +194,19 @@ module MemoryBug = struct
    * Buffer overflow
    *------------------*)
 
+  let update_buffer_overflow_memory_type
+      (pdata : program_data)
+      (bof : buffer_overflow)
+      : unit
+    =
+    let ptr, ins = bof.bof_pointer, bof.bof_instr in
+    if is_stack_based_pointer pdata ins ptr
+    then bof.bof_stack_based <- Some true
+    else if is_heap_based_pointer pdata ins ptr
+    then bof.bof_stack_based <- Some false
+    else bof.bof_stack_based <- None
+  ;;
+
   let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
       : bug option
     =
@@ -196,8 +215,10 @@ module MemoryBug = struct
     let data_layout = LI.get_program_data_layout prog in
     match pbug.pbug_type with
     | BufferOverflow (Some bof) ->
+      let ins = bof.bof_instr in
+      let func = LI.func_of_instr ins in
       let ptr = bof.bof_pointer in
-      let func = LI.func_of_instr bof.bof_instr in
+      let _ = update_buffer_overflow_memory_type pdata bof in
       let%bind penv_rng = pdata.pdata_env_range in
       let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
       List.fold_left
@@ -205,7 +226,7 @@ module MemoryBug = struct
           if acc != None
           then acc
           else (
-            let%bind data_rng = RG.get_instr_output fenv_rng bof.bof_instr in
+            let%bind data_rng = RG.get_instr_output fenv_rng ins in
             let index_itv =
               RG.get_interval (LI.expr_of_value bof.bof_elem_index) data_rng
             in
@@ -229,8 +250,7 @@ module MemoryBug = struct
                   if acc != None
                   then acc
                   else (
-                    let%bind data_msz =
-                      MS.get_instr_output fenv_msz bof.bof_instr in
+                    let%bind data_msz = MS.get_instr_output fenv_msz ins in
                     match MS.get_size ptr data_msz with
                     | Bottom -> None
                     | Range sz ->

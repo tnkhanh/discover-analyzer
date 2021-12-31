@@ -211,6 +211,9 @@ struct
     | LO.BitCast ->
       let mtyp = get_memtype (operand_expr ins 0) input in
       update_memtype eins mtyp input
+    | LO.GetElementPtr ->
+      let mtyp = get_memtype (operand_expr ins 0) input in
+      update_memtype eins mtyp input
     | LO.PHI ->
       (* TODO: need alias analysis to clear off some variables
          overshadowing by PHI node *)

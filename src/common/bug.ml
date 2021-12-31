@@ -87,9 +87,9 @@ module MemoryBug = struct
   type buffer_overflow =
     { bof_pointer : value;
       bof_elem_index : value;
-      bof_write_operation : bool option;
-      bof_stack_based : bool option;
-      bof_instr : instr
+      bof_instr : instr;
+      mutable bof_write_operation : bool option;
+      mutable bof_stack_based : bool option
     }
 
   (*--------------
@@ -184,9 +184,12 @@ let pr_bug_cwe (btype : bug_type) : string =
         | Some true -> "CWE-121: Stack-based Buffer Overflow"
         | Some false -> "CWE-122: Heap-based Buffer Overflow"
         | None ->
-          "CWE-???: Buffer Overflow (unknown type of over-written memory)")
+          "CWE-???: Buffer Overflow -- "
+          ^ "unable to determine whether the buffer is stack- or heap-based")
       | Some false -> "CWE-125: Out-of-bounds Read"
-      | None -> "CWE-???: Buffer Overflow (unknown read or write actions)"))
+      | None ->
+        "CWE-???: Buffer Overflow -- "
+        ^ "unable to determine whether the buffer is read or written"))
   (* Resource bugs *)
   | ResourceLeak rlk_opt ->
     (match rlk_opt with
