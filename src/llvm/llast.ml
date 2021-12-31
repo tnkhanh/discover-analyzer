@@ -146,19 +146,25 @@ module AST = struct
   module TypeKey = struct
     type t = datatype
 
-    let to_string _ = "(datatype)"
+    let to_string t = Llvm.string_of_lltype t
     let hash = Hashtbl.hash
-    let sexp_of_t _ = Sexp.of_string "(datatype)"
+    let sexp_of_t t = Sexp.of_string (to_string t)
     let compare = Poly.compare
   end
 
   module ValueKey = struct
-    type t = value
+    module T = struct
+      type t = value
 
-    let to_string _ = "(value)"
-    let hash = Hashtbl.hash
-    let sexp_of_t _ = Sexp.of_string "(value)"
-    let compare = Poly.compare
+      let to_string v = Llvm.string_of_llvalue v
+      let hash = Hashtbl.hash
+      let sexp_of_t v = Sexp.of_string (to_string v)
+      let compare = Poly.compare
+    end
+
+    include T
+    include Comparator.Make(T)
+
   end
 
   module InstrKey = struct

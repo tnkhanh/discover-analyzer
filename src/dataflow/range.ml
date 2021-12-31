@@ -84,17 +84,27 @@ struct
 
   (* comparison*)
 
-  let equal_data (a : t) (b : t) : bool = MP.equal equal_interval a b
+  let equal_data (d1 : t) (d2 : t) : bool = MP.equal equal_interval d1 d2
 
-  let lequal_data (a : t) (b : t) : bool =
-    MP.for_alli
-      ~f:(fun ~key:ea ~data:ia ->
-        MP.existsi
-          ~f:(fun ~key:eb ~data:ib ->
-            equal_expr ea eb && lequal_interval ia ib)
-          b)
-      a
+  let lequal_data (d1 : t) (d2 : t) : bool =
+    let diffs = MP.symmetric_diff d1 d2 ~data_equal:lequal_interval in
+    Sequence.for_all
+      ~f:(fun diff ->
+        match snd diff with
+        | `Left _ -> false
+        | `Unequal _ -> false
+        | `Right _ -> true)
+      diffs
   ;;
+
+  (*   MP.for_alli *)
+  (*     ~f:(fun ~key:e1 ~data:i1 -> *)
+  (*       MP.existsi *)
+  (*         ~f:(fun ~key:e2 ~data:i2 -> *)
+  (*           equal_expr e1 e2 && lequal_interval i1 i2) *)
+  (*         d2) *)
+  (*     d1 *)
+  (* ;; *)
 
   let copy_data d = d
 
@@ -118,18 +128,18 @@ struct
       ~init:MP.empty d
   ;;
 
-  let merge_data ?(widen = false) (a : t) (b : t) : t =
+  let merge_data ?(widen = false) (d1 : t) (d2 : t) : t =
     MP.merge
       ~f:(fun ~key:e i ->
         match i with
-        | `Both (ia, ib) -> Some (combine_interval ia ib)
-        | `Left ia -> Some ia
-        | `Right ib -> Some ib)
-      a b
+        | `Both (i1, i2) -> Some (combine_interval i1 i2)
+        | `Left i1 -> Some i1
+        | `Right i2 -> Some i2)
+      d1 d2
   ;;
 
   (* FIXME: fix this later *)
-  let join_data (a : t) (b : t) : t = merge_data a b
+  let join_data (d1 : t) (d2 : t) : t = merge_data d1 d2
 
   let clean_irrelevant_info_from_data penv func (d : t) : t =
     MP.filteri
@@ -269,28 +279,6 @@ struct
   ;;
 
   let refine_data_by_predicate ?(widen = false) (d : t) (p : predicate) : t =
-    (* let refine_interval (a : interval) (b : interval) : interval = *)
-    (*   match a, b with *)
-    (*   | Bottom, _ -> Bottom *)
-    (*   | _, Bottom -> Bottom *)
-    (*   | Range ra, Range rb -> *)
-    (*     let lb, li = *)
-    (*       let cmp = compare_bound ra.range_lb rb.range_lb in *)
-    (*       if cmp > 0 *)
-    (*       then ra.range_lb, ra.range_lb_incl *)
-    (*       else if cmp < 0 *)
-    (*       then ra.range_lb, ra.range_lb_incl *)
-    (*       else ra.range_lb, ra.range_lb_incl && rb.range_lb_incl in *)
-    (*     let ub, ui = *)
-    (*       let cmp = compare_bound ra.range_ub rb.range_ub in *)
-    (*       if cmp < 0 *)
-    (*       then ra.range_ub, ra.range_ub_incl *)
-    (*       else if cmp > 0 *)
-    (*       then ra.range_ub, ra.range_ub_incl *)
-    (*       else ra.range_ub, ra.range_ub_incl && rb.range_ub_incl in *)
-    (*     if compare_bound lb ub > 0 *)
-    (*     then Bottom *)
-    (*     else Range (mk_range lb ub ~li ~ui) in *)
     let pcond_data = extract_data_from_predicate ~widen p d in
     MP.merge
       ~f:(fun ~key:e i ->

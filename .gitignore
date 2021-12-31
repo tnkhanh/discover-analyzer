@@ -9,6 +9,7 @@ build/
 *.native
 /discover
 /normalizer
+/test_benchmark
 
 # temporary files
 *.bc
