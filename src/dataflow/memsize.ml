@@ -63,7 +63,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
 
   let least_data = MP.empty
 
-  let pr_data (d: t) =
+  let pr_data (d : t) =
     let size_info = MP.to_alist ~key_order:`Increasing d in
     "MemSize: "
     ^ pr_list_square ~f:(fun (v, s) -> pr_value v ^ ": " ^ pr_size s) size_info
@@ -129,11 +129,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
   let join_data (a : t) (b : t) : t = merge_data a b
 
   let update_size (v : value) (s : size) (d : t) : t =
-    MP.change
-      ~f:(function
-        | None -> None
-        | Some _ -> Some s)
-      d v
+    MP.change ~f:(fun _ -> Some s) d v
   ;;
 
   (*******************************************************************
