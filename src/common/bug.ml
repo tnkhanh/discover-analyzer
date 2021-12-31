@@ -87,8 +87,8 @@ module MemoryBug = struct
   type buffer_overflow =
     { bof_pointer : value;
       bof_elem_index : value;
-      bof_write_operation : bool;
-      bof_stack_based : bool;
+      bof_write_operation : bool option;
+      bof_stack_based : bool option;
       bof_instr : instr
     }
 
@@ -178,12 +178,15 @@ let pr_bug_cwe (btype : bug_type) : string =
     (match bof_opt with
     | None -> "CWE-805: Buffer Access with Incorrect Length Value"
     | Some bof ->
-      if bof.bof_write_operation
-      then
-        if bof.bof_stack_based
-        then "CWE-121: Stack-based Buffer Overflow"
-        else "CWE-122: Heap-based Buffer Overflow"
-      else "CWE-125: Out-of-bounds Read")
+      (match bof.bof_write_operation with
+      | Some true ->
+        (match bof.bof_stack_based with
+        | Some true -> "CWE-121: Stack-based Buffer Overflow"
+        | Some false -> "CWE-122: Heap-based Buffer Overflow"
+        | None ->
+          "CWE-???: Buffer Overflow (unknown type of over-written memory)")
+      | Some false -> "CWE-125: Out-of-bounds Read"
+      | None -> "CWE-???: Buffer Overflow (unknown read or write actions)"))
   (* Resource bugs *)
   | ResourceLeak rlk_opt ->
     (match rlk_opt with
@@ -342,8 +345,8 @@ let mk_potential_buffer_overflow (ins : instr) : potential_bugs =
         { bof_instr = ins;
           bof_pointer = ptr;
           bof_elem_index = index;
-          bof_write_operation = false;
-          bof_stack_based = false
+          bof_write_operation = Some false;
+          bof_stack_based = None
         }
       | LO.Call | LO.Invoke ->
         let dst_ptr = operand ins 0 in
@@ -354,8 +357,8 @@ let mk_potential_buffer_overflow (ins : instr) : potential_bugs =
           { bof_instr = ins;
             bof_pointer = dst_ptr;
             bof_elem_index = index;
-            bof_write_operation = true;
-            bof_stack_based = false
+            bof_write_operation = Some true;
+            bof_stack_based = None
           })
         else herror "mk_buffer_overflow: need to hande: " pr_instr ins
       | _ -> herror "mk_buffer_overflow: need to hande: " pr_instr ins in

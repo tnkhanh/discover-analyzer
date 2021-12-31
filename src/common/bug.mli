@@ -42,8 +42,8 @@ type null_pointer_deref = { npe_pointer : Llir.value }
 type buffer_overflow =
   { bof_pointer : Llir.value;
     bof_elem_index : Llir.value;
-    bof_write_operation : bool;
-    bof_stack_based : bool;
+    bof_write_operation : bool option;
+    bof_stack_based : bool option;
     bof_instr : Llir.instr
   }
 
