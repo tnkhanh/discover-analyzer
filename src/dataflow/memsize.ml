@@ -33,16 +33,15 @@ let pr_size = II.pr_interval
  *******************************************************************)
 
 module SizeData = struct
-  (* TODO: maybe need to use expr to capture content of pointer.
-     See module range.ml *)
-  type t = (value, size) MP.t
+  (* Mapping pointer exprs to their allocated memory size. *)
+  type t = (expr, size) MP.t
 end
 
 module SizeUtil = struct
   include SizeData
 
-  let get_size (v : value) (d : t) : size =
-    match MP.find d v with
+  let get_size (e : expr) (d : t) : size =
+    match MP.find d e with
     | Some s -> s
     | None -> least_size
   ;;
@@ -66,7 +65,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
   let pr_data (d : t) =
     let size_info = MP.to_alist ~key_order:`Increasing d in
     "MemSize: "
-    ^ pr_list_square ~f:(fun (v, s) -> pr_value v ^ ": " ^ pr_size s) size_info
+    ^ pr_list_square ~f:(fun (e, s) -> pr_expr e ^ ": " ^ pr_size s) size_info
   ;;
 
   let pr_data_checksum = pr_data
@@ -93,12 +92,12 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
       : t
     =
     MP.fold
-      ~f:(fun ~key:v ~data:d acc ->
-        let nv = subst_value sstv v in
-        match MP.add acc ~key:nv ~data:d with
+      ~f:(fun ~key:e ~data:d acc ->
+        let ne = subst_expr ~sstv ~sstve ~sste e in
+        match MP.add acc ~key:e ~data:d with
         | `Ok res -> res
         | `Duplicate ->
-          herror "memsize: subst_data: new value is duplicated: " pr_value nv)
+          herror "memsize: subst_data: new value is duplicated: " pr_expr ne)
       ~init:MP.empty d
   ;;
 
@@ -113,7 +112,11 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
   ;;
 
   let clean_irrelevant_info_from_data prog func (d : t) : t =
-    MP.filter_keys ~f:(fun v -> not (is_local_llvalue v)) d
+    MP.filter_keys
+      ~f:(fun e ->
+        let vs = collect_llvalue_of_expr e in
+        List.for_all ~f:(fun v -> not (is_local_llvalue v)) vs)
+      d
   ;;
 
   let clean_info_of_vars (input : t) (vs : values) : t =
@@ -128,8 +131,8 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
 
   let join_data (a : t) (b : t) : t = merge_data a b
 
-  let update_size (v : value) (s : size) (d : t) : t =
-    MP.change ~f:(fun _ -> Some s) d v
+  let update_size (e : expr) (s : size) (d : t) : t =
+    MP.change ~f:(fun _ -> Some s) d e
   ;;
 
   (*******************************************************************
@@ -159,6 +162,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
     let prog = penv.penv_prog in
     let data_layout = get_program_data_layout prog in
     let vins = llvalue_of_instr ins in
+    let eins = expr_of_value vins in
     match instr_opcode ins with
     | LO.Unreachable -> least_data
     | LO.Alloca ->
@@ -169,7 +173,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
         | None -> Int64.zero
         | Some i -> i in
       let buffer_size = Int64.(elem_size * num_elem) in
-      update_size vins (II.mk_interval_int64 buffer_size) input
+      update_size eins (II.mk_interval_int64 buffer_size) input
     | LO.Call ->
       let func = callee_of_instr_call ins in
       if is_func_malloc func
@@ -178,25 +182,25 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
           match int64_of_const (operand ins 0) with
           | None -> Int64.zero
           | Some i -> i in
-        update_size vins (II.mk_interval_int64 size) input)
+        update_size eins (II.mk_interval_int64 size) input)
       else if is_func_free func
-      then update_size vins (II.mk_interval_int64 Int64.zero) input
+      then update_size eins (II.mk_interval_int64 Int64.zero) input
       else input
     | LO.BitCast ->
-      let size = get_size (operand ins 0) input in
-      update_size vins size input
+      let size = get_size (operand_expr ins 0) input in
+      update_size eins size input
     | LO.PHI ->
       (* TODO: need alias analysis to clear off some variables
          overshadowing by PHI node *)
-      let ns = ref (get_size (operand ins 0) input) in
+      let ns = ref (get_size (operand_expr ins 0) input) in
       let _ = hdebug " PHI original: " pr_size !ns in
       for i = 1 to num_operands ins - 1 do
-        let cs = get_size (operand ins i) input in
+        let cs = get_size (operand_expr ins i) input in
         let _ = hdebug " PHI current range: " pr_size cs in
         ns := combine_size !ns cs
       done;
       let _ = hdebug " PHI final: " pr_size !ns in
-      update_size vins !ns input
+      update_size eins !ns input
     | _ -> input
   ;;
 end
@@ -211,6 +215,6 @@ module Analysis = struct
   module SU = SizeUtil
   module ST = SizeTransfer
 
-  let get_size (v : value) (d : t) : size = SU.get_size v d
-  let pr_size = pr_size
+  let get_size (v : value) (d : t) : size = SU.get_size (expr_of_value v) d
+  let pr_size (s: size) = pr_size s
 end

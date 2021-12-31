@@ -158,7 +158,7 @@ struct
     match p with
     | PBool _ -> MP.empty
     | PIcmp (cmp, lhs, rhs) ->
-      let lhs, rhs = expr_of_llvalue lhs, expr_of_llvalue rhs in
+      let lhs, rhs = expr_of_value lhs, expr_of_value rhs in
       if is_expr_const lhs && not (is_expr_const rhs)
       then (
         let b =
@@ -372,38 +372,38 @@ struct
     match instr_opcode ins with
     | LO.Unreachable -> least_data
     | LO.Add ->
-      let opr0, opr1 = expr_operand ins 0, expr_operand ins 1 in
+      let opr0, opr1 = operand_expr ins 0, operand_expr ins 1 in
       let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
       let itv = add_interval itv0 itv1 in
       replace_interval expr itv input
     | LO.Sub ->
-      let opr0, opr1 = expr_operand ins 0, expr_operand ins 1 in
+      let opr0, opr1 = operand_expr ins 0, operand_expr ins 1 in
       let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
       let itv = sub_interval itv0 itv1 in
       replace_interval expr itv input
     | LO.Mul ->
-      let opr0, opr1 = expr_operand ins 0, expr_operand ins 1 in
+      let opr0, opr1 = operand_expr ins 0, operand_expr ins 1 in
       let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
       let itv = mult_interval itv0 itv1 in
       replace_interval expr itv input
     | LO.UDiv ->
-      let opr0, opr1 = expr_operand ins 0, expr_operand ins 1 in
+      let opr0, opr1 = operand_expr ins 0, operand_expr ins 1 in
       let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
       let itv = udiv_interval itv0 itv1 in
       replace_interval expr itv input
     | LO.SDiv ->
-      let opr0, opr1 = expr_operand ins 0, expr_operand ins 1 in
+      let opr0, opr1 = operand_expr ins 0, operand_expr ins 1 in
       let itv0, itv1 = get_interval opr0 input, get_interval opr1 input in
       let itv = sdiv_interval itv0 itv1 in
       replace_interval expr itv input
     | LO.PHI ->
-      let opr0 = expr_operand ins 0 in
+      let opr0 = operand_expr ins 0 in
       let itv = ref (get_interval opr0 input) in
       let _ = hdebug "Before refine widening: " pr_bool widen in
       let widen = refine_widening func ins widen in
       let _ = hdebug "After refine widening: " pr_bool widen in
       for i = 1 to num_operands ins - 1 do
-        let opri = expr_operand ins i in
+        let opri = operand_expr ins i in
         let itvi = get_interval opri input in
         (* TODO: need to refine widening here *)
         itv := combine_interval ~widen !itv itvi
@@ -411,7 +411,7 @@ struct
       replace_interval (expr_of_instr ins) !itv input
     | LO.Ret ->
       let expr = mk_expr_func_result func in
-      let opr0 = expr_operand ins 0 in
+      let opr0 = operand_expr ins 0 in
       let itv = get_interval opr0 input in
       replace_interval expr itv input
     | LO.Load ->
@@ -430,13 +430,13 @@ struct
       let src_typ = LL.type_of src in
       if is_type_integer src_typ
       then (
-        let src_itv = get_interval (expr_of_llvalue src) input in
+        let src_itv = get_interval (expr_of_value src) input in
         let dst = dst_of_instr_store ins in
         let dst_dref = mk_expr_deref dst in
         replace_interval dst_dref src_itv input)
       else input
     | LO.ZExt ->
-      let esrc = expr_of_llvalue (src_of_instr_zext ins) in
+      let esrc = expr_of_value (src_of_instr_zext ins) in
       let itv = get_interval esrc input in
       replace_interval expr itv input
     | LO.Call | LO.Invoke ->

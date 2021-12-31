@@ -24,33 +24,49 @@ module II = Int_interval
 type memtype =
   | StackBased
   | HeapBased
-  | MemUnknown
+  | NonMemory
+  | StackOrHeap
 
-let least_size = II.least_interval
-let equal_size = II.equal_interval
-let lequal_size = II.lequal_interval
-let pr_size = II.pr_interval
+let least_memtype = NoneMemory
+let equal_memtype (m1 : memtype) (m2 : memtype) = m1 == m2
+let lequal_memtype (m1 : memtype) (m2 : memtype) =
+  match m1, m2 with
+  | NonMemory, _ -> true
+  | _, StackOrHeap -> true
+  | _ -> false
+
+let pr_memtype (m: memtype) = match t with
+  | StackBased -> "StackBased"
+  | HeapBased -> "HeapBased"
+  | NonMemory -> "NonMemory"
+  | StackOrHeap -> "StackOrHeap"
 
 (*******************************************************************
  ** Core data transfer modules
  *******************************************************************)
 
-module MemTypeData = struct
-  type t = (value * memtype) list (* maintained as a sorted list *)
+module MemtypeData = struct
+  (* TODO: maybe need to use expr to capture content of pointer.
+     See module range.ml *)
+  type t = (value, size) MP.t
 end
 
 module SizeUtil = struct
-  include SizeData
+  include MemtypeData
 
   let get_size (v : value) (d : t) : size =
-    try LA.find_exn d ~equal:( == ) v with _ -> least_size
+    match MP.find d v with
+    | Some s -> s
+    | None -> least_size
   ;;
+
+  let combine_size (a : size) (b : size) = II.union_interval a b
 end
 
-module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
-  include SizeData
+module SizeTransfer : DF.ForwardDataTransfer with type t = MemtypeData.t = struct
+  include MemtypeData
   include SizeUtil
-  include DF.MakeDefaultEnv (SizeData)
+  include DF.MakeDefaultEnv (MemtypeData)
 
   let analysis = DfaMemsize
 
@@ -58,63 +74,59 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
    ** Handling abstract data
    *******************************************************************)
 
-  let least_data = []
+  let least_data = MP.empty
 
-  let pr_data d =
+  let pr_data (d : t) =
+    let size_info = MP.to_alist ~key_order:`Increasing d in
     "MemSize: "
-    ^ pr_list_square ~f:(fun (v, s) -> pr_value v ^ ": " ^ pr_size s) d
+    ^ pr_list_square ~f:(fun (v, s) -> pr_value v ^ ": " ^ pr_size s) size_info
   ;;
 
   let pr_data_checksum = pr_data
+  let equal_data (d1 : t) (d2 : t) = MP.equal equal_size d1 d2
 
-  let rec equal_data (d1 : t) (d2 : t) =
-    match d1, d2 with
-    | [], [] -> true
-    | (v1, s1) :: nd1, (v2, s2) :: nd2 ->
-      equal_value v1 v2 && equal_size s1 s2 && equal_data nd1 nd2
-    | _ -> false
+  let lequal_data (d1 : t) (d2 : t) : bool =
+    let diffs = MP.symmetric_diff d1 d2 ~data_equal:equal_size in
+    Sequence.for_all
+      ~f:(fun diff ->
+        match snd diff with
+        | `Left _ -> false
+        | `Unequal _ -> false
+        | `Right _ -> true)
+      diffs
   ;;
 
-  let lequal_data (a : t) (b : t) : bool =
-    let rec leq xs ys =
-      match xs, ys with
-      | [], [] -> true
-      | [], _ | _, [] -> false
-      | (xv, xd) :: nxs, (yv, yd) :: nys ->
-        if equal_value xv yv && lequal_size xd yd then leq nxs nys else false
-    in
-    leq a b
-  ;;
-
-  let copy_data d = d
+  let copy_data (d : t) = d
 
   let subst_data
-        ?(sstv : substv = [])
-        ?(sstve : substve = [])
-        ?(sste : subste = [])
-        (d : t)
-    : t
+      ?(sstv : substv = [])
+      ?(sstve : substve = [])
+      ?(sste : subste = [])
+      (d : t)
+      : t
     =
-    List.map ~f:(fun (v, s) -> subst_value sstv v, s) d
+    MP.fold
+      ~f:(fun ~key:v ~data:d acc ->
+        let nv = subst_value sstv v in
+        match MP.add acc ~key:nv ~data:d with
+        | `Ok res -> res
+        | `Duplicate ->
+          herror "memsize: subst_data: new value is duplicated: " pr_value nv)
+      ~init:MP.empty d
   ;;
 
-  let merge_data ?(widen = false) (a : t) (b : t) : t =
-    let rec combine xs ys acc =
-      match xs, ys with
-      | [], _ -> acc @ ys
-      | _, [] -> acc @ xs
-      | (xv, xd) :: nxs, (yv, yd) :: nys ->
-        let cmp = String.compare (pr_value xv) (pr_value yv) in
-        if cmp = 0
-        then combine nxs nys (acc @ [ xv, II.union_interval xd yd ])
-        else if cmp < 0
-        then combine nxs ys (acc @ [ xv, xd ])
-        else combine xs nys (acc @ [ yv, yd ]) in
-    combine a b []
+  let merge_data ?(widen = false) (d1 : t) (d2 : t) : t =
+    MP.merge
+      ~f:(fun ~key:v d ->
+        match d with
+        | `Both (s1, s2) -> Some (combine_size s1 s2)
+        | `Left s1 -> Some s1
+        | `Right s2 -> Some s2)
+      d1 d2
   ;;
 
   let clean_irrelevant_info_from_data prog func (d : t) : t =
-    List.exclude ~f:(fun (v, s) -> is_local_llvalue v) d
+    MP.filter_keys ~f:(fun v -> not (is_local_llvalue v)) d
   ;;
 
   let clean_info_of_vars (input : t) (vs : values) : t =
@@ -130,20 +142,8 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
   let join_data (a : t) (b : t) : t = merge_data a b
 
   let update_size (v : value) (s : size) (d : t) : t =
-    let rec replace xs acc =
-      match xs with
-      | [] -> acc @ [ v, s ]
-      | (xv, xd) :: nxs ->
-        let cmp = String.compare (pr_value v) (pr_value xv) in
-        if cmp < 0
-        then acc @ [ v, s ] @ xs
-        else if cmp = 0
-        then acc @ [ v, s ] @ nxs
-        else replace nxs (acc @ [ xv, xd ]) in
-    replace d []
+    MP.change ~f:(fun _ -> Some s) d v
   ;;
-
-  let combine_size (a : size) (b : size) = II.union_interval a b
 
   (*******************************************************************
    ** Core analysis functions
@@ -220,7 +220,7 @@ end
 
 module Analysis = struct
   include SizeTransfer
-  include DF.ForwardDataFlow (SizeTransfer)
+  include DF.MakeForwardDataFlow (SizeTransfer)
   module SU = SizeUtil
   module ST = SizeTransfer
 

@@ -39,7 +39,7 @@ module IntegerAssertion = struct
     match RA.get_instr_output fenv instr with
     | None -> false
     | Some data ->
-      (match RA.get_interval (expr_of_llvalue v) data with
+      (match RA.get_interval (expr_of_value v) data with
       | Bottom -> false
       | Range r ->
         (match r.range_lb with
@@ -65,7 +65,7 @@ module IntegerAssertion = struct
     match RA.get_instr_output fenv instr with
     | None -> false
     | Some data ->
-      (match RA.get_interval (expr_of_llvalue v) data with
+      (match RA.get_interval (expr_of_value v) data with
       | Bottom -> true
       | Range r ->
         (match r.range_ub with
@@ -168,7 +168,7 @@ module PointerAssertion = struct
     match PA.get_instr_output fenv instr with
     | None -> false
     | Some data ->
-      let u1, u2 = expr_of_llvalue v1, expr_of_llvalue v2 in
+      let u1, u2 = expr_of_value v1, expr_of_value v2 in
       PA.is_may_alias_exp fenv.fenv_prog data u1 u2
   ;;
 
@@ -180,7 +180,7 @@ module PointerAssertion = struct
     match PA.get_instr_output fenv instr with
     | None -> false
     | Some data ->
-      let u1, u2 = expr_of_llvalue v1, expr_of_llvalue v2 in
+      let u1, u2 = expr_of_value v1, expr_of_value v2 in
       PA.is_must_alias_exp fenv.fenv_prog data u1 u2
   ;;
 
@@ -188,7 +188,7 @@ module PointerAssertion = struct
     match PA.get_instr_output fenv instr with
     | None -> false
     | Some data ->
-      let u1, u2 = expr_of_llvalue v1, expr_of_llvalue v2 in
+      let u1, u2 = expr_of_value v1, expr_of_value v2 in
       PA.is_no_alias_exp fenv.fenv_prog data u1 u2
   ;;
 

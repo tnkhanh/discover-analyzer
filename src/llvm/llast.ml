@@ -1540,7 +1540,7 @@ module Expr = struct
   let mk_expr_exn (tinfo : value) : expr = Exn (mk_expr_var tinfo)
   let expr_of_int32 (i : int) = mk_expr_int64 (Int64.of_int i)
 
-  let expr_of_llvalue (v : value) : expr =
+  let expr_of_value (v : value) : expr =
     match LL.int64_of_const v, LL.float_of_const v, LL.string_of_const v with
     | None, None, None -> mk_expr_var v
     | Some i, _, _ -> mk_expr_int64 i
@@ -1609,8 +1609,8 @@ module Expr = struct
     | Exn _, _ -> false
   ;;
 
-  let expr_operand (i : instr) (idx : int) : expr =
-    expr_of_llvalue (operand i idx)
+  let operand_expr (i : instr) (idx : int) : expr =
+    expr_of_value (operand i idx)
   ;;
 
   let is_expr_null (e : expr) : bool =

@@ -40,7 +40,7 @@ module IntegerBug = struct
             else (
               let%bind data = RG.get_instr_output fenv iof.iof_instr in
               let itv =
-                RG.get_interval (LI.expr_of_llvalue iof.iof_expr) data in
+                RG.get_interval (LI.expr_of_value iof.iof_expr) data in
               match itv with
               | Bottom -> None
               | Range r ->
@@ -93,7 +93,7 @@ module IntegerBug = struct
             else (
               let%bind data = RG.get_instr_output fenv iuf.iuf_instr in
               let itv =
-                RG.get_interval (LI.expr_of_llvalue iuf.iuf_expr) data in
+                RG.get_interval (LI.expr_of_value iuf.iuf_expr) data in
               match itv with
               | Bottom -> None
               | Range r ->
@@ -147,7 +147,7 @@ module IntegerBug = struct
             else (
               let%bind data = RG.get_instr_output fenv pbug.pbug_instr in
               let divisor = LI.operand pbug.pbug_instr 1 in
-              let itv = RG.get_interval (LI.expr_of_llvalue divisor) data in
+              let itv = RG.get_interval (LI.expr_of_value divisor) data in
               match itv with
               | Bottom -> None
               | Range r ->
@@ -207,7 +207,7 @@ module MemoryBug = struct
           else (
             let%bind data_rng = RG.get_instr_output fenv_rng bof.bof_instr in
             let index_itv =
-              RG.get_interval (LI.expr_of_llvalue bof.bof_elem_index) data_rng
+              RG.get_interval (LI.expr_of_value bof.bof_elem_index) data_rng
             in
             if LI.is_pointer_to_array ptr
             then (

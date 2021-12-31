@@ -1295,7 +1295,7 @@ module PointerDomain = struct
   ;;
 
   let get_bitcast_alias_of_llvalue (v : value) : expr =
-    get_bitcast_alias (expr_of_llvalue v)
+    get_bitcast_alias (expr_of_value v)
   ;;
 
   let get_direct_must_aliases (g : pgraph) (v : expr) : exprs =
@@ -1987,7 +1987,7 @@ module PointerDomain = struct
     let curr_funcs = get_current_funcs_of_pointer prog ptr in
     let _ = hdebug "Finding functions pointed by: " pr_value ptr in
     (* let _ = hdebug "  - Input: " pr_pgraph g in *)
-    let vptr = expr_of_llvalue ptr in
+    let vptr = expr_of_value ptr in
     let vfuncs = get_func_vertices_in_pgraph g in
     let _ = hdebug "Functions in pgraph: " pr_exprs vfuncs in
     let funcs =
@@ -3275,10 +3275,10 @@ struct
       let dargs =
         let dparams =
           fsum.fsum_deref_params |> llvalues_of_params
-          |> List.map ~f:(fun v -> subst_expr ~sste (expr_of_llvalue v)) in
+          |> List.map ~f:(fun v -> subst_expr ~sste (expr_of_value v)) in
         let dglobals =
           fsum.fsum_deref_globals |> llvalues_of_globals
-          |> List.map ~f:(fun v -> subst_expr ~sste (expr_of_llvalue v)) in
+          |> List.map ~f:(fun v -> subst_expr ~sste (expr_of_value v)) in
         dparams @ dglobals in
       let caller_data = refine_caller_data_by_deref_args prog input dargs in
       let callee_output = subst_data ~sste fsum.fsum_output in
@@ -3330,14 +3330,14 @@ struct
       then (
         let gexp = expr_of_global g in
         let deref = deref_of_global g in
-        let ivexp = expr_of_llvalue init_value in
+        let ivexp = expr_of_value init_value in
         let output = PG.copy input in
         let _ = insert_deref output ~deref ~root:gexp in
         let _ = insert_alias output Must deref ivexp in
         output)
       else input
     | LT.Struct ->
-      let root = expr_of_llvalue (llvalue_of_global g) in
+      let root = expr_of_value (llvalue_of_global g) in
       let rtyp = type_of_expr root in
       let output = PG.copy input in
       for i = 0 to LL.num_operands init_value do
@@ -3346,7 +3346,7 @@ struct
         then (
           let fst_idx = expr_of_int32 0 in
           let snd_idx = expr_of_int32 i in
-          let fld_exp = expr_of_llvalue fld_ptr in
+          let fld_exp = expr_of_value fld_ptr in
           let idxs = [ fst_idx; snd_idx ] in
           let elemptr = elemptr_of_global g idxs in
           let _ = insert_deref output ~deref:fld_exp ~root:elemptr in
@@ -3374,8 +3374,8 @@ struct
       else (
         (* let _ = hprint "handling store: " pr_instr instr in *)
         (* let _ = hprint "  graph size: " pr_graph_size input in *)
-        let sexp = get_bitcast_alias (expr_of_llvalue src) in
-        let dexp = get_bitcast_alias (expr_of_llvalue dst) in
+        let sexp = get_bitcast_alias (expr_of_value src) in
+        let dexp = get_bitcast_alias (expr_of_value dst) in
         let output = PG.copy input in
         let _ = remove_deref_of_vertex output dexp in
         let _ =
@@ -3444,8 +3444,8 @@ struct
       if LL.is_null src
       then input
       else (
-        let sexp = get_bitcast_alias (expr_of_llvalue src) in
-        let dexp = get_bitcast_alias (expr_of_llvalue dst) in
+        let sexp = get_bitcast_alias (expr_of_value src) in
+        let dexp = get_bitcast_alias (expr_of_value dst) in
         let sderef = deref_of_expr sexp in
         let output = PG.copy input in
         let _ = insert_deref output ~root:sexp ~deref:sderef in
@@ -3457,10 +3457,10 @@ struct
       then (
         let rtyp = type_of_llvalue src in
         let dst = dst_of_instr_gep_extract_value instr in
-        let sexp = get_bitcast_alias (expr_of_llvalue src) in
-        let dexp = expr_of_llvalue dst in
+        let sexp = get_bitcast_alias (expr_of_value src) in
+        let dexp = expr_of_value dst in
         let idxs = indexes_of_instr_gep_extract_value instr in
-        let iexps = List.map ~f:expr_of_llvalue idxs in
+        let iexps = List.map ~f:expr_of_value idxs in
         let output = PG.copy input in
         let selemptr = mk_expr_elemptr sexp rtyp iexps in
         (* let _ = insert_element_ptr output ~root:sexp ~rtyp ~elemptr:dexp ~idxs:iexps in *)
@@ -3481,21 +3481,21 @@ struct
          * | Some s when (s = 0) -> output
          * | _ ->
          *   let src = llvalue_of_instr instr in
-         *   let sexp, dexp = mk_expr_malloc src, expr_of_llvalue src in
+         *   let sexp, dexp = mk_expr_malloc src, expr_of_value src in
          *   let _ = insert_alias output Must ~trace sexp dexp in
          *   output *)
       else if is_func_free callee || is_func_cpp_delete callee
       then (
         let _ = hdebug "==> CALL TO DELETE: " func_name callee in
         let src = operand instr 0 in
-        let sexp = expr_of_llvalue src in
+        let sexp = expr_of_value src in
         free_pointer_from_pgraph prog output sexp)
       else if is_func_memcpy callee || is_func_memmove callee
       then (
         (* FIXME: memcopy seems not being handled properly. Need to fix. *)
         let src, dst = operand instr 1, operand instr 0 in
-        let sexp = get_bitcast_alias (expr_of_llvalue src) in
-        let dexp = get_bitcast_alias (expr_of_llvalue dst) in
+        let sexp = get_bitcast_alias (expr_of_value src) in
+        let dexp = get_bitcast_alias (expr_of_value dst) in
         let styp, dtyp = type_of_expr sexp, type_of_expr dexp in
         let _ = hdebug "Src type: " pr_type styp in
         let elem_typ = LL.element_type styp in
@@ -3534,8 +3534,8 @@ struct
       else if is_func_dynamic_cast callee
       then (
         let src, dst = operand instr 0, llvalue_of_instr instr in
-        let sexp = get_bitcast_alias (expr_of_llvalue src) in
-        let dexp = expr_of_llvalue dst in
+        let sexp = get_bitcast_alias (expr_of_value src) in
+        let dexp = expr_of_value dst in
         let _ = insert_alias output Must ~trace sexp dexp in
         output)
       else if is_func_pointer callee
@@ -3545,7 +3545,7 @@ struct
         let ptr = llvalue_of_func callee in
         let _ = hdebug "Find function pointer in graph: " pr_pgraph output in
         let funcs =
-          match get_bitcast_alias (expr_of_llvalue ptr) with
+          match get_bitcast_alias (expr_of_value ptr) with
           | Var vptr ->
             (match LL.classify_value vptr with
             | LV.Function -> [ mk_func vptr ]
@@ -3561,13 +3561,13 @@ struct
       let src_origin = src_and_origin_of_instr_phi instr in
       let src_blks = snd (List.unzip src_origin) in
       let dst = dst_of_instr_phi instr in
-      let dexp = expr_of_llvalue dst in
+      let dexp = expr_of_value dst in
       let output = PG.copy input in
       (* get alias from the sources of this PHI instr *)
       let _ =
         List.iter
           ~f:(fun (src_opr, src_blk) ->
-            let sexp = get_bitcast_alias (expr_of_llvalue src_opr) in
+            let sexp = get_bitcast_alias (expr_of_value src_opr) in
             if (not (is_expr_null sexp)) || not (is_expr_undef sexp)
             then (
               let trace =
@@ -3584,7 +3584,7 @@ struct
       output
     | LO.Ret when num_operands instr = 1 ->
       let src = src_of_instr_return instr in
-      let sexp = get_bitcast_alias (expr_of_llvalue src) in
+      let sexp = get_bitcast_alias (expr_of_value src) in
       let output = PG.copy input in
       if is_llvalue_contain_pointer src
       then (
