@@ -25,7 +25,6 @@ module MP = Map.Poly
 module IntervalData = struct
   open Int_interval
 
-  (* FIXME: use Map to represent it *)
   type t = (expr, interval) MP.t
 end
 

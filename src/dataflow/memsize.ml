@@ -15,6 +15,7 @@ module ListA = List.Assoc
 module ListO = List.OrderedList
 module BG = Bug
 module Opt = Option
+module MP = Map.Poly
 module SP = Set.Poly
 module II = Int_interval
 
@@ -34,15 +35,16 @@ let pr_size = II.pr_interval
  *******************************************************************)
 
 module SizeData = struct
-  type t = (value * size) ListO.t
+  (* TODO: maybe need to use expr to capture content of pointer.
+     See module range.ml *)
+  type t = (value, size) MP.t
 end
 
 module SizeUtil = struct
   include SizeData
 
   let get_size (v : value) (d : t) : size =
-    let elems = ListO.to_list d in
-    match ListA.find elems v ~equal:( == ) with
+    match MP.find d v with
     | Some s -> s
     | None -> least_size
   ;;
@@ -68,15 +70,14 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
 
   let pr_data_checksum = pr_data
 
-  let rec equal_data (d1 : t) (d2 : t) =
-    match d1, d2 with
-    | [], [] -> true
-    | (v1, s1) :: nd1, (v2, s2) :: nd2 ->
-      equal_value v1 v2 && equal_size s1 s2 && equal_data nd1 nd2
-    | _ -> false
+  let equal_data (d1 : t) (d2 : t) =
+    MP.equal equal_size d1 d2
   ;;
 
   let lequal_data (a : t) (b : t) : bool =
+    MP.compare
+
+
     let rec leq xs ys =
       match xs, ys with
       | [], [] -> true
