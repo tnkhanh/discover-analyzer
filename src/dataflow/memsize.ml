@@ -46,7 +46,7 @@ module SizeUtil = struct
     | None -> least_size
   ;;
 
-  let combine_size (a : size) (b : size) = II.union_interval a b
+  let combine_size (a : size) (b : size) : size = II.union_interval a b
 end
 
 module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
@@ -54,7 +54,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
   include SizeUtil
   include DF.MakeDefaultEnv (SizeData)
 
-  let analysis = DfaMemsize
+  let analysis = DfaMemSize
 
   (*******************************************************************
    ** Handling abstract data
@@ -216,5 +216,5 @@ module Analysis = struct
   module ST = SizeTransfer
 
   let get_size (v : value) (d : t) : size = SU.get_size (expr_of_value v) d
-  let pr_size (s: size) = pr_size s
+  let pr_size (s : size) = pr_size s
 end

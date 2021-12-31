@@ -32,7 +32,8 @@ type precision =
 type dfa_analysis =
   | DfaRange
   | DfaUndef
-  | DfaMemsize
+  | DfaMemSize
+  | DfaMemType
   | DfaPointer
   | DfaAutoSchedule
   | DfaAllAnalyses
@@ -293,7 +294,8 @@ let name_of_dfa (dfa : dfa_analysis) : string =
   match dfa with
   | DfaRange -> "Range Analysis"
   | DfaUndef -> "Undef Analysis"
-  | DfaMemsize -> "Memsize Analysis"
+  | DfaMemSize -> "MemSize Analysis"
+  | DfaMemType -> "MemType Analysis"
   | DfaPointer -> "Pointer Analysis"
   | DfaAutoSchedule -> "Auto-schedule DFA Analyses"
   | DfaAllAnalyses -> "All Analyses"

@@ -151,7 +151,13 @@ and arguments_raw =
       Arg.Unit
         (fun () ->
           work_mode := WkmDFA;
-          dfa_analyses := !dfa_analyses @ [ DfaMemsize ]) );
+          dfa_analyses := !dfa_analyses @ [ DfaMemSize ]) );
+    ( [ "--dfa-memtype" ],
+      "Perform the data-flow memory type analysis",
+      Arg.Unit
+        (fun () ->
+           work_mode := WkmDFA;
+           dfa_analyses := !dfa_analyses @ [ DfaMemType ]) );
     ( [ "--dfa-pointer" ],
       "Perform the data-flow pointer analysis",
       Arg.Unit

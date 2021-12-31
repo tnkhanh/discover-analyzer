@@ -53,7 +53,7 @@ let perform_range_analysis (pdata : program_data) : program_data =
     let penv = RG.analyze_program prog in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then hprint ~header:true "RANGE INFO" RG.pr_prog_env penv in
+      then hprint ~header:true "Range Info" RG.pr_prog_env penv in
     { pdata with pdata_env_range = Some penv })
   else pdata
 ;;
@@ -67,21 +67,34 @@ let perform_undef_analysis (pdata : program_data) : program_data =
     let _ = record_task_time "Undef analysis" time in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then hprint ~header:true "UNDEF INFO" UA.pr_prog_env penv in
+      then hprint ~header:true "Undef Info" UA.pr_prog_env penv in
     { pdata with pdata_env_undef = Some penv })
   else pdata
 ;;
 
 let perform_memsize_analysis (pdata : program_data) : program_data =
-  if is_analysis_enabled DfaMemsize
+  if is_analysis_enabled DfaMemSize
   then (
-    let _ = debug ~header:true "Performing Memsize Analysis" in
+    let _ = debug ~header:true "Performing MemSize Analysis" in
     let prog = pdata.pdata_program in
     let penv = MS.analyze_program prog in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then hprint ~header:true "MEMSIZE INFO" MS.pr_prog_env penv in
+      then hprint ~header:true "MemSize Info" MS.pr_prog_env penv in
     { pdata with pdata_env_memsize = Some penv })
+  else pdata
+;;
+
+let perform_memtype_analysis (pdata : program_data) : program_data =
+  if is_analysis_enabled DfaMemType
+  then (
+    let _ = debug ~header:true "Performing MemType Analysis" in
+    let prog = pdata.pdata_program in
+    let penv = MT.analyze_program prog in
+    let _ =
+      if (not !print_concise_output) && !print_analyzed_prog
+      then hprint ~header:true "MemType Info" MT.pr_prog_env penv in
+    { pdata with pdata_env_memtype = Some penv })
   else pdata
 ;;
 
@@ -94,7 +107,7 @@ let perform_pointer_analysis (pdata : program_data) : program_data =
     let _ = record_task_time "Pointer analysis" time in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then hprint ~header:true "POINTER INFO" PA.pr_prog_env penv in
+      then hprint ~header:true "Pointer Info" PA.pr_prog_env penv in
     { pdata with pdata_env_pointer = Some penv })
   else pdata
 ;;
@@ -107,7 +120,8 @@ let reorder_analysis_passes () =
 let perform_main_analysis_passes (pdata : program_data) : program_data =
   let _ = reorder_analysis_passes () in
   pdata |> perform_undef_analysis |> perform_pointer_analysis
-  |> perform_memsize_analysis |> perform_range_analysis
+  |> perform_memsize_analysis |> perform_memtype_analysis
+  |> perform_range_analysis
 ;;
 
 (*******************************************************************
