@@ -1976,8 +1976,8 @@ functor
           | Some old_output -> not (T.lequal_data new_output old_output) in
         let _ = if continue then T.set_instr_output fenv instr new_output in
         let _ = hdebug ~mtype:"" "    Out: " T.pr_data new_output in
-        let _ = nhdebug "    Changed: " pr_bool changed in
-        let _ = nhdebug "    Continue: " pr_bool continue in
+        (* let _ = nhdebug "    Changed: " pr_bool changed in *)
+        (* let _ = nhdebug "    Continue: " pr_bool continue in *)
         if not continue
         then changed, false
         else if not changed

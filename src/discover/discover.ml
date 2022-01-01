@@ -161,6 +161,8 @@ let main () : unit =
   let _ = handle_system_signals () in
   let run_discover () =
     let _ = AG.parse_arguments () in
+    let _ = debugf "Testing debugf %s %d %d " "Hello debugf" 1 2 in
+    let _ = debug "Testing NON debugf" in
     let _ = init_environment () in
     let _ = print_discover_settings () in
     analyze_input_file !input_file in

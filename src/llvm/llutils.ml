@@ -1955,7 +1955,7 @@ module Program = struct
   ;;
 
   let compute_func_call_info (prog : program) : unit =
-    let _ = ndebug "Compute function call information" in
+    (* let _ = ndebug "Compute function call information" in *)
     let equal = equal_func in
     let process_instr instr =
       match instr_opcode instr with
@@ -2000,7 +2000,7 @@ module Program = struct
   ;;
 
   let compute_funcs_in_pointers (prog : program) : unit =
-    let _ = ndebug "Compute functions in pointers" in
+    (* let _ = ndebug "Compute functions in pointers" in *)
     let process_instr instr =
       let func =
         match instr_opcode instr with
