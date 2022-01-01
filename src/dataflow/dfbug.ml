@@ -29,7 +29,7 @@ module IntegerBug = struct
    * Integer overflow
    *------------------*)
 
-  let check_bug_integer_overflow (pdata : program_data) (pbug : potential_bug)
+  let check_bug_integer_overflow (dfa : dfa_data) (pbug : potential_bug)
       : bug option
     =
     let open Option.Let_syntax in
@@ -39,7 +39,7 @@ module IntegerBug = struct
       then (
         let _ = hdebug "Checking Potential Bug: " pr_potential_bug pbug in
         let func = LI.func_of_instr iof.iof_instr in
-        let%bind penv_rng = pdata.pdata_env_range in
+        let%bind penv_rng = dfa.dfa_env_range in
         let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
         List.fold_left
           ~f:(fun acc fenv ->
@@ -68,12 +68,12 @@ module IntegerBug = struct
     | _ -> None
   ;;
 
-  let find_bug_integer_overflow (pdata : program_data) =
+  let find_bug_integer_overflow (dfa : dfa_data) =
     if !bug_all || !bug_integer_all || !bug_integer_overflow
     then (
       let _ = debug "Finding All Integer Overflow Bugs..." in
-      pdata.pdata_potential_bugs
-      |> List.map ~f:(check_bug_integer_overflow pdata)
+      dfa.dfa_potential_bugs
+      |> List.map ~f:(check_bug_integer_overflow dfa)
       |> List.filter_opt)
     else []
   ;;
@@ -82,7 +82,7 @@ module IntegerBug = struct
    * Integer underflow
    *-------------------*)
 
-  let check_bug_integer_underflow (pdata : program_data) (pbug : potential_bug)
+  let check_bug_integer_underflow (dfa : dfa_data) (pbug : potential_bug)
       : bug option
     =
     let open Option.Let_syntax in
@@ -91,7 +91,7 @@ module IntegerBug = struct
       if !bug_integer_all || !bug_integer_overflow
       then (
         let func = LI.func_of_instr iuf.iuf_instr in
-        let%bind penv_rng = pdata.pdata_env_range in
+        let%bind penv_rng = dfa.dfa_env_range in
         let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
         List.fold_left
           ~f:(fun acc fenv ->
@@ -120,12 +120,12 @@ module IntegerBug = struct
     | _ -> None
   ;;
 
-  let find_bug_integer_underflow (pdata : program_data) : bugs =
+  let find_bug_integer_underflow (dfa : dfa_data) : bugs =
     if !bug_all || !bug_integer_all || !bug_integer_underflow
     then (
       let _ = debug "Finding All Integer Underflow Bugs..." in
-      pdata.pdata_potential_bugs
-      |> List.map ~f:(check_bug_integer_underflow pdata)
+      dfa.dfa_potential_bugs
+      |> List.map ~f:(check_bug_integer_underflow dfa)
       |> List.filter_opt)
     else []
   ;;
@@ -134,7 +134,7 @@ module IntegerBug = struct
    * Division by Zero
    *-------------------*)
 
-  let check_bug_division_by_zero (pdata : program_data) (pbug : potential_bug)
+  let check_bug_division_by_zero (dfa : dfa_data) (pbug : potential_bug)
       : bug option
     =
     let open Option.Let_syntax in
@@ -144,7 +144,7 @@ module IntegerBug = struct
       then (
         let _ = hdebug "Checking Potential Bug: " pr_potential_bug pbug in
         let func = LI.func_of_instr pbug.pbug_instr in
-        let%bind penv_rng = pdata.pdata_env_range in
+        let%bind penv_rng = dfa.dfa_env_range in
         let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
         List.fold_left
           ~f:(fun acc fenv ->
@@ -172,12 +172,12 @@ module IntegerBug = struct
     | _ -> None
   ;;
 
-  let find_bug_division_by_zero (pdata : program_data) : bugs =
+  let find_bug_division_by_zero (dfa : dfa_data) : bugs =
     if !bug_all || !bug_integer_all || !bug_divizion_by_zero
     then (
       let _ = debug "Finding All Division by Zero Bugs..." in
-      pdata.pdata_potential_bugs
-      |> List.map ~f:(check_bug_division_by_zero pdata)
+      dfa.dfa_potential_bugs
+      |> List.map ~f:(check_bug_division_by_zero dfa)
       |> List.filter_opt)
     else []
   ;;
@@ -195,31 +195,31 @@ module MemoryBug = struct
    *------------------*)
 
   let update_buffer_overflow_memory_type
-      (pdata : program_data)
+      (dfa : dfa_data)
       (bof : buffer_overflow)
       : unit
     =
     let ptr, ins = bof.bof_pointer, bof.bof_instr in
-    if is_stack_based_pointer pdata ins ptr
+    if is_stack_based_pointer dfa ins ptr
     then bof.bof_stack_based <- Some true
-    else if is_heap_based_pointer pdata ins ptr
+    else if is_heap_based_pointer dfa ins ptr
     then bof.bof_stack_based <- Some false
     else bof.bof_stack_based <- None
   ;;
 
-  let check_bug_buffer_overflow (pdata : program_data) (pbug : potential_bug)
+  let check_bug_buffer_overflow (dfa : dfa_data) (pbug : potential_bug)
       : bug option
     =
     let open Option.Let_syntax in
-    let prog = pdata.pdata_program in
-    let data_layout = LI.get_program_data_layout prog in
+    let prog = dfa.dfa_program in
+    let data_layout = LI.get_data_layout prog in
     match pbug.pbug_type with
     | BufferOverflow (Some bof) ->
       let ins = bof.bof_instr in
       let func = LI.func_of_instr ins in
       let ptr = bof.bof_pointer in
-      let _ = update_buffer_overflow_memory_type pdata bof in
-      let%bind penv_rng = pdata.pdata_env_range in
+      let _ = update_buffer_overflow_memory_type dfa bof in
+      let%bind penv_rng = dfa.dfa_env_range in
       let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
       List.fold_left
         ~f:(fun acc fenv_rng ->
@@ -243,7 +243,7 @@ module MemoryBug = struct
                 Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
               else None)
             else (
-              let%bind penv_msz = pdata.pdata_env_memsize in
+              let%bind penv_msz = dfa.dfa_env_memsize in
               let%bind fenvs_msz = Hashtbl.find penv_msz.penv_func_envs func in
               List.fold_left
                 ~f:(fun acc fenv_msz ->
@@ -290,12 +290,12 @@ module MemoryBug = struct
     | _ -> None
   ;;
 
-  let find_bug_buffer_overflow (pdata : program_data) : bug list =
+  let find_bug_buffer_overflow (dfa : dfa_data) : bug list =
     if !bug_all || !bug_memory_all || !bug_buffer_overflow
     then (
       let _ = debug "Finding All Buffer Overflow Bugs..." in
-      pdata.pdata_potential_bugs
-      |> List.map ~f:(check_bug_buffer_overflow pdata)
+      dfa.dfa_potential_bugs
+      |> List.map ~f:(check_bug_buffer_overflow dfa)
       |> List.filter_opt)
     else []
   ;;
@@ -304,7 +304,7 @@ module MemoryBug = struct
    * Check memory leak
    *-------------------*)
 
-  let check_bug_memory_leak (pdata : program_data) (pbug : potential_bug)
+  let check_bug_memory_leak (dfa : dfa_data) (pbug : potential_bug)
       : bug option
     =
     match pbug.pbug_type with
@@ -316,12 +316,12 @@ module MemoryBug = struct
     | _ -> None
   ;;
 
-  let find_bug_memory_leak (pdata : program_data) : bug list =
+  let find_bug_memory_leak (dfa : dfa_data) : bug list =
     if !bug_all || !bug_memory_all || !bug_memory_leak
     then (
       let _ = debug "Finding All Memory Leak Bugs..." in
-      pdata.pdata_potential_bugs
-      |> List.map ~f:(check_bug_memory_leak pdata)
+      dfa.dfa_potential_bugs
+      |> List.map ~f:(check_bug_memory_leak dfa)
       |> List.filter_opt)
     else []
   ;;
@@ -337,18 +337,19 @@ include MemoryBug
     - Indetify the type of bugs will be checked
     - Determine which analyeses need to be performed. *)
 
-let find_bugs (pdata : program_data) : unit =
+let find_bugs (dfa : dfa_data) : bugs =
   let _ = println "Checking Bugs..." in
   let _ =
     hddebug ~header:true "Potential bugs: " pr_potential_bugs
-      pdata.pdata_potential_bugs in
+      dfa.dfa_potential_bugs in
   let bugs =
-    find_bug_memory_leak pdata
-    @ find_bug_buffer_overflow pdata
-    @ find_bug_integer_overflow pdata
-    @ find_bug_integer_underflow pdata
-    @ find_bug_division_by_zero pdata in
+    find_bug_memory_leak dfa
+    @ find_bug_buffer_overflow dfa
+    @ find_bug_integer_overflow dfa
+    @ find_bug_integer_underflow dfa
+    @ find_bug_division_by_zero dfa in
   let _ = print ~mtype:"" (pr_bugs bugs) in
   let _ = num_detected_bugs := List.length bugs in
-  report_bug_stats bugs
+  let _ = report_bug_stats bugs in
+  bugs
 ;;

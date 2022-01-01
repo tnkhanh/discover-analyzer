@@ -160,7 +160,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
 
   let analyze_instr ?(widen = false) penv fenv (ins : instr) (input : t) : t =
     let prog = penv.penv_prog in
-    let data_layout = get_program_data_layout prog in
+    let data_layout = get_data_layout prog in
     let vins = llvalue_of_instr ins in
     let eins = expr_of_value vins in
     match instr_opcode ins with

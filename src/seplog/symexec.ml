@@ -13,6 +13,12 @@ module SI = Slir
 module TF = Transform
 module TI = Typeinfer
 
+(* TODO: implement seplog result *)
+type symexec_result =
+  { symexec_analysis_time : float;
+    symexec_total_time : float
+  }
+
 let parse_program_seplog (filename : string) : SA.program =
   let pr_position fname lexbuf =
     let pos = lexbuf.Lexing.lex_curr_p in
@@ -94,14 +100,25 @@ let compile_sep_logic (filename : string) : SI.program =
   cprog
 ;;
 
-let verify_program (prog : SI.program) : unit =
-  let _ = debug (SI.pr_program prog) in
-  let _ = debug "\n===================================\n" in
-  List.iter ~f:(process_command prog) prog.prog_commands
+(* TODO: rename to a better function name *)
+let compute_analysis_result () : symexec_result =
+  let total_time = ref 0. in
+  let analysis_time = ref 0. in
+  (* FIXME: compute run time correctly *)
+  { symexec_total_time = !total_time; symexec_analysis_time = !analysis_time }
 ;;
 
-let analyze_program (prog : LI.program) : unit =
+let verify_program (prog : SI.program) : symexec_result =
+  let _ = debug (SI.pr_program prog) in
+  let _ = debug "\n===================================\n" in
+  let _ = List.iter ~f:(process_command prog) prog.prog_commands in
+  compute_analysis_result ()
+
+;;
+
+let analyze_program (prog : LI.program) : symexec_result =
   let _ = print "Analyze program by Separation Logic" in
   let _ = compile_lib_seplog () in
-  Verifier.verify_program prog
+  let _ = Verifier.verify_program prog in
+  compute_analysis_result ()
 ;;

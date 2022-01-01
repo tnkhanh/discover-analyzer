@@ -1945,7 +1945,7 @@ module Program = struct
     }
   ;;
 
-  let get_program_data_layout (prog : program) : LTg.DataLayout.t =
+  let get_data_layout (prog : program) : LTg.DataLayout.t =
     LTg.DataLayout.of_string (LL.data_layout prog.prog_bitcode_module)
   ;;
 end

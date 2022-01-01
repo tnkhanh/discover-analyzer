@@ -11,9 +11,14 @@ module AG = Argument
 module AS = Assertion
 module CI = Commonir
 module DA = Dfanalyzer
-module CP = Compile
 module SE = Symexec
+module CP = Compile
 module VS = Version
+
+type analysis_result =
+  | RDfa of DA.dfa_result
+  | RSymexec of SE.symexec_result
+  | RNone
 
 let print_discover_settings () =
   let _ = print ~always:true ("Checking file: " ^ !input_file) in
@@ -126,20 +131,22 @@ let handle_system_signals () =
   Signal.Expert.handle Signal.int handle_interrupt_signal
 ;;
 
-let analyze_program (prog : CI.program) : unit =
+let analyze_program (prog : CI.program) : analysis_result =
   match prog with
   | CI.Llprog prog ->
     let _ = hprint "Work mode: " pr_work_mode !work_mode in
     let num_assertions = AS.count_all_assertions prog in
     let _ = print ("Found total assertions: " ^ pr_int num_assertions) in
     (match !work_mode with
-    | WkmDFA -> DA.analyze_program prog
-    (* | WkmDFA -> DAP.analyze_program prog *)
-    (* | WkmDFA -> DAO.analyze_program prog *)
-    | WkmSymExec -> SE.analyze_program prog
-    | WkmNoAnalysis -> print "No analysis mode is performed!"
-    | _ -> ())
-  | CI.Slprog prog -> SE.verify_program prog
+    | WkmDFA -> RDfa (DA.analyze_program prog)
+    | WkmSymExec -> RSymexec (SE.analyze_program prog)
+    | WkmNoAnalysis ->
+      let _ = print "No analysis mode is performed!" in
+      RNone
+    | _ -> RNone)
+  | CI.Slprog prog ->
+    let _ = SE.verify_program prog in
+    RNone
 ;;
 
 let analyze_input_file (filename : string) : unit =

@@ -111,7 +111,8 @@ module type Env = sig
       penv_block_local_analyzed_times : (block, int) Base.Hashtbl.t;
       penv_block_total_analyzed_times : (block, int) Base.Hashtbl.t;
       penv_func_analysis_stack : func Stack.t;
-      penv_block_analyzed_squence : (func, blocks) Hashtbl.t
+      penv_block_analyzed_squence : (func, blocks) Hashtbl.t;
+      mutable penv_total_analysis_time : float
     }
 
   val get_global_output : global_env -> global -> t option

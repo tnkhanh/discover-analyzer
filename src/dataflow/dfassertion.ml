@@ -291,19 +291,19 @@ let count_assertions (prog : program) : int =
   count_range_assertions prog + count_pointer_assertions prog
 ;;
 
-let check_assertions (pdata : program_data) : unit =
+let check_assertions (dfa : dfa_data) : unit =
   let _ = print "Checking assertions..." in
-  let prog = pdata.pdata_program in
+  let prog = dfa.dfa_program in
   let total_asserts = count_assertions prog in
   let checked_asserts = ref 0 in
   let _ =
-    match pdata.pdata_env_range with
+    match dfa.dfa_env_range with
     | None -> ()
     | Some penv_range ->
       let range_asserts = check_all_range_assertions penv_range in
       checked_asserts := !checked_asserts + range_asserts in
   let _ =
-    match pdata.pdata_env_pointer with
+    match dfa.dfa_env_pointer with
     | None -> ()
     | Some penv_pointer ->
       let range_asserts = check_all_pointer_assertions penv_pointer in

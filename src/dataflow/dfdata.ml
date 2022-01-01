@@ -24,28 +24,28 @@ module UD = Undef.Analysis
  ** Data structures
  *******************************************************************)
 
-type program_data =
-  { pdata_program : LI.program;
-    pdata_potential_bugs : BG.potential_bugs;
-    pdata_env_memsize : MS.prog_env option;
-    pdata_env_memtype : MT.prog_env option;
-    pdata_env_pointer : PT.prog_env option;
-    pdata_env_range : RG.prog_env option;
-    pdata_env_undef : UD.prog_env option
+type dfa_data =
+  { dfa_program : LI.program;
+    dfa_potential_bugs : BG.potential_bugs;
+    dfa_env_memsize : MS.prog_env option;
+    dfa_env_memtype : MT.prog_env option;
+    dfa_env_pointer : PT.prog_env option;
+    dfa_env_range : RG.prog_env option;
+    dfa_env_undef : UD.prog_env option
   }
 
 (*******************************************************************
  ** Constructor
  *******************************************************************)
 
-let mk_program_data (prog : LI.program) : program_data =
-  { pdata_program = prog;
-    pdata_potential_bugs = [];
-    pdata_env_memsize = None;
-    pdata_env_memtype = None;
-    pdata_env_pointer = None;
-    pdata_env_range = None;
-    pdata_env_undef = None
+let mk_dfa_data (prog : LI.program) : dfa_data =
+  { dfa_program = prog;
+    dfa_potential_bugs = [];
+    dfa_env_memsize = None;
+    dfa_env_memtype = None;
+    dfa_env_pointer = None;
+    dfa_env_range = None;
+    dfa_env_undef = None
   }
 ;;
 
@@ -53,13 +53,10 @@ let mk_program_data (prog : LI.program) : program_data =
  ** Utility
  *******************************************************************)
 
-let is_stack_based_pointer
-    (pdata : program_data)
-    (ins : LI.instr)
-    (ptr : LI.value)
+let is_stack_based_pointer (dfa : dfa_data) (ins : LI.instr) (ptr : LI.value)
     : bool
   =
-  match pdata.pdata_env_memtype with
+  match dfa.dfa_env_memtype with
   | None -> false
   | Some penv ->
     let fn = LI.func_of_instr ins in
@@ -77,13 +74,10 @@ let is_stack_based_pointer
         fenvs)
 ;;
 
-let is_heap_based_pointer
-    (pdata : program_data)
-    (ins : LI.instr)
-    (ptr : LI.value)
+let is_heap_based_pointer (dfa : dfa_data) (ins : LI.instr) (ptr : LI.value)
     : bool
   =
-  match pdata.pdata_env_memtype with
+  match dfa.dfa_env_memtype with
   | None -> false
   | Some penv ->
     let fn = LI.func_of_instr ins in

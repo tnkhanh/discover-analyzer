@@ -5,4 +5,6 @@
  * All rights reserved.
  ********************************************************************)
 
-val analyze_program : Llir.program -> unit
+type dfa_result
+
+val analyze_program : Llir.program -> dfa_result

@@ -270,12 +270,12 @@ struct
   ;;
 
   let is_data_satisfied_predicate (d : t) (p : predicate) : bool =
-    let pdata = extract_data_from_predicate ~widen:false p d in
+    let pd = extract_data_from_predicate ~widen:false p d in
     MP.for_alli
       ~f:(fun ~key:v ~data:vip ->
         let vid = get_interval v d in
         lequal_interval vid vip)
-      pdata
+      pd
   ;;
 
   let refine_data_by_predicate ?(widen = false) (d : t) (p : predicate) : t =
@@ -464,7 +464,6 @@ struct
         input
     | _ -> input
   ;;
-
 end
 
 (*******************************************************************

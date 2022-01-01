@@ -5,4 +5,4 @@
  * All rights reserved.
  ********************************************************************)
 
-val find_bugs : Dfdata.program_data -> unit
+val find_bugs : Dfdata.dfa_data -> Bug.bug list

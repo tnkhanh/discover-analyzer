@@ -238,9 +238,9 @@ let sparse_time : float ref = ref 0.0
 let analysis_time : float ref = ref 0.0
 let total_time : float ref = ref 0.0
 
-(*----------------------
- * Bugs and assertions
- *---------------------*)
+(*--------------------------------
+ * Bugs and assertions summaries
+ *-------------------------------*)
 
 let num_detected_bugs = ref 0
 let num_valid_asserts = ref 0

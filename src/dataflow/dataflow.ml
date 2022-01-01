@@ -122,7 +122,8 @@ module type Env = sig
       penv_block_local_analyzed_times : (block, int) Hashtbl.t;
       penv_block_total_analyzed_times : (block, int) Hashtbl.t;
       penv_func_analysis_stack : func Stack.t;
-      penv_block_analyzed_squence : (func, blocks) Hashtbl.t
+      penv_block_analyzed_squence : (func, blocks) Hashtbl.t;
+      mutable penv_total_analysis_time : float
     }
 
   (*--------------------------------------------------------
@@ -237,7 +238,8 @@ module MakeDefaultEnv (M : Data) = struct
       penv_block_local_analyzed_times : (block, int) Hashtbl.t;
       penv_block_total_analyzed_times : (block, int) Hashtbl.t;
       penv_func_analysis_stack : func Stack.t;
-      penv_block_analyzed_squence : (func, blocks) Hashtbl.t
+      penv_block_analyzed_squence : (func, blocks) Hashtbl.t;
+      mutable penv_total_analysis_time : float
     }
 
   (* get and set globals' output *)
@@ -1153,7 +1155,8 @@ functor
         penv_goal_funcs = [];
         penv_func_analyzed_inputs = Hashtbl.create (module FuncKey);
         penv_func_analysis_stack = Stack.create ();
-        penv_block_analyzed_squence = Hashtbl.create (module FuncKey)
+        penv_block_analyzed_squence = Hashtbl.create (module FuncKey);
+        penv_total_analysis_time = 0.;
       }
     ;;
 
