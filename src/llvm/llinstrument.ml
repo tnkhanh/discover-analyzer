@@ -286,7 +286,7 @@ let rec resolve
     | Skip -> resolve tl_anns instrs matched_anns modul)
 ;;
 
-let instrument_bug_annotation annots source_name (modul : LL.llmodule) : unit =
+let bug_annotation annots source_name (modul : LL.llmodule) : unit =
   let _ =
     if !print_instrumented_prog
     then hdebug ~ruler:`Long "Uninstrumented: " LL.string_of_llmodule modul
@@ -318,5 +318,5 @@ let instrument_bug_annotation annots source_name (modul : LL.llmodule) : unit =
 
 (*we need source_name to ignore instructions with location outside the source file *)
 let instrument_bitcode annots source_name (modul : LL.llmodule) : unit =
-  instrument_bug_annotation annots source_name modul
+  bug_annotation annots source_name modul
 ;;

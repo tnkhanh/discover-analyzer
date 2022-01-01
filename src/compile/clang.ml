@@ -49,7 +49,7 @@ let compile_program (input_file : string) : LI.program =
     let _ = debug (String.concat ~sep:" " cmd) in
     PS.run_command cmd in
   let prog =
-    if !enable_instrument
+    if !bug_annotation
     then (
       let annots = LT.extract_bug_annotations input_file in
       let llcontext = LL.create_context () in
