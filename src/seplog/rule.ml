@@ -884,7 +884,7 @@ let process_rule_unfold_head pstate goal r : derivation =
             if not (SP.mem rnames rn)
             then enc.enc_lhs, false
             else replace_reln_form_f rf p enc.enc_lhs, true
-          | f -> herror "rule_unfold_head: not pure reln body" pr_f f)
+          | f -> errorp "rule_unfold_head: not pure reln body" pr_f f)
         | _ -> renc.enc_lhs, false in
       let nenc = update_entail_core enc ~lhs:[ lhs ] in
       pr_rule_result ~print:changed pstate rule [ renc; enc; nenc ];
@@ -1111,7 +1111,7 @@ let compare_rule_unfold_head_vs_others pstate goal r1 r2 =
     compare_rule_unfold_head_vs_subtract_data pstate goal r1 r2
   | RlEmptyArrayRight r2 ->
     compare_rule_unfold_head_vs_empty_array_right pstate goal r1 r2
-  | _ -> herror "compare_rule_unfold_head_vs_others: not expect" pr_rule r2
+  | _ -> errorp "compare_rule_unfold_head_vs_others: not expect" pr_rule r2
 ;;
 
 (*** compare rule unfold view left with others ***)
@@ -1177,7 +1177,7 @@ let compare_rule_unfold_view_left_vs_others pstate goal r1 r2 =
   | RlEmptyArrayRight r2 ->
     compare_rule_unfold_view_left_vs_empty_array_right pstate goal r1 r2
   | _ ->
-    herror "compare_rule_unfold_view_left_vs_others: not expect" pr_rule r2
+    errorp "compare_rule_unfold_view_left_vs_others: not expect" pr_rule r2
 ;;
 
 (*** compare rule unfold view right with others ***)
@@ -1243,7 +1243,7 @@ let compare_rule_unfold_view_right_vs_others pstate goal r1 r2 =
   | RlEmptyArrayRight r2 ->
     compare_rule_unfold_view_right_vs_empty_array_right pstate goal r1 r2
   | _ ->
-    herror "compare_rule_unfold_view_right_vs_others: not expect" pr_rule r2
+    errorp "compare_rule_unfold_view_right_vs_others: not expect" pr_rule r2
 ;;
 
 (*** compare rule match data with others ***)
@@ -1315,7 +1315,7 @@ let compare_rule_match_data_vs_others pstate goal r1 r2 =
     compare_rule_match_data_vs_subtract_data pstate goal r1 r2
   | RlEmptyArrayRight r2 ->
     compare_rule_match_data_vs_empty_array_right pstate goal r1 r2
-  | _ -> herror "compare_rule_match_data_vs_others: not expect" pr_rule r2
+  | _ -> errorp "compare_rule_match_data_vs_others: not expect" pr_rule r2
 ;;
 
 (*** compare rule match view with others ***)
@@ -1370,7 +1370,7 @@ let compare_rule_match_view_vs_others pstate goal r1 r2 =
     compare_rule_match_view_vs_subtract_data pstate goal r1 r2
   | RlEmptyArrayRight r2 ->
     compare_rule_match_view_vs_empty_array_right pstate goal r1 r2
-  | _ -> herror "compare_rule_match_view_vs_others: not expect" pr_rule r2
+  | _ -> errorp "compare_rule_match_view_vs_others: not expect" pr_rule r2
 ;;
 
 (*** compare rule match array with others ***)
@@ -1426,7 +1426,7 @@ let compare_rule_match_array_vs_others pstate goal r1 r2 =
     compare_rule_match_array_vs_subtract_data pstate goal r1 r2
   | RlEmptyArrayRight r2 ->
     compare_rule_match_array_vs_empty_array_right pstate goal r1 r2
-  | _ -> herror "compare_rule_match_array_vs_others: not expect" pr_rule r2
+  | _ -> errorp "compare_rule_match_array_vs_others: not expect" pr_rule r2
 ;;
 
 (*** compare rule subtract data with others ***)
@@ -1483,7 +1483,7 @@ let compare_rule_subtract_data_vs_others pstate goal r1 r2 =
     compare_rule_subtract_data_vs_subtract_data pstate goal r1 r2
   | RlEmptyArrayRight r2 ->
     compare_rule_subtract_data_vs_empty_array_right pstate goal r1 r2
-  | _ -> herror "compare_rule_subtract_data_vs_others: not expect" pr_rule r2
+  | _ -> errorp "compare_rule_subtract_data_vs_others: not expect" pr_rule r2
 ;;
 
 (*** compare rule empty array right with others ***)
@@ -1542,7 +1542,7 @@ let compare_rule_empty_array_right_vs_others pstate goal r1 r2 =
   | RlEmptyArrayRight r2 ->
     compare_rule_empty_array_right_vs_empty_array_right pstate goal r1 r2
   | _ ->
-    herror "compare_rule_empty_array_right_vs_others: not expect" pr_rule r2
+    errorp "compare_rule_empty_array_right_vs_others: not expect" pr_rule r2
 ;;
 
 (*** compare all rules ***)
@@ -1560,7 +1560,7 @@ let compare_transformation_rules pstate goal r1 r2 =
   | RlSubtractData r1 -> compare_rule_subtract_data_vs_others pstate goal r1 r2
   | RlEmptyArrayRight r1 ->
     compare_rule_empty_array_right_vs_others pstate goal r1 r2
-  | _ -> herror "compare_rule: not expect" pr_rule r1
+  | _ -> errorp "compare_rule: not expect" pr_rule r1
 ;;
 
 (*******************************************************************

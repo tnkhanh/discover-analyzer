@@ -15,7 +15,7 @@ module BGSCC = LG.BlockGraphSCC
 let get_loop_blocks loop : block list = loop.loop_head :: loop.loop_body
 
 let find_loop_head (prog : program) (scb : LG.scblocks) : block option =
-  (* let _ = hprint "Find_loop_head in: " LG.pr_scblocks scb in *)
+  (* let _ = printp "Find_loop_head in: " LG.pr_scblocks scb in *)
   let head_blks =
     List.fold_left
       ~f:(fun acc blk ->
@@ -64,7 +64,7 @@ let update_loop_info (prog : program) loop : loop =
 
 let find_loop_in_blocks (prog : program) (blks : blocks) : loops =
   let scbs = LG.get_strongly_connected_blocks prog blks in
-  (* let _ = hdebugc "SCC blocks: " (pr_items LG.pr_scblocks) scbs in *)
+  (* let _ = debugpc "SCC blocks: " (pr_items LG.pr_scblocks) scbs in *)
   let loops =
     List.fold_left
       ~f:(fun acc scb ->
@@ -80,7 +80,7 @@ let find_loop_in_blocks (prog : program) (blks : blocks) : loops =
             let loop = update_loop_info prog loop in
             acc @ [ loop ]))
       ~init:[] scbs in
-  (* let _ = hdebugc "All loops: " (pr_items pr_loop) loops in *)
+  (* let _ = debugpc "All loops: " (pr_items pr_loop) loops in *)
   loops
 ;;
 

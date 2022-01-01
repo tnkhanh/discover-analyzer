@@ -341,7 +341,7 @@ let mk_potential_buffer_overflow (ins : instr) : potential_bugs =
             (match List.nth idxs 1 with
             | Some idx -> idx
             | None ->
-              herror "mk_potential_buffer_overflow: array index not available:"
+              errorp "mk_potential_buffer_overflow: array index not available:"
                 pr_instr ins)
           (* pointer to a dynamically allocated memory *)
           | _ -> List.hd_exn idxs in
@@ -363,8 +363,8 @@ let mk_potential_buffer_overflow (ins : instr) : potential_bugs =
             bof_write_operation = Some true;
             bof_stack_based = None
           })
-        else herror "mk_buffer_overflow: need to hande: " pr_instr ins
-      | _ -> herror "mk_buffer_overflow: need to hande: " pr_instr ins in
+        else errorp "mk_buffer_overflow: need to hande: " pr_instr ins
+      | _ -> errorp "mk_buffer_overflow: need to hande: " pr_instr ins in
     [ mk_potential_bug ins (BufferOverflow (Some bof)) ])
   else []
 ;;

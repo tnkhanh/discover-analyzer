@@ -474,14 +474,14 @@ functor
     ;;
 
     let get_sparse_succeeding_blocks ?(cache = true) penv blk : block list =
-      (* let _ = hdebug "get_sparse_succeeding_blocks of: " block_name blk in *)
+      (* let _ = debugp "get_sparse_succeeding_blocks of: " block_name blk in *)
       let prog = penv.penv_prog in
       let rec compute_blocks blks visited res : block list =
         let equal = equal_block in
         match blks with
         | [] -> res
         | blk :: nblks ->
-          (* let _ = hdebug " current block: " block_name blk in *)
+          (* let _ = debugp " current block: " block_name blk in *)
           let sblks = get_succeeding_blocks prog blk in
           let transfer_blks, target_blks =
             List.fold_left
@@ -1214,38 +1214,38 @@ functor
 
     let get_suitable_func_summary penv func input : T.func_summary option =
       let _ =
-        hdebug ~always:true ~indent:4 "Get suitable func summary: " func_name
+        debugp ~always:true ~indent:4 "Get suitable func summary: " func_name
           func in
-      let _ = hdebug ~always:true ~indent:4 "  Input: " pr_data input in
+      let _ = debugp ~always:true ~indent:4 "  Input: " pr_data input in
       let fsums = get_func_summaries penv func in
       let res =
         List.find
           ~f:(fun fs ->
-            let _ = hdebug ~indent:4 "  Fsum input: " pr_data fs.fsum_input in
+            let _ = debugp ~indent:4 "  Fsum input: " pr_data fs.fsum_input in
             let res = T.equal_data fs.fsum_input input in
-            let _ = hdebug ~indent:4 "    equal? " pr_bool res in
+            let _ = debugp ~indent:4 "    equal? " pr_bool res in
             res)
           fsums in
       (* let res = List.find ~f:(fun fs ->
-       *   let _ = hdebug ~indent:4 "  Fsum input: " pr_data fs.fsum_input in
+       *   let _ = debugp ~indent:4 "  Fsum input: " pr_data fs.fsum_input in
        *   let res = T.lequal_data input fs.fsum_input in
-       *   let _ = hdebug ~indent:4 "    lequal? " pr_bool res in
+       *   let _ = debugp ~indent:4 "    lequal? " pr_bool res in
        *   res) fsums in *)
       let _ =
         match res with
         | None ->
-          hdebug ~always:true ~indent:4 "Func summary NOT FOUND: " func_name
+          debugp ~always:true ~indent:4 "Func summary NOT FOUND: " func_name
             func
         | Some fsum ->
-          hdebug ~always:true ~indent:4 "Found func summary:\n" pr_func_summary
+          debugp ~always:true ~indent:4 "Found func summary:\n" pr_func_summary
             fsum in
       res
     ;;
 
     let record_func_summary (penv : T.prog_env) fsum : unit =
       let func = fsum.fsum_func in
-      let _ = hdebug "Record current function summary: " func_name func in
-      let _ = hdebug "  input: " pr_data fsum.fsum_input in
+      let _ = debugp "Record current function summary: " func_name func in
+      let _ = debugp "  input: " pr_data fsum.fsum_input in
       let _ =
         debug ~always:true
           ("Record current func summary: " ^ func_name func ^ " @ {"
@@ -1285,11 +1285,11 @@ functor
         : bool * bool * bool * bool
       =
       let func = fenv.fenv_func in
-      let _ = hdebug ~always:true "Record new function env: " func_name func in
+      let _ = debugp ~always:true "Record new function env: " func_name func in
       let _ =
-        hdebug ~always:true " - Callsites: " pr_callsites fenv.fenv_callsites
+        debugp ~always:true " - Callsites: " pr_callsites fenv.fenv_callsites
       in
-      let _ = hdebug " - Output: " pr_data_opt fenv.fenv_output in
+      let _ = debugp " - Output: " pr_data_opt fenv.fenv_output in
       let env_completed =
         let process_block blk =
           if is_sparse_block penv blk then None else Some true in
@@ -1298,13 +1298,13 @@ functor
           then (
             match T.get_instr_output fenv instr with
             | None ->
-              let _ = hdebug "Env incompleted at: " pr_instr instr in
+              let _ = debugp "Env incompleted at: " pr_instr instr in
               false
             | Some _ -> true)
           else true in
         visit_for_all_func ~fblock:(Some process_block)
           ~finstr:(Some process_instr) func in
-      let _ = hdebug ~always:true " - Env completed: " pr_bool env_completed in
+      let _ = debugp ~always:true " - Env completed: " pr_bool env_completed in
       match Hashtbl.find penv.penv_func_envs func with
       | None ->
         let fenv = { fenv with fenv_id = "1" } in
@@ -1336,11 +1336,11 @@ functor
           else fenvs in
         let _ = Hashtbl.set penv.penv_func_envs ~key:func ~data:nfenvs in
         let _ =
-          hdebug ~always:true " - Input updated: " pr_bool input_updated in
+          debugp ~always:true " - Input updated: " pr_bool input_updated in
         let _ =
-          hdebug ~always:true " - Output updated: " pr_bool output_updated
+          debugp ~always:true " - Output updated: " pr_bool output_updated
         in
-        let _ = hdebug ~always:true " - Env updated: " pr_bool env_updated in
+        let _ = debugp ~always:true " - Env updated: " pr_bool env_updated in
         input_updated, output_updated, env_updated, env_completed
     ;;
 
@@ -1359,12 +1359,12 @@ functor
     let record_func_analyzed_input penv fenv (input : T.t) : unit =
       let func = fenv.fenv_func in
       let _ =
-        hdebug ~always:true "Record analyzed input of func: " func_name func
+        debugp ~always:true "Record analyzed input of func: " func_name func
       in
       let _ =
-        hdebug ~always:true " - Callsites: " pr_callsites fenv.fenv_callsites
+        debugp ~always:true " - Callsites: " pr_callsites fenv.fenv_callsites
       in
-      let _ = hdebug " - Input: " pr_data input in
+      let _ = debugp " - Input: " pr_data input in
       let _ =
         print
           ("Record analyzed input: " ^ func_name func ^ " @ {" ^ pr_data input
@@ -1406,10 +1406,10 @@ functor
 
     let mk_func_summary penv (fenv : T.func_env) input : T.func_summary =
       let prog, func = fenv.fenv_prog, fenv.fenv_func in
-      let _ = hdebug "fenv_output: " pr_data_opt fenv.fenv_output in
+      let _ = debugp "fenv_output: " pr_data_opt fenv.fenv_output in
       let output =
         match fenv.fenv_output with
-        | None -> herror "mk_func_summary: output not found: " func_name func
+        | None -> errorp "mk_func_summary: output not found: " func_name func
         | Some data -> T.clean_irrelevant_info_from_data penv func data in
       { fsum_func = func;
         fsum_input = input;
@@ -1443,11 +1443,11 @@ functor
       let _ =
         debug ~indent:4 ("Compare args' input data and summary of: " ^ fname)
       in
-      let _ = hdebug " - input: " pr_data core_input in
+      let _ = debugp " - input: " pr_data core_input in
       let _ =
-        hdebug " - analyzed inputs: " (pr_datas ~bullet:"  +") analyzed_inputs
+        debugp " - analyzed inputs: " (pr_datas ~bullet:"  +") analyzed_inputs
       in
-      let _ = hdebug " - res (<=): " pr_bool res in
+      let _ = debugp " - res (<=): " pr_bool res in
       res
     ;;
 
@@ -1486,7 +1486,7 @@ functor
             if String.is_empty msg then fname else fname ^ " (" ^ msg ^ ")"
           in
           let _ =
-            hdebug
+            debugp
               ("-> ENQUEUE function: " ^ fname ^ ", with input: ")
               pr_data input in
           wfuncs @ [ wf ])
@@ -1507,7 +1507,7 @@ functor
               record_working_func ~msg penv wf
             | _ ->
               let _ =
-                hdebug ~always:true "   at call site: " pr_callsites callsites
+                debugp ~always:true "   at call site: " pr_callsites callsites
               in
               let wfuncs = penv.penv_working_funcs in
               let has_earlier_working_func_of_same_context =
@@ -1604,12 +1604,12 @@ functor
 
     (** compute input of block *)
     let compute_block_input penv ?(widen = false) (fenv : func_env) blk : t =
-      let _ = hdebug "Compute input of block: " block_name blk in
-      (* let _ = hdebug ~compact:true "  pathcond: " pr_pathcond pcond in *)
+      let _ = debugp "Compute input of block: " block_name blk in
+      (* let _ = debugp ~compact:true "  pathcond: " pr_pathcond pcond in *)
       (* let pblks = get_preceding_blocks prog blk |>
        *             List.map ~f:(fun pb -> pb.pblk_block) in *)
       let pblks = get_sparse_preceding_blocks penv blk in
-      (* let _ = hdebug ("Sparse preceding blocks of " ^ (block_name blk) ^ ": ")
+      (* let _ = debugp ("Sparse preceding blocks of " ^ (block_name blk) ^ ": ")
        *           block_names pblks in *)
       let pblks_data =
         List.fold_left
@@ -1638,7 +1638,7 @@ functor
                   | None -> output
                   | Some pred ->
                     let _ =
-                      hdebug "Preceding block's current output: " T.pr_data
+                      debugp "Preceding block's current output: " T.pr_data
                         output in
                     let new_output =
                       match get_block_input fenv blk with
@@ -1648,7 +1648,7 @@ functor
                         then output
                         else old_output in
                     let _ =
-                      hdebug "Preceding block's refined output: " T.pr_data
+                      debugp "Preceding block's refined output: " T.pr_data
                         new_output in
                     new_output in
                 (* let changed = not (T.lequal_data new_output output) in *)
@@ -1685,7 +1685,7 @@ functor
           if !dfa_context_split_phi
           then (
             let _ =
-              hdebug "Do context splitting PHI for the call: " pr_instr instr
+              debugp "Do context splitting PHI for the call: " pr_instr instr
             in
             let phi_incoming_blks =
               List.fold_left
@@ -1721,9 +1721,9 @@ functor
         let outputs_continues =
           refined_argss
           |> List.map ~f:(fun args ->
-                 let _ = hdebug ~always:true "Calling to: " func_name callee in
-                 let _ = hdebug "   with args: " pr_values origin_args in
-                 let _ = hdebug "   refined args: " pr_values args in
+                 let _ = debugp ~always:true "Calling to: " func_name callee in
+                 let _ = debugp "   with args: " pr_values origin_args in
+                 let _ = debugp "   refined args: " pr_values args in
                  let callee_input =
                    if !dfa_context_split_phi
                    then (
@@ -1755,7 +1755,7 @@ functor
                      let wf_callee =
                        mk_working_func callee callee_input callsites in
                      let _ =
-                       hdebug ~always:true "Prepare to enqueue callee: "
+                       debugp ~always:true "Prepare to enqueue callee: "
                          func_name wf_callee.wf_func in
                      let _ =
                        enqueue_to_analyze_func ~msg:"callee" penv wf_callee
@@ -1764,20 +1764,20 @@ functor
                      let blk = block_of_instr instr in
                      let wb = mk_working_block blk instr input in
                      let _ =
-                       hdebug ~indent:4 "Mark working block to re-analyze: "
+                       debugp ~indent:4 "Mark working block to re-analyze: "
                          pr_working_block wb in
                      let working_blks =
                        List.insert_dedup fenv.fenv_working_blocks wb
                          ~equal:equal_working_block in
                      fenv.fenv_working_blocks <- working_blks)
-                   else hdebug "Not enqueue: " func_name callee in
-                 let _ = hdebug "callee input: " pr_data callee_input in
+                   else debugp "Not enqueue: " func_name callee in
+                 let _ = debugp "callee input: " pr_data callee_input in
                  match get_suitable_func_summary penv callee callee_input with
                  | None -> T.least_data, false
                  (* FIXME: check if need to use the current data or the least data? *)
                  | Some fsum ->
                    (* compute output, exceptions *)
-                   (* let _ = hprint "Found a function summary of: " func_name callee in *)
+                   (* let _ = printp "Found a function summary of: " func_name callee in *)
                    let output, exns =
                      compute_call_output_exns_from_summary penv instr callee
                        args input fsum in
@@ -1820,7 +1820,7 @@ functor
           let ndata = T.merge_data exn.exn_data cur_exn.exn_data in
           let nexn = { exn with exn_data = ndata } in
           Hashtbl.set fenv.fenv_thrown_exn ~key:tinfo ~data:nexn)
-      else herror "analyze_throw_exception: expect >=2 params: " pr_instr instr
+      else errorp "analyze_throw_exception: expect >=2 params: " pr_instr instr
     ;;
 
     let analyze_instr_landingpad penv fenv instr : unit =
@@ -1831,7 +1831,7 @@ functor
         let _ =
           for i = 0 to num_catches - 1 do
             let exn_tinfo = get_root_src_of_bitcast (operand instr i) in
-            let _ = hdebug "landingpad: " pr_value exn_tinfo in
+            let _ = debugp "landingpad: " pr_value exn_tinfo in
             match Hashtbl.find fenv.fenv_thrown_exn exn_tinfo with
             | None -> ()
             | Some exn ->
@@ -1840,10 +1840,10 @@ functor
               landing_exns := !landing_exns @ [ exn ]
           done in
         let landing_ptr = llvalue_of_instr instr in
-        let _ = hdebug "landing exns: " pr_exns !landing_exns in
+        let _ = debugp "landing exns: " pr_exns !landing_exns in
         Hashtbl.set fenv.fenv_landing_exns ~key:landing_ptr ~data:!landing_exns
       | _ ->
-        herror "analyze_instr_landingpad: not a landingpad: " pr_instr instr
+        errorp "analyze_instr_landingpad: not a landingpad: " pr_instr instr
     ;;
 
     let get_catch_exception_type_info penv fenv instr : value option =
@@ -1897,7 +1897,7 @@ functor
               let output =
                 T.compute_catch_exception_data penv instr catched_ptr input exn
               in
-              let _ = hdebug "output after catch exn: " pr_data output in
+              let _ = debugp "output after catch exn: " pr_data output in
               output, true in
           res
         | _ -> input, true)
@@ -1910,8 +1910,8 @@ functor
       match instrs with
       | [] -> true, true
       | instr :: ninstrs ->
-        let _ = hdebug ~mtype:"" ">> " pr_instr instr in
-        let _ = hdebug ~mtype:"" "    In:  " T.pr_data input in
+        let _ = debugp ~mtype:"" ">> " pr_instr instr in
+        let _ = debugp ~mtype:"" "    In:  " T.pr_data input in
         let old_output = T.get_instr_output fenv instr in
         let new_output, continue =
           match instr_opcode instr with
@@ -1944,8 +1944,8 @@ functor
               let ptr = llvalue_of_func callee in
               let callees =
                 ptr |> get_current_funcs_of_pointer penv.penv_prog in
-              let _ = hdebug ~always:true "Function pointer: " pr_value ptr in
-              let _ = hdebug ~always:true "Callees: " func_names callees in
+              let _ = debugp ~always:true "Function pointer: " pr_value ptr in
+              let _ = debugp ~always:true "Callees: " func_names callees in
               if List.is_empty callees
               then (* (input, false) *)
                 input, true
@@ -1975,9 +1975,9 @@ functor
           | None -> true
           | Some old_output -> not (T.lequal_data new_output old_output) in
         let _ = if continue then T.set_instr_output fenv instr new_output in
-        let _ = hdebug ~mtype:"" "    Out: " T.pr_data new_output in
-        (* let _ = nhdebug "    Changed: " pr_bool changed in *)
-        (* let _ = nhdebug "    Continue: " pr_bool continue in *)
+        let _ = debugp ~mtype:"" "    Out: " T.pr_data new_output in
+        (* let _ = ndebugp "    Changed: " pr_bool changed in *)
+        (* let _ = ndebugp "    Continue: " pr_bool continue in *)
         if not continue
         then changed, false
         else if not changed
@@ -2000,8 +2000,8 @@ functor
           let binput = wb.wb_instr_input in
           let _ = T.set_block_input fenv blk binput in
           let _ = debug ~mtype:"" " - Starting from the block's entry. " in
-          hdebug ~mtype:"" "    BlockKey input: " T.pr_data binput)
-        else hdebug " - Continuing from instruction: " pr_instr wb.wb_instr
+          debugp ~mtype:"" "    BlockKey input: " T.pr_data binput)
+        else debugp " - Continuing from instruction: " pr_instr wb.wb_instr
       in
       let _ = update_block_analyzed_stats penv func blk in
       let instrs, _ =
@@ -2104,7 +2104,7 @@ functor
                 | Some instr ->
                   let input = compute_block_input penv fenv sb in
                   let wb = mk_working_block sb instr input in
-                  let _ = hdebug "--> Enqueue block: " block_name sb in
+                  let _ = debugp "--> Enqueue block: " block_name sb in
                   List.insert_dedup acc wb ~equal:equal_working_block)
               ~init:nwblks sblks)
           else nwblks in
@@ -2139,11 +2139,11 @@ functor
       let _ =
         let _ = debug ~ruler:`Short "Do widening..." in
         let _ = do_widening () in
-        hdebug ~ruler:`Short "After widening:\n" (pr_func_env penv) fenv in
+        debugp ~ruler:`Short "After widening:\n" (pr_func_env penv) fenv in
       let _ =
         let _ = debug ~ruler:`Short "Do narrowing..." in
         (* let _ = do_narrowing () in *)
-        hdebug ~ruler:`Short "After narrowing:\n" (pr_func_env penv) fenv in
+        debugp ~ruler:`Short "After narrowing:\n" (pr_func_env penv) fenv in
       ()
     ;;
 
@@ -2163,7 +2163,7 @@ functor
         analyze_blocks ~widen:false ~fixpoint:true penv fenv blocks in
       let _ = debug ~ruler:`Short "Do simple fixpoint..." in
       let _ = do_fixpoint () in
-      hdebug ~ruler:`Short "After fixpoint:\n\n" (pr_func_env penv) fenv
+      debugp ~ruler:`Short "After fixpoint:\n\n" (pr_func_env penv) fenv
     ;;
 
     (** analyze one function *)
@@ -2203,18 +2203,18 @@ functor
             then (
               let _ = save_mode_debug () in
               enable_mode_debug ()))) in
-      (* let _ = hdebug ~always:true " - Callsites: " (pr_list pr_callsite) callsites in *)
-      let _ = hprint " - Callsites: " (pr_list ~f:pr_callsite) callsites in
-      (* let _ = hdebug ~always:true " - Input: " pr_data input in *)
-      let _ = hprint " - Input: " pr_data input in
-      (* let _ = hprint " - Input: " pr_data_with_checksum input in *)
+      (* let _ = debugp ~always:true " - Callsites: " (pr_list pr_callsite) callsites in *)
+      let _ = printp " - Callsites: " (pr_list ~f:pr_callsite) callsites in
+      (* let _ = debugp ~always:true " - Input: " pr_data input in *)
+      let _ = printp " - Input: " pr_data input in
+      (* let _ = printp " - Input: " pr_data_with_checksum input in *)
       (* let _ =
        *   if String.equal (func_name func) "free_a_tree" then
-       *     hprint " - Input: " pr_data_with_checksum input
+       *     printp " - Input: " pr_data_with_checksum input
        *   else
-       *     hprint " - Input: " pr_data input in *)
+       *     printp " - Input: " pr_data input in *)
       let _ =
-        hdebug ~always:true " - Re-analyzing from working blocks: "
+        debugp ~always:true " - Re-analyzing from working blocks: "
           pr_working_blocks fenv.fenv_working_blocks in
       let _ = LP.get_loops_of_func prog func in
       let _ = update_func_analyzed_stats penv func in
@@ -2237,7 +2237,7 @@ functor
         then (
           let fsum = mk_func_summary penv fenv input in
           let _ =
-            hdebug ~ruler:`Short
+            debugp ~ruler:`Short
               ("Analysis output: " ^ fname_params ^ ":\n\n")
               pr_func_summary fsum in
           record_func_summary penv fsum) in
@@ -2358,7 +2358,7 @@ functor
             (fun () -> compare_func_analyzed_times penv wf1 wf2)
           ] in
       let wfuncs = List.sorti ~compare penv.penv_working_funcs in
-      (* let _ = hdebug ~always:false "Analyzed functions: " pr_analyzed_func_input penv in *)
+      (* let _ = debugp ~always:false "Analyzed functions: " pr_analyzed_func_input penv in *)
       match is_interactive_mode () with
       | true ->
         let choices =
@@ -2372,7 +2372,7 @@ functor
         else List.extract_nth (int_of_string decicion - 1) wfuncs
       | false ->
         let _ =
-          hdebug "\nWorking functions (after sorting): " pr_working_funcs
+          debugp "\nWorking functions (after sorting): " pr_working_funcs
             wfuncs in
         List.extract_nth 0 wfuncs
     ;;
@@ -2390,12 +2390,12 @@ functor
           =
           Sys.apply_track_runtime ~f:(fun () -> analyze_function penv wf) in
         let _ =
-          hdebug
+          debugp
             (" - Time analyzing function: " ^ fname ^ ": ")
             (sprintf "%.3fs") time in
         (* let _ = if Float.(>) time 15. then
-         *     hprint "TOO SLOW... Func env: " (pr_func_env penv) fenv in *)
-        let _ = hdebug "Analysis output updated: " pr_bool env_updated in
+         *     printp "TOO SLOW... Func env: " (pr_func_env penv) fenv in *)
+        let _ = debugp "Analysis output updated: " pr_bool env_updated in
         let _ =
           if need_reanalyze
           then (
@@ -2404,7 +2404,7 @@ functor
             in
             enqueue_to_analyze_func ~msg:"reanalyze itself" penv wf)
           else
-            hdebug "Complete analyzing working function: " pr_working_func wf
+            debugp "Complete analyzing working function: " pr_working_func wf
         in
         (* let _ = if input_updated || env_updated then *)
         (* let _ = if input_updated || env_updated || output_updated then *)
@@ -2417,7 +2417,7 @@ functor
               let wf_caller =
                 mk_working_func caller caller_input caller_callsites in
               let _ =
-                hdebug ~always:true "Prepare to enqueue caller: " func_name
+                debugp ~always:true "Prepare to enqueue caller: " func_name
                   wf_caller.wf_func in
               enqueue_to_analyze_func ~msg:"caller" penv wf_caller)
             wf.wf_callsites in
@@ -2437,11 +2437,11 @@ functor
             if not (is_sparse_global penv global)
             then input
             else (
-              let _ = hdebug ~mtype:"" "  " pr_global global in
-              let _ = hdebug ~mtype:"" "    In:  " T.pr_data input in
+              let _ = debugp ~mtype:"" "  " pr_global global in
+              let _ = debugp ~mtype:"" "    In:  " T.pr_data input in
               let output = T.analyze_global global input in
               let _ = set_global_output genv global output in
-              let _ = hdebug ~mtype:"" "    Out: " T.pr_data output in
+              let _ = debugp ~mtype:"" "    Out: " T.pr_data output in
               output))
           globals ~init:input in
       let output =
@@ -2459,11 +2459,11 @@ functor
           let _ = analyze_functions penv in
           let gfenv = find_func_env_by_input penv gfunc ginput in
           (match gfenv with
-          | None -> herror "analyze_globals: fenv not found: " func_name gfunc
+          | None -> errorp "analyze_globals: fenv not found: " func_name gfunc
           | Some fenv ->
             (match fenv.fenv_output with
             | None ->
-              herror "analyze_globals: output not found: " func_name gfunc
+              errorp "analyze_globals: output not found: " func_name gfunc
             | Some output ->
               T.clean_irrelevant_info_from_data penv gfunc output)) in
       genv.genv_globals_data <- output
@@ -2595,7 +2595,7 @@ functor
                 let _ = visit_func ~finstr:(Some process_instr) f in
                 if not !has_pointer_related_instr
                 then (
-                  (* let _ = hprint "Set function to non-sparse: " func_name f in *)
+                  (* let _ = printp "Set function to non-sparse: " func_name f in *)
                   let _ =
                     Hashtbl.set penv.penv_sparse_func ~key:f ~data:false in
                   let _ = continue := true in
@@ -2650,7 +2650,7 @@ functor
           match fs with
           | [] -> acc
           | f :: nfs ->
-            (* let _ = hprint "Update globals of func: " func_name f in *)
+            (* let _ = printp "Update globals of func: " func_name f in *)
             let gs = Hashtbl.find_default tbl_used_globals f ~default:[] in
             let ngs = ref gs in
             let callees =
@@ -2727,12 +2727,12 @@ functor
             penv.penv_goal_funcs <- new_goals)
           sparse_time in
       let _ =
-        hprint " - Time preparing sparse program: " (sprintf "%.3fs")
+        printp " - Time preparing sparse program: " (sprintf "%.3fs")
           !sparse_time in
-      (* let _ = hprint "Non-sparse functions: "  *)
+      (* let _ = printp "Non-sparse functions: "  *)
       let _ = if !print_stats_prog then print_stats_sparse_prog penv in
       let _ =
-        hprint "Goal functions: " (pr_items ~f:func_name) penv.penv_goal_funcs
+        printp "Goal functions: " (pr_items ~f:func_name) penv.penv_goal_funcs
       in
       (* let prog = update_program_info prog in *)
       let _ =
@@ -2742,7 +2742,7 @@ functor
           export_core_program_to_file ~sparse:true penv) in
       let _ = if !export_debug_info then export_debugging_info_to_file penv in
       if !dfa_sparse_analysis && not !print_concise_output
-      then hprint ~header:true "CORE SPARSE PROGRAM" pr_sparse_prog penv
+      then printp ~header:true "CORE SPARSE PROGRAM" pr_sparse_prog penv
     ;;
 
     let analyze_program_intraproc ?(func = None) penv : T.prog_env =
@@ -2776,7 +2776,7 @@ functor
       let _ =
         List.iter
           ~f:(fun f ->
-            let _ = hprint "Analyze entry function: " func_name f in
+            let _ = printp "Analyze entry function: " func_name f in
             let _ = initialize_analysis penv f in
             let _ = analyze_globals penv in
             let input = penv.penv_global_env.genv_globals_data in

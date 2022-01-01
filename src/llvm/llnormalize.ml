@@ -148,7 +148,7 @@ let elim_instr_load_of_const (modul : LL.llmodule) : unit =
     let _ = visit_func ~finstr:(Some process_instr) func in
     !loads_replacers in
   let elim_instr_load (func : func) : unit =
-    (* let _ = hdebugc "elim_instr_load: " func_name func in *)
+    (* let _ = debugpc "elim_instr_load: " func_name func in *)
     let continue = ref true in
     while !continue do
       let load_replacers = find_instr_load_and_replacer func in

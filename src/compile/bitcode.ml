@@ -39,7 +39,7 @@ let process_module (input_file : string) (modul : LL.llmodule) : LI.program =
   let _ = LN.check_normalization modul in
   let prog = modul |> LI.mk_raw_program input_file |> LI.update_program_info in
   let _ =
-    hdebug ~header:true
+    debugp ~header:true
       ~enable:((not !print_concise_output) && !print_core_prog)
       "CORE BITCODE PROGRAM" LI.pr_program prog in
   prog
@@ -104,7 +104,7 @@ let process_bitcode (input_file : string) : LI.program =
   let _ = LL.MemoryBuffer.dispose llmem in
   let _ =
     if !print_input_prog
-    then hprint ~ruler:`Long "ORIGINAL BITCODE MODULE" LI.pr_module modul in
+    then printp ~ruler:`Long "ORIGINAL BITCODE MODULE" LI.pr_module modul in
   process_module output_file modul
 ;;
 

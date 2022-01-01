@@ -134,7 +134,7 @@ let handle_system_signals () =
 let analyze_program (prog : CI.program) : analysis_result =
   match prog with
   | CI.Llprog prog ->
-    let _ = hprint "Work mode: " pr_work_mode !work_mode in
+    let _ = printp "Work mode: " pr_work_mode !work_mode in
     let num_assertions = AS.count_all_assertions prog in
     let _ = print ("Found total assertions: " ^ pr_int num_assertions) in
     (match !work_mode with

@@ -54,7 +54,7 @@ let pr_assertion_status (func : func) (ast : assertion) (status : bool) =
   let fname = func_name func in
   let assertion =
     match is_instr_call_invoke instr with
-    | false -> herror "assertion must be a function call: " pr_instr instr
+    | false -> errorp "assertion must be a function call: " pr_instr instr
     | true ->
       let asname = func_name (callee_of_instr_func_call instr) in
       let args = args_of_instr_func_app instr in
@@ -160,6 +160,6 @@ let count_all_assertions (prog : program) : int =
     List.fold_left
       ~f:(fun acc func -> acc @ find_all_assertions func)
       ~init:[] prog.prog_user_funcs in
-  let _ = hprint "All assertions: " (pr_items ~f:pr_assertion) assertions in
+  let _ = printp "All assertions: " (pr_items ~f:pr_assertion) assertions in
   List.length assertions
 ;;

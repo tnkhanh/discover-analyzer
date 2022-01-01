@@ -58,7 +58,7 @@ let send_input_to_solver (input: string) : unit =
   | None -> ()
   | Some proc ->
     let input = "(reset)\n" ^ input ^ "(echo \"" ^ z3eof ^ "\")\n" in
-    (* let _ = hdebugc "Z3bin INPUT: \n" pr_str input in *)
+    (* let _ = debugpc "Z3bin INPUT: \n" pr_str input in *)
     output_string proc.PS.proc_out_channel input;
     flush proc.PS.proc_out_channel
 ;;
@@ -70,12 +70,12 @@ let read_output_from_solver () : string =
     let rec read acc =
       try
         let line = String.strip (input_line proc.PS.proc_in_channel) in
-        (* let _ = hdebugc "Z3bin OUTPUT: " pr_str line in *)
+        (* let _ = debugpc "Z3bin OUTPUT: " pr_str line in *)
         let nacc = acc @ [ line ] in
         if String.equal line z3eof then nacc else read nacc
       with End_of_file -> read acc in
     let output = [] |> read |> String.concat ~sep:"\n" in
-    (* let _ = hdebugc "Z3bin OUTPUT FINAL: " pr_str output in *)
+    (* let _ = debugpc "Z3bin OUTPUT FINAL: " pr_str output in *)
     output
 ;;
 
@@ -88,7 +88,7 @@ let read_all_output proc : string =
       read nacc
     with End_of_file -> acc in
   let res = String.concat ~sep:"\n" (read []) in
-  (* let _ = hdebugc "Z3bin output: " pr_str res in *)
+  (* let _ = debugpc "Z3bin output: " pr_str res in *)
   res
 ;;
 
@@ -350,7 +350,7 @@ module Z3LL = struct
     match LL.classify_type t with
     | LL.TypeKind.Integer -> "Int"
     | LL.TypeKind.Pointer -> "Int" (* handle pointer as Int type *)
-    | _ -> herror "Z3LL.transform_lltype: need to handle type: " LI.pr_type t
+    | _ -> errorp "Z3LL.transform_lltype: need to handle type: " LI.pr_type t
   ;;
 
   let transform_llvalue (v : LI.value) : string =

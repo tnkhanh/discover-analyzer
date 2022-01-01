@@ -428,7 +428,7 @@ let analyze_instr_arith vstate pstates (instr : LI.instr) =
     | OC.Sub | OC.FSub -> mk_sub exp0 exp1
     | OC.Mul | OC.FMul -> mk_mul exp0 exp1
     | OC.UDiv | OC.SDiv | OC.FDiv -> mk_div exp0 exp1
-    | _ -> herror "analyze_instr_arith: unhandle opcode" LI.pr_opcode op in
+    | _ -> errorp "analyze_instr_arith: unhandle opcode" LI.pr_opcode op in
   let dst = translate_instr instr in
   let pf = mk_eq dst src in
   mk_star_program_states pstates ~pfs:[ pf ]
@@ -454,8 +454,8 @@ let analyze_instr_alloca vstate pstates (instr : LI.instr) =
       |> List.map ~f:translate_lltyp in
     let init_elems =
       List.map ~f:(fun typ -> mk_exp_var (fresh_new_var typ)) elem_typs in
-    let _ = hdebug "Struct Typ: " pr_type struct_typ in
-    let _ = hdebug "Root Typ: " pr_type (typ_of_exp root) in
+    let _ = debugp "Struct Typ: " pr_type struct_typ in
+    let _ = debugp "Root Typ: " pr_type (typ_of_exp root) in
     let data = mk_data struct_typ root init_elems in
     mk_star_program_states pstates ~dfs:[ data ]
   | _ ->
@@ -479,10 +479,10 @@ let process_one_state_inst_load vstate instr src dst pstate =
   let curr_data = mk_f_data elem_typ src [ data_value ] in
   let evs = fv_es [ data_value ] in
   let ent = mk_entailment pstate.pgs_formula (mk_f_exists evs curr_data) in
-  let _ = hdebug "LOAD: Prove Pre-Condition By Frame:\n\n" pr_ent ent in
+  let _ = debugp "LOAD: Prove Pre-Condition By Frame:\n\n" pr_ent ent in
   let res, frames = PV.infer_entailment_frame vstate.vrs_core_prog ent in
-  let _ = hdebug "==> Result: " pr_bool_option res in
-  let _ = hdebug "==> Frame: " pr_fs frames in
+  let _ = debugp "==> Result: " pr_bool_option res in
+  let _ = debugp "==> Frame: " pr_fs frames in
   match res, frames with
   | Some true, [ frame ] ->
     let npf = mk_eq dst data_value in
@@ -525,10 +525,10 @@ let process_one_state_instr_store vstate instr dst new_val pstate =
   let curr_data = mk_f_data elem_typ dst [ data_value ] in
   let evs = fv_e data_value in
   let ent = mk_entailment pstate.pgs_formula (mk_f_exists evs curr_data) in
-  let _ = hdebug "STORE: Entailment:\n" pr_ent ent in
+  let _ = debugp "STORE: Entailment:\n" pr_ent ent in
   let res, frames = PV.infer_entailment_frame vstate.vrs_core_prog ent in
-  let _ = hdebug "==> Result: " pr_bool_option res in
-  let _ = hdebug "==> Frame: " pr_fs frames in
+  let _ = debugp "==> Result: " pr_bool_option res in
+  let _ = debugp "==> Frame: " pr_fs frames in
   match res, frames with
   | Some true, [ frame ] ->
     let new_data = mk_data elem_typ dst [ new_val ] in
@@ -555,19 +555,19 @@ let process_getelemptr_array vstate instr pstate src index field dst =
   let src_array, dst_addr =
     let addrs = find_addr_exp_of_exp pstate.pgs_formula src in
     match addrs with
-    | [] -> herror "process_getelemptr: array root not found:" pr_exp src
+    | [] -> errorp "process_getelemptr: array root not found:" pr_exp src
     | [ a ] ->
       let src_size = src_size |> mk_add a.addr_elem |> NO.simplify_arith_e in
       let src_array = mk_array a.addr_base src_size src_etyp in
       let dst_index = index |> mk_add a.addr_elem |> NO.simplify_arith_e in
       let dst_addr = mk_addr a.addr_base dst_index (mk_exp_int 0) in
       src_array, dst_addr
-    | _ -> herror "process_getelemptr: too many array cells of:" pr_exp src
+    | _ -> errorp "process_getelemptr: too many array cells of:" pr_exp src
   in
   let ent =
     let rhs = mk_f_exists src_evs (mk_f_array src_array) in
     mk_entailment pstate.pgs_formula rhs in
-  (* let _ = nhdebugc "GetElemPtr: Entailment:\n" pr_ent ent in *)
+  (* let _ = ndebugpc "GetElemPtr: Entailment:\n" pr_ent ent in *)
   let res, frames = PV.infer_entailment_frame vstate.vrs_core_prog ent in
   match res, frames with
   | Some true, [ frame ] ->
@@ -595,23 +595,23 @@ let process_getelemptr_struct vstate instr pstate src index field dst =
     let addrs = find_addr_exp_of_exp pstate.pgs_formula src in
     match addrs with
     | [] ->
-      herror "process_getelemptr_struct: struct root not found:" pr_exp src
+      errorp "process_getelemptr_struct: struct root not found:" pr_exp src
     | [ a ] ->
       let src_size = src_size |> mk_add a.addr_elem |> NO.simplify_arith_e in
       let src_array = mk_array a.addr_base src_size src_etyp in
       let dst_index = index |> mk_add a.addr_elem |> NO.simplify_arith_e in
       let dst_addr = mk_addr a.addr_base dst_index (mk_exp_int 0) in
       src_array, dst_addr
-    | _ -> herror "process_getelemptr: too many array cells of:" pr_exp src
+    | _ -> errorp "process_getelemptr: too many array cells of:" pr_exp src
   in
-  (* let _ = nhdebugc "Src array: " pr_array_form src_array in *)
+  (* let _ = ndebugpc "Src array: " pr_array_form src_array in *)
   let ent =
     let rhs = mk_f_exists src_evs (mk_f_array src_array) in
     mk_entailment pstate.pgs_formula rhs in
-  (* let _ = nhdebugc "GetElemPtr: Entailment:\n" pr_ent ent in *)
+  (* let _ = ndebugpc "GetElemPtr: Entailment:\n" pr_ent ent in *)
   let res, frames = PV.infer_entailment_frame vstate.vrs_core_prog ent in
-  (* let _ = nhdebugc "==> Result: " pr_ternary res in *)
-  (* let _ = nhdebugc "==> Frame: " pr_fs frames in *)
+  (* let _ = ndebugpc "==> Result: " pr_ternary res in *)
+  (* let _ = ndebugpc "==> Frame: " pr_fs frames in *)
   match res, frames with
   | Some true, [ frame ] ->
     let npstate = { pstate with pgs_formula = frame } in
@@ -632,16 +632,16 @@ let process_getelemptr_struct vstate instr pstate src index field dst =
 
 let analyze_instr_getelemptr vstate pstates (instr : LI.instr) =
   let src = translate_llvalue (LI.operand instr 0) in
-  let _ = hdebug "SRC:" pr_exp src in
+  let _ = debugp "SRC:" pr_exp src in
   let elem = translate_llvalue (LI.operand instr 1) in
   let field = translate_llvalue (LI.operand instr 2) in
-  let _ = hdebug "GetElemPtr ELEM: " pr_exp elem in
-  let _ = hdebug "           FIELD: " pr_exp field in
+  let _ = debugp "GetElemPtr ELEM: " pr_exp elem in
+  let _ = debugp "           FIELD: " pr_exp field in
   let dst = translate_instr instr in
   List.map
     ~f:(fun pstate ->
       let src_typ = typ_of_exp src in
-      let _ = hdebug "SRC_TYP: " pr_type src_typ in
+      let _ = debugp "SRC_TYP: " pr_type src_typ in
       match src_typ with
       | TPointer (TStruct _) ->
         (* let _ = ndebugc "analyze_getelemptr of struct" in *)
@@ -692,11 +692,11 @@ let process_one_state_instr_bitcast vstate pstate instr src dst =
    *   let size_cond = mk_gt src_asize (mk_exp_int 0) in
    *   mk_f_star_with f ~pfs:[size_cond] in
    * let ent = mk_entailment pstate.pgs_formula (mk_f_exists src_evs src_array) in
-   * let _ = hdebug ~compact:true "Bitcast Entailment:\n" pr_ent ent in
+   * let _ = debugp ~compact:true "Bitcast Entailment:\n" pr_ent ent in
    * (\* TRUNG: possibly no need to check entailment for BitCast. *\)
    * let res, frames = PV.infer_entailment_frame prog ent in
-   * let _ = hdebug ~compact:true "==> Result: " pr_ternary res in
-   * let _ = hdebug ~compact:true "==> Frame: " pr_fs frames in
+   * let _ = debugp ~compact:true "==> Result: " pr_ternary res in
+   * let _ = debugp ~compact:true "==> Frame: " pr_fs frames in
    * match res, frames with
    * | True, [frame] ->
    *   let is_casting_empty_memory =
@@ -714,15 +714,15 @@ let process_one_state_instr_bitcast vstate pstate instr src dst =
    *     let dst_asize = mk_exp_var (fresh_new_var (TInt 32)) in
    *     let dst_evs = fv_e dst_asize in
    *     let dst_array = mk_array dst dst_asize dst_etyp in
-   *     let _ = hdebug ~compact:true "SRC_MEMTYP: " pr_type src_memtyp in
-   *     let _ = hdebug ~compact:true "DST_LLETYP: " pr_type dst_lletyp in
+   *     let _ = debugp ~compact:true "SRC_MEMTYP: " pr_type src_memtyp in
+   *     let _ = debugp ~compact:true "DST_LLETYP: " pr_type dst_lletyp in
    *     let size_pf =
    *       let src_memtyp_size = mk_exp_int (Int64.to_int_exn src_memtyp_size) in
    *       let dst_etyp_size = Int64.to_int_exn dst_lletyp_size in
-   *       let _ = hdebug ~compact:true "src_memtyp_size: " pr_exp src_memtyp_size in
-   *       let _ = hdebug ~compact:true "dst_lletyp_size: " pr_int dst_etyp_size in
+   *       let _ = debugp ~compact:true "src_memtyp_size: " pr_exp src_memtyp_size in
+   *       let _ = debugp ~compact:true "dst_lletyp_size: " pr_int dst_etyp_size in
    *       let dst_size = mk_mul_exp_int dst_asize dst_etyp_size in
-   *       let _ = hdebug ~compact:true "dst_size: " pr_exp dst_size in
+   *       let _ = debugp ~compact:true "dst_size: " pr_exp dst_size in
    *       mk_eq src_memtyp_size dst_size in
    *     let addr_pf = mk_eq dst src in
    *     let nf = mk_f_star_with frame ~afs:[dst_array] ~pfs:[size_pf; addr_pf] in
@@ -782,10 +782,10 @@ let process_one_state_instr_call vstate instr pstate func args return =
   let precond, postcond = get_prepost_llproc func args return in
   let evs = diff_vs (fv_f precond) (fv_es args) in
   let ent = mk_entailment pstate.pgs_formula (mk_f_exists evs precond) in
-  let _ = hdebug "CALL: Prove Pre-Condition By Frame:\n\n" pr_ent ent in
+  let _ = debugp "CALL: Prove Pre-Condition By Frame:\n\n" pr_ent ent in
   let res, frames = PV.infer_entailment_frame vstate.vrs_core_prog ent in
-  let _ = hdebug "==> Result: " pr_bool_option res in
-  let _ = hdebug "==> Frame: " pr_fs frames in
+  let _ = debugp "==> Result: " pr_bool_option res in
+  let _ = debugp "==> Frame: " pr_fs frames in
   match res, frames with
   | Some true, [ frame ] ->
     let nf = mk_f_exists evs (mk_f_star_with frame ~fs:[ postcond ]) in
@@ -794,15 +794,15 @@ let process_one_state_instr_call vstate instr pstate func args return =
     let npstate =
       if LI.is_func_free func
       then (
-        let _ = hdebug " Freed args: " pr_exps args in
+        let _ = debugp " Freed args: " pr_exps args in
         let freed_exps = get_original_freed_pointers npstate args in
-        let _ = hdebug " Freed exps: " pr_exps freed_exps in
+        let _ = debugp " Freed exps: " pr_exps freed_exps in
         propagate_program_state_freed_pointers npstate freed_exps)
       else npstate in
     (* TODO: update alloced and freed data *)
     npstate
   | Some true, _ ->
-    herror "process_instr_call: expect 1 frame but found: " pr_fs frames
+    errorp "process_instr_call: expect 1 frame but found: " pr_fs frames
   | _ ->
     let buggy = check_double_free vstate instr pstate func args in
     if buggy then { pstate with pgs_is_buggy = true } else pstate
@@ -855,7 +855,7 @@ let analyze_instruction vstate pstates (instr : LI.instr) =
     | OC.ICmp -> analyze_instr_icmp vstate pstates instr
     | OC.FCmp -> analyze_instr_fcmp vstate pstates instr
     | OC.Call -> analyze_instr_call vstate pstates instr
-    | _ -> herror "analyze_instruction: need to handle" LI.pr_instr instr in
+    | _ -> errorp "analyze_instruction: need to handle" LI.pr_instr instr in
   (* update program states *)
   List.map ~f:(fun ps -> { ps with pgs_last_instr = Some instr }) pstates
 ;;
@@ -908,7 +908,7 @@ let symexc_function vstate (func : LI.func) : entailment list =
   if List.is_empty (LI.blocks_of_func func)
   then []
   else (
-    hdebug ~mtype:"" "Analyzing function: " LI.func_name func;
+    debugp ~mtype:"" "Analyzing function: " LI.func_name func;
     LI.fold_left_blocks
       ~f:(fun acc blk -> acc @ symexec_block vstate blk)
       ~init:[] func)
@@ -920,7 +920,7 @@ let symexec_program vstate (prog : LI.program) : entailment list =
     List.fold_left
       ~f:(fun acc f -> acc @ symexc_function vstate f)
       ~init:[] prog.prog_user_funcs in
-  let _ = hdebug ~header:true "ALL ENTAILMENTS:" pr_ents ents in
+  let _ = debugp ~header:true "ALL ENTAILMENTS:" pr_ents ents in
   let _ = Export.Entails.export_entailments ~export:!export_entailment ents in
   ents
 ;;

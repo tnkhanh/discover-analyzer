@@ -23,7 +23,7 @@ let post_process_program (prog : LI.program) : LI.program =
   let entry_funcs = find_entry_functions prog in
   let prog = { prog with LI.prog_entry_funcs = entry_funcs } in
   let _ =
-    hdebug ~header:true ~enable:!llvm_print_prog_info
+    debugp ~header:true ~enable:!llvm_print_prog_info
       "PROGRAM INFORMATION AFTER POST-PROCESSING" LI.pr_program_info prog in
   prog
 ;;
@@ -61,7 +61,7 @@ let compile_program (input_file : string) : LI.program =
       let _ = LL.set_module_identifer modul instrued_filename in
       let _ =
         if !print_instrumented_prog
-        then hdebug ~ruler:`Long "Changed name: " LL.string_of_llmodule modul
+        then debugp ~ruler:`Long "Changed name: " LL.string_of_llmodule modul
       in
       let _ =
         let instrued_file = open_out instrued_filename in

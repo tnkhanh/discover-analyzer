@@ -134,7 +134,7 @@ struct
         match MP.add acc ~key:e ~data:d with
         | `Ok res -> res
         | `Duplicate ->
-          herror "memsize: subst_data: new value is duplicated: " pr_expr ne)
+          errorp "memsize: subst_data: new value is duplicated: " pr_expr ne)
       ~init:MP.empty d
   ;;
 
@@ -218,13 +218,13 @@ struct
       (* TODO: need alias analysis to clear off some variables
          overshadowing by PHI node *)
       let mtyp = ref (get_memtype (operand_expr ins 0) input) in
-      let _ = hdebug " PHI original: " pr_memtype !mtyp in
+      let _ = debugp " PHI original: " pr_memtype !mtyp in
       for i = 1 to num_operands ins - 1 do
         let cmt = get_memtype (operand_expr ins i) input in
-        let _ = hdebug " PHI current range: " pr_memtype cmt in
+        let _ = debugp " PHI current range: " pr_memtype cmt in
         mtyp := combine_memtype !mtyp cmt
       done;
-      let _ = hdebug " PHI final: " pr_memtype !mtyp in
+      let _ = debugp " PHI final: " pr_memtype !mtyp in
       update_memtype eins !mtyp input
     | _ -> input
   ;;

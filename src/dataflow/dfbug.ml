@@ -37,7 +37,7 @@ module IntegerBug = struct
     | IntegerOverflow (Some iof) ->
       if !bug_integer_all || !bug_integer_overflow
       then (
-        let _ = hdebug "Checking Potential Bug: " pr_potential_bug pbug in
+        let _ = debugp "Checking Potential Bug: " pr_potential_bug pbug in
         let func = LI.func_of_instr iof.iof_instr in
         let%bind penv_rng = dfa.dfa_env_range in
         let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
@@ -142,7 +142,7 @@ module IntegerBug = struct
     | DivisionByZero None ->
       if !bug_all || !bug_integer_all || !bug_divizion_by_zero
       then (
-        let _ = hdebug "Checking Potential Bug: " pr_potential_bug pbug in
+        let _ = debugp "Checking Potential Bug: " pr_potential_bug pbug in
         let func = LI.func_of_instr pbug.pbug_instr in
         let%bind penv_rng = dfa.dfa_env_range in
         let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
@@ -340,7 +340,7 @@ include MemoryBug
 let find_bugs (dfa : dfa_data) : bugs =
   let _ = println "Checking Bugs..." in
   let _ =
-    hddebug ~header:true "Potential bugs: " pr_potential_bugs
+    ddebugp ~header:true "Potential bugs: " pr_potential_bugs
       dfa.dfa_potential_bugs in
   let bugs =
     find_bug_memory_leak dfa

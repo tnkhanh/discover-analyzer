@@ -97,7 +97,7 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
         match MP.add acc ~key:e ~data:d with
         | `Ok res -> res
         | `Duplicate ->
-          herror "memsize: subst_data: new value is duplicated: " pr_expr ne)
+          errorp "memsize: subst_data: new value is duplicated: " pr_expr ne)
       ~init:MP.empty d
   ;;
 
@@ -193,13 +193,13 @@ module SizeTransfer : DF.ForwardDataTransfer with type t = SizeData.t = struct
       (* TODO: need alias analysis to clear off some variables
          overshadowing by PHI node *)
       let ns = ref (get_size (operand_expr ins 0) input) in
-      let _ = hdebug " PHI original: " pr_size !ns in
+      let _ = debugp " PHI original: " pr_size !ns in
       for i = 1 to num_operands ins - 1 do
         let cs = get_size (operand_expr ins i) input in
-        let _ = hdebug " PHI current range: " pr_size cs in
+        let _ = debugp " PHI current range: " pr_size cs in
         ns := combine_size !ns cs
       done;
-      let _ = hdebug " PHI final: " pr_size !ns in
+      let _ = debugp " PHI final: " pr_size !ns in
       update_size eins !ns input
     | _ -> input
   ;;

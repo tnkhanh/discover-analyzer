@@ -41,7 +41,7 @@ let mark_potential_bugs (dfa : dfa_data) : dfa_data =
   let _ = ddebug "Annotating Potential Bug..." in
   let prog = dfa.dfa_program in
   let pbugs = BG.mark_potential_bugs prog in
-  let _ = hddebug "POTENTIAL BUGS:" BG.pr_potential_bugs pbugs in
+  let _ = ddebugp "POTENTIAL BUGS:" BG.pr_potential_bugs pbugs in
   { dfa with dfa_potential_bugs = pbugs }
 ;;
 
@@ -61,7 +61,7 @@ let perform_range_analysis (dfa : dfa_data) : dfa_data =
     let penv = RG.analyze_program prog in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then hprint ~header:true "Range Info" RG.pr_prog_env penv in
+      then printp ~header:true "Range Info" RG.pr_prog_env penv in
     { dfa with dfa_env_range = Some penv })
   else dfa
 ;;
@@ -76,7 +76,7 @@ let perform_undef_analysis (dfa : dfa_data) : dfa_data =
     let _ = record_task_time "Undef analysis" time in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then hprint ~header:true "Undef Info" UA.pr_prog_env penv in
+      then printp ~header:true "Undef Info" UA.pr_prog_env penv in
     { dfa with dfa_env_undef = Some penv })
   else dfa
 ;;
@@ -89,7 +89,7 @@ let perform_memsize_analysis (dfa : dfa_data) : dfa_data =
     let penv = MS.analyze_program prog in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then hprint ~header:true "MemSize Info" MS.pr_prog_env penv in
+      then printp ~header:true "MemSize Info" MS.pr_prog_env penv in
     { dfa with dfa_env_memsize = Some penv })
   else dfa
 ;;
@@ -102,7 +102,7 @@ let perform_memtype_analysis (dfa : dfa_data) : dfa_data =
     let penv = MT.analyze_program prog in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then hprint ~header:true "MemType Info" MT.pr_prog_env penv in
+      then printp ~header:true "MemType Info" MT.pr_prog_env penv in
     { dfa with dfa_env_memtype = Some penv })
   else dfa
 ;;
@@ -117,7 +117,7 @@ let perform_pointer_analysis (dfa : dfa_data) : dfa_data =
     let _ = record_task_time "Pointer analysis" time in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
-      then hprint ~header:true "Pointer Info" PA.pr_prog_env penv in
+      then printp ~header:true "Pointer Info" PA.pr_prog_env penv in
     { dfa with dfa_env_pointer = Some penv })
   else dfa
 ;;
@@ -166,7 +166,7 @@ let compute_analysis_result (dfa : dfa_data) (bugs : BG.bug list) : dfa_result =
 ;;
 
 let analyze_program (prog : LI.program) : dfa_result =
-  let _ = hprint ~ruler:`Long "Analyze program by " pr_dfa_mode !dfa_mode in
+  let _ = printp ~ruler:`Long "Analyze program by " pr_dfa_mode !dfa_mode in
   let dfa =
     prog |> mk_dfa_data |> perform_pre_analysis_passes
     |> perform_main_analysis_passes in
