@@ -71,7 +71,8 @@ let perform_undef_analysis (dfa : dfa_data) : dfa_data =
   then (
     let _ = debug ~header:true "Performing Undef Analysis" in
     let prog = dfa.dfa_program in
-    let penv, time = Sys.track_runtime (fun () -> UA.analyze_program prog) in
+    let penv, time =
+      Sys.apply_track_runtime ~f:(fun () -> UA.analyze_program prog) in
     let _ = record_task_time "Undef analysis" time in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
@@ -111,7 +112,8 @@ let perform_pointer_analysis (dfa : dfa_data) : dfa_data =
   then (
     let _ = debug ~header:true "Performing Pointer Analysis" in
     let prog = dfa.dfa_program in
-    let penv, time = Sys.track_runtime (fun () -> PA.analyze_program prog) in
+    let penv, time =
+      Sys.apply_track_runtime ~f:(fun () -> PA.analyze_program prog) in
     let _ = record_task_time "Pointer analysis" time in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
@@ -149,9 +151,7 @@ let report_analysis_stats (dfa : dfa_data) : unit =
  ** Analysis functions
  *******************************************************************)
 
-let compute_analysis_result (dfa : dfa_data) (bugs : BG.bug list)
-    : dfa_result
-  =
+let compute_analysis_result (dfa : dfa_data) (bugs : BG.bug list) : dfa_result =
   let total_time = ref 0. in
   let analysis_time = ref 0. in
   let num_detected_bugs = ref 0 in

@@ -60,7 +60,7 @@ module SmtSL = struct
       match !smt_solver with
       | SolverZ3 -> Z3SL.check_sat ~prog ~mvars
       | _ -> herror "check_sat: unknown solver" pr_solver !smt_solver in
-    Sys.record_runtime (fun () -> check_sat fs) time_smt
+    Sys.apply_record_runtime ~f:(fun () -> check_sat fs) time_smt
   ;;
 
   let is_sat ?(prog = None) (fs : SI.pure_forms) : bool =
@@ -120,7 +120,7 @@ module SmtLL = struct
       match !smt_solver with
       | SolverZ3 -> Z3LL.check_sat
       | _ -> herror "check_sat: unknown solver" pr_solver !smt_solver in
-    Sys.record_runtime (fun () -> check_sat p) time_smt
+    Sys.apply_record_runtime ~f:(fun () -> check_sat p) time_smt
   ;;
 
   let is_sat ?(prog = None) (p : LI.predicate) : bool =

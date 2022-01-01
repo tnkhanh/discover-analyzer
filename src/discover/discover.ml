@@ -152,7 +152,8 @@ let analyze_program (prog : CI.program) : analysis_result =
 let analyze_input_file (filename : string) : unit =
   let _ = print ("Analyze input file: " ^ filename) in
   let prog = CP.compile_input_file filename in
-  analysis_time := snd (Sys.track_runtime (fun () -> analyze_program prog))
+  let _, time = Sys.apply_track_runtime ~f:(fun () -> analyze_program prog) in
+  analysis_time := time
 ;;
 
 let main () : unit =
@@ -163,7 +164,8 @@ let main () : unit =
     let _ = init_environment () in
     let _ = print_discover_settings () in
     analyze_input_file !input_file in
-  let _ = total_time := snd (Sys.track_runtime run_discover) in
+  let _, time = Sys.apply_track_runtime ~f:run_discover in
+  let _ = total_time := time in
   let _ = print_analysis_summary () in
   clean_environment ()
 ;;

@@ -123,7 +123,7 @@ module type Env = sig
       penv_block_total_analyzed_times : (block, int) Hashtbl.t;
       penv_func_analysis_stack : func Stack.t;
       penv_block_analyzed_squence : (func, blocks) Hashtbl.t;
-      mutable penv_total_analysis_time : float
+      mutable penv_analysis_time : float
     }
 
   (*--------------------------------------------------------
@@ -239,7 +239,7 @@ module MakeDefaultEnv (M : Data) = struct
       penv_block_total_analyzed_times : (block, int) Hashtbl.t;
       penv_func_analysis_stack : func Stack.t;
       penv_block_analyzed_squence : (func, blocks) Hashtbl.t;
-      mutable penv_total_analysis_time : float
+      mutable penv_analysis_time : float
     }
 
   (* get and set globals' output *)
@@ -1156,7 +1156,7 @@ functor
         penv_func_analyzed_inputs = Hashtbl.create (module FuncKey);
         penv_func_analysis_stack = Stack.create ();
         penv_block_analyzed_squence = Hashtbl.create (module FuncKey);
-        penv_total_analysis_time = 0.;
+        penv_analysis_time = 0.
       }
     ;;
 
@@ -1500,7 +1500,7 @@ functor
       let func, input, callsites = wf.wf_func, wf.wf_input, wf.wf_callsites in
       let fname = func_name func in
       let res, time =
-        Sys.track_runtime (fun () ->
+        Sys.apply_track_runtime ~f:(fun () ->
             match callsites with
             | [] ->
               let wf = mk_working_func func input callsites in
@@ -1932,12 +1932,7 @@ functor
             else if is_func_begin_catch_exception callee
             then analyze_instr_catch_exception penv fenv instr args input
             else if is_user_func callee
-            then (
-              let res, time =
-                Sys.track_runtime (fun () ->
-                    analyze_instr_call_user_func penv fenv instr callee args
-                      input) in
-              res)
+            then analyze_instr_call_user_func penv fenv instr callee args input
             else if is_func_pointer callee
             then (
               let _ =
@@ -1957,18 +1952,14 @@ functor
               else if List.exists ~f:is_lib_no_source_func callees
               then input, true
               else (
-                let res, time =
-                  Sys.track_runtime (fun () ->
-                      let outputs_continues =
-                        List.map
-                          ~f:(fun f ->
-                            analyze_instr_call_user_func penv fenv instr f args
-                              input)
-                          callees in
-                      let outputs, continues = List.unzip outputs_continues in
-                      ( merge_datas outputs,
-                        List.fold_left ~f:( || ) ~init:false continues )) in
-                res))
+                let outputs_continues =
+                  List.map
+                    ~f:(fun f ->
+                      analyze_instr_call_user_func penv fenv instr f args input)
+                    callees in
+                let outputs, continues = List.unzip outputs_continues in
+                ( merge_datas outputs,
+                  List.fold_left ~f:( || ) ~init:false continues )))
             else T.analyze_instr ~widen penv fenv instr input, true
           | LO.Ret ->
             let output = T.analyze_instr ~widen penv fenv instr input in
@@ -2397,7 +2388,7 @@ functor
         let ( (fenv, input_updated, output_updated, env_updated, need_reanalyze),
               time )
           =
-          Sys.track_runtime (fun () -> analyze_function penv wf) in
+          Sys.apply_track_runtime ~f:(fun () -> analyze_function penv wf) in
         let _ =
           hdebug
             (" - Time analyzing function: " ^ fname ^ ": ")
@@ -2710,8 +2701,8 @@ functor
         penv.penv_goal_funcs <- prog.prog_init_funcs @ prog.prog_user_funcs
       in
       let _ =
-        Sys.record_runtime
-          (fun () ->
+        Sys.apply_record_runtime
+          ~f:(fun () ->
             (* TODO: turn this into a fix-point function *)
             let _ =
               if !dfa_sparse_analysis

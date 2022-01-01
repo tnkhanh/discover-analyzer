@@ -3216,9 +3216,7 @@ struct
      *   subst_data ~sste input in *)
     let _ = hdebug ~indent:4 " - Input with params: " pr_data output in
     (* and then remove all local vars *)
-    let output, time =
-      Sys.track_runtime (fun () ->
-          clean_irrelevant_info_from_data penv callee output) in
+    let output = clean_irrelevant_info_from_data penv callee output in
     let _ = hdebug "  Final input : " pr_data output in
     output
   ;;
@@ -3600,7 +3598,6 @@ struct
    *******************************************************************)
 
   let pre_analyze_func penv fenv = ()
-
 end
 
 (*******************************************************************
