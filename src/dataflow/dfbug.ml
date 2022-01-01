@@ -349,6 +349,6 @@ let find_bugs (pdata : program_data) : unit =
     @ find_bug_integer_underflow pdata
     @ find_bug_division_by_zero pdata in
   let _ = print ~mtype:"" (pr_bugs bugs) in
-  let _ = num_of_bugs := List.length bugs in
+  let _ = num_detected_bugs := List.length bugs in
   report_bug_stats bugs
 ;;

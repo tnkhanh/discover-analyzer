@@ -136,20 +136,20 @@ let rec test default_conf benchmark =
         let output_lines = String.split ~on:'\n' test_output in
         List.iter
           ~f:(fun line ->
-            if String.is_prefix ~prefix:__valid_assert line
+            if String.is_prefix ~prefix:__report_valid_assert line
             then (
-              let prefix_length = String.length __valid_assert in
+              let prefix_length = String.length __report_valid_assert in
               let number_length =
-                String.length line - String.length __valid_assert in
+                String.length line - String.length __report_valid_assert in
               let added_valid_assert =
                 int_of_string
                   (String.sub line ~pos:prefix_length ~len:number_length) in
               total_valid_assert := !total_valid_assert + added_valid_assert)
-            else if String.is_prefix ~prefix:__invalid_assert line
+            else if String.is_prefix ~prefix:__report_invalid_assert line
             then (
-              let prefix_length = String.length __invalid_assert in
+              let prefix_length = String.length __report_invalid_assert in
               let number_length =
-                String.length line - String.length __invalid_assert in
+                String.length line - String.length __report_invalid_assert in
               let added_invalid_assert =
                 int_of_string
                   (String.sub line ~pos:prefix_length ~len:number_length) in

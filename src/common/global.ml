@@ -123,6 +123,7 @@ let llvm_normalize = ref true
  * Settings for assertion checking
  *---------------------------------*)
 
+let check_assert = ref false
 let assert_all = ref false
 let assert_range = ref false
 let assert_pointer = ref false
@@ -133,6 +134,7 @@ let assert_pointer = ref false
  *----------------------------*)
 
 (* General settings *)
+let find_bug = ref false
 let bug_all = ref false
 
 (* integer bugs *)
@@ -216,8 +218,12 @@ let __assert_range_upper_bound = __assert ^ "range_upper_bound"
 let __assert_range_full = __assert ^ "range_full"
 let __assume_range = __assume ^ "range"
 let __init_globals = __init ^ "globals"
-let __valid_assert = "- Valid assertions: "
-let __invalid_assert = "- Invalid assertions: "
+
+(*------------
+ * Reporting key words
+ *-----------*)
+let __report_valid_assert = "- Valid assertions: "
+let __report_invalid_assert = "- Invalid assertions: "
 (*let _ok_status = "OK!"*)
 (*let _failed_status = "FAILED!"*)
 
@@ -236,7 +242,7 @@ let total_time : float ref = ref 0.0
  * Bugs and assertions
  *---------------------*)
 
-let num_of_bugs = ref 0
+let num_detected_bugs = ref 0
 let num_valid_asserts = ref 0
 let num_invalid_asserts = ref 0
 

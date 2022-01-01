@@ -6,25 +6,35 @@
  ********************************************************************)
 
 open Dcore
-
 module RP = Extcore.Report
 
 (*******************************************************************
  ** Auxiliary fucntions
  *******************************************************************)
 
-let enable_only_bug_type (bug_type : bool ref) : unit =
-  let _ = bug_all := false in
+let find_bug_type (bug_type : bool ref) : unit =
+  find_bug := true;
+  bug_all := false;
   bug_type := true
 ;;
 
-let enable_only_assertion_type (assert_type : bool ref) : unit =
-  let _ = assert_all := false in
+let find_all_bugs () : unit =
+  find_bug := true;
+  bug_all := true
+;;
+
+let check_assert_type (assert_type : bool ref) : unit =
+  check_assert := true;
+  assert_all := false;
   assert_type := true
 ;;
 
-let enable_concise_output () : unit =
-  RP.hide_warning_message := true
+let check_all_asserts () : unit =
+  check_assert := true;
+  assert_all := true
+;;
+
+let enable_concise_output () : unit = RP.hide_warning_message := true
 
 (*******************************************************************
  ** Arguments management
@@ -156,8 +166,8 @@ and arguments_raw =
       "Perform the data-flow memory type analysis",
       Arg.Unit
         (fun () ->
-           work_mode := WkmDFA;
-           dfa_analyses := !dfa_analyses @ [ DfaMemType ]) );
+          work_mode := WkmDFA;
+          dfa_analyses := !dfa_analyses @ [ DfaMemType ]) );
     ( [ "--dfa-pointer" ],
       "Perform the data-flow pointer analysis",
       Arg.Unit
@@ -217,43 +227,38 @@ and arguments_raw =
     (*--------------------------------------------------------
      * Assertion checking
      *--------------------------------------------------------*)
-    ( [ "--assertion-range" ],
+    [ "--assert-all" ], "Check range assertions", Arg.Unit check_all_asserts;
+    ( [ "--assert-range" ],
       "Check range assertions",
-      Arg.Unit (fun () -> enable_only_assertion_type assert_range) );
-    ( [ "--assertion-pointer" ],
+      Arg.Unit (fun () -> check_assert_type assert_range) );
+    ( [ "--assert-pointer" ],
       "Check pointer assertions",
-      Arg.Unit (fun () -> enable_only_assertion_type assert_pointer) );
+      Arg.Unit (fun () -> check_assert_type assert_pointer) );
     (*--------------------------------------------------------
      * bug findings
      *--------------------------------------------------------*)
     ( [ "--bug-integer-overflow" ],
       "Find integer-overflow bugs",
-      Arg.Unit (fun () -> enable_only_bug_type bug_integer_overflow) );
+      Arg.Unit (fun () -> find_bug_type bug_integer_overflow) );
     ( [ "--bug-integer-underflow" ],
       "Find integer-underflow bugs",
-      Arg.Unit (fun () -> enable_only_bug_type bug_integer_underflow) );
+      Arg.Unit (fun () -> find_bug_type bug_integer_underflow) );
     ( [ "--bug-memory-leak" ],
       "Find memory leak bugs",
-      Arg.Unit (fun () -> enable_only_bug_type bug_memory_leak) );
+      Arg.Unit (fun () -> find_bug_type bug_memory_leak) );
     ( [ "--bug-null-pointer-deref" ],
       "Find null pointer dereference bugs",
-      Arg.Unit (fun () -> enable_only_bug_type bug_null_pointer_deref) );
+      Arg.Unit (fun () -> find_bug_type bug_null_pointer_deref) );
     ( [ "--bug-buffer-overflow" ],
       "Find buffer overflow bugs",
-      Arg.Unit (fun () -> enable_only_bug_type bug_buffer_overflow) );
+      Arg.Unit (fun () -> find_bug_type bug_buffer_overflow) );
     ( [ "--bug-integer-all" ],
       "Find all integer bugs",
-      Arg.Unit (fun () -> enable_only_bug_type bug_integer_all) );
+      Arg.Unit (fun () -> find_bug_type bug_integer_all) );
     ( [ "--bug-memory-all" ],
       "Find all memory bugs",
       Arg.Unit (fun () -> bug_memory_all := true) );
-    ( [ "--bug-all" ],
-      "Find all bugs",
-      Arg.Unit
-        (fun () ->
-          bug_all := true;
-          bug_integer_all := true;
-          bug_memory_all := true) );
+    [ "--bug-all" ], "Find all bugs", Arg.Unit find_all_bugs;
     (*--------------------------------------------------------
      * llvm options
      *--------------------------------------------------------*)

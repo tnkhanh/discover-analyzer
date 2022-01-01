@@ -92,11 +92,20 @@ let print_analysis_summary () =
           ~f:(fun acc (task, time) ->
             acc ^ "\n- " ^ task ^ ": " ^ Printf.sprintf "%.2fs" time)
           ~init:"\n\nDetailed runtime:" !detailed_task_time in
+    let assertion_summary =
+      if !check_assert
+      then
+        sprintf "- Valid assertions: %d\n" !num_valid_asserts
+        ^ sprintf "- Invalid assertions: %d\n" !num_invalid_asserts
+      else "" in
+    let bug_summary =
+      if !find_bug
+      then sprintf "- Detected bugs: %d\n" !num_detected_bugs
+      else "" in
     let msg =
       "Summary:\n"
       ^ sprintf "- Input file: %s\n" !input_file
-      ^ sprintf "- Valid assertions: %d\n" !num_valid_asserts
-      ^ sprintf "- Invalid assertions: %d\n" !num_invalid_asserts
+      ^ assertion_summary ^ bug_summary
       ^ sprintf "- Analysis time: %.2fs\n" !analysis_time
       ^ sprintf "- Total runtime: %.2fs" !total_time
       ^ detailed_runtime in
