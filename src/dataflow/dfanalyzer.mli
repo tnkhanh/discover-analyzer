@@ -5,6 +5,13 @@
  * All rights reserved.
  ********************************************************************)
 
-type dfa_result
+type dfa_result =
+  { dfa_total_analysis_time : float;
+    dfa_detailed_analysis_time : (string * float) list;
+    dfa_num_detected_bugs : int;
+    dfa_num_valid_asserts : int;
+    dfa_num_invalid_asserts : int
+  }
+
 
 val analyze_program : Llir.program -> dfa_result

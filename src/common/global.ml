@@ -231,11 +231,7 @@ let __report_invalid_assert = "- Invalid assertions: "
  * Time statistics
  *-----------------*)
 
-let detailed_task_time : (string * float) list ref = ref []
-(* tasks and time *)
-
 let sparse_time : float ref = ref 0.0
-let analysis_time : float ref = ref 0.0
 let total_time : float ref = ref 0.0
 
 (*--------------------------------
@@ -312,10 +308,6 @@ let name_of_dfa (dfa : dfa_analysis) : string =
 (*******************************************************************
  ** utilities function
  *******************************************************************)
-
-let record_task_time (task : string) (time : float) =
-  detailed_task_time := !detailed_task_time @ [ task, time ]
-;;
 
 let pr_work_mode wm =
   match wm with

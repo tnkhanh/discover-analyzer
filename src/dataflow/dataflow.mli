@@ -112,6 +112,7 @@ module type Env = sig
       penv_block_total_analyzed_times : (block, int) Base.Hashtbl.t;
       penv_func_analysis_stack : func Stack.t;
       penv_block_analyzed_squence : (func, blocks) Hashtbl.t;
+      penv_analysis_name : string;
       mutable penv_analysis_time : float
     }
 

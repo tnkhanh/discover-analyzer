@@ -123,6 +123,7 @@ module type Env = sig
       penv_block_total_analyzed_times : (block, int) Hashtbl.t;
       penv_func_analysis_stack : func Stack.t;
       penv_block_analyzed_squence : (func, blocks) Hashtbl.t;
+      penv_analysis_name : string;
       mutable penv_analysis_time : float
     }
 
@@ -239,6 +240,7 @@ module MakeDefaultEnv (M : Data) = struct
       penv_block_total_analyzed_times : (block, int) Hashtbl.t;
       penv_func_analysis_stack : func Stack.t;
       penv_block_analyzed_squence : (func, blocks) Hashtbl.t;
+      penv_analysis_name : string;
       mutable penv_analysis_time : float
     }
 
@@ -1156,6 +1158,7 @@ functor
         penv_func_analyzed_inputs = Hashtbl.create (module FuncKey);
         penv_func_analysis_stack = Stack.create ();
         penv_block_analyzed_squence = Hashtbl.create (module FuncKey);
+        penv_analysis_name = name_of_dfa T.analysis;
         penv_analysis_time = 0.
       }
     ;;

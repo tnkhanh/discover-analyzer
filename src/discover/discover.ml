@@ -85,24 +85,34 @@ let enable_release_mode_alias_analysis () =
   print_stats_prog := true
 ;;
 
-let print_analysis_summary () =
-  match !work_mode with
-  | WkmNoAnalysis -> ()
-  | _ ->
+let get_analysis_runtime (res : analysis_result) =
+  match res with
+  | RDfa rdfa ->
+    let total_time =
+      sprintf "- Analysis time: %.2fs\n" rdfa.DA.dfa_total_analysis_time in
     let detailed_runtime =
-      if (not !mode_debug) || List.is_empty !detailed_task_time
+      if (not !mode_debug) || List.is_empty rdfa.dfa_detailed_analysis_time
       then ""
       else
         List.fold_left
-          ~f:(fun acc (task, time) ->
-            acc ^ "\n- " ^ task ^ ": " ^ Printf.sprintf "%.2fs" time)
-          ~init:"\n\nDetailed runtime:" !detailed_task_time in
+          ~f:(fun acc (analysis, time) ->
+            acc ^ "\n- " ^ analysis ^ ": " ^ Printf.sprintf "%.2fs" time)
+          ~init:"\n\nDetailed runtime:" rdfa.dfa_detailed_analysis_time in
+    total_time ^ detailed_runtime
+  | _ -> ""
+;;
+
+let print_analysis_summary (res : analysis_result) =
+  match !work_mode with
+  | WkmNoAnalysis -> ()
+  | _ ->
     let assertion_summary =
       if !check_assert
       then
         sprintf "- Valid assertions: %d\n" !num_valid_asserts
         ^ sprintf "- Invalid assertions: %d\n" !num_invalid_asserts
       else "" in
+    let runtime_summary = get_analysis_runtime res in
     let bug_summary =
       if !find_bug
       then sprintf "- Detected bugs: %d\n" !num_detected_bugs
@@ -111,9 +121,8 @@ let print_analysis_summary () =
       "Summary:\n"
       ^ sprintf "- Input file: %s\n" !input_file
       ^ assertion_summary ^ bug_summary
-      ^ sprintf "- Analysis time: %.2fs\n" !analysis_time
       ^ sprintf "- Total runtime: %.2fs" !total_time
-      ^ detailed_runtime in
+      ^ runtime_summary in
     println ~mtype:"" ~always:true ~autoformat:false ~ruler:`Long msg
 ;;
 
@@ -149,11 +158,10 @@ let analyze_program (prog : CI.program) : analysis_result =
     RNone
 ;;
 
-let analyze_input_file (filename : string) : unit =
+let analyze_input_file (filename : string) : analysis_result =
   let _ = print ("Analyze input file: " ^ filename) in
   let prog = CP.compile_input_file filename in
-  let _, time = Sys.track_runtime ~f:(fun () -> analyze_program prog) in
-  analysis_time := time
+  analyze_program prog
 ;;
 
 let main () : unit =
@@ -166,9 +174,9 @@ let main () : unit =
     let _ = init_environment () in
     let _ = print_discover_settings () in
     analyze_input_file !input_file in
-  let _, time = Sys.track_runtime ~f:run_discover in
+  let res, time = Sys.track_runtime ~f:run_discover in
   let _ = total_time := time in
-  let _ = print_analysis_summary () in
+  let _ = print_analysis_summary res in
   clean_environment ()
 ;;
 
