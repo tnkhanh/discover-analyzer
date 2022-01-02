@@ -349,6 +349,6 @@ let find_bugs (dfa : dfa_data) : bugs =
     @ find_bug_integer_underflow dfa
     @ find_bug_division_by_zero dfa in
   let _ = print ~mtype:"" (pr_bugs bugs) in
-  let _ = report_bug_stats bugs in
+  (* let _ = report_bug_stats bugs in *)
   bugs
 ;;

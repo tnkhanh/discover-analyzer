@@ -9,6 +9,7 @@ type dfa_result =
   { dfa_total_analysis_time : float;
     dfa_detailed_analysis_time : (string * float) list;
     dfa_num_detected_bugs : int;
+    dfa_detailed_detected_bugs : (string * int) list;
     dfa_num_valid_asserts : int;
     dfa_num_invalid_asserts : int
   }

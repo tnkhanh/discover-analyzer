@@ -20,6 +20,7 @@ type dfa_result =
   { dfa_total_analysis_time : float;
     dfa_detailed_analysis_time : (string * float) list;
     dfa_num_detected_bugs : int;
+    dfa_detailed_detected_bugs : (string * int) list;
     dfa_num_valid_asserts : int;
     dfa_num_invalid_asserts : int
   }
@@ -170,6 +171,22 @@ let update_analysis_time (dfa : dfa_data) (res : dfa_result) : dfa_result =
   }
 ;;
 
+let compute_bug_detailed_info (bugs : BG.bug list) : (string * int) list =
+  let bug_info = Hashtbl.create (module String) in
+  let _ =
+    List.iter
+      ~f:(fun bug ->
+        let bug_name = BG.pr_bug_name bug in
+        Hashtbl.update
+          ~f:(fun count ->
+            match count with
+            | None -> 1
+            | Some n -> n + 1)
+          bug_info bug_name)
+      bugs in
+  Hashtbl.fold ~f:(fun ~key ~data acc -> (key, data) :: acc) ~init:[] bug_info
+;;
+
 let compute_analysis_result (dfa : dfa_data) (bugs : BG.bug list) : dfa_result =
   let num_valid_asserts = ref 0 in
   let num_invalid_asserts = ref 0 in
@@ -177,6 +194,7 @@ let compute_analysis_result (dfa : dfa_data) (bugs : BG.bug list) : dfa_result =
     { dfa_total_analysis_time = 0.;
       dfa_detailed_analysis_time = [];
       dfa_num_detected_bugs = List.length bugs;
+      dfa_detailed_detected_bugs = compute_bug_detailed_info bugs;
       dfa_num_valid_asserts = !num_valid_asserts;
       dfa_num_invalid_asserts = !num_invalid_asserts
     } in

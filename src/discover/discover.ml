@@ -96,24 +96,33 @@ let create_runtime_summary (res : analysis_result) : string =
       else
         List.fold_left
           ~f:(fun acc (analysis, time) ->
-            acc ^ "  + " ^ analysis ^ ": " ^ Printf.sprintf "%.2fs\n" time)
+            acc ^ "  + " ^ analysis ^ ": " ^ sprintf "%.2fs\n" time)
           ~init:"" rdfa.dfa_detailed_analysis_time in
     total_time ^ detailed_runtime
   | _ -> ""
 ;;
 
-let create_assertion_summary (res: analysis_result) : string =
+let create_assertion_summary (res : analysis_result) : string =
   if !check_assert
   then
     sprintf "- Valid assertions: %d\n" !num_valid_asserts
     ^ sprintf "- Invalid assertions: %d\n" !num_invalid_asserts
   else ""
+;;
 
 let create_bug_summary (res : analysis_result) : string =
   if !find_bug
   then (
     match res with
-    | RDfa rdfa -> sprintf "- Detected bugs: %d\n" rdfa.dfa_num_detected_bugs
+    | RDfa rdfa ->
+      let total_bugs =
+        sprintf "- Detected bugs: %d\n" rdfa.dfa_num_detected_bugs in
+      let detailed_bugs =
+        List.fold_left
+          ~f:(fun acc (bug_name, n) ->
+            acc ^ "  + " ^ bug_name ^ ": " ^ pr_int n ^ "\n")
+          ~init:"" rdfa.dfa_detailed_detected_bugs in
+      total_bugs ^ detailed_bugs
     | _ -> "")
   else ""
 ;;
