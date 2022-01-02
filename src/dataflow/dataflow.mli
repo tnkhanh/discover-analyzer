@@ -207,8 +207,8 @@ module MakeForwardDataFlow : functor (T : ForwardDataTransfer) -> sig
   val is_call_to_func_pointer : instr -> bool
   val analyze_functions : T.prog_env -> unit
   val analyze_globals : T.prog_env -> unit
-  val analyze_program_intraproc : ?func:func option -> T.prog_env -> T.prog_env
-  val analyze_program_interproc : ?func:func option -> T.prog_env -> T.prog_env
+  val analyze_program_intraproc : ?target:func option -> T.prog_env -> unit
+  val analyze_program_interproc : ?target:func option -> T.prog_env -> unit
   val analyze_program : ?interproc:bool -> program -> T.prog_env
   val report_analysis_stats : T.prog_env -> unit
 end

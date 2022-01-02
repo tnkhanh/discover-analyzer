@@ -2745,61 +2745,69 @@ functor
       then printp ~header:true "CORE SPARSE PROGRAM" pr_sparse_prog penv
     ;;
 
-    let analyze_program_intraproc ?(func = None) penv : T.prog_env =
+    let analyze_program_intraproc
+        ?(target : func option = None)
+        (penv : T.prog_env)
+        : unit
+      =
       let prog = penv.penv_prog in
       let funcs =
-        match func with
+        match target with
         | Some f -> [ f ]
         | None -> prog.prog_user_funcs in
       let _ = analyze_globals penv in
-      let _ =
-        List.iter
-          ~f:(fun f ->
-            (* prepare environment and input *)
-            let _ = initialize_analysis penv f in
-            let input = penv.penv_global_env.genv_globals_data in
-            let input = T.prepare_entry_func_input penv f input in
-            let wf = mk_working_func f input [] in
-            (* then analyze *)
-            let _ = analyze_function penv wf in
-            ())
-          funcs in
-      penv
+      List.iter
+        ~f:(fun f ->
+          (* prepare environment and input *)
+          let _ = initialize_analysis penv f in
+          let input = penv.penv_global_env.genv_globals_data in
+          let input = T.prepare_entry_func_input penv f input in
+          let wf = mk_working_func f input [] in
+          (* then analyze *)
+          let _ = analyze_function penv wf in
+          ())
+        funcs
     ;;
 
-    let analyze_program_interproc ?(func = None) penv : T.prog_env =
+    let analyze_program_interproc
+        ?(target : func option = None)
+        (penv : T.prog_env)
+        : unit
+      =
       let prog = penv.penv_prog in
       let entry_funcs =
-        match func with
+        match target with
         | Some f -> [ f ]
         | None -> prog.prog_entry_funcs in
-      let _ =
-        List.iter
-          ~f:(fun f ->
-            let _ = printp "Analyze entry function: " func_name f in
-            let _ = initialize_analysis penv f in
-            let _ = analyze_globals penv in
-            let input = penv.penv_global_env.genv_globals_data in
-            let input = T.prepare_entry_func_input penv f input in
-            let wf = mk_working_func f input [] in
-            let _ = enqueue_to_analyze_func ~msg:"entry" penv wf in
-            analyze_functions penv)
-          entry_funcs in
-      penv
+      List.iter
+        ~f:(fun f ->
+          let _ = printp "Analyze entry function: " func_name f in
+          let _ = initialize_analysis penv f in
+          let _ = analyze_globals penv in
+          let input = penv.penv_global_env.genv_globals_data in
+          let input = T.prepare_entry_func_input penv f input in
+          let wf = mk_working_func f input [] in
+          let _ = enqueue_to_analyze_func ~msg:"entry" penv wf in
+          analyze_functions penv)
+        entry_funcs
     ;;
 
     let analyze_program ?(interproc = false) (prog : program) : T.prog_env =
+      let time_begin = Unix.gettimeofday () in
       let penv = mk_prog_env prog in
-      let func =
+      let entry_funcs =
         match !dfa_func_name with
         | Some fname -> find_user_func prog fname
         | None -> None in
       let _ = pre_analyze_prog penv in
-      let penv =
+      let _ =
         match !dfa_mode with
-        | DfaIntraProc -> analyze_program_intraproc ~func penv
-        | DfaInterProc -> analyze_program_interproc ~func penv in
+        | DfaIntraProc -> analyze_program_intraproc ~target:entry_funcs penv
+        | DfaInterProc -> analyze_program_interproc ~target:entry_funcs penv
+      in
       let _ = post_analyze_prog penv in
+      let time_end = Unix.gettimeofday () in
+      let _ = penv.penv_analysis_time <- time_end -. time_begin in
       penv
     ;;
 

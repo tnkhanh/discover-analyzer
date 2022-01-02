@@ -17,8 +17,7 @@ module RG = Range.Analysis
 module UA = Undef.Analysis
 
 type dfa_result =
-  { dfa_total_time : float;
-    dfa_analysis_time : float;
+  { dfa_total_analysis_time : float;
     dfa_num_detected_bugs : int;
     dfa_num_valid_asserts : int;
     dfa_num_invalid_asserts : int
@@ -71,8 +70,7 @@ let perform_undef_analysis (dfa : dfa_data) : dfa_data =
   then (
     let _ = debug ~header:true "Performing Undef Analysis" in
     let prog = dfa.dfa_program in
-    let penv, time =
-      Sys.track_runtime ~f:(fun () -> UA.analyze_program prog) in
+    let penv, time = Sys.track_runtime ~f:(fun () -> UA.analyze_program prog) in
     let _ = record_task_time "Undef analysis" time in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
@@ -112,8 +110,7 @@ let perform_pointer_analysis (dfa : dfa_data) : dfa_data =
   then (
     let _ = debug ~header:true "Performing Pointer Analysis" in
     let prog = dfa.dfa_program in
-    let penv, time =
-      Sys.track_runtime ~f:(fun () -> PA.analyze_program prog) in
+    let penv, time = Sys.track_runtime ~f:(fun () -> PA.analyze_program prog) in
     let _ = record_task_time "Pointer analysis" time in
     let _ =
       if (not !print_concise_output) && !print_analyzed_prog
@@ -151,14 +148,21 @@ let report_analysis_stats (dfa : dfa_data) : unit =
  ** Analysis functions
  *******************************************************************)
 
+let compute_total_analysis_time (dfa : dfa_data) : float =
+  let open Option.Let_syntax in
+  let analysis_runtimes =
+    [ (dfa.dfa_env_undef >>= fun p -> return p.penv_analysis_time) ]
+    @ [ (dfa.dfa_env_pointer >>= fun p -> return p.penv_analysis_time) ] in
+  List.fold
+    ~f:(fun acc t -> Option.value t ~default:0. +. acc)
+    ~init:0. analysis_runtimes
+;;
+
 let compute_analysis_result (dfa : dfa_data) (bugs : BG.bug list) : dfa_result =
-  let total_time = ref 0. in
-  let analysis_time = ref 0. in
   let num_detected_bugs = ref 0 in
   let num_valid_asserts = ref 0 in
   let num_invalid_asserts = ref 0 in
-  { dfa_total_time = !total_time;
-    dfa_analysis_time = !analysis_time;
+  { dfa_total_analysis_time = compute_total_analysis_time dfa;
     dfa_num_detected_bugs = !num_detected_bugs;
     dfa_num_valid_asserts = !num_valid_asserts;
     dfa_num_invalid_asserts = !num_invalid_asserts
