@@ -85,7 +85,7 @@ let enable_release_mode_alias_analysis () =
   print_stats_prog := true
 ;;
 
-let get_analysis_runtime (res : analysis_result) =
+let create_runtime_summary (res : analysis_result) : string =
   match res with
   | RDfa rdfa ->
     let total_time =
@@ -102,26 +102,34 @@ let get_analysis_runtime (res : analysis_result) =
   | _ -> ""
 ;;
 
-let print_analysis_summary (res : analysis_result) =
+let create_assertion_summary (res: analysis_result) : string =
+  if !check_assert
+  then
+    sprintf "- Valid assertions: %d\n" !num_valid_asserts
+    ^ sprintf "- Invalid assertions: %d\n" !num_invalid_asserts
+  else ""
+
+let create_bug_summary (res : analysis_result) : string =
+  if !find_bug
+  then (
+    match res with
+    | RDfa rdfa -> sprintf "- Detected bugs: %d\n" rdfa.dfa_num_detected_bugs
+    | _ -> "")
+  else ""
+;;
+
+let print_analysis_summary (res : analysis_result) (total_time : float) : unit =
   match !work_mode with
   | WkmNoAnalysis -> ()
   | _ ->
-    let assertion_summary =
-      if !check_assert
-      then
-        sprintf "- Valid assertions: %d\n" !num_valid_asserts
-        ^ sprintf "- Invalid assertions: %d\n" !num_invalid_asserts
-      else "" in
-    let runtime_summary = get_analysis_runtime res in
-    let bug_summary =
-      if !find_bug
-      then sprintf "- Detected bugs: %d\n" !num_detected_bugs
-      else "" in
+    let assertion_summary = create_assertion_summary res in
+    let runtime_summary = create_runtime_summary res in
+    let bug_summary = create_bug_summary res in
     let msg =
       "Summary:\n"
       ^ sprintf "- Input file: %s\n" !input_file
       ^ assertion_summary ^ bug_summary ^ runtime_summary
-      ^ sprintf "- Total runtime: %.2fs" !total_time in
+      ^ sprintf "- Total runtime: %.2fs" total_time in
     println ~mtype:"" ~always:true ~autoformat:false ~ruler:`Long msg
 ;;
 
@@ -168,14 +176,11 @@ let main () : unit =
   let _ = handle_system_signals () in
   let run_discover () =
     let _ = AG.parse_arguments () in
-    let _ = debugf "Testing debugf %s %d %d " "Hello debugf" 1 2 in
-    let _ = debug "Testing NON debugf" in
     let _ = init_environment () in
     let _ = print_discover_settings () in
     analyze_input_file !input_file in
   let res, time = Sys.track_runtime ~f:run_discover in
-  let _ = total_time := time in
-  let _ = print_analysis_summary res in
+  let _ = print_analysis_summary res time in
   clean_environment ()
 ;;
 

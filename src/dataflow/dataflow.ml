@@ -85,14 +85,12 @@ module type Env = sig
 
   type func_summary =
     { fsum_func : func;
-      fsum_input : t;
-      (* data of globals and params *)
-      fsum_output : t;
-      (* data of globals and returned *)
+      fsum_input : t;              (* data of globals and params *)
+      fsum_output : t;             (* data of globals and returned *)
       fsum_thrown_exn : exn list;
       fsum_deref_params : params;
       fsum_deref_globals : globals
-    }
+    } [@@ocamlformat "disable"]
 
   type prog_env =
     { penv_prog : program;
@@ -103,10 +101,8 @@ module type Env = sig
       (* possible inputs of a function, consider both globals and params *)
       penv_func_analyzed_inputs : (func, t list) Hashtbl.t;
       (* candidate functions to be analyzed *)
-      mutable penv_goal_funcs : funcs;
-      (* all candidate functions *)
-      mutable penv_working_funcs : working_func list;
-      (* functions to be analyzed*)
+      mutable penv_goal_funcs : funcs; (* all candidate functions *)
+      mutable penv_working_funcs : working_func list; (* functions to be analyzed*)
       (* sparse analysis *)
       penv_sparse_llvalue : (value, bool) Hashtbl.t;
       penv_sparse_block : (block, bool) Hashtbl.t;
@@ -124,8 +120,9 @@ module type Env = sig
       penv_func_analysis_stack : func Stack.t;
       penv_block_analyzed_squence : (func, blocks) Hashtbl.t;
       penv_analysis_name : string;
+      mutable penv_sparse_time : float;    (* time prepare  sparse analysis *)
       mutable penv_analysis_time : float
-    }
+    } [@@ocamlformat "disable"]
 
   (*--------------------------------------------------------
    * functions that will be automatically generated
@@ -241,6 +238,7 @@ module MakeDefaultEnv (M : Data) = struct
       penv_func_analysis_stack : func Stack.t;
       penv_block_analyzed_squence : (func, blocks) Hashtbl.t;
       penv_analysis_name : string;
+      mutable penv_sparse_time : float;
       mutable penv_analysis_time : float
     }
 
@@ -1158,7 +1156,8 @@ functor
         penv_func_analyzed_inputs = Hashtbl.create (module FuncKey);
         penv_func_analysis_stack = Stack.create ();
         penv_block_analyzed_squence = Hashtbl.create (module FuncKey);
-        penv_analysis_name = name_of_dfa T.analysis;
+        penv_analysis_name = pr_dfa_name T.analysis;
+        penv_sparse_time = 0.;
         penv_analysis_time = 0.
       }
     ;;
@@ -2704,34 +2703,32 @@ functor
         penv.penv_goal_funcs <- prog.prog_init_funcs @ prog.prog_user_funcs
       in
       let _ =
-        Sys.record_runtime
-          ~f:(fun () ->
-            (* TODO: turn this into a fix-point function *)
-            let _ =
-              if !dfa_sparse_analysis
-              then (
-                let _ = init_sparse_globals_instrs penv in
+        if !dfa_sparse_analysis
+        then (
+          let time_begin = Unix.gettimeofday () in
+          let _ = init_sparse_globals_instrs penv in
+          let _ = init_sparse_funcs penv in
+          let continue = ref true in
+          let _ =
+            while !continue do
+              let _ = continue := false in
+              let _ =
+                let _ = init_sparse_blocks penv in
+                if refine_sparse_blocks penv then continue := true in
+              let _ =
                 let _ = init_sparse_funcs penv in
-                let continue = ref true in
-                let _ =
-                  while !continue do
-                    let _ = continue := false in
-                    let _ =
-                      let _ = init_sparse_blocks penv in
-                      if refine_sparse_blocks penv then continue := true in
-                    let _ =
-                      let _ = init_sparse_funcs penv in
-                      if refine_sparse_funcs penv then continue := true in
-                    if refine_sparse_globals_instrs penv then continue := true
-                  done in
-                compute_sparse_used_globals penv) in
-            let new_goals =
-              List.filter ~f:(is_sparse_func penv) penv.penv_goal_funcs in
-            penv.penv_goal_funcs <- new_goals)
-          sparse_time in
+                if refine_sparse_funcs penv then continue := true in
+              if refine_sparse_globals_instrs penv then continue := true
+            done in
+          let _ = compute_sparse_used_globals penv in
+          let time_end = Unix.gettimeofday () in
+          penv.penv_sparse_time <- time_end -. time_begin) in
+      let new_goals =
+        List.filter ~f:(is_sparse_func penv) penv.penv_goal_funcs in
+      let _ = penv.penv_goal_funcs <- new_goals in
       let _ =
-        printp " - Time preparing sparse program: " (sprintf "%.3fs")
-          !sparse_time in
+        printf " - Time preparing sparse program: %.3fs" penv.penv_sparse_time
+      in
       (* let _ = printp "Non-sparse functions: "  *)
       let _ = if !print_stats_prog then print_stats_sparse_prog penv in
       let _ =
@@ -2817,7 +2814,7 @@ functor
     let report_analysis_stats (penv : T.prog_env) : unit =
       (* if not !print_concise_output || !print_concise_debug then *)
       println ~autoformat:false (* ~always:true *)
-        (("\nStatistics of " ^ name_of_dfa analysis ^ ": \n")
+        (("\nStatistics of " ^ pr_dfa_name analysis ^ ": \n")
         ^ pr_analysis_stats penv)
     ;;
   end

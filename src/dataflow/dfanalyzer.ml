@@ -171,13 +171,12 @@ let update_analysis_time (dfa : dfa_data) (res : dfa_result) : dfa_result =
 ;;
 
 let compute_analysis_result (dfa : dfa_data) (bugs : BG.bug list) : dfa_result =
-  let num_detected_bugs = ref 0 in
   let num_valid_asserts = ref 0 in
   let num_invalid_asserts = ref 0 in
   let res =
     { dfa_total_analysis_time = 0.;
       dfa_detailed_analysis_time = [];
-      dfa_num_detected_bugs = !num_detected_bugs;
+      dfa_num_detected_bugs = List.length bugs;
       dfa_num_valid_asserts = !num_valid_asserts;
       dfa_num_invalid_asserts = !num_invalid_asserts
     } in

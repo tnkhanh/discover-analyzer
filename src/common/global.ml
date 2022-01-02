@@ -227,18 +227,11 @@ let __report_invalid_assert = "- Invalid assertions: "
 (*let _ok_status = "OK!"*)
 (*let _failed_status = "FAILED!"*)
 
-(*------------------
- * Time statistics
- *-----------------*)
-
-let sparse_time : float ref = ref 0.0
-let total_time : float ref = ref 0.0
-
 (*--------------------------------
  * Bugs and assertions summaries
  *-------------------------------*)
 
-let num_detected_bugs = ref 0
+(* TODO: put these variables into analysis result *)
 let num_valid_asserts = ref 0
 let num_invalid_asserts = ref 0
 
@@ -294,7 +287,7 @@ let is_pointer_analysis (typ : dfa_analysis) : bool =
   | _ -> false
 ;;
 
-let name_of_dfa (dfa : dfa_analysis) : string =
+let pr_dfa_name (dfa : dfa_analysis) : string =
   match dfa with
   | DfaRange -> "Range Analysis"
   | DfaUndef -> "Undef Analysis"
