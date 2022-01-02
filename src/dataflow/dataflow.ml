@@ -1500,7 +1500,7 @@ functor
       let func, input, callsites = wf.wf_func, wf.wf_input, wf.wf_callsites in
       let fname = func_name func in
       let res, time =
-        Sys.apply_track_runtime ~f:(fun () ->
+        Sys.track_runtime ~f:(fun () ->
             match callsites with
             | [] ->
               let wf = mk_working_func func input callsites in
@@ -2388,7 +2388,7 @@ functor
         let ( (fenv, input_updated, output_updated, env_updated, need_reanalyze),
               time )
           =
-          Sys.apply_track_runtime ~f:(fun () -> analyze_function penv wf) in
+          Sys.track_runtime ~f:(fun () -> analyze_function penv wf) in
         let _ =
           debugp
             (" - Time analyzing function: " ^ fname ^ ": ")
@@ -2701,7 +2701,7 @@ functor
         penv.penv_goal_funcs <- prog.prog_init_funcs @ prog.prog_user_funcs
       in
       let _ =
-        Sys.apply_record_runtime
+        Sys.record_runtime
           ~f:(fun () ->
             (* TODO: turn this into a fix-point function *)
             let _ =
