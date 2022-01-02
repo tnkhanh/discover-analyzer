@@ -150,9 +150,15 @@ let report_analysis_stats (dfa : dfa_data) : unit =
 let update_analysis_time (dfa : dfa_data) (res : dfa_result) : dfa_result =
   let open Option.Let_syntax in
   let analysis_runtimes =
-    [ (dfa.dfa_env_undef
+    [ (dfa.dfa_env_pointer
       >>= fun p -> return (p.penv_analysis_name, p.penv_analysis_time));
-      (dfa.dfa_env_pointer
+      (dfa.dfa_env_memtype
+      >>= fun p -> return (p.penv_analysis_name, p.penv_analysis_time));
+      (dfa.dfa_env_memsize
+      >>= fun p -> return (p.penv_analysis_name, p.penv_analysis_time));
+      (dfa.dfa_env_range
+      >>= fun p -> return (p.penv_analysis_name, p.penv_analysis_time));
+      (dfa.dfa_env_undef
       >>= fun p -> return (p.penv_analysis_name, p.penv_analysis_time))
     ]
     |> List.filter_opt in

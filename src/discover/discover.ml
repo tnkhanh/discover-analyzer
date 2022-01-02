@@ -96,8 +96,8 @@ let get_analysis_runtime (res : analysis_result) =
       else
         List.fold_left
           ~f:(fun acc (analysis, time) ->
-            acc ^ "\n- " ^ analysis ^ ": " ^ Printf.sprintf "%.2fs" time)
-          ~init:"\n\nDetailed runtime:" rdfa.dfa_detailed_analysis_time in
+            acc ^ "  + " ^ analysis ^ ": " ^ Printf.sprintf "%.2fs\n" time)
+          ~init:"" rdfa.dfa_detailed_analysis_time in
     total_time ^ detailed_runtime
   | _ -> ""
 ;;
@@ -120,9 +120,8 @@ let print_analysis_summary (res : analysis_result) =
     let msg =
       "Summary:\n"
       ^ sprintf "- Input file: %s\n" !input_file
-      ^ assertion_summary ^ bug_summary
-      ^ sprintf "- Total runtime: %.2fs" !total_time
-      ^ runtime_summary in
+      ^ assertion_summary ^ bug_summary ^ runtime_summary
+      ^ sprintf "- Total runtime: %.2fs" !total_time in
     println ~mtype:"" ~always:true ~autoformat:false ~ruler:`Long msg
 ;;
 
