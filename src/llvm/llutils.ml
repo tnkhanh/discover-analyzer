@@ -1661,29 +1661,38 @@ module Metadata = struct
     get_values v [ v ]
   ;;
 
-  let find_var_source_name (fn : func) (v : value) : string =
-    let _ = debugp "==== FIND SOURCE NAME OF VAR " pr_value v in
-    let _ =
-      debugp "==== Relevant values: " pr_values
-        (get_source_name_relevant_values v) in
+  let find_var_source_name (fn : func) (v : value) : string option =
+    let vs = get_source_name_relevant_values v in
     let func = func_of_instr (mk_instr v) in
-    let process_instr instr =
-      if is_instr_call_invoke instr
-      then (
-        let callee = callee_of_instr_func_call instr in
-        if is_func_llvm_debug_declare callee || is_func_llvm_debug_value callee
-        then printp "Debug Instr: " pr_instr instr
-        else ()) in
-    let _ = visit_func ~finstr:(Some process_instr) func in
-    pr_value v
+    try
+      let process_instr ins =
+        if is_instr_call_invoke ins
+        then (
+          let callee = callee_of_instr_func_call ins in
+          if is_func_llvm_debug_declare callee
+             || is_func_llvm_debug_value callee
+          then (
+            let var_md = operand ins 0 in
+            let var = LL.operand var_md 0 in
+            if List.mem ~equal:equal_value vs var
+            then (
+              let var_dbg_info = operand ins 1 in
+              let var_name_md = LL.operand var_dbg_info 1 in
+              match LL.get_mdstring var_name_md with
+              | None -> ()
+              | Some vname -> raise (FoundString vname))
+            else ())
+          else ()) in
+      let _ = visit_func ~finstr:(Some process_instr) func in
+      None
+    with FoundString vname -> Some vname
   ;;
 
   let pr_value_source_name (v : value) : string option =
     match LL.classify_value v with
     | LV.Instruction _ ->
-      let _ = debug "==== Handle Instruction" in
       let func = func_of_instr (mk_instr v) in
-      Some (find_var_source_name func v)
+      find_var_source_name func v
     | _ -> None
   ;;
 

@@ -7,6 +7,7 @@
 
 open Dcore
 open Z3ir
+module LL = Llvm
 module PS = Outils.Process
 module SI = Slir
 module LI = Llir

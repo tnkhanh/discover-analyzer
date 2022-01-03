@@ -8,7 +8,6 @@
 (* This module contains declaration of global variables *)
 
 open Core
-module LL = Llvm
 module LX = Lexing
 
 (*******************************************************************
@@ -235,6 +234,13 @@ let __report_invalid_assert = "- Invalid assertions: "
 (* TODO: put these variables into analysis result *)
 let num_valid_asserts = ref 0
 let num_invalid_asserts = ref 0
+
+(*******************************************************************
+ ** Exceptions
+ *******************************************************************)
+
+exception FoundString of string
+exception FoundInt of int
 
 (*******************************************************************
  ** location

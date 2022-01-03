@@ -6,9 +6,10 @@
  ********************************************************************)
 
 open Dcore
-module LT = LL.TypeKind
-module LV = LL.ValueKind
-module LO = LL.Opcode
+module LL = Llvm
+module LT = Llvm.TypeKind
+module LV = Llvm.ValueKind
+module LO = Llvm.Opcode
 module SP = Set.Poly
 
 (* Include core sub-modules *)
