@@ -1,6 +1,6 @@
 standard:
   clang-option: -I lib/discover
-  discover-option: --dfa-pointer --dfa-inter --assertion-pointer --no-debug --no-print
+  discover-option: --dfa-pointer # --no-debug --no-print
   targets: .c
 #inter-procedural-all:
   #clang-option: -I lib/discover
