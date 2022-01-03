@@ -236,7 +236,7 @@ module MemoryBug = struct
               if II.compare_interval_ub_int index_itv num_elem >= 0
               then (
                 let reason =
-                  ("Buffer at pointer " ^ LI.pr_value ptr)
+                  ("Buffer at pointer " ^ LI.pr_value_source_or_llvm_name ptr)
                   ^ (" contains " ^ pr_int num_elem ^ " elements;\n")
                   ^ "accessing index is "
                   ^ RG.pr_interval_concise index_itv in
@@ -263,8 +263,9 @@ module MemoryBug = struct
                          >= 0
                       then (
                         let reason =
-                          ("Buffer at pointer " ^ LI.pr_value ptr
-                         ^ " contains ")
+                          ("Buffer at pointer "
+                          ^ LI.pr_value_source_or_llvm_name ptr
+                          ^ " contains ")
                           ^ ("at most " ^ II.pr_bound max_num_elem
                            ^ " elements;\n")
                           ^ "accessing index is "
@@ -276,8 +277,9 @@ module MemoryBug = struct
                               >= 0
                       then (
                         let reason =
-                          ("Buffer at pointer " ^ LI.pr_value ptr
-                         ^ " may contain ")
+                          ("Buffer at pointer "
+                          ^ LI.pr_value_source_or_llvm_name ptr
+                          ^ " may contain ")
                           ^ ("only " ^ II.pr_bound min_num_elem
                            ^ " elements;\n")
                           ^ "accessing index is "

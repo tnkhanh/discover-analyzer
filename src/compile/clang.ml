@@ -44,7 +44,7 @@ let compile_program (input_file : string) : LI.program =
       @ [ "-Werror=implicit-function-declaration" ]
       @ [ "-emit-llvm"; "-c"; input_file ]
       @ [ "-o"; output_filename ]
-      @ (if !llvm_orig_source_name then [ "-g" ] else [])
+      @ (if !report_source_code_name then [ "-g" ] else [])
       @ String.split ~on:' ' !clang_user_options in
     let _ = debug (String.concat ~sep:" " cmd) in
     PS.run_command cmd in

@@ -7,7 +7,6 @@
 
 open Dcore
 open Llast
-open Source
 module LL = Llvm
 module LD = Llvm_debuginfo
 
@@ -1643,32 +1642,48 @@ include Func
 module Metadata = struct
   (* IMPORTANT: This function will be removed. Use Llvm_debug facilities
      instead. *)
-  let extract_name_from_metadata (md : LL.llvalue) : string =
+  let extract_name_from_metadata (md : value) : string =
     let str = LL.string_of_llvalue md in
     let re = Str.regexp ".*name:[ ]*\"\\([a-zA-Z0-9_]+\\)\".*" in
     if Str.string_match re str 0 then Str.matched_group 1 str else ""
   ;;
 
-  let get_original_name_of_llvalue (v : LL.llvalue) : string option =
-    (* let _ = printp "get_original_name_of_llvalue: " LI.pr_value v in *)
+  let get_source_name_relevant_values (v : value) : values =
+    let rec get_values (v : value) (acc : values) : values =
+      match LL.classify_value v with
+      | LV.Instruction _ ->
+        (match LL.instr_opcode v with
+        | LO.GetElementPtr | LO.BitCast ->
+          let nv = LL.operand v 0 in
+          get_values nv (nv :: acc)
+        | _ -> acc)
+      | _ -> acc in
+    get_values v [ v ]
+  ;;
+
+  let find_var_source_name (fn : func) (v : value) : string =
+    let _ = debugp "==== FIND SOURCE NAME OF VAR " pr_value v in
+    let _ =
+      debugp "==== Relevant values: " pr_values
+        (get_source_name_relevant_values v) in
+    let func = func_of_instr (mk_instr v) in
+    let process_instr instr =
+      if is_instr_call_invoke instr
+      then (
+        let callee = callee_of_instr_func_call instr in
+        if is_func_llvm_debug_declare callee || is_func_llvm_debug_value callee
+        then printp "Debug Instr: " pr_instr instr
+        else ()) in
+    let _ = visit_func ~finstr:(Some process_instr) func in
+    pr_value v
+  ;;
+
+  let pr_value_source_name (v : value) : string option =
     match LL.classify_value v with
     | LV.Instruction _ ->
+      let _ = debug "==== Handle Instruction" in
       let func = func_of_instr (mk_instr v) in
-      let _ =
-        iter_blocks
-          ~f:(fun blk ->
-            iter_instrs
-              ~f:(fun instr ->
-                if is_instr_call_invoke instr
-                then (
-                  let callee = callee_of_instr_func_call instr in
-                  if is_func_llvm_debug_declare callee
-                     || is_func_llvm_debug_value callee
-                  then () (* printp "Instr: " pr_instr instr *)
-                  else ()))
-              blk)
-          func in
-      None
+      Some (find_var_source_name func v)
     | _ -> None
   ;;
 
@@ -1693,22 +1708,10 @@ module Metadata = struct
       Some (mk_position filename line line column column)
   ;;
 
-  let pr_llvalue_name (v : LL.llvalue) : string =
-    match get_original_name_of_llvalue v with
+  let pr_value_source_or_llvm_name (v : value) : string =
+    match pr_value_source_name v with
     | Some str -> str
     | None -> pr_value v
-  ;;
-
-  let pr_instr_location_and_code_excerpt instr =
-    let code_excerpt =
-      match position_of_instr instr with
-      | None -> ""
-      | Some p -> "  Location: " ^ pr_file_position_and_excerpt p ^ "\n" in
-    if !location_source_code_only
-    then code_excerpt
-    else
-      "  Instruction: " ^ pr_instr instr
-      ^ String.prefix_if_not_empty ~prefix:"\n" code_excerpt
   ;;
 end
 

@@ -65,9 +65,6 @@ let print_concise_output = ref false
 let print_concise_debug = ref false
 let print_stats_prog = ref false
 
-(* reporting *)
-let location_source_code_only = ref false
-
 (* bug annotation *)
 let bug_annotation = ref false
 
@@ -113,7 +110,6 @@ let dfa_used_globals_in_func_ptrs = ref true
  * Settings for llvm mode
  *------------------------*)
 
-let llvm_orig_source_name = ref false
 let llvm_print_prog_info = ref false
 let llvm_simplify = ref true
 let llvm_optimize = ref true
@@ -148,6 +144,13 @@ let bug_memory_all = ref false
 let bug_memory_leak = ref false
 let bug_null_pointer_deref = ref false
 let bug_buffer_overflow = ref false
+
+(*-------------------------
+ * Settings for reporting
+ *------------------------*)
+
+let report_source_code_name = ref false
+let report_llvm_bitcode_name = ref true
 
 (*******************************************************************
  ** global variables

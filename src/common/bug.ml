@@ -197,17 +197,18 @@ let pr_bug (bug : bug) : string =
     btype
     ^ String.surround_if_not_empty ~prefix:" (" ~suffix:")" cwe
     ^ " at instruction: \n" in
-  let location =
-    match !llvm_orig_source_name with
-    | false ->
-      sprintf "    %s\n" (pr_instr bug.bug_instr)
-      ^ sprintf "  in function: %s\n" (func_name bug.bug_func)
-    | true ->
-      (match position_of_instr bug.bug_instr with
+  let instruction =
+    sprintf "    %s\n" (pr_instr bug.bug_instr)
+    ^ sprintf "  in function: %s\n" (func_name bug.bug_func) in
+  let code_excerpt =
+    if !report_source_code_name
+    then (
+      match position_of_instr bug.bug_instr with
       | None -> ""
-      | Some p -> "  " ^ pr_file_position_and_excerpt p ^ "\n") in
+      | Some p -> "  " ^ pr_file_position_and_excerpt p ^ "\n")
+    else "" in
   let reason = String.align_line "  Reason: " bug.bug_reason in
-  "BUG: " ^ bug_type_info ^ location ^ reason
+  "BUG: " ^ bug_type_info ^ instruction ^ code_excerpt ^ reason
 ;;
 
 let pr_bug_name (bug : bug) : string = pr_bug_type bug.bug_type

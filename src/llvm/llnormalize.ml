@@ -32,7 +32,7 @@ let rename_vars_and_params (modul : LL.llmodule) : unit =
     | LO.Call when is_type_void (type_of_instr i) -> ()
     | LO.Invoke when is_type_void (type_of_instr i) -> ()
     | _ ->
-      if (not !llvm_orig_source_name) || is_llvalue_empty_name vi
+      if (not !report_source_code_name) || is_llvalue_empty_name vi
       then (
         let instr_name = "v" ^ compute_index index_value in
         LL.set_value_name instr_name vi) in
@@ -42,7 +42,7 @@ let rename_vars_and_params (modul : LL.llmodule) : unit =
     LL.set_value_name param_name vp in
   let process_global g =
     let vg = llvalue_of_global g in
-    if (not !llvm_orig_source_name) || is_llvalue_empty_name vg
+    if (not !report_source_code_name) || is_llvalue_empty_name vg
     then (
       let global_name = "g" ^ compute_index index_value in
       LL.set_value_name global_name vg) in
