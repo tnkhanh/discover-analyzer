@@ -107,7 +107,7 @@ let create_assertion_summary (res : analysis_result) : string =
   then
     sprintf "- Valid assertions: %d\n" !num_valid_asserts
     ^ sprintf "- Invalid assertions: %d\n" !num_invalid_asserts
-  else ""
+  else "- Assertion checking is not enabled\n"
 ;;
 
 let create_bug_summary (res : analysis_result) : string =
@@ -124,7 +124,7 @@ let create_bug_summary (res : analysis_result) : string =
           ~init:"" rdfa.dfa_detailed_detected_bugs in
       total_bugs ^ detailed_bugs
     | _ -> "")
-  else ""
+  else "- Bug finding is not enabled\n"
 ;;
 
 let print_analysis_summary (res : analysis_result) (total_time : float) : unit =

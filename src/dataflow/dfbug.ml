@@ -338,17 +338,20 @@ include MemoryBug
     - Determine which analyeses need to be performed. *)
 
 let find_bugs (dfa : dfa_data) : bugs =
-  let _ = println "Checking Bugs..." in
-  let _ =
-    ddebugp ~header:true "Potential bugs: " pr_potential_bugs
-      dfa.dfa_potential_bugs in
-  let bugs =
-    find_bug_memory_leak dfa
-    @ find_bug_buffer_overflow dfa
-    @ find_bug_integer_overflow dfa
-    @ find_bug_integer_underflow dfa
-    @ find_bug_division_by_zero dfa in
-  let _ = print ~mtype:"" (pr_bugs bugs) in
-  (* let _ = report_bug_stats bugs in *)
-  bugs
+  if !find_bug
+  then (
+    let _ = println "Finding Bugs..." in
+    let _ =
+      ddebugp ~header:true "Potential bugs: " pr_potential_bugs
+        dfa.dfa_potential_bugs in
+    let bugs =
+      find_bug_memory_leak dfa
+      @ find_bug_buffer_overflow dfa
+      @ find_bug_integer_overflow dfa
+      @ find_bug_integer_underflow dfa
+      @ find_bug_division_by_zero dfa in
+    let _ = print ~mtype:"" (pr_bugs bugs) in
+    (* let _ = report_bug_stats bugs in *)
+    bugs)
+  else []
 ;;

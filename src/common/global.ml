@@ -224,8 +224,6 @@ let __init_globals = __init ^ "globals"
  *-----------*)
 let __report_valid_assert = "- Valid assertions: "
 let __report_invalid_assert = "- Invalid assertions: "
-(*let _ok_status = "OK!"*)
-(*let _failed_status = "FAILED!"*)
 
 (*--------------------------------
  * Bugs and assertions summaries

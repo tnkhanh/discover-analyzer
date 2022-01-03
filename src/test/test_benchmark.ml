@@ -149,7 +149,8 @@ let rec test default_conf benchmark =
             then (
               let prefix_length = String.length __report_invalid_assert in
               let number_length =
-                String.length line - String.length __report_invalid_assert in
+                String.length line - String.length __report_invalid_assert
+              in
               let added_invalid_assert =
                 int_of_string
                   (String.sub line ~pos:prefix_length ~len:number_length) in
@@ -163,9 +164,7 @@ let rec test default_conf benchmark =
           ~f:(fun file ->
             let full_filepath = dir ^ "/" ^ file in
             match Sys.is_directory full_filepath with
-            | `Yes ->
-              if conf.conf_recurse
-              then test conf ("rec", full_filepath)
+            | `Yes -> if conf.conf_recurse then test conf ("rec", full_filepath)
             | `No ->
               if is_test_file conf file
               then (

@@ -23,8 +23,15 @@ IDE and editors
      opam install ocamlformat ocp-indent
 
 
-Coding convention
--------------------
+OCaml Programming Guidelines
+-------------------------------
+
+- Programming guidelines and coding standards can be referred to:
+  + `OCaml programming guidelines
+    <https://ocaml.org/learn/tutorials/guidelines.html>`_, from official OCaml
+    website.
+  + `Real World Ocaml
+    <https://dev.realworldocaml.org/index.html>`_ (free, online book).
 
 - Indentation by `ocp-indent <https://github.com/OCamlPro/ocp-indent>`_ and
   follow the rules configured in in ``discover/.ocp-indent``.
@@ -50,10 +57,6 @@ Coding convention
          | EInt of eint (* integer in 2-exponential representation *)
          | BInt of bint (* big integer *)
        [@@ocamlformat "disable"]
-
-
-- Coding standards follow the book `Real World Ocaml
-  <https://dev.realworldocaml.org/index.html>`_ (free, online).
 
 - Every module must be accompanied by an ``*.mli`` interface file.
 

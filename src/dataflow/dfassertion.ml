@@ -292,32 +292,35 @@ let count_assertions (prog : program) : int =
 ;;
 
 let check_assertions (dfa : dfa_data) : unit =
-  let _ = print "Checking assertions..." in
-  let prog = dfa.dfa_program in
-  let total_asserts = count_assertions prog in
-  let checked_asserts = ref 0 in
-  let _ =
-    match dfa.dfa_env_range with
-    | None -> ()
-    | Some penv_range ->
-      let range_asserts = check_all_range_assertions penv_range in
-      checked_asserts := !checked_asserts + range_asserts in
-  let _ =
-    match dfa.dfa_env_pointer with
-    | None -> ()
-    | Some penv_pointer ->
-      let range_asserts = check_all_pointer_assertions penv_pointer in
-      checked_asserts := !checked_asserts + range_asserts in
-  let unchecked_asserts = total_asserts - !checked_asserts in
-  let msg =
-    if total_asserts = 0
-    then "No assertion is found!"
-    else if unchecked_asserts == 0
-    then
-      sprintf "%d/%d assertion(s) are checked!\n" !checked_asserts
-        total_asserts
-    else
-      sprintf "%d/%d assertion(s) are checked, %d are skipped!\n"
-        !checked_asserts total_asserts unchecked_asserts in
-  println msg
+  if !check_assert
+  then (
+    let _ = print "Checking assertions..." in
+    let prog = dfa.dfa_program in
+    let total_asserts = count_assertions prog in
+    let checked_asserts = ref 0 in
+    let _ =
+      match dfa.dfa_env_range with
+      | None -> ()
+      | Some penv_range ->
+        let range_asserts = check_all_range_assertions penv_range in
+        checked_asserts := !checked_asserts + range_asserts in
+    let _ =
+      match dfa.dfa_env_pointer with
+      | None -> ()
+      | Some penv_pointer ->
+        let range_asserts = check_all_pointer_assertions penv_pointer in
+        checked_asserts := !checked_asserts + range_asserts in
+    let unchecked_asserts = total_asserts - !checked_asserts in
+    let msg =
+      if total_asserts = 0
+      then "No assertion is found!"
+      else if unchecked_asserts == 0
+      then
+        sprintf "%d/%d assertion(s) are checked!\n" !checked_asserts
+          total_asserts
+      else
+        sprintf "%d/%d assertion(s) are checked, %d are skipped!\n"
+          !checked_asserts total_asserts unchecked_asserts in
+    println msg)
+  else ()
 ;;
