@@ -6,7 +6,7 @@
  ********************************************************************)
 
 open Dcore
-module PS = Extcore.Process
+module PS = Outils.Process
 module LL = Llvm
 module LI = Llir
 module LU = Llutils

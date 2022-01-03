@@ -7,7 +7,7 @@
 
 open Dcore
 open Z3ir
-module PS = Extcore.Process
+module PS = Outils.Process
 module SI = Slir
 module LI = Llir
 module SP = Set.Poly

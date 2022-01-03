@@ -25,7 +25,7 @@
  (libraries
   core
   str
-  extcore
+  outils
   unix
   ocamlgraph
   fileutils

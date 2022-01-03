@@ -5,7 +5,7 @@
  * All rights reserved.
  ********************************************************************)
 
-module PS = Extcore.Process
+module PS = Outils.Process
 
 let discover_official_version = "1.0"
 let discover_git_revision = ref ""

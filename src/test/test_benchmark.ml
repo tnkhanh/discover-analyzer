@@ -176,7 +176,7 @@ let rec test default_conf benchmark =
                   @ [ full_filepath ] in
                 (*let _ = List.iter command ~f:(fun str -> print ("Comm: " ^ str)) in*)
                 let log_file = full_log_dir ^ "/" ^ file ^ ".log" in
-                let _ = PS.run_command_to_file command log_file in
+                let _ = PS.run_command_output_to_file command log_file in
                 let output_str = In_channel.read_all log_file in
                 update_summary output_str)
             | `Unknown -> ())

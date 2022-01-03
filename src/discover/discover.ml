@@ -6,7 +6,7 @@
  ********************************************************************)
 
 open Dcore
-module PS = Extcore.Process
+module PS = Outils.Process
 module AG = Argument
 module AS = Assertion
 module CI = Commonir

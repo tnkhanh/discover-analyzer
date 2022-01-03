@@ -13,18 +13,18 @@ include Core
  * Extended libraries
  *--------------------*)
 
-include Extcore.Int
-include Extcore.Hashtbl
-include Extcore.List
-include Extcore.Math
-include Extcore.String
-include Extcore.Sys
-include Extcore.Result
-include Extcore.Printer
-include Extcore.Debugger
-include Extcore.Report
-(* module Report = Extcore.Report *)
-module Process = Extcore.Process
+include Outils.Int
+include Outils.Hashtbl
+include Outils.List
+include Outils.Math
+include Outils.String
+include Outils.Sys
+include Outils.Result
+include Outils.Printer
+include Outils.Debugger
+include Outils.Report
+(* module Report = Outils.Report *)
+module Process = Outils.Process
 
 (*---------------------
  * Discover's modules

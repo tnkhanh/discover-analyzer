@@ -6,7 +6,7 @@
  ********************************************************************)
 
 open Dcore
-module RP = Extcore.Report
+module RP = Outils.Report
 
 (*******************************************************************
  ** Auxiliary fucntions
