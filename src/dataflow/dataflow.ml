@@ -13,7 +13,6 @@ module LV = Llvm.ValueKind
 module LO = Llvm.Opcode
 module LC = Llvm.Icmp
 module LP = Llloop
-module LG = Llcallgraph
 module BG = Bug
 module SP = Set.Poly
 
@@ -522,38 +521,7 @@ functor
       else compute blk
     ;;
 
-    let get_sparse_reachable_blocks penv (blk : block) : blocks =
-      let rec compute_reachables (queue : blocks) (visited : blocks) =
-        match queue with
-        | [] -> visited
-        | blk :: nqueue ->
-          let nblks =
-            blk
-            |> get_sparse_succeeding_blocks penv
-            |> List.exclude ~f:(List.mem ~equal:( == ) visited)
-            |> List.exclude ~f:(List.mem ~equal:( == ) nqueue) in
-          let nqueue = nqueue @ nblks in
-          let nvisited = visited @ [ blk ] in
-          compute_reachables nqueue nvisited in
-      let compute () =
-        let sblks = get_sparse_succeeding_blocks penv blk in
-        compute_reachables sblks [] in
-      Hashtbl.find_or_compute penv.penv_sparse_reachable_blocks ~key:blk
-        ~f:compute
-    ;;
-
-    let is_sparse_reachable_block penv (src : block) (dst : block) : bool =
-      let func1, func2 = func_of_block src, func_of_block dst in
-      if equal_func func1 func2
-      then (
-        let blks = get_sparse_reachable_blocks penv src in
-        List.mem blks dst ~equal:equal_block)
-      else false
-    ;;
-
     (* printing *)
-
-    let pr_data_with_checksum d = pr_data_checksum d ^ "\n" ^ pr_data d
 
     let pr_data d =
       if !print_concise_output && not (is_debug_mode ())
@@ -591,8 +559,6 @@ functor
             prog.prog_globals ~init:ginput in
         "\n\nGlobals:\n\n" ^ globals)
     ;;
-
-    let pr_func_output (output : T.t * blocks) : string = pr_data (fst output)
 
     let pr_callsite (cs : callsite) : string =
       let caller, instr = cs.cs_caller, cs.cs_instr_call in
@@ -654,7 +620,7 @@ functor
       pr_items ~f:pr_working_func wfs
     ;;
 
-    let pr_analyzed_func_input penv : string =
+    let _pr_analyzed_func_input penv : string =
       let func_inputs =
         Hashtbl.fold
           ~f:(fun ~key:f ~data:inputs acc ->
@@ -1162,24 +1128,6 @@ functor
       }
     ;;
 
-    let copy_func_env fenv : func_env =
-      { fenv_id = fenv.fenv_id;
-        fenv_func = fenv.fenv_func;
-        fenv_callsites = fenv.fenv_callsites;
-        fenv_prog = fenv.fenv_prog;
-        fenv_instr_output = Hashtbl.copy fenv.fenv_instr_output;
-        fenv_block_input = Hashtbl.copy fenv.fenv_block_input;
-        fenv_input = fenv.fenv_input;
-        fenv_output = fenv.fenv_output;
-        fenv_thrown_exn = Hashtbl.copy fenv.fenv_thrown_exn;
-        fenv_landing_exns = Hashtbl.copy fenv.fenv_landing_exns;
-        fenv_deref_params = fenv.fenv_deref_params;
-        fenv_deref_globals = fenv.fenv_deref_globals;
-        fenv_working_blocks = fenv.fenv_working_blocks;
-        fenv_state_changed = fenv.fenv_state_changed
-      }
-    ;;
-
     (* comparison *)
 
     let equal_callsite (cs1 : callsite) (cs2 : callsite) =
@@ -1189,21 +1137,9 @@ functor
       && equal_func cs1.cs_callee cs2.cs_callee
     ;;
 
-    (* T.equal_data cs1.cs_callee_input cs2.cs_callee_input *)
-
-    let equal_callsites (css1 : callsite list) (css2 : callsite list) =
-      List.length css1 = List.length css2
-      && List.for_all ~f:(List.mem ~equal:equal_callsite css2) css1
-    ;;
-
     let equal_working_block (wb1 : working_block) (wb2 : working_block) : bool =
       equal_block wb1.wb_block wb2.wb_block
       && equal_instr wb1.wb_instr wb2.wb_instr
-    ;;
-
-    let equal_working_func (fc1 : working_func) (fc2 : working_func) : bool =
-      equal_func fc1.wf_func fc2.wf_func
-      && T.equal_data fc1.wf_input fc2.wf_input
     ;;
 
     (* getter and setter *)
@@ -1377,17 +1313,6 @@ functor
         Hashtbl.set penv.penv_func_analyzed_inputs ~key:func ~data:inputs
       | None ->
         Hashtbl.set penv.penv_func_analyzed_inputs ~key:func ~data:[ input ]
-    ;;
-
-    let reset_analysis_env penv fenv =
-      let prog, func = penv.penv_prog, fenv.fenv_func in
-      let _ = fenv.fenv_state_changed <- false in
-      let _ =
-        iter_blocks
-          ~f:(fun blk ->
-            Hashtbl.remove penv.penv_block_local_analyzed_times blk)
-          func in
-      ()
     ;;
 
     (* utilities *)
@@ -2019,51 +1944,6 @@ functor
       analyze_instrs ~widen penv fenv instrs wb.wb_instr_input
     ;;
 
-    let compare_block_by_sparse_reachability penv wblk1 wblk2 : int =
-      let blk1, blk2 = wblk1.wb_block, wblk2.wb_block in
-      let reachable12 = is_sparse_reachable_block penv blk1 blk2 in
-      let reachable21 = is_sparse_reachable_block penv blk2 blk1 in
-      if reachable12 && not reachable21
-      then 1
-      else if (not reachable12) && reachable21
-      then -1
-      else 0
-    ;;
-
-    let compare_block_by_name penv wblk1 wblk2 : int =
-      let blk1, blk2 = wblk1.wb_block, wblk2.wb_block in
-      compare_block_by_name blk1 blk2
-    ;;
-
-    let compare_block_by_distance_from_entry penv wblk1 wblk2 =
-      let blk1, blk2 = wblk1.wb_block, wblk2.wb_block in
-      let prog, func = penv.penv_prog, func_of_block blk1 in
-      let bg = LG.get_block_graph prog func in
-      let entry = entry_block func in
-      let distance1 = LG.shortest_block_distance bg entry blk1 in
-      let distance2 = LG.shortest_block_distance bg entry blk2 in
-      match distance1, distance2 with
-      | None, None -> 0
-      | None, Some _ -> -1
-      | Some _, None -> 1
-      | Some n1, Some n2 -> if n1 < n2 then -1 else if n1 > n2 then 1 else 0
-    ;;
-
-    let compare_block_by_num_pair_pred_succ_blocks penv wblk1 wblk2 =
-      let blk1, blk2 = wblk1.wb_block, wblk2.wb_block in
-      let num_pred1 = get_sparse_preceding_blocks penv blk1 |> List.length in
-      let num_pred2 = get_sparse_preceding_blocks penv blk2 |> List.length in
-      let num_succ1 = get_sparse_succeeding_blocks penv blk1 |> List.length in
-      let num_succ2 = get_sparse_succeeding_blocks penv blk2 |> List.length in
-      let num_pair_pred_succ1 = num_pred1 * num_succ1 in
-      let num_pair_pred_succ2 = num_pred2 * num_succ2 in
-      if num_pair_pred_succ1 < num_pair_pred_succ2
-      then -1
-      else if num_pair_pred_succ1 > num_pair_pred_succ2
-      then 1
-      else 0
-    ;;
-
     let compare_block_by_analyzed_times penv wblk1 wblk2 : int =
       let blk1, blk2 = wblk1.wb_block, wblk2.wb_block in
       let num_analyzed1 = get_block_session_analyzed_times penv blk1 in
@@ -2180,9 +2060,6 @@ functor
         match find_func_env_by_input penv func input with
         | None -> mk_func_env prog func input ~callsites
         | Some fenv -> fenv in
-      (* let nfenv = copy_func_env fenv in
-       * let _ = reset_analysis_env penv nfenv in
-       * nfenv in *)
       let _ = pre_analyze_func penv fenv in
       let _ =
         (* if not !print_concise_output then *)
@@ -2307,44 +2184,6 @@ functor
         else if is_f2_callee && not is_f1_callee
         then 1
         else 0
-    ;;
-
-    let compare_func_input penv (wf1 : working_func) (wf2 : working_func) : int
-      =
-      let f1, f2 = wf1.wf_func, wf2.wf_func in
-      if equal_func f1 f2
-      then (
-        let input1, input2 = wf1.wf_input, wf2.wf_input in
-        if T.lequal_data input1 input2
-        then -1
-        else if T.lequal_data input2 input1
-        then 1
-        else 0)
-      else 0
-    ;;
-
-    let choose_best_working_func penv wfuncs
-        : (working_func * working_func list) option
-      =
-      let wfunc_opt =
-        List.find
-          ~f:(fun wf1 ->
-            List.for_all
-              ~f:(fun wf2 ->
-                if not (equal_working_func wf1 wf2)
-                then (
-                  let n1 = compare_func_main penv wf1 wf2 in
-                  let n2 = compare_func_call_order penv wf1 wf2 in
-                  let n3 = compare_func_call_stack penv wf1 wf2 in
-                  n1 <= 0 && n2 <= 0 && n3 <= 0 && n1 + n2 + n3 < 0)
-                else true)
-              wfuncs)
-          wfuncs in
-      match wfunc_opt with
-      | None -> List.extract_nth 0 wfuncs
-      | Some wf ->
-        let others_wfs = List.exclude ~f:(equal_working_func wf) wfuncs in
-        Some (wf, others_wfs)
     ;;
 
     let choose_working_func (penv : T.prog_env)

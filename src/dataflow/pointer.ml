@@ -2165,11 +2165,6 @@ struct
 
   let merge_data ?(widen = false) (g1 : t) (g2 : t) : t = merge_pgraph g1 g2
 
-  let subtract_data (g1 : t) (g2 : t) : t =
-    (* FIXME: need to implement later *)
-    g1
-  ;;
-
   let join_data (g1 : t) (g2 : t) : t = join_pgraph g1 g2
 
   let free_pointer_from_pgraph (prog : program) (g : t) (v : expr) : t =
@@ -2250,7 +2245,7 @@ struct
   let is_data_satisfied_predicate (d : t) (p : predicate) : bool = true
   let refine_data_by_predicate ?(widen = false) (g : t) (p : predicate) : t = g
 
-  let simplify_function_pointer_edges (g : t) : unit =
+  let _simplify_function_pointer_edges (g : t) : unit =
     let vertices =
       PG.fold_vertex
         (fun v acc ->
@@ -2350,20 +2345,6 @@ struct
 
   let num_pred_edges g v : int = PG.fold_pred_e (fun _ acc -> acc + 1) g v 0
   let num_succ_edges g v : int = PG.fold_succ_e (fun _ acc -> acc + 1) g v 0
-
-  let num_irremovable_neighbor_vertices penv func g v : int =
-    let num_succ_vertices =
-      PG.fold_succ
-        (fun u acc ->
-          if is_removeable_vertex penv func u then acc else acc + 1)
-        g v 0 in
-    let num_pred_vertices =
-      PG.fold_pred
-        (fun u acc ->
-          if is_removeable_vertex penv func u then acc else acc + 1)
-        g v 0 in
-    num_pred_vertices + num_succ_vertices
-  ;;
 
   (** Eliminate alias edges of inner vertices *)
 
@@ -2705,7 +2686,7 @@ struct
         rvs)
   ;;
 
-  let join_edges_of_internal_vertices penv func (g : pgraph) : unit =
+  let _join_edges_of_internal_vertices penv func (g : pgraph) : unit =
     let removable_vs =
       PG.fold_vertex
         (fun v acc ->
@@ -2769,7 +2750,7 @@ struct
     List.iter ~f:(fun v -> PG.remove_vertex g v) removable_vs
   ;;
 
-  let remove_edge_contain_local_var_expr ?(remove = false) (g : t) : unit =
+  let _remove_edge_contain_local_var_expr ?(remove = false) (g : t) : unit =
     let rec has_label_containing_var_idx lbl : bool =
       match lbl with
       | PG.GEP (_, idxs, _) ->
@@ -2976,7 +2957,7 @@ struct
     | _ -> false
   ;;
 
-  let is_global_used_only_in_init_sparse_functions penv (g : global) : bool =
+  let _is_global_used_only_in_init_sparse_functions penv (g : global) : bool =
     let vg = llvalue_of_global g in
     (* let _ = printp "check global: " pr_global g in *)
     let users = get_users vg in
@@ -3141,12 +3122,6 @@ struct
       Some () in
     let _ = visit_program ~ffunc:(Some process_func) penv.penv_prog in
     !updated
-  ;;
-
-  let refine_further_sparse_candidate_instr penv : unit =
-    (* TODO: TO-IMPLEMENT: target to only instruction related to assertion, bug
-       checking, etc ...*)
-    ()
   ;;
 
   let init_sparse_globals_instrs penv : unit =

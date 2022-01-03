@@ -47,28 +47,6 @@ module ArithmeticBug = struct
     { dbz_expr : value;
       dbz_instr : instr
     }
-
-  (*---------------
-   * Printing
-   *--------------*)
-
-  let pr_integer_overflow_info ?(detailed = true) (iof : integer_overflow)
-      : string
-    =
-    let bug_info = "Integer Overflow" in
-    if detailed
-    then bug_info ^ "\n" ^ pr_instr_location_and_code_excerpt iof.iof_instr
-    else bug_info
-  ;;
-
-  let pr_integer_underflow_info ?(detailed = true) (iuf : integer_underflow)
-      : string
-    =
-    let bug_info = "Integer Underflow" in
-    if detailed
-    then bug_info ^ "\n" ^ pr_instr_location_and_code_excerpt iuf.iuf_instr
-    else bug_info
-  ;;
 end
 
 (* Module containing definitions of memory bugs *)
@@ -91,23 +69,6 @@ module MemoryBug = struct
       mutable bof_write_operation : bool option;
       mutable bof_stack_based : bool option
     }
-
-  (*--------------
-   * Printing
-   *-------------*)
-
-  let pr_buffer_overflow_info (bof : buffer_overflow) : string =
-    sprintf "Root pointer: %s, " (pr_value bof.bof_pointer)
-    ^ sprintf "accessing index: %s" (pr_value bof.bof_elem_index)
-  ;;
-
-  let pr_memory_leak_info (mlk : memory_leak) : string =
-    let size =
-      match mlk.mlk_size with
-      | None -> "unknown"
-      | Some size -> pr_int size in
-    "Buffer of size " ^ size ^ " is not freed when the program exits."
-  ;;
 end
 
 (* Module containing definitions of resource bugs *)

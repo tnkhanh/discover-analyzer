@@ -698,11 +698,6 @@ let mk_exp_int64 i = Int64 i
 let mk_exp_float f = Float f
 let mk_exp_string s = String s
 let mk_exp_var v = Var v
-
-let fresh_exp_var ?(name = "t") (typ : typ) =
-  mk_exp_var (fresh_new_var ~name typ)
-;;
-
 let mk_void () = Void
 let mk_null () = Null
 let mk_exp_var_typ vname typ = Var (mk_var vname typ)

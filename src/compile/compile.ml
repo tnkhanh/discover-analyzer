@@ -15,40 +15,6 @@ module SE = Symexec
  * LLVM PROGRAM
  **********************************************************)
 
-type os_type =
-  | Linux
-  | MacOS
-  | Win32
-  | Cygwin
-  | UnkownOS
-
-let pr_os_type (os : os_type) =
-  match os with
-  | Linux -> "Linux"
-  | MacOS -> "MacOS"
-  | Win32 -> "Windows 32bit"
-  | Cygwin -> "Cygwin"
-  | UnkownOS -> "Uknown OS"
-;;
-
-let get_os_type () =
-  if String.equal Sys.os_type "Win32"
-  then Win32
-  else if String.equal Sys.os_type "Cygwin"
-  then Cygwin
-  else if String.equal Sys.os_type "Unix"
-  then (
-    let ic = Unix.open_process_in "uname" in
-    let uname = input_line ic in
-    let _ = close_in ic in
-    if String.equal uname "Linux"
-    then Linux
-    else if String.equal uname "Darwin"
-    then MacOS
-    else UnkownOS)
-  else UnkownOS
-;;
-
 let verify_llvm_compiler () =
   let _ =
     match PS.run_command_get_output [ !clang_exe; "--version" ] with

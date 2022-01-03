@@ -60,12 +60,6 @@ let lib_core : program option ref = ref None
  ** printers and constructors
  *******************************************************************)
 
-let enable_vrs_interact vstate = vstate.vrs_interact <- true
-
-let update_recent_instruction vstate instr =
-  { vstate with vrs_recent_instr = Some instr }
-;;
-
 let pr_program_states pstates =
   pstates
   |> List.map ~f:(fun ps -> "// { " ^ pr_f ps.pgs_formula ^ " }")
@@ -187,11 +181,6 @@ let report_bug (prog : LI.program) bug exps (instr : LI.instr) : bool =
   true
 ;;
 
-let report_bug_of_exps prog msg exps =
-  let sexps = pr_list ~sep:", " ~f:pr_exp exps in
-  report_bug prog (msg ^ sexps)
-;;
-
 let check_memory_leak vstate (instr : LI.instr) pstates : bool =
   let rec collect_heap_pointer f =
     match f with
@@ -271,18 +260,6 @@ let check_buffer_overflow vstate instr pstate ptr size index : bool =
     let buggy_exps = find_source_pointers pstate [ ptr ] @ [ ptr ] in
     report_bug prog "BUFFER OVERFLOW" buggy_exps instr)
   else false
-;;
-
-let check_integer_overflow instr pstate ptr : bool =
-  (* TODO: implement *)
-  (* Templates:
-     let pf = NO.encode_formula_to_pure pstate.pgs_formula in
-     let overflow_cond = ... in
-     let nf = mk_pconj [pf; overflow_cond] in
-     if Smt.check_sat nf = True then
-       report bug
-     else false *)
-  false
 ;;
 
 (*******************************************************************
@@ -931,7 +908,7 @@ let symexec_program vstate (prog : LI.program) : entailment list =
 
 let verify_program (prog : LI.program) =
   let _ = data_layout := prog.prog_meta_data.pmd_data_layout in
-  (* let vstate = mk_verifier_state prog in *)
-  (* let ents = symexec_program vstate prog in *)
+  let vstate = mk_verifier_state prog in
+  let _ents = symexec_program vstate prog in
   ()
 ;;

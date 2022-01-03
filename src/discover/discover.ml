@@ -74,7 +74,7 @@ let init_environment () =
 
 let clean_environment () = Smt.stop_solver ()
 
-let enable_release_mode_alias_analysis () =
+let _enable_release_mode_alias_analysis () =
   let _ = release_mode := true in
   let _ = work_mode := WkmDFA in
   let _ = dfa_analyses := [ DfaPointer ] in
