@@ -166,7 +166,6 @@ let rec test default_conf benchmark =
             | `Yes ->
               if conf.conf_recurse
               then test conf ("rec", full_filepath)
-              else ()
             | `No ->
               if is_test_file conf file
               then (
@@ -176,16 +175,10 @@ let rec test default_conf benchmark =
                   @ String.split ~on:' ' conf.conf_discover_opt
                   @ [ full_filepath ] in
                 (*let _ = List.iter command ~f:(fun str -> print ("Comm: " ^ str)) in*)
-                let output = PS.run_command_get_output command in
-
-                let output_str =
-                  match output with
-                  | Ok result -> result
-                  | Error msg -> msg in
-
-                let _ = update_summary output_str in
                 let log_file = full_log_dir ^ "/" ^ file ^ ".log" in
-                Out_channel.write_all log_file ~data:output_str)
+                let _ = PS.run_command_to_file command log_file in
+                let output_str = In_channel.read_all log_file in
+                update_summary output_str)
             | `Unknown -> ())
           all_files in
       let summary =
