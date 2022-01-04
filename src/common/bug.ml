@@ -192,29 +192,28 @@ let pr_potential_bugs (pbugs : potential_bug list) : string =
 
 let pr_bug (bug : bug) : string =
   let bug_type_info =
-    let btype = pr_bug_type bug.bug_type in
     let cwe = pr_bug_cwe bug.bug_type in
-    btype
+    pr_bug_type bug.bug_type
     ^ String.surround_if_not_empty ~prefix:" (" ~suffix:")" cwe
-    ^ " at instruction: \n" in
-  let instruction =
-    sprintf "    %s\n" (pr_instr bug.bug_instr)
-    ^ sprintf "  in function: %s\n" (func_name bug.bug_func) in
+    ^ "\n" in
+  let location =
+    sprintf "  Instruction:\n    %s\n" (pr_instr bug.bug_instr)
+    ^ sprintf "  Function: %s\n" (func_name bug.bug_func) in
   let code_excerpt =
     if !report_source_code_name
     then (
       match position_of_instr bug.bug_instr with
       | None -> ""
-      | Some p -> "  " ^ pr_file_position_and_excerpt p ^ "\n")
+      | Some p -> String.indent 2 (pr_file_position_and_excerpt p ^ "\n"))
     else "" in
-  let reason = String.align_line "  Reason: " bug.bug_reason in
-  "BUG: " ^ bug_type_info ^ instruction ^ code_excerpt ^ reason
+  let reason = String.align_line "Reason: " bug.bug_reason in
+  "BUG: " ^ bug_type_info ^ location ^ code_excerpt ^ reason
 ;;
 
 let pr_bug_name (bug : bug) : string = pr_bug_type bug.bug_type
 
 let pr_bugs (bugs : bug list) : string =
-  pr_list_plain ~sep:"\n\n" ~f:pr_bug bugs
+  pr_list ~obrace:"\n" ~cbrace:"" ~sep:"\n\n" ~f:pr_bug bugs
 ;;
 
 (*******************************************************************
