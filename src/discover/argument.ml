@@ -276,7 +276,7 @@ and arguments_raw =
       Arg.Set report_llvm_bitcode_name );
     ( [ "--dis-llvm-name" ],
       "Disable printing LLVM bitcode names of variables, functions...",
-        Arg.Clear report_llvm_bitcode_name );
+      Arg.Clear report_llvm_bitcode_name );
     ( [ "--llvm-name-only" ],
       "Print only bitcode names of variables, functions...",
       Arg.Unit
@@ -298,13 +298,15 @@ and arguments_raw =
     ( [ "--llvm-no-normalize" ],
       "Do not normalize LLVM IR",
       Arg.Clear llvm_normalize );
-    [ "--llvm-path" ], "Path to llvm", Arg.Set_string llvm_path;
+    ( [ "--llvm-bin-path" ],
+      "Path to LLVM binary executable files",
+      Arg.Set_string llvm_bin_path );
     (*--------------------------------------------------------
      * gollvm options
      *--------------------------------------------------------*)
     ( [ "--gollvm-path" ],
       "Path to gollvm, e.g., /usr/bin if gollvm is /usr/bin/go",
-      Arg.Set_string gollvm_path );
+      Arg.Set_string gollvm_bin_path );
     (*--------------------------------------------------------
      * input and output export
      *--------------------------------------------------------*)

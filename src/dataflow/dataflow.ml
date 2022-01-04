@@ -2653,7 +2653,7 @@ functor
     let report_analysis_stats (penv : T.prog_env) : unit =
       (* if not !print_concise_output || !print_concise_debug then *)
       println ~autoformat:false (* ~always:true *)
-        (("\nStatistics of " ^ pr_dfa_name analysis ^ ": \n")
+        (("Statistics of " ^ pr_dfa_name analysis ^ ": \n")
         ^ pr_analysis_stats penv)
     ;;
   end

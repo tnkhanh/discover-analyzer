@@ -123,7 +123,6 @@ let assert_all = ref false
 let assert_range = ref false
 let assert_pointer = ref false
 
-
 (*-----------------------------
  * Settings for bug detection
  *----------------------------*)
@@ -182,15 +181,18 @@ let lib_core_file = ref (lib_path ^ "/libcore.sc")
 let user_config_file = "discover.yaml"
 let llvm_version = "13" (* using LLVM 13 *)
 
-let llvm_path = ref ""
+(* paths *)
+let llvm_bin_path = ref ""
+let gollvm_bin_path = ref ""
+let discover_path = Filename.realpath Sys.argv.(0)
+let project_path = Filename.dirname discover_path
+
+(* executable files *)
 let clang_exe = ref "clang"
 let opt_exe = ref "opt"
 let llvm_dis_exe = ref "llvm-dis"
 let normalizer_exe = ref "normalizer"
 let solang_exe = ref "solang"
-let gollvm_path = ref ""
-let discover_path = Filename.realpath Sys.argv.(0)
-let project_path = Filename.dirname discover_path
 
 (*----------------------
  * Compilation options

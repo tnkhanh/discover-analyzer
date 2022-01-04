@@ -56,11 +56,25 @@ let read_user_configuration () : unit =
     | Result.Error (`Msg msg) ->
       error ("Failed to read the configuration file: " ^ config_file_path)
     | Result.Ok config ->
-      (try
-         let gopath = Ezjsonm.find config [ "GOLLVM_BINARY_PATH" ] in
-         let _ = gollvm_path := Ezjsonm.get_string gopath in
-         print (" - GOLLVM: " ^ !gollvm_path)
-       with exn -> ()))
+      let _ =
+        match Ezjsonm.find_opt config [ "GOLLVM_BINARY_PATH" ] with
+        | Some path ->
+          let path = Ezjsonm.get_string path in
+          (try
+             let _ = gollvm_bin_path := Filename.realpath path in
+             debugf " - GOLLVM BINARY PATH: %s" !gollvm_bin_path
+           with _ -> warningf "User-config: GOLLVM path not existed: %s" path)
+        | None -> () in
+      let _ =
+        match Ezjsonm.find_opt config [ "LLVM_BINARY_PATH" ] with
+        | Some path ->
+          let path = Ezjsonm.get_string path in
+          (try
+             let _ = llvm_bin_path := Filename.realpath path in
+             debugf " - USER LLVM BINARY PATH: %s" !llvm_bin_path
+           with _ -> warningf "User-config: LLVM path not existed: %s" path)
+        | None -> () in
+      ())
 ;;
 
 let init_environment () =

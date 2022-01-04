@@ -10,7 +10,7 @@
 # --------------------------------
 
 # LLVM binary path containing Clang, Opt
-LLVM_BINARY_PATH: ~/llvm/llvm-13/bin
+LLVM_BINARY_PATH: ~/llvm/llvm-sbip/bin
 
 # Gollvm compiler
 GOLLVM_BINARY_PATH: ~/workspace/gollvm/bin
