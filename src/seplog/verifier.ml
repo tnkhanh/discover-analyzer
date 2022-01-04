@@ -173,7 +173,7 @@ let report_bug (prog : LI.program) bug exps (instr : LI.instr) : bool =
   let location =
     match !report_source_code_name, LI.position_of_instr instr with
     | false, _ | _, None -> ""
-    | true, Some p -> "   at " ^ pr_file_position_and_excerpt p in
+    | true, Some p -> "   at " ^ pr_code_excerpt_and_location p in
   let msg =
     "#########################################################\n"
     ^ " DETECTING A BUG: " ^ bug ^ "\n" ^ "   on the pointers: "

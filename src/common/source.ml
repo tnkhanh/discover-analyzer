@@ -46,7 +46,7 @@ let pr_file_excerpt
   String.rstrip (String.concat ~sep:"" format_str)
 ;;
 
-let pr_file_position_and_excerpt (p : position) =
+let pr_code_excerpt_and_location ?(func = "") (p : position) =
   let fname = p.pos_file_name in
   let lstart, lend = p.pos_line_start, p.pos_line_end in
   let cstart, cend = p.pos_col_start, p.pos_col_end in
@@ -56,8 +56,9 @@ let pr_file_position_and_excerpt (p : position) =
     else
       pr_int lstart ^ ":" ^ pr_int cstart ^ " ~> " ^ pr_int lend ^ ":"
       ^ pr_int cend in
-  "File: " ^ fname ^ "\n"
+  "Code segment: \n"
+  ^ (pr_file_excerpt fname lstart lend cstart cend ^ "\n")
   ^ ("Location: " ^ line_column ^ "\n")
-  ^ "Code segment: \n"
-  ^ pr_file_excerpt fname lstart lend cstart cend
+  ^ ("Function: " ^ func ^ "\n")
+  ^ "File: " ^ fname
 ;;
