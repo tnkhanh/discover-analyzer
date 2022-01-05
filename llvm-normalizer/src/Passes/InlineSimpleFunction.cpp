@@ -10,9 +10,10 @@
 using namespace discover;
 using namespace llvm;
 
-static cl::opt<bool> DisableInline("disable-inlining",
-                                   cl::desc("Do not run the inliner pass"),
-                                   cl::init(false));
+static cl::opt<bool>
+    DisableInlineSimpleFunction("disable-inline-simple-function",
+                                cl::desc("Disable inlining simple functions"),
+                                cl::init(false));
 
 char InlineSimpleFunction::ID = 0;
 
@@ -130,6 +131,9 @@ bool InlineSimpleFunction::inlineFunction(Module &M, Function *F) {
 }
 
 bool InlineSimpleFunction::runOnModule(Module &M) {
+  if (DisableInlineSimpleFunction)
+    return true;
+
   StringRef passName = this->getPassName();
   debug() << "=========================================\n"
           << "Running Module Pass: " << passName << "\n";

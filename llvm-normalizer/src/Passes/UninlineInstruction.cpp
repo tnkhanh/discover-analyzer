@@ -17,6 +17,11 @@ using namespace llvm;
 
 char UninlineInstruction::ID = 0;
 
+static cl::opt<bool>
+    DisableUninlineInstr("disable-uninline-instr",
+                         cl::desc("Disable uninlining instructions"),
+                         cl::init(false), cl::cat(DiscoverNormalizerCategory));
+
 /*
  * Un-inline ConstExpr in instructions, recursively
  */
@@ -56,6 +61,9 @@ void uninlineConstantExpr(IRBuilder<> *builder, Instruction *instr) {
  * Entry function for this FunctionPass, can be used by llvm-opt
  */
 bool UninlineInstruction::runOnFunction(Function &F) {
+  if (DisableUninlineInstr)
+    return true;
+
   StringRef passName = this->getPassName();
   debug() << "=========================================\n"
           << "Running Function Pass <" << passName << "> on: " << F.getName()

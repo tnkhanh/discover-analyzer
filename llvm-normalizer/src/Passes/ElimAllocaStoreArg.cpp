@@ -25,6 +25,11 @@ using namespace llvm;
 
 char ElimAllocaStoreArg::ID = 0;
 
+static cl::opt<bool> DisableElimAllocaStoreArg(
+    "disable-elim-alloca-store-arg",
+    cl::desc("Disable elmininate alloca instructions storing arguments"),
+    cl::init(false), cl::cat(DiscoverNormalizerCategory));
+
 void ElimAllocaStoreArg::removeAllocaStoreArg(Function &F,
                                               std::vector<ASLInstrs> ASLList) {
   for (auto it = ASLList.begin(); it != ASLList.end(); it++) {
@@ -110,6 +115,9 @@ std::vector<ASLInstrs> ElimAllocaStoreArg::findAllocaStoreArg(Function &F) {
 }
 
 bool ElimAllocaStoreArg::runOnFunction(Function &F) {
+  if (DisableElimAllocaStoreArg)
+    return true;
+
   StringRef passName = this->getPassName();
   debug() << "=========================================\n"
           << "Running Function Pass <" << passName << "> on: " << F.getName()

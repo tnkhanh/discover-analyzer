@@ -28,6 +28,11 @@ using GEPInstList = std::vector<GetElementPtrInst *>;
 
 char CombineGEP::ID = 0;
 
+static cl::opt<bool>
+    DisableCombineGEP("disable-combine-gep",
+                      cl::desc("Disable combining GEP instructions"),
+                      cl::init(false), cl::cat(DiscoverNormalizerCategory));
+
 /*
  * Combine GEP Instructions
  */
@@ -137,6 +142,9 @@ std::vector<GEPInstList> findCombinableGEPList(Function &F) {
  * Entry function for this FunctionPass, can be used by llvm-opt
  */
 bool CombineGEP::runOnFunction(Function &F) {
+  if (DisableCombineGEP)
+    return true;
+
   StringRef passName = this->getPassName();
   debug() << "=========================================\n"
           << "Running Function Pass <" << passName << "> on: " << F.getName()

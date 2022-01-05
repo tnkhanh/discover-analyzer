@@ -15,7 +15,7 @@ char ElimUnusedFunction::ID = 0;
 // Option to manually disable this pass
 static cl::opt<bool>
     DisableElimUnusedFunction("disable-elim-unused-function",
-                              cl::desc("Disable promote alloca to vector"),
+                              cl::desc("Disable elmininate unused function"),
                               cl::init(false),
                               cl::cat(DiscoverNormalizerCategory));
 
