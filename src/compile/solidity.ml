@@ -52,15 +52,15 @@ let compile_program (input_file : string) : LI.program =
     let _ = debugf "Compilation command: %s" (String.concat ~sep:" " cmd) in
     match PS.run_command cmd with
     | Ok () -> ()
-    | Error e ->
-      error ("Failed to compile file: " ^ input_file ^ "\nError log: " ^ e)
+    | Error log ->
+      error ~log ("Failed to compile file: " ^ input_file)
   in
   let generated_files = Sys.ls_dir output_dir in
   let _ = debugp "Generated files: " (pr_list ~f:pr_str) generated_files in
   let deploy_file =
     List.find ~f:(String.is_suffix ~suffix:"_deploy.bc") generated_files in
   match deploy_file with
-  | None -> error "compile_program: no output file generated!"
+  | None -> error "Compile Solidity program: no output file generated!"
   | Some deploy_file ->
     let output_file = output_dir ^ FN.dir_sep ^ deploy_file in
     let _ = print ("Output file: " ^ output_file) in
