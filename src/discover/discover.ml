@@ -26,9 +26,10 @@ let print_discover_settings () =
     [ "Discover's settings:";
       "  Git revision: " ^ VS.get_current_revision ();
       "  LLVM version: " ^ llvm_version;
-      "  llvm-clang: " ^ !clang_exe;
-      "  llvm-opt: " ^ !opt_exe;
-      "  llvm-discover-normalizer: " ^ !normalizer_exe;
+      "  Path to Clang: " ^ !clang_exe;
+      "  Path to Solang: " ^ !solang_exe;
+      "  Path to llvm-opt: " ^ !opt_exe;
+      "  Path to llvm-normalizer: " ^ !normalizer_exe;
       "  Z3 solver: " ^ !Z3.z3exe ^ " (" ^ !Z3.z3version ^ ")"
     ] in
   debug (String.concat ~sep:"\n" info)
@@ -62,8 +63,12 @@ let read_user_configuration () : unit =
           let path = Ezjsonm.get_string path in
           (try
              let _ = gollvm_bin_path := Filename.realpath path in
-             debugf " - GOLLVM BINARY PATH: %s" !gollvm_bin_path
-           with _ -> warningf "User-config: GOLLVM path not existed: %s" path)
+             debugf "User's Gollvm binary path: %s" !gollvm_bin_path
+           with _ ->
+             warning
+               ("Checking user's Golang configuration\n"
+              ^ "  Gollvm path not existed: " ^ path ^ "\n"
+              ^ "  Used default settings from $PATH"))
         | None -> () in
       let _ =
         match Ezjsonm.find_opt config [ "LLVM_BINARY_PATH" ] with
@@ -71,8 +76,12 @@ let read_user_configuration () : unit =
           let path = Ezjsonm.get_string path in
           (try
              let _ = llvm_bin_path := Filename.realpath path in
-             debugf " - USER LLVM BINARY PATH: %s" !llvm_bin_path
-           with _ -> warningf "User-config: LLVM path not existed: %s" path)
+             debugf "User's LLVM binary path: %s" !llvm_bin_path
+           with _ ->
+             warning
+               ("Checking user's LLVM configuration\n"
+              ^ "  LLVM path not existed: " ^ path ^ "\n"
+              ^ "  Used default settings from $PATH"))
         | None -> () in
       ())
 ;;

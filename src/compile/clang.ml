@@ -46,7 +46,7 @@ let compile_program (input_file : string) : LI.program =
       @ [ "-o"; output_filename ]
       @ (if !report_source_code_name then [ "-g" ] else [])
       @ String.split ~on:' ' !clang_user_options in
-    let _ = debug (String.concat ~sep:" " cmd) in
+    let _ = debugf "Compilation command: %s" (String.concat ~sep:" " cmd) in
     PS.run_command cmd in
   let prog =
     if !bug_annotation

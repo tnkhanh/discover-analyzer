@@ -49,7 +49,12 @@ let compile_program (input_file : string) : LI.program =
       @ [ "--emit"; "llvm-bc" ]
       @ [ "-O"; "none"; "--target"; "ewasm" ]
       @ [ "-o"; output_dir ] @ user_options in
-    PS.run_command cmd in
+    let _ = debugf "Compilation command: %s" (String.concat ~sep:" " cmd) in
+    match PS.run_command cmd with
+    | Ok () -> ()
+    | Error e ->
+      error ("Failed to compile file: " ^ input_file ^ "\nError log: " ^ e)
+  in
   let generated_files = Sys.ls_dir output_dir in
   let _ = debugp "Generated files: " (pr_list ~f:pr_str) generated_files in
   let deploy_file =
