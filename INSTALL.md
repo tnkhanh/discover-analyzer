@@ -1,7 +1,7 @@
 Discover -- Compilation and Installation
 =======================================================
 
-Copyright (c) 2020-2021 Singapore Blockchain Innovation Program.
+Copyright (c) 2020-2022 Singapore Blockchain Innovation Program.
 
 # Prerequisites
 

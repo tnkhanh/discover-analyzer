@@ -1,7 +1,7 @@
 (********************************************************************
  * This file is part of the source code analyzer Discover.
  *
- * Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.
+ * Copyright (c) 2020-2022 Singapore Blockchain Innovation Programme.
  * All rights reserved.
  ********************************************************************)
 
@@ -47,7 +47,9 @@ let process_module (input_file : string) (modul : LL.llmodule) : LI.program =
 
 (** Disassemble LLVM bitcode (.bc files) to IR (.ll files) *)
 let disassemble_bitcode (filename : string) : unit =
-  ignore (PS.run_command [ !llvm_dis_exe; filename ])
+  match PS.run_command [ !llvm_dis_exe; filename ] with
+  | Ok () -> ()
+  | Error log -> errorf ~log "Failed to disassemble bitcode file: %s" filename
 ;;
 
 (** Optimize LLVM bitcode by running the LLVM's opt tool *)
@@ -69,8 +71,11 @@ let optimize_bitcode (input_file : string) : string =
         [ !opt_exe; input_file; "-o"; output_file ]
         @ [ "-mem2reg" ] (* promote pointer variables to registers *)
         @ [ "--disable-verify" ] @ user_options in
-      PS.run_command cmd)
-    else PS.run_command [ "cp"; input_file; output_file ] in
+      match PS.run_command cmd with
+      | Ok () -> ()
+      | Error log ->
+        errorf ~log "Failed to optimize bitcode file: %s" input_file)
+    else ignore (PS.run_command [ "cp"; input_file; output_file ]) in
   let _ = if is_debug_mode () then disassemble_bitcode output_file in
   output_file
 ;;
@@ -87,8 +92,11 @@ let normalize_bitcode (input_file : string) : string =
     if !llvm_normalize
     then (
       let cmd = [ !normalizer_exe; input_file; "--output"; output_file ] in
-      PS.run_command cmd)
-    else PS.run_command [ "cp"; input_file; output_file ] in
+      match PS.run_command cmd with
+      | Ok () -> ()
+      | Error log ->
+        errorf ~log "Failed to normalize bitcode file: %s" input_file)
+    else ignore (PS.run_command [ "cp"; input_file; output_file ]) in
   let _ = if is_debug_mode () then disassemble_bitcode output_file in
   output_file
 ;;

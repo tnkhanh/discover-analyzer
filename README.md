@@ -1,7 +1,7 @@
 Discover -- a source code static analyzer
 ========================================================
 
-Copyright (c) 2020-2021 Singapore Blockchain Innovation Program.
+Copyright (c) 2020-2022 Singapore Blockchain Innovation Program.
 
 # Overview
 
