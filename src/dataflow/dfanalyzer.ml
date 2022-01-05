@@ -25,6 +25,22 @@ type dfa_result =
     dfa_num_invalid_asserts : int
   }
 
+type benchmark_result =
+  {
+    ben_correct_bug_reports : int;
+    ben_incorrect_bug_reports: int;
+    ben_missing_bugs : int;
+    ben_detailed_result : string;
+  }
+
+(*let dummy_ben_result =*)
+  (*{*)
+    (*ben_found_bugs = 0;*)
+    (*ben_missing_bugs = 0;*)
+    (*ben_incorrect_bug_reports = 0;*)
+    (*ben_detailed_result = "";*)
+  (*}*)
+
 (*******************************************************************
  ** Supporting functions
  *******************************************************************)
@@ -201,7 +217,44 @@ let compute_analysis_result (dfa : dfa_data) (bugs : BG.bug list) : dfa_result =
   update_analysis_time dfa res
 ;;
 
-let analyze_program (prog : LI.program) : dfa_result =
+let compute_benchmark_result (prog : LI.program) (bugs : BG.bug list) : benchmark_result =
+  let finstr =
+    Some (fun acc instr ->
+      if LI.is_instr_call instr then
+        (let func = LI.operand instr 0 in
+        let func_name = LL.value_name func in
+        if String.is_prefix ~prefix:__assert func_name
+        then instr :: acc
+        else
+          acc)
+      else
+       acc)
+  in
+  let assert_calls = LI.visit_fold_program [] prog ~finstr in
+  let correct_bug_reports, incorrect_bug_reports = 
+    List.fold ~init:(0, 0) ~f:(fun (correct, incorrect) bug ->
+      if List.exists ~f:(fun call ->
+        let asserted_ins = LI.operand call 0 in
+        let bug_ins = LI.llvalue_of_instr bug.bug_instr in
+        asserted_ins == bug_ins
+      ) assert_calls
+      then
+        (correct + 1, incorrect)
+      else
+        (correct, incorrect + 1)
+    ) bugs in
+  let missing_bugs =
+    List.fold ~init:0 ~f:(fun acc call -> acc + 1
+    ) assert_calls in
+  {
+    ben_correct_bug_reports = correct_bug_reports;
+    ben_incorrect_bug_reports = incorrect_bug_reports;
+    ben_missing_bugs = missing_bugs;
+    ben_detailed_result = "";
+  }
+;;
+
+let analyze_program (prog : LI.program) : (dfa_result * benchmark_result) =
   let _ = printp ~ruler:`Long "Analyze program by " pr_dfa_mode !dfa_mode in
   let dfa =
     prog |> mk_dfa_data |> perform_pre_analysis_passes
@@ -209,5 +262,6 @@ let analyze_program (prog : LI.program) : dfa_result =
   let _ = report_analysis_stats dfa in
   let _ = check_assertions dfa in
   let bugs = find_bugs dfa in
-  compute_analysis_result dfa bugs
+  (compute_analysis_result dfa bugs, 
+   compute_benchmark_result prog bugs)
 ;;

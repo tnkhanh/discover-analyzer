@@ -1,5 +1,5 @@
 standard:
   clang-option: -g
-  discover-option: --bug-all --dfa-range --enable-instrument
+  discover-option: -d --bug-all --dfa-range --bug-annotation --pinstrp
   targets: .c
-
+  excludes: ConversionToSignedInt.c

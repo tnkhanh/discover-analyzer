@@ -14,5 +14,12 @@ type dfa_result =
     dfa_num_invalid_asserts : int
   }
 
+type benchmark_result =
+  {
+    ben_correct_bug_reports : int;
+    ben_incorrect_bug_reports: int;
+    ben_missing_bugs : int;
+    ben_detailed_result : string;
+  }
 
-val analyze_program : Llir.program -> dfa_result
+val analyze_program : Llir.program -> (dfa_result * benchmark_result)
