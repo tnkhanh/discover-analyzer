@@ -1,0 +1,14 @@
+;;---------------------------------------------------------------------
+;; This file is part of the source code analyzer Discover.
+;;
+;; Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.
+;; All rights reserved.
+;;---------------------------------------------------------------------
+
+;; parser and lexer for annotations
+
+(ocamllex
+ (modules line_annot_lexer))
+
+(menhir
+ (modules line_annot_parser))
