@@ -168,10 +168,15 @@ let apply_annotation
       if is_instr_store instr.tagx_instr
       then (
         let first_opr = operand instr.tagx_instr 0 in
-        match LL.instr_opcode first_opr with
-        | LO.Trunc -> first_opr
+        match LL.classify_value first_opr with
+        | Instruction opc ->
+          (match opc with
+           | LO.Trunc -> first_opr
+           | _ -> inx
+          )
         | _ -> inx)
       else inx in
+    let _ = debug ("Actual Apply: " ^ (LL.string_of_llvalue actual_ins)) in
     let insert_pos = LL.instr_succ actual_ins in
     let llctx = LL.module_context modul in
     let builder = LL.builder_at llctx insert_pos in
@@ -225,15 +230,25 @@ let apply_bug_annotation
   | [] ->
     errorp "Bug annotation: ending without start at " pr_annot_position pos
   | (ann, ins_op) :: other_matched_anns ->
-    (match ann with
-    | Bug_start (pos, bugs) ->
-      (match ins_op with
+    let apply_annotation_if_ins_exists bugs () =
+      match ins_op with
       | None ->
         errorp "Bug annotation: no instr for annot at " pr_annot_position pos
       | Some instr ->
         let _ = apply_annotation ann_type instr bugs modul in
-        other_matched_anns)
-    | Bug_end _ | Safe_start _ | Safe_end _ | Skip ->
+        other_matched_anns in
+    (match ann with
+    | Bug_start (pos, bugs) ->
+      (match end_ann with
+      | Bug_end _ -> apply_annotation_if_ins_exists bugs ()
+      | _ ->
+        errorp "Bug annotation: unmatched ending at " pr_annot_position pos)
+    | Safe_start (pos, bugs) ->
+      (match end_ann with
+      | Safe_end _ -> apply_annotation_if_ins_exists bugs ()
+      | _ ->
+        errorp "Bug annotation: unmatched ending at " pr_annot_position pos)
+    | Bug_end _ | Safe_end _ | Skip ->
       errorp "Bug annotation: unmatch ending at " pr_annot_position pos)
 ;;
 
@@ -294,6 +309,10 @@ let bug_annotation annots source_name (modul : LL.llmodule) : unit =
   let finstr =
     Some
       (fun acc instr ->
+        if (is_instr_call instr) (*&& LL.is_intrinsic (operand instr 0) then acc*)
+        then
+          let _ = debug ("Call: " ^ (LL.string_of_llvalue (operand instr 0))) in acc
+        else
         let pos_op = position_of_instr instr in
         match pos_op with
         | None -> acc
@@ -306,6 +325,13 @@ let bug_annotation annots source_name (modul : LL.llmodule) : unit =
             | hd :: tl -> mk_tagged_instr pos (hd.tagx_tag + 1) instr :: acc))
   in
   let tagged_instr = visit_fold_module ~finstr [] modul in
+  let _ =
+    List.iter
+      ~f:(fun tagged ->
+          let ins = tagged.tagx_instr in
+          debug ("Instrs: " ^ (LL.string_of_llvalue (llvalue_of_instr ins)))
+    ) tagged_instr
+  in
   let compare ins1 ins2 =
     let p1 = ins1.tagx_pos.pos_line_end, ins1.tagx_pos.pos_col_end in
     let p2 = ins2.tagx_pos.pos_line_end, ins2.tagx_pos.pos_col_end in
