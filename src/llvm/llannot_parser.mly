@@ -10,6 +10,7 @@
  *******************************************************************)
 
 %{
+open Llannot
 %}
 
 (*******************************************************************
@@ -49,11 +50,11 @@ prog:
 toks:
   | t = tok
       { match t with
-        | Llannot.Skip -> []
+        | Skip -> []
         | _ as m -> [m] }
   | ts = toks; t = tok
       { match t with
-        | Llannot.Skip -> ts
+        | Skip -> ts
         | _ as m -> m::ts };
 
 tok:
