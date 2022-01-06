@@ -247,7 +247,7 @@ let mk_potential_bug (ins : instr) (btype : bug_type) : potential_bug =
  *------------------------------------------*)
 
 let mk_potential_integer_overflow (ins : instr) : potential_bugs =
-  if !bug_all || !bug_memory_all || !bug_integer_overflow
+  if !bug_all || !bug_integer_all || !bug_integer_overflow
   then (
     let expr = llvalue_of_instr ins in
     let iof =

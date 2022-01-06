@@ -397,23 +397,23 @@ struct
       let itv = sdiv_interval itv0 itv1 in
       replace_interval expr itv input
     | LO.PHI ->
-      let opr0 = operand_expr ins 0 in
-      let itv = ref (get_interval opr0 input) in
-      let _ = debugp "Before refine widening: " pr_bool widen in
-      let widen = refine_widening func ins widen in
-      let _ = debugp "After refine widening: " pr_bool widen in
-      for i = 1 to num_operands ins - 1 do
-        let opri = operand_expr ins i in
-        let itvi = get_interval opri input in
-        (* TODO: need to refine widening here *)
-        itv := combine_interval ~widen !itv itvi
-      done;
-      replace_interval (expr_of_instr ins) !itv input
-    | LO.Ret ->
-      let expr = mk_expr_func_result func in
-      let opr0 = operand_expr ins 0 in
-      let itv = get_interval opr0 input in
-      replace_interval expr itv input
+      let dst = dst_of_instr_phi ins in
+      let dst_typ = LL.type_of dst in
+      if is_type_integer dst_typ
+      then (
+        let opr0 = operand_expr ins 0 in
+        let itv = ref (get_interval opr0 input) in
+        let _ = debugp "Before refine widening: " pr_bool widen in
+        let widen = refine_widening func ins widen in
+        let _ = debugp "After refine widening: " pr_bool widen in
+        for i = 1 to num_operands ins - 1 do
+          let opri = operand_expr ins i in
+          let itvi = get_interval opri input in
+          (* TODO: need to refine widening here *)
+          itv := combine_interval ~widen !itv itvi
+        done;
+        replace_interval (expr_of_instr ins) !itv input)
+      else input
     | LO.Load ->
       let dst = dst_of_instr_load ins in
       let dst_typ = LL.type_of dst in
@@ -462,6 +462,15 @@ struct
           input)
       else (*     print "TODO: need to handle func call: scanf" in *)
         input
+    | LO.Ret ->
+      let res_typ = Llir.func_return_type func in
+      if is_type_integer res_typ
+      then (
+        let expr = mk_expr_func_result func in
+        let opr0 = operand_expr ins 0 in
+        let itv = get_interval opr0 input in
+        replace_interval expr itv input)
+      else input
     | _ -> input
   ;;
 end

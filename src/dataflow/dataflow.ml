@@ -1927,7 +1927,7 @@ functor
           let binput = wb.wb_instr_input in
           let _ = T.set_block_input fenv blk binput in
           let _ = debug ~mtype:"" " - Starting from the block's entry. " in
-          debugp ~mtype:"" "    BlockKey input: " T.pr_data binput)
+          debugp ~mtype:"" "    Block input: " T.pr_data binput)
         else debugp " - Continuing from instruction: " pr_instr wb.wb_instr
       in
       let _ = update_block_analyzed_stats penv func blk in
@@ -1975,6 +1975,8 @@ functor
       | None -> ()
       | Some (wblk, nwblks) ->
         let changed, continue = analyze_block ~widen penv fenv wblk in
+        let _ = debugf "Analyze block: env changed: %b" changed in
+        let _ = debugf "Continue to analyze other blocks: %b" continue in
         let nwblks =
           if changed && continue && fixpoint
           then (

@@ -92,6 +92,6 @@ let compile_input_file (filename : string) : CI.program =
   | InpLlir -> filename |> BC.compile_program |> CI.mk_llvm_prog
   | InpCCpp -> filename |> Clang.compile_program |> CI.mk_llvm_prog
   | InpGolang -> filename |> Golang.compile_program |> CI.mk_llvm_prog
-  | InpSolidity -> filename |> Solidity.compile_program |> CI.mk_llvm_prog
+  | InpSolidity -> filename |> Solang.compile_program |> CI.mk_llvm_prog
   | InpUnkn -> error ("Unknown input type: " ^ filename)
 ;;
