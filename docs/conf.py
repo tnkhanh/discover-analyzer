@@ -20,7 +20,7 @@ def setup(sphinx):
 
 # -- Project information -----------------------------------------------------
 
-project = 'Discover - A Smart Contracts Static Analyzer'
+project = 'Discover'
 copyright = '2020-2022 Singapore Blockchain Innovation Programme (SBIP)'
 author = 'SBIP members and contributors'
 
