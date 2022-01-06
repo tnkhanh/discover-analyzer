@@ -1,4 +1,4 @@
-Discover - an LLVM-based static analyzer for smart contracts
+Discover - a static analyzer for smart contracts
 ==============================================================================
 
 Overview
