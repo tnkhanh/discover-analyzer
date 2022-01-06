@@ -13,6 +13,9 @@ let next_line lexbuf =
 
 let curr_pos lexbuf =
   let pos = lexbuf.lex_curr_p in (pos.pos_lnum, pos.pos_cnum - pos.pos_bol)
+
+let curr_line lexbuf =
+  let pos = lexbuf.lex_curr_p in pos.pos_lnum
 }
 
 let white = [' ' '\t']+
@@ -23,8 +26,8 @@ rule read =
   parse
   | white    { read lexbuf }
   | newline  { next_line lexbuf; read lexbuf }
-  | "/*@" { ANNSTART (curr_pos lexbuf) }
-  | "Bug" | "Safe" { ATYPE (Lexing.lexeme lexbuf) }
+  | "/*@" { ANN_EXP (curr_pos lexbuf) }
+  | "//@" { ANN_LINE (curr_line lexbuf) }
   | "MemoryLeak" { MEMORY_LEAK }
   | "NullPointerDeref" { NULL_POINTER_DEREF }
   | "BufferOverflow" { BUFFER_OVERFLOW }

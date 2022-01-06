@@ -10,14 +10,14 @@
  *******************************************************************)
 
 %{
-  open Dcore
 %}
 
 (*******************************************************************
  ** Token
  *******************************************************************)
 
-%token <int * int> ANNSTART
+%token <int * int> ANN_EXP
+%token <int> ANN_LINE
 %token <int * int> SLASH
 %token ASTER
 %token OBRAC
@@ -29,7 +29,6 @@
 %token INTEGER_OVERFLOW
 %token INTEGER_UNDERFLOW
 %token DIVISION_BY_ZERO
-%token <string> ATYPE
 %token <string> WORD
 %token EOF
 %token COMMA
@@ -64,10 +63,11 @@ tok:
   | OBRAC
   | CBRAC
   | COLON
-  | ATYPE
   | COMMA { Skip }
   | a = ann_begin { a }
-  | a = ann_end { a };
+  | a = ann_end { a }
+  | a = ann_line { a }
+;
 
 bugs:
   value = separated_list(COMMA, bug) { value };
@@ -87,15 +87,17 @@ bug:
       { Bug.mk_bug_type_division_by_zero () }
 
 ann_begin:
-  | ANNSTART; OBRAC; a = ATYPE; COLON; b = bugs; ASTER; p = SLASH
+  | ANN_EXP; OBRAC; a = WORD; COLON; b = bugs; ASTER; p = SLASH
       { let line, col = p in
         let pos = Llannot.mk_annot_position line col in
-        if String.equal a "Bug" then Bug_start (pos, b)
-        else Safe_start (pos, b) };
+        Start (pos, a, b) };
 
 ann_end:
-  | p = ANNSTART; COLON; a = ATYPE; CBRAC; ASTER; SLASH
+  | p = ANN_EXP; COLON; a = WORD; CBRAC; ASTER; SLASH
       { let line, col = p in
         let pos = Llannot.mk_annot_position line col in
-        if String.equal a "Bug" then Bug_end pos
-        else Safe_end pos };
+        End (pos, a) };
+
+ann_line:
+  | l = ANN_LINE; w = WORD; COLON; b = bugs 
+      { Line (l, w, b)};
