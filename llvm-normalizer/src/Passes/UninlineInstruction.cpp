@@ -1,7 +1,7 @@
 /********************************************************************
  * This file is part of the tool Normalizer of the project Discover.
  *
- * Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.
+ * Copyright (c) 2020-2022 Singapore Blockchain Innovation Programme.
  * All rights reserved.
  *******************************************************************/
 
@@ -16,6 +16,11 @@ using namespace llvm;
  */
 
 char UninlineInstruction::ID = 0;
+
+static cl::opt<bool>
+    DisableUninlineInstr("disable-uninline-instr",
+                         cl::desc("Disable uninlining instructions"),
+                         cl::init(false), cl::cat(DiscoverNormalizerCategory));
 
 /*
  * Un-inline ConstExpr in instructions, recursively
@@ -56,6 +61,9 @@ void uninlineConstantExpr(IRBuilder<> *builder, Instruction *instr) {
  * Entry function for this FunctionPass, can be used by llvm-opt
  */
 bool UninlineInstruction::runOnFunction(Function &F) {
+  if (DisableUninlineInstr)
+    return true;
+
   StringRef passName = this->getPassName();
   debug() << "=========================================\n"
           << "Running Function Pass <" << passName << "> on: " << F.getName()

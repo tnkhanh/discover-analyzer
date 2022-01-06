@@ -1,7 +1,7 @@
 (********************************************************************
  * This file is part of the source code analyzer Discover.
  *
- * Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.
+ * Copyright (c) 2020-2022 Singapore Blockchain Innovation Programme.
  * All rights reserved.
  ********************************************************************)
 
@@ -10,28 +10,29 @@ module PS = Outils.Process
 module BC = Bitcode
 module LI = Llir
 
-let config_golang_compiler () =
-  if String.equal !gollvm_path ""
+let config_golang_compiler () : unit =
+  if String.equal !gollvm_bin_path ""
   then (
     try
       let go_path = FileUtil.which "go" in
-      gollvm_path := String.sub go_path ~pos:0 ~len:(String.length go_path - 2)
+      gollvm_bin_path
+        := String.sub go_path ~pos:0 ~len:(String.length go_path - 2)
     with _ -> ());
-  if (not (String.equal !gollvm_path ""))
-     && not (String.is_suffix !gollvm_path ~suffix:"/")
-  then gollvm_path := !gollvm_path ^ "/"
+  if (not (String.equal !gollvm_bin_path ""))
+     && not (String.is_suffix !gollvm_bin_path ~suffix:"/")
+  then gollvm_bin_path := !gollvm_bin_path ^ "/"
 ;;
 
 let compile_program (input_file : string) : LI.program =
   let _ = debug ("Compiling Go file: " ^ input_file) in
-  let _ = debug ("gollvm_path: " ^ !gollvm_path) in
+  let _ = debug ("gollvm_bin_path: " ^ !gollvm_bin_path) in
   let dirname = Filename.dirname input_file ^ Filename.dir_sep ^ "logs" in
   let _ = Sys.make_dir dirname in
   let bitcode_filename = dirname ^ Filename.dir_sep ^ input_file ^ ".raw.bc" in
   (* Code to compile Go file in OCaml
 
   let exec_filename = dirname ^ Filename.dir_sep ^ "a.out" in
-  let go_build_cmd = [!gollvm_path ^ "go"; "build"; "-a"; "-work"; "-x";
+  let go_build_cmd = [!gollvm_bin_path ^ "go"; "build"; "-a"; "-work"; "-x";
                       "-o"; exec_filename; input_file] in
   let go_build_output = PS.run_command_get_output go_build_cmd in
   match go_build_output with
@@ -74,7 +75,7 @@ let compile_program (input_file : string) : LI.program =
       [ script_name;
         input_file;
         bitcode_filename;
-        !gollvm_path ^ "go";
+        !gollvm_bin_path ^ "go";
         go_build_output
       ] in
   BC.process_bitcode bitcode_filename

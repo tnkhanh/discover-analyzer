@@ -1,7 +1,7 @@
 (********************************************************************
  * This file is part of the source code analyzer Discover.
  *
- * Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.
+ * Copyright (c) 2020-2022 Singapore Blockchain Innovation Programme.
  * All rights reserved.
  ********************************************************************)
 
@@ -143,9 +143,9 @@ let get_original_freed_pointers pstate ptrs : exp list =
  *******************************************************************)
 
 let pr_buggy_exps (prog : LI.program) exps : string =
-  let cur_exps = pr_list ~sep:", " ~f:pr_exp exps in
-  match !llvm_orig_source_name with
-  | false -> cur_exps
+  let llvm_exps = pr_list ~sep:", " ~f:pr_exp exps in
+  match !report_source_code_name with
+  | false -> llvm_exps
   | true ->
     let source_exps =
       exps
@@ -162,16 +162,18 @@ let pr_buggy_exps (prog : LI.program) exps : string =
              | _ -> acc)
            ~init:[]
       |> String.concat ~sep:", " in
-    if !location_source_code_only
+    if not !report_llvm_bitcode_name
     then source_exps
-    else cur_exps ^ " (llvm) ~~ " ^ source_exps ^ " (source)"
+    else if not !report_source_code_name
+    then llvm_exps
+    else llvm_exps ^ " (llvm) ~~ " ^ source_exps ^ " (source)"
 ;;
 
 let report_bug (prog : LI.program) bug exps (instr : LI.instr) : bool =
   let location =
-    match !llvm_orig_source_name, LI.position_of_instr instr with
+    match !report_source_code_name, LI.position_of_instr instr with
     | false, _ | _, None -> ""
-    | true, Some p -> "   at " ^ pr_file_position_and_excerpt p in
+    | true, Some p -> "   at " ^ pr_code_excerpt_and_location p in
   let msg =
     "#########################################################\n"
     ^ " DETECTING A BUG: " ^ bug ^ "\n" ^ "   on the pointers: "

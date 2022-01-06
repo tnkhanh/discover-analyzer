@@ -1,14 +1,13 @@
 (********************************************************************
  * This file is part of the source code analyzer Discover.
  *
- * Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.
+ * Copyright (c) 2020-2022 Singapore Blockchain Innovation Programme.
  * All rights reserved.
  ********************************************************************)
 
 (* This module contains declaration of global variables *)
 
 open Core
-module LL = Llvm
 module LX = Lexing
 
 (*******************************************************************
@@ -65,9 +64,6 @@ let print_concise_output = ref false
 let print_concise_debug = ref false
 let print_stats_prog = ref false
 
-(* reporting *)
-let location_source_code_only = ref false
-
 (* bug annotation *)
 let bug_annotation = ref false
 
@@ -113,7 +109,6 @@ let dfa_used_globals_in_func_ptrs = ref true
  * Settings for llvm mode
  *------------------------*)
 
-let llvm_orig_source_name = ref false
 let llvm_print_prog_info = ref false
 let llvm_simplify = ref true
 let llvm_optimize = ref true
@@ -127,7 +122,6 @@ let check_assert = ref false
 let assert_all = ref false
 let assert_range = ref false
 let assert_pointer = ref false
-
 
 (*-----------------------------
  * Settings for bug detection
@@ -148,6 +142,13 @@ let bug_memory_all = ref false
 let bug_memory_leak = ref false
 let bug_null_pointer_deref = ref false
 let bug_buffer_overflow = ref false
+
+(*-------------------------
+ * Settings for reporting
+ *------------------------*)
+
+let report_source_code_name = ref false
+let report_llvm_bitcode_name = ref true
 
 (*******************************************************************
  ** global variables
@@ -180,15 +181,18 @@ let lib_core_file = ref (lib_path ^ "/libcore.sc")
 let user_config_file = "discover.yaml"
 let llvm_version = "13" (* using LLVM 13 *)
 
-let llvm_path = ref ""
+(* paths *)
+let llvm_bin_path = ref ""
+let gollvm_bin_path = ref ""
+let discover_path = Filename.realpath Sys.argv.(0)
+let project_path = Filename.dirname discover_path
+
+(* executable files *)
 let clang_exe = ref "clang"
 let opt_exe = ref "opt"
 let llvm_dis_exe = ref "llvm-dis"
 let normalizer_exe = ref "normalizer"
 let solang_exe = ref "solang"
-let gollvm_path = ref ""
-let discover_path = Filename.realpath Sys.argv.(0)
-let project_path = Filename.dirname discover_path
 
 (*----------------------
  * Compilation options
@@ -232,6 +236,13 @@ let __report_invalid_assert = "- Invalid assertions: "
 (* TODO: put these variables into analysis result *)
 let num_valid_asserts = ref 0
 let num_invalid_asserts = ref 0
+
+(*******************************************************************
+ ** Exceptions
+ *******************************************************************)
+
+exception FoundString of string
+exception FoundInt of int
 
 (*******************************************************************
  ** location

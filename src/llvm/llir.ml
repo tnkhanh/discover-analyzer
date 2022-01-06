@@ -1,14 +1,15 @@
 (********************************************************************
  * This file is part of the source code analyzer Discover.
  *
- * Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.
+ * Copyright (c) 2020-2022 Singapore Blockchain Innovation Programme.
  * All rights reserved.
  ********************************************************************)
 
 open Dcore
-module LT = LL.TypeKind
-module LV = LL.ValueKind
-module LO = LL.Opcode
+module LL = Llvm
+module LT = Llvm.TypeKind
+module LV = Llvm.ValueKind
+module LO = Llvm.Opcode
 module SP = Set.Poly
 
 (* Include core sub-modules *)

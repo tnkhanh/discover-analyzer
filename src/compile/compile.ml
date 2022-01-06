@@ -1,7 +1,7 @@
 (********************************************************************
  * This file is part of the source code analyzer Discover.
  *
- * Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.
+ * Copyright (c) 2020-2022 Singapore Blockchain Innovation Programme.
  * All rights reserved.
  ********************************************************************)
 
@@ -15,10 +15,24 @@ module SE = Symexec
  * LLVM PROGRAM
  **********************************************************)
 
+let config_llvm_compiler () : unit =
+  if String.not_empty !llvm_bin_path
+  then (
+    let _ =
+      if not (String.is_suffix !llvm_bin_path ~suffix:"/")
+      then llvm_bin_path := !llvm_bin_path ^ "/" in
+    clang_exe := !llvm_bin_path ^ !clang_exe;
+    opt_exe := !llvm_bin_path ^ !opt_exe;
+    llvm_dis_exe := !llvm_bin_path ^ !llvm_dis_exe)
+;;
+
 let verify_llvm_compiler () =
   let _ =
     match PS.run_command_get_output [ !clang_exe; "--version" ] with
-    | Error msg -> error ("Failed to check Clang version: " ^ msg)
+    | Error msg ->
+      error
+        (sprintf "Failed to check Clang version: %s\n" msg
+        ^ sprintf "Clang path: %s" !clang_exe)
     | Ok output ->
       if String.is_substring ~substring:("version " ^ llvm_version) output
       then ()
@@ -42,9 +56,10 @@ let config_llvm_normalizer () =
 ;;
 
 let config_toolchain () =
+  let _ = config_llvm_compiler () in
+  let _ = Golang.config_golang_compiler () in
   let _ = verify_llvm_compiler () in
-  let _ = config_llvm_normalizer () in
-  Golang.config_golang_compiler ()
+  config_llvm_normalizer ()
 ;;
 
 let get_input_type (filename : string) =
@@ -77,6 +92,6 @@ let compile_input_file (filename : string) : CI.program =
   | InpLlir -> filename |> BC.compile_program |> CI.mk_llvm_prog
   | InpCCpp -> filename |> Clang.compile_program |> CI.mk_llvm_prog
   | InpGolang -> filename |> Golang.compile_program |> CI.mk_llvm_prog
-  | InpSolidity -> filename |> Solidity.compile_program |> CI.mk_llvm_prog
+  | InpSolidity -> filename |> Solang.compile_program |> CI.mk_llvm_prog
   | InpUnkn -> error ("Unknown input type: " ^ filename)
 ;;

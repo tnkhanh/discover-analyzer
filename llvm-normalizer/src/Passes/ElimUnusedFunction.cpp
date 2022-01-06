@@ -1,7 +1,7 @@
 /********************************************************************
  * This file is part of the tool Normalizer of the project Discover.
  *
- * Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.
+ * Copyright (c) 2020-2022 Singapore Blockchain Innovation Programme.
  * All rights reserved.
  *******************************************************************/
 
@@ -15,7 +15,7 @@ char ElimUnusedFunction::ID = 0;
 // Option to manually disable this pass
 static cl::opt<bool>
     DisableElimUnusedFunction("disable-elim-unused-function",
-                              cl::desc("Disable promote alloca to vector"),
+                              cl::desc("Disable elmininate unused function"),
                               cl::init(false),
                               cl::cat(DiscoverNormalizerCategory));
 

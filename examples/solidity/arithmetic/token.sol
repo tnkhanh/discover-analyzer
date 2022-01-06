@@ -24,7 +24,7 @@
      return true;
    }
 
-   // TRUNG: keyword `constant` is deprecated
+   // Keyword `constant` is now deprecated
    // function balanceOf(address _owner) public constant returns (uint balance) {
    function balanceOf(address _owner) public view returns (uint balance) {
      return balances[_owner];

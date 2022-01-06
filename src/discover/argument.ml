@@ -1,7 +1,7 @@
 (********************************************************************
  * This file is part of the source code analyzer Discover.
  *
- * Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.
+ * Copyright (c) 2020-2022 Singapore Blockchain Innovation Programme.
  * All rights reserved.
  ********************************************************************)
 
@@ -109,9 +109,6 @@ and arguments_raw =
           export_core_prog := true;
           export_cfg_prog := true;
           export_debug_info := true) );
-    ( [ "--msg-source-code" ],
-      "Report bug at source code",
-      Arg.Set location_source_code_only );
     (*--------------------------------------------------------
      * input and compilation
      *--------------------------------------------------------*)
@@ -260,11 +257,35 @@ and arguments_raw =
       Arg.Unit (fun () -> bug_memory_all := true) );
     [ "--bug-all" ], "Find all bugs", Arg.Unit find_all_bugs;
     (*--------------------------------------------------------
-     * llvm options
+     * Reporting options
      *--------------------------------------------------------*)
-    ( [ "--llvm-source-name" ],
-      "Enable LLVM mode_debug with original source info",
-      Arg.Set llvm_orig_source_name );
+    ( [ "--source-name" ],
+      "Enable printing original soure code names of variables, functions...",
+      Arg.Set report_source_code_name );
+    ( [ "--dis-source-name" ],
+      "Disable printing original soure code names of variables, functions...",
+      Arg.Clear report_source_code_name );
+    ( [ "--source-name-only" ],
+      "Print only original soure code names of variables, functions...",
+      Arg.Unit
+        (fun () ->
+          report_source_code_name := true;
+          report_llvm_bitcode_name := false) );
+    ( [ "--llvm-name" ],
+      "Enable printing LLVM bitcode names of variables, functions...",
+      Arg.Set report_llvm_bitcode_name );
+    ( [ "--dis-llvm-name" ],
+      "Disable printing LLVM bitcode names of variables, functions...",
+      Arg.Clear report_llvm_bitcode_name );
+    ( [ "--llvm-name-only" ],
+      "Print only bitcode names of variables, functions...",
+      Arg.Unit
+        (fun () ->
+          report_llvm_bitcode_name := false;
+          report_source_code_name := true) );
+    (*--------------------------------------------------------
+     * Llvm options
+     *--------------------------------------------------------*)
     ( [ "--llvm-prog-info" ],
       "Enable printing program's information",
       Arg.Set llvm_print_prog_info );
@@ -277,13 +298,15 @@ and arguments_raw =
     ( [ "--llvm-no-normalize" ],
       "Do not normalize LLVM IR",
       Arg.Clear llvm_normalize );
-    [ "--llvm-path" ], "Path to llvm", Arg.Set_string llvm_path;
+    ( [ "--llvm-bin-path" ],
+      "Path to LLVM binary executable files",
+      Arg.Set_string llvm_bin_path );
     (*--------------------------------------------------------
      * gollvm options
      *--------------------------------------------------------*)
     ( [ "--gollvm-path" ],
       "Path to gollvm, e.g., /usr/bin if gollvm is /usr/bin/go",
-      Arg.Set_string gollvm_path );
+      Arg.Set_string gollvm_bin_path );
     (*--------------------------------------------------------
      * input and output export
      *--------------------------------------------------------*)

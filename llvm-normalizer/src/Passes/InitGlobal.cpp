@@ -1,7 +1,7 @@
 /********************************************************************
  * This file is part of the tool Normalizer of the project Discover.
  *
- * Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.
+ * Copyright (c) 2020-2022 Singapore Blockchain Innovation Programme.
  * All rights reserved.
  *******************************************************************/
 
@@ -11,6 +11,11 @@ using namespace discover;
 using namespace llvm;
 
 char InitGlobal::ID = 0;
+
+static cl::opt<bool> DisableInitGlobal("disable-init-global",
+                                       cl::desc("Disable initializing globals"),
+                                       cl::init(false),
+                                       cl::cat(DiscoverNormalizerCategory));
 
 void InitGlobal::uninlineConstantExpr(IRBuilder<> *builder,
                                       Instruction *instr) {
@@ -188,6 +193,9 @@ void InitGlobal::invokeGlobalInitFunctions(IRBuilder<> *builder,
 }
 
 bool InitGlobal::runOnModule(Module &M) {
+  if (DisableInitGlobal)
+    return true;
+
   StringRef passName = this->getPassName();
   debug() << "=========================================\n"
           << "Running Module Pass: " << passName << "\n";

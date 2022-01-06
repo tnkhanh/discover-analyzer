@@ -1,7 +1,7 @@
 (********************************************************************
  * This file is part of the source code analyzer Discover.
  *
- * Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.
+ * Copyright (c) 2020-2022 Singapore Blockchain Innovation Programme.
  * All rights reserved.
  ********************************************************************)
 
@@ -192,28 +192,28 @@ let pr_potential_bugs (pbugs : potential_bug list) : string =
 
 let pr_bug (bug : bug) : string =
   let bug_type_info =
-    let btype = pr_bug_type bug.bug_type in
     let cwe = pr_bug_cwe bug.bug_type in
-    btype
+    pr_bug_type bug.bug_type
     ^ String.surround_if_not_empty ~prefix:" (" ~suffix:")" cwe
-    ^ " at instruction: \n" in
-  let location =
-    match !llvm_orig_source_name with
-    | false ->
-      sprintf "    %s\n" (pr_instr bug.bug_instr)
-      ^ sprintf "  in function: %s\n" (func_name bug.bug_func)
-    | true ->
-      (match position_of_instr bug.bug_instr with
+    ^ "\n" in
+  let instr = sprintf "LLVM instruction:\n  %s\n" (pr_instr bug.bug_instr) in
+  let code_excerpt =
+    if !report_source_code_name
+    then (
+      match position_of_instr bug.bug_instr with
       | None -> ""
-      | Some p -> "  " ^ pr_file_position_and_excerpt p ^ "\n") in
-  let reason = String.align_line "  Reason: " bug.bug_reason in
-  "BUG: " ^ bug_type_info ^ location ^ reason
+      | Some p ->
+        let fname = func_name bug.bug_func in
+        pr_code_excerpt_and_location p ~func:fname ^ "\n")
+    else "" in
+  let reason = String.align_line "Reason: " bug.bug_reason in
+  "BUG: " ^ bug_type_info ^ String.indent 2 (instr ^ code_excerpt ^ reason)
 ;;
 
 let pr_bug_name (bug : bug) : string = pr_bug_type bug.bug_type
 
 let pr_bugs (bugs : bug list) : string =
-  pr_list_plain ~sep:"\n\n" ~f:pr_bug bugs
+  pr_list ~obrace:"\n" ~cbrace:"" ~sep:"\n\n" ~f:pr_bug bugs
 ;;
 
 (*******************************************************************
@@ -247,7 +247,7 @@ let mk_potential_bug (ins : instr) (btype : bug_type) : potential_bug =
  *------------------------------------------*)
 
 let mk_potential_integer_overflow (ins : instr) : potential_bugs =
-  if !bug_all || !bug_memory_all || !bug_integer_overflow
+  if !bug_all || !bug_integer_all || !bug_integer_overflow
   then (
     let expr = llvalue_of_instr ins in
     let iof =

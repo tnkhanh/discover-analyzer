@@ -1,7 +1,7 @@
 (********************************************************************
  * This file is part of the source code analyzer Discover.
  *
- * Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.
+ * Copyright (c) 2020-2022 Singapore Blockchain Innovation Programme.
  * All rights reserved.
  ********************************************************************)
 
@@ -10,13 +10,55 @@ module PS = Outils.Process
 module BC = Bitcode
 module FN = Filename
 module LI = Llir
-module LL = Llvm
+
+let builtin_Solang_functions =
+  [ "__init_heap";
+    "__memset8";
+    "__memset";
+    "__memcpy8";
+    "__memcpy";
+    "__bzero8";
+    "__be32toleN";
+    "__beNtoleN";
+    "__leNtobe32";
+    "__leNtobeN";
+    "vector_new";
+    "__malloc";
+    "vector_hash";
+    "__memcmp";
+    "concat";
+    "__free";
+    "__realloc";
+    "__mul32";
+    "bits";
+    "bits128";
+    "shl128";
+    "shr128";
+    "udivmod128";
+    "sdivmod128";
+    "bits256";
+    "udivmod256";
+    "sdivmod256";
+    "bits512";
+    "udivmod512";
+    "sdivmod512";
+    "hex_encode";
+    "hex_encode_rev";
+    "uint2hex";
+    "uint2bin";
+    "uint2dec";
+    "uint128dec";
+    "uint256dec"
+  ]
+;;
 
 let find_entry_functions (prog : LI.program) : LI.funcs =
   List.fold_left
-    ~f:(fun acc f ->
-      let vf = LI.llvalue_of_func f in
-      if LL.linkage vf == LL.Linkage.Internal then acc @ [ f ] else acc)
+    ~f:(fun acc fn ->
+      let fname = LI.func_name fn in
+      if List.mem builtin_Solang_functions fname ~equal:String.equal
+      then acc
+      else fn :: acc)
     ~init:[] prog.LI.prog_user_funcs
 ;;
 
@@ -47,15 +89,20 @@ let compile_program (input_file : string) : LI.program =
     let cmd =
       [ !solang_exe; input_file ]
       @ [ "--emit"; "llvm-bc" ]
+      @ [ "--no-constant-folding"; "--no-strength-reduce"]
+      @ [ "--no-dead-storage"; "--no-vector-to-slice"]
       @ [ "-O"; "none"; "--target"; "ewasm" ]
       @ [ "-o"; output_dir ] @ user_options in
-    PS.run_command cmd in
+    let _ = debugf "Compilation command: %s" (String.concat ~sep:" " cmd) in
+    match PS.run_command cmd with
+    | Ok () -> ()
+    | Error log -> error ~log ("Failed to compile file: " ^ input_file) in
   let generated_files = Sys.ls_dir output_dir in
   let _ = debugp "Generated files: " (pr_list ~f:pr_str) generated_files in
   let deploy_file =
     List.find ~f:(String.is_suffix ~suffix:"_deploy.bc") generated_files in
   match deploy_file with
-  | None -> error "compile_program: no output file generated!"
+  | None -> error "Compile Solidity program: no output file generated!"
   | Some deploy_file ->
     let output_file = output_dir ^ FN.dir_sep ^ deploy_file in
     let _ = print ("Output file: " ^ output_file) in

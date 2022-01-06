@@ -1,7 +1,7 @@
 /********************************************************************
  * This file is part of the tool Normalizer of the project Discover.
  *
- * Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.
+ * Copyright (c) 2020-2022 Singapore Blockchain Innovation Programme.
  * All rights reserved.
  *******************************************************************/
 
@@ -27,6 +27,11 @@ using GEPInstList = std::vector<GetElementPtrInst *>;
  */
 
 char CombineGEP::ID = 0;
+
+static cl::opt<bool>
+    DisableCombineGEP("disable-combine-gep",
+                      cl::desc("Disable combining GEP instructions"),
+                      cl::init(false), cl::cat(DiscoverNormalizerCategory));
 
 /*
  * Combine GEP Instructions
@@ -137,6 +142,9 @@ std::vector<GEPInstList> findCombinableGEPList(Function &F) {
  * Entry function for this FunctionPass, can be used by llvm-opt
  */
 bool CombineGEP::runOnFunction(Function &F) {
+  if (DisableCombineGEP)
+    return true;
+
   StringRef passName = this->getPassName();
   debug() << "=========================================\n"
           << "Running Function Pass <" << passName << "> on: " << F.getName()

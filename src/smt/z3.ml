@@ -1,12 +1,13 @@
 (********************************************************************
  * This file is part of the source code analyzer Discover.
  *
- * Copyright (c) 2020-2021 Singapore Blockchain Innovation Programme.
+ * Copyright (c) 2020-2022 Singapore Blockchain Innovation Programme.
  * All rights reserved.
  ********************************************************************)
 
 open Dcore
 open Z3ir
+module LL = Llvm
 module PS = Outils.Process
 module SI = Slir
 module LI = Llir
@@ -32,9 +33,14 @@ let start_solver () =
   match !z3proc with
   | None ->
     let config = [] in
-    let proc = PS.start_process z3cmd in
-    let _ = z3proc := Some proc in
-    List.iter ~f:(fun cfg -> send_config proc cfg) config
+    (match PS.open_process z3cmd with
+    | Ok proc ->
+      let _ = z3proc := Some proc in
+      List.iter ~f:(fun cfg -> send_config proc cfg) config
+    | Error log ->
+      error
+        (("Failed to start Z3: %s" ^ String.concat ~sep:" " z3cmd ^ "\n")
+        ^ "Error log: " ^ log))
   | _ -> ()
 ;;
 
@@ -53,9 +59,9 @@ let restart_solver () =
   start_solver ()
 ;;
 
-let send_input_to_solver (input: string) : unit =
+let send_input_to_solver (input : string) : unit =
   match !z3proc with
-  | None -> ()
+  | None -> warning "send_input_to_solver: Z3 is not running"
   | Some proc ->
     let input = "(reset)\n" ^ input ^ "(echo \"" ^ z3eof ^ "\")\n" in
     (* let _ = debugpc "Z3bin INPUT: \n" pr_str input in *)
@@ -65,7 +71,9 @@ let send_input_to_solver (input: string) : unit =
 
 let read_output_from_solver () : string =
   match !z3proc with
-  | None -> ""
+  | None ->
+    let _ = warning "read_output_from_solver: Z3 is not running" in
+    ""
   | Some proc ->
     let rec read acc =
       try

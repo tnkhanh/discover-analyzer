@@ -9,16 +9,17 @@
  contract Overflow {
      uint private sellerBalance=0;
 
-     function add(uint value) returns (bool){
+     function add(uint value) public returns (bool){
          // <yes> <report> ARITHMETIC
          sellerBalance += value; // possible overflow
 
          // possible auditor assert
          // assert(sellerBalance >= value);
+         return true;
      }
 
   // function safe_add(uint value) returns (bool){
   //   require(value + sellerBalance >= sellerBalance);
   // sellerBalance += value;
-  // } 
+  // }
  }
