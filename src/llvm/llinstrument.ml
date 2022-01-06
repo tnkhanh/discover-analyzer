@@ -275,10 +275,10 @@ let bug_annotation annots source_name (modul : LL.llmodule) : unit =
   let finstr =
     Some
       (fun acc instr ->
-        if is_instr_call instr
+        if (is_instr_call instr) || (is_instr_store instr)
            (*&& LL.is_intrinsic (operand instr 0) then acc*)
         then (
-          let _ = debug ("Call: " ^ LL.string_of_llvalue (operand instr 0)) in
+          let _ = debug ("Call/Store: " ^ LL.string_of_llvalue (operand instr 0)) in
           acc)
         else (
           let pos_op = position_of_instr instr in
@@ -289,8 +289,8 @@ let bug_annotation annots source_name (modul : LL.llmodule) : unit =
             then acc
             else (
               match acc with
-              | [] -> mk_tagged_instr pos 1 instr :: acc
-              | hd :: tl -> mk_tagged_instr pos (hd.tagx_tag + 1) instr :: acc)))
+              | [] -> mk_tagged_instr pos (-1) instr :: acc
+              | hd :: tl -> mk_tagged_instr pos (hd.tagx_tag - 1) instr :: acc)))
   in
   let tagged_instr = visit_fold_module ~finstr [] modul in
   let _ =
