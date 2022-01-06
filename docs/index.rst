@@ -38,6 +38,8 @@ Contents
    :maxdepth: 2
    :caption: Discover
 
+   installation.rst
+
    development.rst
 
    llvm-normalizer.rst

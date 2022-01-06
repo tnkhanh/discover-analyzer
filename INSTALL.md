@@ -16,7 +16,7 @@ The following commands are tested and work well with Linux Mint / Ubuntu 20.
 - Ninja-build, z3
 
   ``` sh
-  sudo apt-get install ninja-build, z3
+  sudo apt-get install ninja-build z3
   ```
 
 - LLVM and Clang 13
@@ -74,8 +74,7 @@ The following commands are tested and work well with Linux Mint / Ubuntu 20.
 
 ## Gollvm for compiling Hyperledger Fabric smart contracts
 
-- To install Gollvm, LLVM must be compiled and installed from [our custom LLVM
-  project](https://github.com/sbip-sg/llvm-project). Please follow the above step to install LLVM first.
+-
 
 - Then, run the following instructions to install `gollvm`.
 
@@ -151,7 +150,7 @@ The following commands are tested and work well with Linux Mint / Ubuntu 20.
   ``` sh
   export WORKDIR=$HOME/workspace           # or any other working directory
   cd $WORKDIR
-  git clone https://github.com/sbip-sg/discover-analyzer
+  git clone https://github.com/sbip-sg/discover
   git clone https://github.com/sbip-sg/llvm-normalizer
   ```
 
