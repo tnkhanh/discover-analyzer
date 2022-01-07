@@ -1,5 +1,5 @@
-Discover - a static analyzer for smart contracts
-==============================================================================
+Discover - a Smart Contracts Static Analyzer
+=========================================================
 
 Overview
 --------
@@ -11,17 +11,11 @@ bitcode. We are also working to extend Discover to analyze smart contracts
 written in Golang, Typescript of Hyperledger Fabric blockchain.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Getting Started
+   :maxdepth: 3
+   :caption: Contents
 
    overview.rst
-
    installation.rst
-
    development.rst
-
    llvm-normalizer.rst
-
    find-bugs.rst
-
-   .. toctree::

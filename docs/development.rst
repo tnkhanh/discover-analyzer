@@ -27,11 +27,8 @@ OCaml Programming Guidelines
 -------------------------------
 
 - Programming guidelines and coding standards can be referred to:
-  + `OCaml programming guidelines
-    <https://ocaml.org/learn/tutorials/guidelines.html>`_, from official OCaml
-    website.
-  + `Real World Ocaml
-    <https://dev.realworldocaml.org/index.html>`_ (free, online book).
+  + `OCaml programming guidelines <https://ocaml.org/learn/tutorials/guidelines.html>`_, from official OCamlwebsite.
+  + `Real World Ocaml <https://dev.realworldocaml.org/index.html>`_ (free, online book).
 
 - Indentation by `ocp-indent <https://github.com/OCamlPro/ocp-indent>`_ and
   follow the rules configured in in ``discover/.ocp-indent``.
@@ -117,5 +114,4 @@ Autoformat project using Dune
      let b = 2 in
      let x = 1 in
 
-- Read more at this `formatting project tutorial
-  <https://dune.readthedocs.io/en/stable/formatting.html>.`_
+- Read more at this `formatting project tutorial <https://dune.readthedocs.io/en/stable/formatting.html>`_.
