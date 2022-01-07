@@ -68,7 +68,7 @@ let optimize_bitcode (input_file : string) : string =
         then []
         else String.split ~on:' ' !opt_user_options in
       let cmd =
-        [ !opt_exe; input_file; "-o"; output_file ]
+        [ !llvm_opt_exe; input_file; "-o"; output_file ]
         @ [ "-mem2reg" ] (* promote pointer variables to registers *)
         @ [ "--disable-verify" ] @ user_options in
       match PS.run_command cmd with

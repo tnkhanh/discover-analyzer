@@ -192,8 +192,8 @@ let clang_exe = ref "clang"
 let clang_version = ref "unknown"
 
 (* llvm-opt *)
-let opt_exe = ref "opt"
-let opt_version = ref "unknown"
+let llvm_opt_exe = ref "opt"
+let llvm_opt_version = ref "unknown"
 
 (* llvm-dis *)
 let llvm_dis_exe = ref "llvm-dis"

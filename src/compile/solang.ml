@@ -12,6 +12,10 @@ module FN = Filename
 module LI = Llir
 
 let config_solang_compiler () : unit =
+  let _ =
+    match PS.run_command_get_output [ "which"; !solang_exe ] with
+    | Ok res -> solang_exe := res
+    | Error msg -> () in
   match PS.run_command_get_output [ !solang_exe; "--version" ] with
   | Ok res -> solang_version := res
   | Error msg ->

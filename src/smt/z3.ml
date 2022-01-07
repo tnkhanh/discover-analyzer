@@ -27,6 +27,10 @@ let z3_cmd = [ !z3_exe; "-smt2"; "-in"; "-t:5000" ]
 let z3proc = ref None
 
 let config_z3_solver () : unit =
+  let _ =
+    match PS.run_command_get_output [ "which"; !z3_exe ] with
+    | Ok res -> z3_exe := res
+    | Error msg -> () in
   match PS.run_command_get_output [ !z3_exe; "--version" ] with
   | Ok res -> z3_version := res
   | Error msg ->

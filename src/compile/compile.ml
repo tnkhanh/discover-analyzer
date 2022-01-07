@@ -15,38 +15,22 @@ module SE = Symexec
  * LLVM PROGRAM
  **********************************************************)
 
-let config_llvm_compiler () : unit =
-  if String.not_empty !llvm_bin_path
-  then (
-    let _ =
-      if not (String.is_suffix !llvm_bin_path ~suffix:"/")
-      then llvm_bin_path := !llvm_bin_path ^ "/" in
-    clang_exe := !llvm_bin_path ^ !clang_exe;
-    opt_exe := !llvm_bin_path ^ !opt_exe;
-    llvm_dis_exe := !llvm_bin_path ^ !llvm_dis_exe)
-;;
-
 let config_llvm_normalizer () =
   normalizer_exe := project_path ^ "/" ^ !normalizer_exe
 ;;
 
-let verify_clang_compiler () =
-  match PS.run_command_get_output [ !clang_exe; "--version" ] with
-  | Error msg ->
-    error
-      (sprintf "Failed to check Clang version: %s\n" msg
-      ^ sprintf "Clang path: %s" !clang_exe)
-  | Ok output ->
-    if String.is_substring ~substring:("version " ^ llvm_version) output
-    then ()
-    else
-      error
-        ("Expect Clang " ^ llvm_version ^ " but found: \n"
-       ^ String.indent 2 output)
-;;
-
-let verify_llvm_opt () =
-  match PS.run_command_get_output [ !opt_exe; "--version" ] with
+let config_llvm_opt () =
+  let _ =
+    let opt_path =
+      if String.is_empty !llvm_bin_path
+      then !llvm_opt_exe
+      else if String.is_suffix ~suffix:"/" !llvm_bin_path
+      then !llvm_bin_path ^ !llvm_opt_exe
+      else !llvm_bin_path ^ "/" ^ !llvm_opt_exe in
+    match PS.run_command_get_output [ "which"; opt_path ] with
+    | Ok res -> llvm_opt_exe := res
+    | Error msg -> () in
+  match PS.run_command_get_output [ !llvm_opt_exe; "--version" ] with
   | Error msg -> error ("Failed to check LLVM Opt version: " ^ msg)
   | Ok output ->
     if String.is_substring ~substring:("version " ^ llvm_version) output
@@ -57,13 +41,35 @@ let verify_llvm_opt () =
        ^ String.indent 2 output)
 ;;
 
+let config_llvm_dis () =
+  let _ =
+    let dis_path =
+      if String.is_empty !llvm_bin_path
+      then !llvm_dis_exe
+      else if String.is_suffix ~suffix:"/" !llvm_bin_path
+      then !llvm_bin_path ^ !llvm_dis_exe
+      else !llvm_bin_path ^ "/" ^ !llvm_dis_exe in
+    match PS.run_command_get_output [ "which"; dis_path ] with
+    | Ok res -> llvm_dis_exe := res
+    | Error msg -> () in
+  match PS.run_command_get_output [ !llvm_dis_exe; "--version" ] with
+  | Error msg -> error ("Failed to check LLVM Dis version: " ^ msg)
+  | Ok output ->
+    if String.is_substring ~substring:("version " ^ llvm_version) output
+    then ()
+    else
+      error
+        ("Expect LLVM Dis " ^ llvm_version ^ " but found: \n"
+       ^ String.indent 2 output)
+;;
+
 let config_toolchain () =
-  config_llvm_compiler ();
+  config_llvm_opt ();
+  config_llvm_dis ();
   config_llvm_normalizer ();
+  Clang.config_clang_compiler ();
   Solang.config_solang_compiler ();
-  Golang.config_golang_compiler ();
-  verify_clang_compiler ();
-  verify_llvm_opt ()
+  Golang.config_golang_compiler ()
 ;;
 
 let get_input_type (filename : string) =

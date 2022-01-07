@@ -25,20 +25,18 @@ let print_discover_settings () =
     [ "Discover's settings:";
       "  Git revision: " ^ VS.get_current_revision ();
       "  LLVM version: " ^ llvm_version;
-      "  Clang path: " ^ !clang_exe ^ " (" ^ !clang_version ^ ")";
-      "  Opt path: " ^ !opt_exe ^ " (" ^ !opt_version ^ ")";
-      "  Normalizer path: " ^ !normalizer_exe ^ " (" ^ !normalizer_version
-      ^ ")";
-      "  Solang path: " ^ !solang_exe ^ " (" ^ !solang_version ^ ")";
-      "  Gollvm path: " ^ !gollvm_exe ^ " (" ^ !gollvm_version ^ ")";
-      "  Z3 solver: " ^ !Z3.z3_exe ^ " (" ^ !Z3.z3_version ^ ")"
+      "  Clang: " ^ !clang_exe;
+      "  Llvm-opt: " ^ !llvm_opt_exe;
+      "  Llvm-dis: " ^ !llvm_dis_exe;
+      "  Normalizer: " ^ !normalizer_exe ^ " (" ^ !normalizer_version ^ ")";
+      "  Solang: " ^ !solang_exe ^ " (" ^ !solang_version ^ ")";
+      "  Gollvm: " ^ !gollvm_exe ^ " (" ^ !gollvm_version ^ ")";
+      "  Z3: " ^ !Z3.z3_exe ^ " (" ^ !Z3.z3_version ^ ")"
     ] in
   debug (String.concat ~sep:"\n" info)
 ;;
 
-let init_solvers () =
-  Z3.config_z3_solver ()
-;;
+let init_solvers () = Z3.config_z3_solver ()
 
 let read_user_configuration () : unit =
   let root_dir = Filename.dirname Sys.executable_name in
@@ -55,28 +53,16 @@ let read_user_configuration () : unit =
       let _ =
         match Ezjsonm.find_opt config [ "GOLLVM_BINARY_PATH" ] with
         | Some path ->
-          let path = Ezjsonm.get_string path in
-          (try
-             let _ = gollvm_bin_path := Filename.realpath path in
-             debugf "User's Gollvm binary path: %s" !gollvm_bin_path
-           with _ ->
-             warning
-               ("Checking user's Golang configuration\n"
-              ^ "  Gollvm path not existed: " ^ path ^ "\n"
-              ^ "  Used default settings from $PATH"))
+          let _ = gollvm_bin_path := Ezjsonm.get_string path in
+          if not (String.is_suffix ~suffix:"/" !gollvm_bin_path)
+          then gollvm_bin_path := !gollvm_bin_path ^ "/"
         | None -> () in
       let _ =
         match Ezjsonm.find_opt config [ "LLVM_BINARY_PATH" ] with
         | Some path ->
-          let path = Ezjsonm.get_string path in
-          (try
-             let _ = llvm_bin_path := Filename.realpath path in
-             debugf "User's LLVM binary path: %s" !llvm_bin_path
-           with _ ->
-             warning
-               ("Checking user's LLVM configuration\n"
-              ^ "  LLVM path not existed: " ^ path ^ "\n"
-              ^ "  Used default settings from $PATH"))
+          let _ = llvm_bin_path := Ezjsonm.get_string path in
+          if not (String.is_suffix ~suffix:"/" !llvm_bin_path)
+          then llvm_bin_path := !llvm_bin_path ^ "/"
         | None -> () in
       ())
 ;;
