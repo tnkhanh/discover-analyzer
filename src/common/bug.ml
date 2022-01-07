@@ -179,6 +179,22 @@ let pr_bug_type (btype : bug_type) : string =
   | ResourceLeak _ -> "Resource Leak"
 ;;
 
+let pr_bug_type_lowercase (btype : bug_type) : string =
+  match btype with
+  (* Integer bugs *)
+  | IntegerOverflow _ -> "integer_over_under_flow"
+  | IntegerUnderflow _ -> "integer_over_under_flow"
+  | IntegerCoercionError _ -> "integer_coercion_error"
+  | NumericTruncationError _ -> "numeric_truncation_error"
+  | DivisionByZero _ -> "division_by_zero"
+  (* Memory bugs *)
+  | MemoryLeak _ -> "memory_leak"
+  | NullPointerDeref _ -> "null_pointer_dereference"
+  | BufferOverflow _ -> "buffer_overflow"
+  (* Resource bugs *)
+  | ResourceLeak _ -> "resource_leak"
+;;
+
 let pr_potential_bug (pbug : potential_bug) : string =
   "Potential "
   ^ (pr_bug_type pbug.pbug_type ^ " bug at:\n")

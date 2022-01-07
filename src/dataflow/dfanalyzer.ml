@@ -221,36 +221,62 @@ let compute_benchmark_result (prog : LI.program) (bugs : BG.bug list) : benchmar
   let finstr =
     Some (fun acc instr ->
       if LI.is_instr_call instr then
-        (let func = LI.operand instr 0 in
-        let func_name = LL.value_name func in
+        (let func_name = LI.func_name (LI.callee_of_instr_call instr) in
         if String.is_prefix ~prefix:__assert func_name
-        then instr :: acc
+        then (instr, None) :: acc
         else
           acc)
       else
        acc)
   in
-  let assert_calls = LI.visit_fold_program [] prog ~finstr in
-  let correct_bug_reports, incorrect_bug_reports = 
-    List.fold ~init:(0, 0) ~f:(fun (correct, incorrect) bug ->
-      if List.exists ~f:(fun call ->
-        let asserted_ins = LI.operand call 0 in
-        let bug_ins = LI.llvalue_of_instr bug.bug_instr in
-        asserted_ins == bug_ins
-      ) assert_calls
-      then
-        (correct + 1, incorrect)
-      else
-        (correct, incorrect + 1)
+  let assert_calls = LI.visit_fold_program ~finstr [] prog in
+  let _ = print "Assert calls: " in
+  let _ =
+    List.iter ~f:print
+      (List.map assert_calls ~f: (fun (c, _) -> LL.string_of_llvalue (LI.llvalue_of_instr c))) in
+
+  let correct_bug_reports, incorrect_bug_reports, matched_calls = 
+    List.fold ~init:(0, 0, assert_calls) ~f:(fun (correct, incorrect, mcalls) bug ->
+
+      let found, new_rev_mcalls = 
+        List.fold ~init:(false, []) ~f:(fun (f, new_mcalls) ((call, _) as mcall) ->
+          if f then
+            (true, mcall :: new_mcalls)
+          else
+            let asserted_ins = LI.operand call 0 in
+            let bug_ins = LI.llvalue_of_instr bug.bug_instr in
+            (* TODO: nested folds need inspection, and the comparison below *)
+            if asserted_ins == bug_ins then
+              (
+                let callee_name = LI.func_name (LI.callee_of_instr_call call) in
+                if String.is_substring 
+                     ~substring:(BG.pr_bug_type_lowercase bug.bug_type) callee_name
+                then
+                  (true, (call, Some bug) :: new_mcalls)
+                else
+                  false, mcall :: new_mcalls
+              )
+            else
+              false, mcall :: new_mcalls
+        ) mcalls in
+      ((if found then correct + 1 else correct),
+       (if found then incorrect else incorrect + 1),
+       List.rev new_rev_mcalls)
     ) bugs in
-  let missing_bugs =
-    List.fold ~init:0 ~f:(fun acc call -> acc + 1
-    ) assert_calls in
+  let detailed_result, missing_bugs =
+    List.fold ~init:("", 0) ~f:(fun (acc, count) (call, bug_opt) ->
+      match bug_opt with
+      | None -> acc, count + 1
+      | Some bug -> 
+        (let call_str = LL.string_of_llvalue (LI.llvalue_of_instr call) in 
+        acc ^ "Match:\n  Call: " ^ call_str ^ "\n  Bug: " ^ bug.bug_reason ^ "\n"),
+        count
+    ) matched_calls in
   {
     ben_correct_bug_reports = correct_bug_reports;
     ben_incorrect_bug_reports = incorrect_bug_reports;
     ben_missing_bugs = missing_bugs;
-    ben_detailed_result = "";
+    ben_detailed_result = detailed_result;
   }
 ;;
 

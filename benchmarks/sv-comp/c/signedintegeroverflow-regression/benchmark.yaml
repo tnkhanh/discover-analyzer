@@ -1,5 +1,6 @@
+# ./discover --clang-option "-g -I lib/discover/" -d --dfa-inter --dfa-range --bug-integer-all --bug-annotation --pinstrp benchmarks/sv-comp/c/signedintegeroverflow-regression/AdditionIntMax.c 1>xyz 2>&1
 standard:
-  clang-option: -g
-  discover-option: -d --bug-all --dfa-range --bug-annotation --pinstrp
+  clang-option: "-g -I lib/discover/" 
+  discover-option: --dfa-inter --bug-all --dfa-range --bug-annotation --pinstrp -d
   targets: .c
   excludes: ConversionToSignedInt.c

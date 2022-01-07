@@ -120,20 +120,7 @@ let generate_instrumented_func_name anntyp (bug : BG.bug_type) ins_type =
     else if String.equal anntyp "Safe"
     then "__refute_ins_"
     else "__wonder_ins_" in
-  let bug_name =
-    match bug with
-    | MemoryLeak _ -> "memory_leak"
-    | NullPointerDeref _ -> "null_pointer_deref"
-    | BufferOverflow _ -> "buffer_overflow"
-    | IntegerOverflow _ -> "integer_overflow"
-    | IntegerUnderflow _ -> "integer_underflow"
-    | DivisionByZero _ -> "division_by_zero"
-    | _ ->
-      let _ =
-        warningp
-          "generate_instrumented_func_name: bug type not yet supported: "
-          BG.pr_bug_type bug in
-      "unsupported_bug" in
+  let bug_name = BG.pr_bug_type_lowercase bug in
   let tail = LL.string_of_lltype ins_type in
   prefix ^ bug_name ^ "_" ^ tail
 ;;
@@ -289,8 +276,8 @@ let bug_annotation annots source_name (modul : LL.llmodule) : unit =
             then acc
             else (
               match acc with
-              | [] -> mk_tagged_instr pos (-1) instr :: acc
-              | hd :: tl -> mk_tagged_instr pos (hd.tagx_tag - 1) instr :: acc)))
+              | [] -> mk_tagged_instr pos 1 instr :: acc
+              | hd :: tl -> mk_tagged_instr pos (hd.tagx_tag + 1) instr :: acc)))
   in
   let tagged_instr = visit_fold_module ~finstr [] modul in
   let _ =
