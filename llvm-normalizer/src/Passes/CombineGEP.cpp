@@ -69,8 +69,9 @@ void combineGEPInstructions(Function &F,
 
     for (it2 = gepInstList.begin(); it2 != gepInstList.end(); it2++) {
       GetElementPtrInst *instr = *it2;
-      instr->removeFromParent();
-      instr->deleteValue();
+      // instr->removeFromParent();
+      // instr->deleteValue();
+      instr->eraseFromParent();
     }
   }
 }

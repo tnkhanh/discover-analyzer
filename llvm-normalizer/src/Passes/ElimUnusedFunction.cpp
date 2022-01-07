@@ -27,31 +27,38 @@ bool ElimUnusedFunction::runOnModule(Module &M) {
   debug() << "=========================================\n"
           << "Running Module Pass: " << passName << "\n";
 
-  FunctionList &funcList = M.getFunctionList();
+  bool continueRemove = true;
 
-  FunctionSet unusedFuncs;
+  while (continueRemove) {
+    continueRemove = false;
 
-  for (auto it = funcList.begin(); it != funcList.end(); ++it) {
-    Function *func = &(*it);
+    FunctionList &funcList = M.getFunctionList();
+    FunctionSet unusedFuncs;
 
-    StringRef funcName = func->getName();
+    for (auto it = funcList.begin(); it != funcList.end(); ++it) {
+      Function *func = &(*it);
 
-    // do note eliminate assertions or main function
-    if (funcName.startswith("__assert") || funcName.startswith("__refute") ||
-        funcName.contains("main"))
-      continue;
+      StringRef funcName = func->getName();
 
-    // do not eliminate internal linkage function
-    if (func->hasInternalLinkage())
-      continue;
+      // do note eliminate assertions or main function
+      if (funcName.startswith("__assert") || funcName.startswith("__refute") ||
+          funcName.contains("main"))
+        continue;
 
-    if (func->getNumUses() == 0)
-      unusedFuncs.insert(func);
-  }
+      // do not eliminate internal linkage function
+      if (func->hasInternalLinkage())
+        continue;
 
-  for (Function *func : unusedFuncs) {
-    debug() << "Eliminating unused function: " << func->getName() << "\n";
-    func->removeFromParent();
+      if (func->getNumUses() == 0)
+        unusedFuncs.insert(func);
+    }
+
+    for (Function *func : unusedFuncs) {
+      debug() << "Eliminating unused function: " << func->getName() << "\n";
+      // func->removeFromParent();
+      func->eraseFromParent();
+      continueRemove = true;
+    }
   }
 
   debug() << "Finish Module Pass: " << passName << "\n";

@@ -208,8 +208,9 @@ void eliminateIdenticalInstrs(Function &F, DominatorTree &DT,
                 << "      by: " << *keepInst << " in "
                 << keepInst->getFunction()->getName() << "\n";
         llvm::replaceOperand(&F, otherInst, keepInst);
-        otherInst->removeFromParent();
-        otherInst->deleteValue();
+        // otherInst->removeFromParent();
+        // otherInst->deleteValue();
+        otherInst->eraseFromParent();
       }
     }
   }

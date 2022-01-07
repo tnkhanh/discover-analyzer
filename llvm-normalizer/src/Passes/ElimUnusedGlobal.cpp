@@ -33,8 +33,9 @@ bool ElimUnusedGlobal::runOnModule(Module &M) {
 
   for (GlobalVariable *global : removableGlobals) {
     debug() << " - Deleting " << *global << "\n";
-    global->removeFromParent();
+    // global->removeFromParent();
     // global->deleteValue();
+    global->eraseFromParent();
   }
 
   debug() << "Finish Module Pass: " << passName << "\n";

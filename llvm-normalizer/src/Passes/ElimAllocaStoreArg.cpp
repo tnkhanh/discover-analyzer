@@ -49,15 +49,18 @@ void ElimAllocaStoreArg::removeAllocaStoreArg(Function &F,
       debug() << "   replace: " << *loadInst << "\n"
               << "      by: " << *storeSrc << "\n";
       llvm::replaceOperand(&F, loadInst, storeSrc);
-      loadInst->removeFromParent();
-      loadInst->deleteValue();
+      // loadInst->removeFromParent();
+      // loadInst->deleteValue();
+      loadInst->eraseFromParent();
     }
 
-    storeInst->removeFromParent();
-    storeInst->deleteValue();
+    // storeInst->removeFromParent();
+    // storeInst->deleteValue();
+    storeInst->eraseFromParent();
 
-    allocInst->removeFromParent();
-    allocInst->deleteValue();
+    // allocInst->removeFromParent();
+    // allocInst->deleteValue();
+    allocInst->eraseFromParent();
 
     // debug() << "Output function:\n" << F;
   }
