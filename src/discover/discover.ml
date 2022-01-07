@@ -23,7 +23,7 @@ let print_discover_settings () =
   let _ = print ~always:true ("Checking file: " ^ !input_file) in
   let info =
     [ "Discover's settings:";
-      "  Git revision: " ^ VS.get_current_revision ();
+      "  Git revision: " ^ VS.get_current_revision_info ();
       "  LLVM version: " ^ llvm_version;
       "  Clang: " ^ !clang_exe;
       "  Llvm-opt: " ^ !llvm_opt_exe;

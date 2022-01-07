@@ -16,7 +16,10 @@ module SE = Symexec
  **********************************************************)
 
 let config_llvm_normalizer () =
-  normalizer_exe := project_path ^ "/" ^ !normalizer_exe
+  let _ = normalizer_exe := project_path ^ "/" ^ !normalizer_exe in
+  match PS.run_command_get_output [ !normalizer_exe; "--version" ] with
+  | Ok res -> normalizer_version := res
+  | Error msg -> ()
 ;;
 
 let config_llvm_opt () =

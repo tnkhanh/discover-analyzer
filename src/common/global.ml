@@ -189,27 +189,27 @@ let project_path = Filename.dirname discover_path
 
 (* Clang *)
 let clang_exe = ref "clang"
-let clang_version = ref "unknown"
+let clang_version = ref "N/A"
 
 (* llvm-opt *)
 let llvm_opt_exe = ref "opt"
-let llvm_opt_version = ref "unknown"
+let llvm_opt_version = ref "N/A"
 
 (* llvm-dis *)
 let llvm_dis_exe = ref "llvm-dis"
-let llvm_dis_version = ref "unknown"
+let llvm_dis_version = ref "N/A"
 
 (* llvm-normalizer *)
 let normalizer_exe = ref "normalizer"
-let normalizer_version = ref "unknown"
+let normalizer_version = ref "N/A"
 
 (* solang *)
 let solang_exe = ref "solang"
-let solang_version = ref "unknown"
+let solang_version = ref "N/A"
 
 (* gollvm *)
 let gollvm_exe = ref "gollvm"
-let gollvm_version = ref "unknown"
+let gollvm_version = ref "N/A"
 
 (*----------------------
  * Compilation options

@@ -7,4 +7,5 @@
 
 val discover_official_version : string
 val discover_git_revision : string ref
-val get_current_revision : unit -> string
+val get_current_revision_info : unit -> string
+val get_latest_commit_info_of_file : string -> string
