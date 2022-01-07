@@ -102,3 +102,6 @@ add_subdirectory(src)
 
 # Add clang-format support
 include("${CMAKE_DIR}/ClangFormat.cmake")
+
+# Add support of generating version information
+include("${CMAKE_DIR}/Version.cmake")

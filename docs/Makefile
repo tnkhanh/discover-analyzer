@@ -1,4 +1,4 @@
-.PHONY: all discover test clean format
+.PHONY: all
 .DEFAULT_GOAL := all
 
 all: docs

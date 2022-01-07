@@ -38,6 +38,7 @@
 #include "Passes/InitGlobal.h"
 #include "Passes/InlineSimpleFunction.h"
 #include "Passes/UninlineInstruction.h"
+#include "Version.h"
 
 using namespace std;
 using namespace llvm;
@@ -193,6 +194,12 @@ int main(int argc, char **argv) {
   /*-----------------------------
    * Parse command line options
    *----------------------------*/
+
+  // Version printer for --version option
+  llvm::cl::SetVersionPrinter([](llvm::raw_ostream &OS) {
+    OS << "Normalizer v" << VERSION << "-r" << GIT_REV << " @ "
+       << GIT_TIME << "\n";
+  });
 
   // Show only options of Discover category
   cl::HideUnrelatedOptions(DiscoverNormalizerCategory);

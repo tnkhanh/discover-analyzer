@@ -50,7 +50,7 @@ bool ElimUnusedFunction::runOnModule(Module &M) {
   }
 
   for (Function *func : unusedFuncs) {
-    debug() << "Eliminating unused function " << func->getName();
+    debug() << "Eliminating unused function: " << func->getName() << "\n";
     func->removeFromParent();
   }
 
