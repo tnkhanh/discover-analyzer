@@ -59,8 +59,10 @@ void combineGEPInstructions(Function &F,
     }
 
     Value *rootPtr = firstGEP->getPointerOperand();
+    Type *pointeeTyp =
+        rootPtr->getType()->getScalarType()->getPointerElementType();
     Instruction *newGepInstr =
-        GetElementPtrInst::CreateInBounds(rootPtr, newIdxs);
+        GetElementPtrInst::CreateInBounds(pointeeTyp, rootPtr, newIdxs);
 
     IRBuilder<> builder = IRBuilder(firstGEP);
     builder.SetInsertPoint(otherGEP);

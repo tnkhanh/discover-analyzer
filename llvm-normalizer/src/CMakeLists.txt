@@ -44,3 +44,10 @@ add_custom_command(TARGET normalizer POST_BUILD
   COMMAND ${CMAKE_COMMAND}
   -E copy $<TARGET_FILE:normalizer> ${PROJECT_BINARY_DIR}/normalizer
   COMMENT "Copied to: ${PROJECT_BINARY_DIR}/normalizer")
+
+# Deploy after build
+get_filename_component(DISCOVER_DIR "${PROJECT_BINARY_DIR}/../.." ABSOLUTE)
+add_custom_command(TARGET normalizer POST_BUILD
+  COMMAND ${CMAKE_COMMAND}
+  -E copy $<TARGET_FILE:normalizer> ${DISCOVER_DIR}//normalizer
+  COMMENT "Deployed to: ${DISCOVER_DIR}/normalizer")
