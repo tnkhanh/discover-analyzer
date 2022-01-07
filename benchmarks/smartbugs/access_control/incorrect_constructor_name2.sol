@@ -5,10 +5,12 @@
  */
 
 
-pragma solidity ^0.4.24;
+// pragma solidity ^0.4.24;
+pragma solidity ^0.8.11;
 
 contract Missing{
-    address private owner;
+    // address private owner;       // TRUNG: original code
+    address payable private owner;  // updated to comply with Solidity 0.8.11
 
     modifier onlyowner {
         require(msg.sender==owner);
@@ -21,12 +23,14 @@ contract Missing{
         owner = msg.sender;
     }
 
-    function () payable {}
+    // function () payable {}      // TRUNG: original code
+    receive () external payable {} // updated to comply with Solidity 0.8.11
 
     function withdraw()
         public
         onlyowner
     {
-       owner.transfer(this.balance);
+        // owner.transfer(this.balance);       // TRUNG: original code
+        owner.transfer(payable(this).balance); // updated to comply with Solidity 0.8.11
     }
 }
