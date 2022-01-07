@@ -5,4 +5,5 @@
  * All rights reserved.
  ********************************************************************)
 
+val config_solang_compiler : unit -> unit
 val compile_program : string -> Llir.program

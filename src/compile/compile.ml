@@ -26,20 +26,26 @@ let config_llvm_compiler () : unit =
     llvm_dis_exe := !llvm_bin_path ^ !llvm_dis_exe)
 ;;
 
-let verify_llvm_compiler () =
-  let _ =
-    match PS.run_command_get_output [ !clang_exe; "--version" ] with
-    | Error msg ->
+let config_llvm_normalizer () =
+  normalizer_exe := project_path ^ "/" ^ !normalizer_exe
+;;
+
+let verify_clang_compiler () =
+  match PS.run_command_get_output [ !clang_exe; "--version" ] with
+  | Error msg ->
+    error
+      (sprintf "Failed to check Clang version: %s\n" msg
+      ^ sprintf "Clang path: %s" !clang_exe)
+  | Ok output ->
+    if String.is_substring ~substring:("version " ^ llvm_version) output
+    then ()
+    else
       error
-        (sprintf "Failed to check Clang version: %s\n" msg
-        ^ sprintf "Clang path: %s" !clang_exe)
-    | Ok output ->
-      if String.is_substring ~substring:("version " ^ llvm_version) output
-      then ()
-      else
-        error
-          ("Expect Clang " ^ llvm_version ^ " but found: \n"
-         ^ String.indent 2 output) in
+        ("Expect Clang " ^ llvm_version ^ " but found: \n"
+       ^ String.indent 2 output)
+;;
+
+let verify_llvm_opt () =
   match PS.run_command_get_output [ !opt_exe; "--version" ] with
   | Error msg -> error ("Failed to check LLVM Opt version: " ^ msg)
   | Ok output ->
@@ -51,15 +57,13 @@ let verify_llvm_compiler () =
        ^ String.indent 2 output)
 ;;
 
-let config_llvm_normalizer () =
-  normalizer_exe := project_path ^ "/" ^ !normalizer_exe
-;;
-
 let config_toolchain () =
-  let _ = config_llvm_compiler () in
-  let _ = Golang.config_golang_compiler () in
-  let _ = verify_llvm_compiler () in
-  config_llvm_normalizer ()
+  config_llvm_compiler ();
+  config_llvm_normalizer ();
+  Solang.config_solang_compiler ();
+  Golang.config_golang_compiler ();
+  verify_clang_compiler ();
+  verify_llvm_opt ()
 ;;
 
 let get_input_type (filename : string) =

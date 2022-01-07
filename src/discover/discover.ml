@@ -6,7 +6,6 @@
  ********************************************************************)
 
 open Dcore
-module PS = Outils.Process
 module AG = Argument
 module AS = Assertion
 module CI = Commonir
@@ -26,23 +25,19 @@ let print_discover_settings () =
     [ "Discover's settings:";
       "  Git revision: " ^ VS.get_current_revision ();
       "  LLVM version: " ^ llvm_version;
-      "  Path to Clang: " ^ !clang_exe;
-      "  Path to Solang: " ^ !solang_exe;
-      "  Path to llvm-opt: " ^ !opt_exe;
-      "  Path to llvm-normalizer: " ^ !normalizer_exe;
-      "  Z3 solver: " ^ !Z3.z3exe ^ " (" ^ !Z3.z3version ^ ")"
+      "  Clang path: " ^ !clang_exe ^ " (" ^ !clang_version ^ ")";
+      "  Opt path: " ^ !opt_exe ^ " (" ^ !opt_version ^ ")";
+      "  Normalizer path: " ^ !normalizer_exe ^ " (" ^ !normalizer_version
+      ^ ")";
+      "  Solang path: " ^ !solang_exe ^ " (" ^ !solang_version ^ ")";
+      "  Gollvm path: " ^ !gollvm_exe ^ " (" ^ !gollvm_version ^ ")";
+      "  Z3 solver: " ^ !Z3.z3_exe ^ " (" ^ !Z3.z3_version ^ ")"
     ] in
   debug (String.concat ~sep:"\n" info)
 ;;
 
 let init_solvers () =
-  let _ =
-    match PS.run_command_get_output [ !Z3.z3exe; "--version" ] with
-    | Ok res -> Z3.z3version := res
-    | Error msg ->
-      let _ = debug ("Checking Z3 command: " ^ !Z3.z3exe) in
-      error "Z3 solver not found!" in
-  ()
+  Z3.config_z3_solver ()
 ;;
 
 let read_user_configuration () : unit =
