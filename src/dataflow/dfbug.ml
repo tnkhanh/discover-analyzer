@@ -35,36 +35,32 @@ module IntegerBug = struct
     let open Option.Let_syntax in
     match pbug.pbug_type with
     | IntegerOverflow (Some iof) ->
-      if !bug_integer_all || !bug_integer_overflow
-      then (
-        let _ = debugp "Checking Potential Bug: " pr_potential_bug pbug in
-        let func = LI.func_of_instr iof.iof_instr in
-        let%bind penv_rng = dfa.dfa_env_range in
-        let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
-        List.fold_left
-          ~f:(fun acc fenv ->
-            if acc != None
-            then acc
-            else (
-              let%bind data = RG.get_instr_output fenv iof.iof_instr in
-              let itv = RG.get_interval (LI.expr_of_value iof.iof_expr) data in
-              match itv with
-              | Bottom -> None
-              | Range r ->
-                let ub =
-                  EInt.compute_upper_bound_two_complement iof.iof_bitwidth
+      let _ = debugp "Checking Potential Bug: " pr_potential_bug pbug in
+      let func = LI.func_of_instr iof.iof_instr in
+      let%bind penv_rng = dfa.dfa_env_range in
+      let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
+      List.fold_left
+        ~f:(fun acc fenv ->
+          if acc != None
+          then acc
+          else (
+            let%bind data = RG.get_instr_output fenv iof.iof_instr in
+            let itv = RG.get_interval (LI.expr_of_value iof.iof_expr) data in
+            match itv with
+            | Bottom -> None
+            | Range r ->
+              let ub =
+                EInt.compute_upper_bound_two_complement iof.iof_bitwidth in
+              if II.compare_bound r.range_ub (EInt ub) > 0
+              then (
+                let reason =
+                  ("Variable " ^ LI.pr_value iof.iof_expr ^ " can take only ")
+                  ^ ("the maximum value of: " ^ EInt.pr_eint ub ^ ",\n")
+                  ^ "but is assigned with: " ^ RG.pr_bound r.range_ub ^ ".\n"
                 in
-                if II.compare_bound r.range_ub (EInt ub) > 0
-                then (
-                  let reason =
-                    ("Variable " ^ LI.pr_value iof.iof_expr ^ " can take only ")
-                    ^ ("the maximum value of: " ^ EInt.pr_eint ub ^ ",\n")
-                    ^ "but is assigned with: " ^ RG.pr_bound r.range_ub ^ ".\n"
-                  in
-                  Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
-                else None))
-          ~init:None fenvs_rng)
-      else None
+                Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
+              else None))
+        ~init:None fenvs_rng
     | _ -> None
   ;;
 
@@ -88,35 +84,31 @@ module IntegerBug = struct
     let open Option.Let_syntax in
     match pbug.pbug_type with
     | IntegerUnderflow (Some iuf) ->
-      if !bug_integer_all || !bug_integer_overflow
-      then (
-        let func = LI.func_of_instr iuf.iuf_instr in
-        let%bind penv_rng = dfa.dfa_env_range in
-        let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
-        List.fold_left
-          ~f:(fun acc fenv ->
-            if acc != None
-            then acc
-            else (
-              let%bind data = RG.get_instr_output fenv iuf.iuf_instr in
-              let itv = RG.get_interval (LI.expr_of_value iuf.iuf_expr) data in
-              match itv with
-              | Bottom -> None
-              | Range r ->
-                let lb =
-                  EInt.compute_lower_bound_two_complement iuf.iuf_bitwidth
+      let func = LI.func_of_instr iuf.iuf_instr in
+      let%bind penv_rng = dfa.dfa_env_range in
+      let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
+      List.fold_left
+        ~f:(fun acc fenv ->
+          if acc != None
+          then acc
+          else (
+            let%bind data = RG.get_instr_output fenv iuf.iuf_instr in
+            let itv = RG.get_interval (LI.expr_of_value iuf.iuf_expr) data in
+            match itv with
+            | Bottom -> None
+            | Range r ->
+              let lb =
+                EInt.compute_lower_bound_two_complement iuf.iuf_bitwidth in
+              if II.compare_bound r.range_ub (EInt lb) < 0
+              then (
+                let reason =
+                  ("Variable " ^ LI.pr_value iuf.iuf_expr ^ " can take only ")
+                  ^ ("the minimum value of: " ^ EInt.pr_eint lb ^ ",\n")
+                  ^ "but is assigned with: " ^ RG.pr_bound r.range_ub ^ ".\n"
                 in
-                if II.compare_bound r.range_ub (EInt lb) < 0
-                then (
-                  let reason =
-                    ("Variable " ^ LI.pr_value iuf.iuf_expr ^ " can take only ")
-                    ^ ("the minimum value of: " ^ EInt.pr_eint lb ^ ",\n")
-                    ^ "but is assigned with: " ^ RG.pr_bound r.range_ub ^ ".\n"
-                  in
-                  Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
-                else None))
-          ~init:None fenvs_rng)
-      else None
+                Some (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
+              else None))
+        ~init:None fenvs_rng
     | _ -> None
   ;;
 
@@ -140,35 +132,31 @@ module IntegerBug = struct
     let open Option.Let_syntax in
     match pbug.pbug_type with
     | DivisionByZero None ->
-      if !bug_all || !bug_integer_all || !bug_divizion_by_zero
-      then (
-        let _ = debugp "Checking Potential Bug: " pr_potential_bug pbug in
-        let func = LI.func_of_instr pbug.pbug_instr in
-        let%bind penv_rng = dfa.dfa_env_range in
-        let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
-        List.fold_left
-          ~f:(fun acc fenv ->
-            if acc != None
-            then acc
-            else (
-              let%bind data = RG.get_instr_output fenv pbug.pbug_instr in
-              let divisor = LI.operand pbug.pbug_instr 1 in
-              let itv = RG.get_interval (LI.expr_of_value divisor) data in
-              match itv with
-              | Bottom -> None
-              | Range r ->
-                if II.compare_bound r.range_ub (Int64 Int64.zero) <= 0
-                   && II.compare_bound r.range_ub (Int64 Int64.zero) >= 0
-                then (
-                  let reason =
-                    ("Divisor " ^ LI.pr_value divisor
-                   ^ " can take values from ")
-                    ^ (RG.pr_bound r.range_ub ^ " to " ^ RG.pr_bound r.range_ub)
-                    ^ " and can be zero.\n" in
-                  return (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
-                else None))
-          ~init:None fenvs_rng)
-      else None
+      let _ = debugp "Checking Potential Bug: " pr_potential_bug pbug in
+      let func = LI.func_of_instr pbug.pbug_instr in
+      let%bind penv_rng = dfa.dfa_env_range in
+      let%bind fenvs_rng = Hashtbl.find penv_rng.penv_func_envs func in
+      List.fold_left
+        ~f:(fun acc fenv ->
+          if acc != None
+          then acc
+          else (
+            let%bind data = RG.get_instr_output fenv pbug.pbug_instr in
+            let divisor = LI.operand pbug.pbug_instr 1 in
+            let itv = RG.get_interval (LI.expr_of_value divisor) data in
+            match itv with
+            | Bottom -> None
+            | Range r ->
+              if II.compare_bound r.range_ub (Int64 Int64.zero) <= 0
+                 && II.compare_bound r.range_ub (Int64 Int64.zero) >= 0
+              then (
+                let reason =
+                  ("Divisor " ^ LI.pr_value divisor ^ " can take values from ")
+                  ^ (RG.pr_bound r.range_ub ^ " to " ^ RG.pr_bound r.range_ub)
+                  ^ " and can be zero.\n" in
+                return (mk_real_bug ~checker:"RangeAnalysis" ~reason pbug))
+              else None))
+        ~init:None fenvs_rng
     | _ -> None
   ;;
 
