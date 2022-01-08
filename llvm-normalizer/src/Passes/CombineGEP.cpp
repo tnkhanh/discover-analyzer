@@ -28,14 +28,16 @@ using GEPInstList = std::vector<GetElementPtrInst *>;
 
 char CombineGEP::ID = 0;
 
+// command line option
 static cl::opt<bool>
     DisableCombineGEP("disable-combine-gep",
                       cl::desc("Disable combining GEP instructions"),
                       cl::init(false), cl::cat(DiscoverNormalizerCategory));
 
+// command line option
 static cl::opt<bool>
     EnableCombineGEP("enable-combine-gep",
-                     cl::desc("Force enable combining GEP instructions"),
+                     cl::desc("Enable combining GEP instructions"),
                      cl::init(false), cl::cat(DiscoverNormalizerCategory));
 
 /*

@@ -12,10 +12,17 @@ using namespace llvm;
 
 char InitGlobal::ID = 0;
 
+// command line option
 static cl::opt<bool> DisableInitGlobal("disable-init-global",
                                        cl::desc("Disable initializing globals"),
                                        cl::init(false),
                                        cl::cat(DiscoverNormalizerCategory));
+
+// command line option
+static cl::opt<bool> EnableInitGlobal("enable-init-global",
+                                      cl::desc("Enable initializing globals"),
+                                      cl::init(false),
+                                      cl::cat(DiscoverNormalizerCategory));
 
 void InitGlobal::uninlineConstantExpr(IRBuilder<> *builder,
                                       Instruction *instr) {
@@ -197,7 +204,7 @@ void InitGlobal::invokeGlobalInitFunctions(IRBuilder<> *builder,
 }
 
 bool InitGlobal::runOnModule(Module &M) {
-  if (DisableInitGlobal)
+  if (DisableInitGlobal || (RunPassesManually && !EnableInitGlobal))
     return true;
 
   StringRef passName = this->getPassName();

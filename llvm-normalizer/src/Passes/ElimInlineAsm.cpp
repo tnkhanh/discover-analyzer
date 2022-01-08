@@ -12,13 +12,20 @@ using namespace llvm;
 
 char ElimInlineAsm::ID = 0;
 
+// command line option
 static cl::opt<bool>
     DisableElimInlineAsm("disable-elim-inline-asm",
                          cl::desc("Disable elmininate inline asm instructions"),
                          cl::init(false), cl::cat(DiscoverNormalizerCategory));
 
+// command line option
+static cl::opt<bool>
+    EnableElimInlineAsm("enable-elim-inline-asm",
+                        cl::desc("Enable elmininate inline asm instructions"),
+                        cl::init(false), cl::cat(DiscoverNormalizerCategory));
+
 bool ElimInlineAsm::runOnModule(Module &M) {
-  if (DisableElimInlineAsm)
+  if (DisableElimInlineAsm || (RunPassesManually && !EnableElimInlineAsm))
     return true;
 
   StringRef passName = this->getPassName();

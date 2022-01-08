@@ -10,10 +10,17 @@
 using namespace discover;
 using namespace llvm;
 
+// command line option
 static cl::opt<bool>
     DisableInlineSimpleFunction("disable-inline-simple-function",
                                 cl::desc("Disable inlining simple functions"),
                                 cl::init(false));
+
+// command line option
+static cl::opt<bool>
+    EnableInlineSimpleFunction("enable-inline-simple-function",
+                               cl::desc("Enable inlining simple functions"),
+                               cl::init(false));
 
 char InlineSimpleFunction::ID = 0;
 
@@ -131,7 +138,8 @@ bool InlineSimpleFunction::inlineFunction(Module &M, Function *F) {
 }
 
 bool InlineSimpleFunction::runOnModule(Module &M) {
-  if (DisableInlineSimpleFunction)
+  if (DisableInlineSimpleFunction ||
+      (RunPassesManually && !EnableInlineSimpleFunction))
     return true;
 
   StringRef passName = this->getPassName();

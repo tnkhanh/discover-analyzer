@@ -12,12 +12,18 @@ using namespace llvm;
 
 char ElimUnusedGlobal::ID = 0;
 
+// command line option
 static cl::opt<bool> DisableElimUnusedGlobal(
     "disable-elim-unused-global", cl::desc("Disable elmininate unused globals"),
     cl::init(false), cl::cat(DiscoverNormalizerCategory));
 
+// command line option
+static cl::opt<bool> EnableElimUnusedGlobal(
+    "enable-elim-unused-global", cl::desc("Enable elmininate unused globals"),
+    cl::init(false), cl::cat(DiscoverNormalizerCategory));
+
 bool ElimUnusedGlobal::runOnModule(Module &M) {
-  if (DisableElimUnusedGlobal)
+  if (DisableElimUnusedGlobal || (RunPassesManually && !EnableElimUnusedGlobal))
     return true;
 
   StringRef passName = this->getPassName();

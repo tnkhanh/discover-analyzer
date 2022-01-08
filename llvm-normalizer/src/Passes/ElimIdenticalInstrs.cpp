@@ -36,9 +36,16 @@ using IdentInstsList = std::vector<IdentInsts>;
 
 char ElimIdenticalInstrs::ID = 0;
 
+// command line option
 static cl::opt<bool> DisableElimIdenticalInstrs(
     "disable-elim-identical-instrs",
     cl::desc("Disable elmininate identical instrutions"), cl::init(false),
+    cl::cat(DiscoverNormalizerCategory));
+
+// command line option
+static cl::opt<bool> EnableElimIdenticalInstrs(
+    "enable-elim-identical-instrs",
+    cl::desc("Enable elmininate identical instrutions"), cl::init(false),
     cl::cat(DiscoverNormalizerCategory));
 
 /*
@@ -220,7 +227,8 @@ void eliminateIdenticalInstrs(Function &F, DominatorTree &DT,
  * Entry function for this FunctionPass, can be used by llvm-opt
  */
 bool ElimIdenticalInstrs::runOnFunction(Function &F) {
-  if (DisableElimIdenticalInstrs)
+  if (DisableElimIdenticalInstrs ||
+      (RunPassesManually && !EnableElimIdenticalInstrs))
     return true;
 
   StringRef passName = this->getPassName();

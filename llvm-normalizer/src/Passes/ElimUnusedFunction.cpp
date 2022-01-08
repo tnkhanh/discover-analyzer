@@ -12,15 +12,23 @@ using namespace llvm;
 
 char ElimUnusedFunction::ID = 0;
 
-// Option to manually disable this pass
+// command line option
 static cl::opt<bool>
     DisableElimUnusedFunction("disable-elim-unused-function",
                               cl::desc("Disable elmininate unused function"),
                               cl::init(false),
                               cl::cat(DiscoverNormalizerCategory));
 
+// command line option
+static cl::opt<bool>
+    EnableElimUnusedFunction("enable-elim-unused-function",
+                             cl::desc("Enable elmininate unused function"),
+                             cl::init(false),
+                             cl::cat(DiscoverNormalizerCategory));
+
 bool ElimUnusedFunction::runOnModule(Module &M) {
-  if (DisableElimUnusedFunction)
+  if (DisableElimUnusedFunction ||
+      (RunPassesManually && !EnableElimUnusedFunction))
     return true;
 
   StringRef passName = this->getPassName();
