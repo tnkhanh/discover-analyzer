@@ -27,8 +27,7 @@
 
 #include "llvm/Transforms/Utils/Debugify.h"
 
-#include "Debug/Debug.h"
-#include "Debug/PrintIR.h"
+#include "Utils/PrintIR.h"
 #include "Passes/CombineGEP.h"
 #include "Passes/ElimAllocaStoreArg.h"
 #include "Passes/ElimIdenticalInstrs.h"
@@ -88,18 +87,6 @@ static cl::opt<bool> PrintOnly("print-only",
                                cl::desc("Only print, not transform bitcode"),
                                cl::cat(DiscoverNormalizerCategory));
 
-static cl::opt<bool> Debugging("debug", cl::desc("Enable debugging"),
-                               cl::cat(DiscoverNormalizerCategory));
-
-static cl::opt<bool>
-    PrintInputProgram("print-input-program",
-                      cl::desc("Enable printing input program"),
-                      cl::cat(DiscoverNormalizerCategory));
-
-static cl::opt<bool>
-    PrintOutputProgram("print-output-program",
-                       cl::desc("Enable printing input program"),
-                       cl::cat(DiscoverNormalizerCategory));
 
 static cl::opt<bool>
     PrintOutputEach("print-output-each",
@@ -204,12 +191,6 @@ int main(int argc, char **argv) {
   cl::HideUnrelatedOptions(DiscoverNormalizerCategory);
   cl::ParseCommandLineOptions(argc, argv, "LLVM Discover Normalizer!\n");
 
-  // Retrieve flags from CLI
-  debugging = Debugging;
-  printInputProgram = PrintInputProgram;
-  printOutputProgram = PrintOutputProgram;
-  bool printOnly = PrintOnly;
-
   /*-------------
    * Read input
    *------------*/
@@ -219,7 +200,7 @@ int main(int argc, char **argv) {
   std::unique_ptr<Module> M = parseIRFile(InputFilename, Err, Context);
 
   // Print input program
-  if (printInputProgram) {
+  if (PrintInputProgram) {
     debug() << "===========================================\n"
             << "Input Bitcode Program: \n\n";
     M->print(debug(), nullptr);
@@ -277,7 +258,7 @@ int main(int argc, char **argv) {
    * Finish and clean up
    *---------------------*/
 
-  if (printOutputProgram) {
+  if (PrintOutputProgram) {
     debug() << "===========================================\n"
             << "Output Bitcode Program: \n\n";
     M->print(debug(), nullptr);

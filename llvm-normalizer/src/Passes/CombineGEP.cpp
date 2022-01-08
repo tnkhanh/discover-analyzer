@@ -33,6 +33,11 @@ static cl::opt<bool>
                       cl::desc("Disable combining GEP instructions"),
                       cl::init(false), cl::cat(DiscoverNormalizerCategory));
 
+static cl::opt<bool>
+    EnableCombineGEP("enable-combine-gep",
+                     cl::desc("Force enable combining GEP instructions"),
+                     cl::init(false), cl::cat(DiscoverNormalizerCategory));
+
 /*
  * Combine GEP Instructions
  */
@@ -145,8 +150,9 @@ std::vector<GEPInstList> findCombinableGEPList(Function &F) {
  * Entry function for this FunctionPass, can be used by llvm-opt
  */
 bool CombineGEP::runOnFunction(Function &F) {
-  if (DisableCombineGEP)
+  if (DisableCombineGEP || (RunPassesManually && !EnableCombineGEP)) {
     return true;
+  }
 
   StringRef passName = this->getPassName();
   debug() << "=========================================\n"

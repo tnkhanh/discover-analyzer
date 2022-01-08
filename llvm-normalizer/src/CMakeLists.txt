@@ -6,7 +6,6 @@
 ####################################################################
 
 set(LLNormCore
-  Common.cpp
   Normalizer.cpp)
 
 # Relevant LLVM Components can be found by: llvm-config --components
@@ -16,7 +15,7 @@ llvm_map_components_to_libnames(LLVM_LIBS
 
 # add directory of normalization passes
 add_subdirectory(Passes)
-add_subdirectory(Debug)
+add_subdirectory(Utils)
 
 # message(STATUS "Normalization Passes: ${LLNormPasses}")
 # message(STATUS "Normalization Passes: ${LLNormDebug}")

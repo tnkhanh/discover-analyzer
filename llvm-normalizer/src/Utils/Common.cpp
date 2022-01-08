@@ -5,16 +5,56 @@
  * All rights reserved.
  *******************************************************************/
 
-#include "Common.h"
-#include "Debug/Debug.h"
+#include "Utils/Common.h"
 
 using namespace llvm;
+
+/*******************************************************************
+ * Command line options
+ *******************************************************************/
 
 // Use an OptionCategory to store all the flags of this tool
 cl::OptionCategory llvm::DiscoverNormalizerCategory(
     "LLVM Discover Normalizer Options",
     "Options for the LLVM-normalizer tool of the project Discover.");
 
+cl::opt<bool> llvm::Debugging("debug", cl::desc("Enable debugging"),
+                              cl::cat(DiscoverNormalizerCategory));
+
+cl::opt<bool> llvm::PrintInputProgram("print-input-program",
+                                      cl::desc("Enable printing input program"),
+                                      cl::cat(DiscoverNormalizerCategory));
+
+cl::opt<bool>
+    llvm::PrintOutputProgram("print-output-program",
+                             cl::desc("Enable printing input program"),
+                             cl::cat(DiscoverNormalizerCategory));
+
+cl::opt<bool> llvm::RunPassesManually(
+    "run-passes-manually", cl::desc("Disable all normalization passes"),
+    cl::init(false), cl::cat(DiscoverNormalizerCategory));
+
+/*******************************************************************
+ * Debugging functions
+ *******************************************************************/
+
+raw_ostream &llvm::debug() {
+  if (Debugging)
+    return outs();
+  else
+    return nulls();
+}
+
+raw_ostream &llvm::error() {
+  if (Debugging)
+    return errs();
+  else
+    return nulls();
+}
+
+/*******************************************************************
+ * LLVM utility functions
+ *******************************************************************/
 
 bool llvm::isDiscoverTestingFunc(Function &F) {
   StringRef fName = F.getName();

@@ -5,7 +5,7 @@
  * All rights reserved.
  *******************************************************************/
 
-#include "Debug/PrintIR.h"
+#include "Utils/PrintIR.h"
 
 using namespace discover;
 using namespace llvm;
