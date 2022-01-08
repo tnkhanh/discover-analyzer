@@ -27,7 +27,6 @@
 
 #include "llvm/Transforms/Utils/Debugify.h"
 
-#include "Utils/PrintIR.h"
 #include "Passes/CombineGEP.h"
 #include "Passes/ElimAllocaStoreArg.h"
 #include "Passes/ElimIdenticalInstrs.h"
@@ -37,6 +36,7 @@
 #include "Passes/InitGlobal.h"
 #include "Passes/InlineSimpleFunction.h"
 #include "Passes/UninlineInstruction.h"
+#include "Utils/PrintIR.h"
 #include "Version.h"
 
 using namespace std;
@@ -86,7 +86,6 @@ static cl::opt<bool> VerifyOnly("verify-only",
 static cl::opt<bool> PrintOnly("print-only",
                                cl::desc("Only print, not transform bitcode"),
                                cl::cat(DiscoverNormalizerCategory));
-
 
 static cl::opt<bool>
     PrintOutputEach("print-output-each",
@@ -237,7 +236,9 @@ int main(int argc, char **argv) {
     addFunctionPass(*FuncPasses, new ElimAllocaStoreArg());
     addFunctionPass(*FuncPasses, new UninlineInstruction());
     addFunctionPass(*FuncPasses, new CombineGEP());
-    addFunctionPass(*FuncPasses, new ElimIdenticalInstrs());
+    /* FIXME: temporarily disable ElimIdenticalInstrs since it
+       might create invalid records in the output bitcode file. */
+    // addFunctionPass(*FuncPasses, new ElimIdenticalInstrs());
   }
 
   /*--------------------------------------------
