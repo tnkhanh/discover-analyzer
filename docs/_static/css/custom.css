@@ -10,10 +10,16 @@ pre {
     white-space: normal;
 }
 
-.rst-content table.docutils td {
-    vertical-align: top;
+.wy-nav-content {
+    max-width: 100% !important;
 }
 
 .rst-content .section ul p {
+    margin-top: 0rem;
     margin-bottom: 0px;
+}
+
+.toctree-wrapper {
+    margin-top: 0rem;
+    margin-bottom: 0rem;
 }

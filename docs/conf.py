@@ -14,10 +14,9 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 import os
-import sphinx_rtd_theme
 
 def setup(sphinx):
-    sphinx.add_stylesheet('css/custom.css')
+    sphinx.add_css_file('css/custom.css')
 
 # -- Project information -----------------------------------------------------
 
