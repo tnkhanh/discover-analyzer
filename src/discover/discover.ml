@@ -19,41 +19,22 @@ type analysis_result =
   | RSymexec of SE.symexec_result
   | RNone
 
-let print_discover_settings () =
-  let _ = print ~always:true ("Checking file: " ^ !input_file) in
-  let info =
-    String.align_line "Normalizer: " !normalizer_exe
-    ^ "\n(" ^ !normalizer_version ^ ")" in
-  let _ = print info in
-  let _ = debug info in
-  let info =
-    [ "Discover's settings:";
-      "- Git revision: " ^ VS.get_current_revision_info ();
-      "- LLVM version: " ^ llvm_version;
-      "- Clang: " ^ !clang_exe;
-      "- Llvm-opt: " ^ !llvm_opt_exe;
-      "- Llvm-dis: " ^ !llvm_dis_exe;
-      "- Normalizer: " ^ !normalizer_exe ^ "\n  (" ^ !normalizer_version ^ ")";
-      "- Solang: " ^ !solang_exe ^ " (" ^ !solang_version ^ ")";
-      "- Gollvm: " ^ !gollvm_exe ^ " (" ^ !gollvm_version ^ ")";
-      "- Z3: " ^ !Z3.z3_exe ^ " (" ^ !Z3.z3_version ^ ")"
-    ] in
-  debug (String.concat ~sep:"\n" info)
-;;
-
 let init_solvers () = Z3.config_z3_solver ()
 
-let read_user_configuration () : unit =
-  let root_dir = Filename.dirname Sys.executable_name in
-  let config_file_path = root_dir ^ "/" ^ user_config_file in
-  match Sys.file_exists config_file_path with
+let config_discover () : unit =
+  let _ = discover_version := !discover_version ^ "-git:" ^ VS.git_revision in
+  let _ = discover_version := !discover_version ^ " [" ^ VS.git_time ^ "]" in
+  let discover_dir = Filename.dirname Sys.executable_name in
+  let _ = lib_core_file := discover_dir ^ "/" ^ !lib_core_file in
+  let user_config_file = discover_dir ^ "/" ^ user_config_file in
+  match Sys.file_exists user_config_file with
   | `No | `Unknown -> ()
   | `Yes ->
     let _ = print "Read user configuration" in
-    let file_content = In_channel.read_all config_file_path in
+    let file_content = In_channel.read_all user_config_file in
     (match Yaml.of_string file_content with
     | Result.Error (`Msg msg) ->
-      error ("Failed to read the configuration file: " ^ config_file_path)
+      error ("Failed to read the configuration file: " ^ user_config_file)
     | Result.Ok config ->
       let _ =
         match Ezjsonm.find_opt config [ "GOLLVM_BINARY_PATH" ] with
@@ -73,12 +54,27 @@ let read_user_configuration () : unit =
 ;;
 
 let init_environment () =
-  let root_dir = Filename.dirname Sys.executable_name in
-  let _ = lib_core_file := root_dir ^ "/" ^ !lib_core_file in
-  let _ = read_user_configuration () in
+  let _ = config_discover () in
   let _ = CP.config_toolchain () in
   let _ = init_solvers () in
   if !skip_analysis then work_mode := WkmNoAnalysis
+;;
+
+let print_discover_settings () =
+  let _ = print ("Running Discover: " ^ !discover_version) in
+  let _ = print ~always:true ("Checking file: " ^ !input_file) in
+  let info =
+    [ "Discover's settings:";
+      "- LLVM version: " ^ llvm_version;
+      "- Clang: " ^ !clang_exe;
+      "- Llvm-opt: " ^ !llvm_opt_exe;
+      "- Llvm-dis: " ^ !llvm_dis_exe;
+      "- Normalizer: " ^ !normalizer_exe ^ "\n  (" ^ !normalizer_version ^ ")";
+      "- Solang: " ^ !solang_exe ^ " (" ^ !solang_version ^ ")";
+      "- Gollvm: " ^ !gollvm_exe ^ " (" ^ !gollvm_version ^ ")";
+      "- Z3: " ^ !Z3.z3_exe ^ " (" ^ !Z3.z3_version ^ ")"
+    ] in
+  debug (String.concat ~sep:"\n" info)
 ;;
 
 let clean_environment () = Smt.stop_solver ()
