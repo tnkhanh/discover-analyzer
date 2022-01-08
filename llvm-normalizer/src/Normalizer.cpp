@@ -44,12 +44,11 @@ using namespace std;
 using namespace llvm;
 using namespace discover;
 
-typedef struct Arguments {
-  string inputFile;
-  string outputFile;
-  bool normalizeAll;
-  string inlineFunction;
-} Arguments;
+/*******************************************************************
+ * Some global variables
+ *******************************************************************/
+
+const char *VERSION = "0.1";
 
 /*******************************************************************
  * Declare command line options
@@ -197,7 +196,7 @@ int main(int argc, char **argv) {
 
   // Version printer for --version option
   llvm::cl::SetVersionPrinter([](llvm::raw_ostream &OS) {
-    OS << "Normalizer v" << VERSION << "-r" << GIT_REV << " @ "
+    OS << "Normalizer version " << VERSION << "-git:" << GIT_REV << " @ "
        << GIT_TIME << "\n";
   });
 

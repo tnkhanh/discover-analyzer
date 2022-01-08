@@ -30,7 +30,13 @@ logs
 # macOS temp files
 .DS_Store
 
-# configuration files
+# Emacs temporary files
+.ccls-cache
+
+# Vim files
+*.swp
+
+# Discover configuration files
 _tags
 configure
 myocamlbuild.ml
@@ -38,8 +44,5 @@ setup.ml
 setup.data
 setup.log
 
-# Emacs temporary files
-.ccls-cache
-
-# vim files
-*.swp
+# llvm-normalizer configuration files
+llvm-normalizer/include/Version.h

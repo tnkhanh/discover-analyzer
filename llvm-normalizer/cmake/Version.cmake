@@ -13,7 +13,6 @@ execute_process(COMMAND
 # Check whether we got any revision
 if ("${GIT_REV}" STREQUAL "")
   set(GIT_REV "N/A")
-  set(GIT_DIFF "")
   set(GIT_TAG "N/A")
   set(GIT_BRANCH "N/A")
   set(GIT_TIME "N/A")
@@ -21,9 +20,6 @@ else()
   string(STRIP "${GIT_REV}" GIT_REV)
   string(SUBSTRING "${GIT_REV}" 1 7 GIT_REV)
 
-  execute_process(
-    COMMAND bash -c "git diff --quiet --exit-code"
-    OUTPUT_VARIABLE GIT_DIFF)
   execute_process(
     COMMAND git describe --exact-match --tags
     OUTPUT_VARIABLE GIT_TAG ERROR_QUIET)
@@ -34,27 +30,25 @@ else()
     COMMAND git show -s --format=%ci ${GIT_REV}
     OUTPUT_VARIABLE GIT_TIME)
 
-  string(STRIP "${GIT_DIFF}" GIT_DIFF)
   string(STRIP "${GIT_TAG}" GIT_TAG)
   string(STRIP "${GIT_BRANCH}" GIT_BRANCH)
   string(STRIP "${GIT_TIME}" GIT_TIME)
 endif()
 
-set(VERSION
+set(NEW_VERSION
   "// This file is auto-genrated by Version.cmake;
-const char* VERSION=\"0.1\";
-const char* GIT_REV=\"${GIT_REV}${GIT_DIFF}\";
+const char* GIT_REV=\"${GIT_REV}\";
 const char* GIT_TAG=\"${GIT_TAG}\";
 const char* GIT_BRANCH=\"${GIT_BRANCH}\";
 const char* GIT_TIME=\"${GIT_TIME}\";\n")
 
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/include/Version.h)
-  file(READ ${CMAKE_CURRENT_SOURCE_DIR}/include/Version.h VERSION_)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/version.info)
+  file(READ ${CMAKE_CURRENT_SOURCE_DIR}/version.info CUR_VERSION)
 else()
-  set(VERSION_ "")
+  set(CUR_VERSION "")
 endif()
 
-if (NOT "${VERSION}" STREQUAL "${VERSION_}")
-  message(STATUS "Write Git revision to: ${CMAKE_CURRENT_SOURCE_DIR}/include/Version.h")
-  file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/include/Version.h "${VERSION}")
+if (NOT "${NEW_VERSION}" STREQUAL "${CUR_VERSION}")
+  message(STATUS "Write version info to: ${CMAKE_CURRENT_SOURCE_DIR}/include/Version.h")
+  file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/include/Version.h "${NEW_VERSION}")
 endif()
