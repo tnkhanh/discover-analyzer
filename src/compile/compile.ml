@@ -18,8 +18,20 @@ module SE = Symexec
 let config_llvm_normalizer () =
   let _ = normalizer_exe := project_path ^ "/" ^ !normalizer_exe in
   match PS.run_command_get_output [ !normalizer_exe; "--version" ] with
-  | Ok res -> normalizer_version := res
-  | Error msg -> ()
+  | Ok output ->
+    let output_lines = String.split_lines output in
+    let version_line =
+      List.find ~f:(String.is_substring ~substring:"version") output_lines
+    in
+    (match version_line with
+    | Some line ->
+      (match String.substr_index line ~pattern:"version" with
+      | Some index ->
+        let version = String.slice line index (String.length line) in
+        normalizer_version := version
+      | None -> ())
+    | None -> ())
+  | Error msg -> warning "Normalizer version not found!"
 ;;
 
 let config_llvm_opt () =

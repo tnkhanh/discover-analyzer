@@ -22,16 +22,21 @@ type analysis_result =
 let print_discover_settings () =
   let _ = print ~always:true ("Checking file: " ^ !input_file) in
   let info =
+    String.align_line "Normalizer: " !normalizer_exe
+    ^ "\n(" ^ !normalizer_version ^ ")" in
+  let _ = print info in
+  let _ = debug info in
+  let info =
     [ "Discover's settings:";
-      "  Git revision: " ^ VS.get_current_revision_info ();
-      "  LLVM version: " ^ llvm_version;
-      "  Clang: " ^ !clang_exe;
-      "  Llvm-opt: " ^ !llvm_opt_exe;
-      "  Llvm-dis: " ^ !llvm_dis_exe;
-      "  Normalizer: " ^ !normalizer_exe ^ " (" ^ !normalizer_version ^ ")";
-      "  Solang: " ^ !solang_exe ^ " (" ^ !solang_version ^ ")";
-      "  Gollvm: " ^ !gollvm_exe ^ " (" ^ !gollvm_version ^ ")";
-      "  Z3: " ^ !Z3.z3_exe ^ " (" ^ !Z3.z3_version ^ ")"
+      "- Git revision: " ^ VS.get_current_revision_info ();
+      "- LLVM version: " ^ llvm_version;
+      "- Clang: " ^ !clang_exe;
+      "- Llvm-opt: " ^ !llvm_opt_exe;
+      "- Llvm-dis: " ^ !llvm_dis_exe;
+      "- Normalizer: " ^ !normalizer_exe ^ "\n  (" ^ !normalizer_version ^ ")";
+      "- Solang: " ^ !solang_exe ^ " (" ^ !solang_version ^ ")";
+      "- Gollvm: " ^ !gollvm_exe ^ " (" ^ !gollvm_version ^ ")";
+      "- Z3: " ^ !Z3.z3_exe ^ " (" ^ !Z3.z3_version ^ ")"
     ] in
   debug (String.concat ~sep:"\n" info)
 ;;
@@ -179,7 +184,7 @@ let analyze_program (prog : CI.program) : analysis_result =
 ;;
 
 let analyze_input_file (filename : string) : analysis_result =
-  let _ = print ("Analyze input file: " ^ filename) in
+  let _ = printf "Analyze input file: %s" filename in
   let prog = CP.compile_input_file filename in
   analyze_program prog
 ;;
@@ -201,7 +206,7 @@ let main () : unit =
 let _ =
   try main ()
   with e ->
-    let _ = print ("Exception occurred: " ^ Exn.to_string e) in
+    let _ = printp "Exception occurred: " Exn.to_string e in
     let _ = print (Printexc.get_backtrace ()) in
     if not (is_debug_mode ())
     then print "To debug, run Discover again with additional '-d'.";
