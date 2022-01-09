@@ -27,15 +27,18 @@ let z3_cmd = [ !z3_exe; "-smt2"; "-in"; "-t:5000" ]
 let z3proc = ref None
 
 let config_z3_solver () : unit =
+  let open Option.Let_syntax in
   let _ =
     match PS.run_command_get_output [ "which"; !z3_exe ] with
     | Ok res -> z3_exe := res
     | Error msg -> () in
   match PS.run_command_get_output [ !z3_exe; "--version" ] with
-  | Ok res -> z3_version := res
-  | Error msg ->
-    let _ = debug ("Checking Z3 command: " ^ !z3_exe) in
-    error "Z3 solver not found!"
+  | Ok output ->
+    ignore
+      (let%bind line = String.find_line_contain ~pattern:"version" output in
+       let%bind version = String.slice_from ~pattern:"version" line in
+       return (z3_version := version))
+  | Error msg -> error "Z3 version not found!"
 ;;
 
 let start_solver () =

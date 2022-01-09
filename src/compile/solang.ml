@@ -12,24 +12,17 @@ module FN = Filename
 module LI = Llir
 
 let config_solang_compiler () : unit =
+  let open Option.Let_syntax in
   let _ =
     match PS.run_command_get_output [ "which"; !solang_exe ] with
     | Ok res -> solang_exe := res
     | Error msg -> () in
   match PS.run_command_get_output [ !solang_exe; "--version" ] with
   | Ok output ->
-    let output_lines = String.split_lines output in
-    let version_line =
-      List.find ~f:(String.is_substring ~substring:"version") output_lines
-    in
-    (match version_line with
-    | Some line ->
-      (match String.substr_index line ~pattern:"version" with
-      | Some index ->
-        let version = String.slice line index (String.length line) in
-        solang_version := version
-      | None -> ())
-    | None -> ())
+    ignore
+      (let%bind line = String.find_line_contain ~pattern:"version" output in
+       let%bind version = String.slice_from ~pattern:"version" line in
+       return (solang_version := version))
   | Error msg -> warning "Solang version not found!"
 ;;
 

@@ -16,25 +16,19 @@ module SE = Symexec
  **********************************************************)
 
 let config_llvm_normalizer () =
+  let open Option.Let_syntax in
   let _ = normalizer_exe := project_path ^ "/" ^ !normalizer_exe in
   match PS.run_command_get_output [ !normalizer_exe; "--version" ] with
   | Ok output ->
-    let output_lines = String.split_lines output in
-    let version_line =
-      List.find ~f:(String.is_substring ~substring:"version") output_lines
-    in
-    (match version_line with
-    | Some line ->
-      (match String.substr_index line ~pattern:"version" with
-      | Some index ->
-        let version = String.slice line index (String.length line) in
-        normalizer_version := version
-      | None -> ())
-    | None -> ())
+    ignore
+      (let%bind line = String.find_line_contain ~pattern:"version" output in
+       let%bind version = String.slice_from ~pattern:"version" line in
+       return (normalizer_version := version))
   | Error msg -> warning "Normalizer version not found!"
 ;;
 
 let config_llvm_opt () =
+  let open Option.Let_syntax in
   let _ =
     let opt_path =
       if String.is_empty !llvm_bin_path
@@ -46,17 +40,16 @@ let config_llvm_opt () =
     | Ok res -> llvm_opt_exe := res
     | Error msg -> () in
   match PS.run_command_get_output [ !llvm_opt_exe; "--version" ] with
-  | Error msg -> error ("Failed to check LLVM Opt version: " ^ msg)
   | Ok output ->
-    if String.is_substring ~substring:("version " ^ llvm_version) output
-    then ()
-    else
-      error
-        ("Expect LLVM Opt " ^ llvm_version ^ " but found: \n"
-       ^ String.indent 2 output)
+    ignore
+      (let%bind line = String.find_line_contain ~pattern:"version" output in
+       let%bind version = String.slice_from ~pattern:"version" line in
+       return (llvm_opt_version := version))
+  | Error msg -> warning "Llvm-opt version not found!"
 ;;
 
 let config_llvm_dis () =
+  let open Option.Let_syntax in
   let _ =
     let dis_path =
       if String.is_empty !llvm_bin_path
@@ -68,14 +61,12 @@ let config_llvm_dis () =
     | Ok res -> llvm_dis_exe := res
     | Error msg -> () in
   match PS.run_command_get_output [ !llvm_dis_exe; "--version" ] with
-  | Error msg -> error ("Failed to check LLVM Dis version: " ^ msg)
   | Ok output ->
-    if String.is_substring ~substring:("version " ^ llvm_version) output
-    then ()
-    else
-      error
-        ("Expect LLVM Dis " ^ llvm_version ^ " but found: \n"
-       ^ String.indent 2 output)
+    ignore
+      (let%bind line = String.find_line_contain ~pattern:"version" output in
+       let%bind version = String.slice_from ~pattern:"version" line in
+       return (llvm_dis_version := version))
+  | Error msg -> warning "Llvm-dis version not found!"
 ;;
 
 let config_toolchain () =

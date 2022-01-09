@@ -65,16 +65,15 @@ let print_discover_settings () =
   let _ = print ~always:true ("Checking file: " ^ !input_file) in
   let info =
     [ "Discover's settings:";
-      "- LLVM version: " ^ llvm_version;
-      "- Clang: " ^ !clang_exe;
-      "- Llvm-opt: " ^ !llvm_opt_exe;
-      "- Llvm-dis: " ^ !llvm_dis_exe;
+      "- Clang: " ^ !clang_exe ^ " (" ^ !clang_version ^ ")";
+      "- Llvm-opt: " ^ !llvm_opt_exe ^ " (" ^ !llvm_opt_version ^ ")";
+      "- Llvm-dis: " ^ !llvm_dis_exe ^ " (" ^ !llvm_dis_version ^ ")";
       "- Normalizer: " ^ !normalizer_exe ^ "\n  (" ^ !normalizer_version ^ ")";
       "- Solang: " ^ !solang_exe ^ " (" ^ !solang_version ^ ")";
       "- Gollvm: " ^ !gollvm_exe ^ " (" ^ !gollvm_version ^ ")";
       "- Z3: " ^ !Z3.z3_exe ^ " (" ^ !Z3.z3_version ^ ")"
     ] in
-  debug (String.concat ~sep:"\n" info)
+  debug (beautiful_concat ~sep:"\n" info)
 ;;
 
 let clean_environment () = Smt.stop_solver ()
