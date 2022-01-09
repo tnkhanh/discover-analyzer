@@ -30,8 +30,10 @@ let config_clang_compiler () =
       (let%bind line = String.find_line_contain ~pattern:"version" output in
        let%bind version = String.slice_from ~pattern:"version" line in
        let%bind version = String.slice_to ~pattern:" (" version in
+       let version =
+         String.substr_replace_all ~pattern:"version " ~with_:"v" version in
        let _ =
-         if not (String.is_prefix ~prefix:("version " ^ llvm_version) version)
+         if not (String.is_prefix ~prefix:("v" ^ llvm_version) version)
          then errorf "Expect Clang %s but found: %s" llvm_version version in
        return (clang_version := version))
   | Error msg -> warning "Clang version not found!"

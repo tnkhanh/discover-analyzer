@@ -37,6 +37,8 @@ let config_z3_solver () : unit =
     ignore
       (let%bind line = String.find_line_contain ~pattern:"version" output in
        let%bind version = String.slice_from ~pattern:"version" line in
+       let version =
+         String.substr_replace_all ~pattern:"version " ~with_:"v" version in
        return (z3_version := version))
   | Error msg -> error "Z3 version not found!"
 ;;

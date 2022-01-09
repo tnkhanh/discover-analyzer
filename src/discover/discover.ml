@@ -23,7 +23,7 @@ let init_solvers () = Z3.config_z3_solver ()
 
 let config_discover () : unit =
   let _ = discover_version := !discover_version ^ "-git:" ^ VS.git_revision in
-  let _ = discover_version := !discover_version ^ " [" ^ VS.git_time ^ "]" in
+  let _ = discover_version := !discover_version ^ ":" ^ VS.git_time in
   let discover_dir = Filename.dirname Sys.executable_name in
   let _ = lib_core_file := discover_dir ^ "/" ^ !lib_core_file in
   let user_config_file = discover_dir ^ "/" ^ user_config_file in
@@ -68,7 +68,7 @@ let print_discover_settings () =
       "- Clang: " ^ !clang_exe ^ " (" ^ !clang_version ^ ")";
       "- Llvm-opt: " ^ !llvm_opt_exe ^ " (" ^ !llvm_opt_version ^ ")";
       "- Llvm-dis: " ^ !llvm_dis_exe ^ " (" ^ !llvm_dis_version ^ ")";
-      "- Normalizer: " ^ !normalizer_exe ^ "\n  (" ^ !normalizer_version ^ ")";
+      "- Normalizer: " ^ !normalizer_exe ^ " (" ^ !normalizer_version ^ ")";
       "- Solang: " ^ !solang_exe ^ " (" ^ !solang_version ^ ")";
       "- Gollvm: " ^ !gollvm_exe ^ " (" ^ !gollvm_version ^ ")";
       "- Z3: " ^ !Z3.z3_exe ^ " (" ^ !Z3.z3_version ^ ")"

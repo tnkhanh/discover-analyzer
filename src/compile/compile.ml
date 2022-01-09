@@ -23,6 +23,8 @@ let config_llvm_normalizer () =
     ignore
       (let%bind line = String.find_line_contain ~pattern:"version" output in
        let%bind version = String.slice_from ~pattern:"version" line in
+       let version =
+         String.substr_replace_all ~pattern:"version " ~with_:"v" version in
        return (normalizer_version := version))
   | Error msg -> warning "Normalizer version not found!"
 ;;
@@ -44,6 +46,8 @@ let config_llvm_opt () =
     ignore
       (let%bind line = String.find_line_contain ~pattern:"version" output in
        let%bind version = String.slice_from ~pattern:"version" line in
+       let version =
+         String.substr_replace_all ~pattern:"version " ~with_:"v" version in
        return (llvm_opt_version := version))
   | Error msg -> warning "Llvm-opt version not found!"
 ;;
@@ -65,6 +69,8 @@ let config_llvm_dis () =
     ignore
       (let%bind line = String.find_line_contain ~pattern:"version" output in
        let%bind version = String.slice_from ~pattern:"version" line in
+       let version =
+         String.substr_replace_all ~pattern:"version " ~with_:"v" version in
        return (llvm_dis_version := version))
   | Error msg -> warning "Llvm-dis version not found!"
 ;;

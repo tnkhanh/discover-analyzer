@@ -183,7 +183,7 @@ int main(int argc, char **argv) {
   // Version printer for --version option
   llvm::cl::SetVersionPrinter([](llvm::raw_ostream &OS) {
     OS << "Normalizer version " << VERSION << "-git:" << GIT_REV;
-    OS << " [" << GIT_TIME << "]\n";
+    OS << ":" << GIT_TIME << "\n";
   });
 
   // Show only options of Discover category

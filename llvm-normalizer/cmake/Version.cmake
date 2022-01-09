@@ -27,7 +27,7 @@ else()
     COMMAND git rev-parse --abbrev-ref HEAD
     OUTPUT_VARIABLE GIT_BRANCH)
   execute_process(
-    COMMAND git show -s --format=%ci ${GIT_REV}
+    COMMAND git show -s --format=%cs ${GIT_REV}
     OUTPUT_VARIABLE GIT_TIME)
 
   string(STRIP "${GIT_TAG}" GIT_TAG)
