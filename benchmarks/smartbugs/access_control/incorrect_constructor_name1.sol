@@ -9,7 +9,7 @@ pragma solidity ^0.8.11;
 
 contract Missing{
     // address private owner;       // TRUNG: original code
-    address payable private owner;  // updated to comply with Solidity 0.8.11
+    address payable private owner;  // updated to comply with Solidity 0.8.x
 
     modifier onlyowner {
         require(msg.sender==owner);
@@ -26,13 +26,13 @@ contract Missing{
     }
 
     // function () payable {}      // TRUNG: original code
-    receive () external payable {} // updated to comply with Solidity 0.8.11
+    receive () external payable {} // updated to comply with Solidity 0.8.x
 
     function withdraw()
         public
         onlyowner
     {
         // owner.transfer(this.balance);       // TRUNG: original code
-        owner.transfer(payable(this).balance); // updated to comply with Solidity 0.8.11
+        owner.transfer(payable(this).balance); // updated to comply with Solidity 0.8.x
     }
 }
