@@ -4,7 +4,8 @@
  * @vulnerable_at_lines: 19,20
  */
 
- pragma solidity ^0.4.24;
+ // pragma solidity ^0.4.24;
+ pragma solidity ^0.8.11;
 
  /* User can add pay in and withdraw Ether.
     The constructor is wrongly named, so anyone can become 'creator' and withdraw all funds.
@@ -14,7 +15,7 @@
      address creator;
 
      mapping(address => uint256) balances;
-     
+
      // <yes> <report> ACCESS_CONTROL
      function initWallet() public {
          creator = msg.sender;
@@ -35,7 +36,8 @@
 
      function migrateTo(address to) public {
          require(creator == msg.sender);
-         to.transfer(this.balance);
+         // to.transfer(this.balance);
+         payable(to).transfer(address(this).balance);  // TRUNG: updated to Solidity 0.8.11
      }
 
  }
