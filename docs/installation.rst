@@ -11,7 +11,7 @@ not tested on Windows yet.
 To run Discover with Solidity and Hyperledger Fabric smart contracts, Solang and
 Gollvm are also needed.
 
-The following commands are tested and work well with Linux Mint / Ubuntu 20.
+The following commands are tested and work well with both on Linux and macOS.
 
 LLVM and Clang
 ^^^^^^^^^^^^^^^^
@@ -26,11 +26,11 @@ compilation of LLVM.
 
    # Prepare installation folder
    export LLVMDIR=$HOME/llvm           # root path to LLVM workspace
-   export LLVMINSTALLDIR=$LLVMDIR/llvm-sbip
+   export LLVMINSTALLDIR=$HOME/llvm/llvm-sbip
    mkdir -p $LLVMINSTALLDIR
 
    # Prepare source code
-   export LLVMSRCDIR=$LLVMDIR/src
+   export LLVMSRCDIR=$HOME/llvm/src
    mkdir -p $LLVMSRCDIR
    cd $LLVMSRCDIR
    git clone https://github.com/sbip-sg/llvm-project llvm-project-sbip
@@ -38,9 +38,12 @@ compilation of LLVM.
    cd $LLVMPROJECT
    git checkout sbip-llvm-13
 
-   # Configure compilation
+   # Prepare installation directory
    mkdir -p $LLVMPROJECT/build
    cd $LLVMPROJECT/build
+
+   # Configure compilation by CMake.
+   # Note that for compilation on macOS, remove `-DLLVM_USE_LINKER=gold`
    cmake ../llvm -DCMAKE_INSTALL_PREFIX=$LLVMINSTALLDIR \
          -DLLVM_ENABLE_BINDINGS=ON -DLLVM_ENABLE_RTTI=ON \
          -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release \
@@ -87,7 +90,7 @@ tool (opam). Currently, we are using OCaml 4.13.1, or newer.
    eval $(opam env)
 
    # Install dependencies of this project
-   opam pin add extcore git://github.com/sbip-sg/ocaml-extcore.git
+   opam pin add outils git://github.com/sbip-sg/ocaml-utils.git
    opam install . --deps-only --with-test
 
 Note that ``llvm`` bindings for OCaml will be installed by our `customized LLVM
@@ -133,28 +136,21 @@ and Clang`_:
    # Download source code and libraries of gollvm
    cd $LLVMPROJECT/llvm/tools
    git clone https://go.googlesource.com/gollvm
-
    cd $LLVMPROJECT/llvm/tools/gollvm
    git clone https://go.googlesource.com/gofrontend
-
    cd $LLVMPROJECT/llvm/tools/gollvm/libgo
    git clone https://github.com/libffi/libffi.git
    git clone https://github.com/ianlancetaylor/libbacktrace.git
 
-
    # Check out the following commit for LLVM-13 compatible version:
    cd $LLVMPROJECT/llvm/tools/gollvm
    git checkout 0f0479aa582cfa3bd9c17bd7d41d2e2bc9991958
-
    cd $LLVMPROJECT/llvm/tools/gollvm/gofrontend
    git checkout e3bfc0889237a5bb8aa7ae30e1cff14f90a5f941
-
    cd $LLVMPROJECT/llvm/tools/gollvm/libgo/libbacktrace
    git checkout d0f5e95a87a4d3e0a1ed6c069b5dae7cbab3ed2a
-
    cd $LLVMPROJECT/llvm/tools/gollvm/libgo/libffi
    git checkout 0f2dd369cd5edcefad29b3fca4e1d08cb34f8f19
-
 
    # Compile and install Gollvm
    cd $LLVMPROJECT/build
