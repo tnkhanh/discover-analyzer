@@ -1,6 +1,8 @@
 Discover documentation
 =============================
 
+To build this documentation:
+
 - Python3 and Sphinx are required:
 
   ```sh

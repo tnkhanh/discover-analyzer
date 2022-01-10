@@ -65,7 +65,7 @@ tok:
   | CBRAC
   | COLON
   | ATYPE
-  | COMMA { Skip }
+  | COMMA { Llannot.Skip }
   | a = ann_begin { a }
   | a = ann_end { a };
 
@@ -90,12 +90,12 @@ ann_begin:
   | ANNSTART; OBRAC; a = ATYPE; COLON; b = bugs; ASTER; p = SLASH
       { let line, col = p in
         let pos = Llannot.mk_annot_position line col in
-        if String.equal a "Bug" then Bug_start (pos, b)
+        if String.equal a "Bug" then Llannot.Bug_start (pos, b)
         else Safe_start (pos, b) };
 
 ann_end:
   | p = ANNSTART; COLON; a = ATYPE; CBRAC; ASTER; SLASH
       { let line, col = p in
         let pos = Llannot.mk_annot_position line col in
-        if String.equal a "Bug" then Bug_end pos
+        if String.equal a "Bug" then Llannot.Bug_end pos
         else Safe_end pos };
