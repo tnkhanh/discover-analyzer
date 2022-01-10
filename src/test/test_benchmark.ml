@@ -130,7 +130,8 @@ let rec test default_conf benchmark =
       let _ = print ("Config for " ^ dir ^ ":\n" ^ str_of_config conf) in
       let full_log_dir = log_dir ^ dir ^ "/" ^ conf.conf_name in
       let _ = PS.run_command [ "mkdir"; "-p"; full_log_dir ] in
-      let all_files = List.sort ~compare:Poly.compare (Array.to_list (Sys.readdir dir)) in
+      let all_files =
+        List.sort ~compare:Poly.compare (Array.to_list (Sys.readdir dir)) in
 
       let update_summary test_output =
         let output_lines = String.split ~on:'\n' test_output in

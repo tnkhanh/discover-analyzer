@@ -19,6 +19,8 @@ module BG = Bug
 
 exception AnnotFormat of string
 
+let assert_counter = ref 0
+
 type tagged_instr =
   { tagx_pos : position;
     tagx_tag : int;
@@ -125,11 +127,11 @@ let generate_instrumented_func_name anntyp (bug : BG.bug_type) ins_type =
   prefix ^ bug_name ^ "_" ^ tail
 ;;
 
-let generate_instrumented_func_args (bug : BG.bug_type) (instr : value)
+let generate_instrumented_func_args (instr : value) (llctx : LL.llcontext)
     : value array
   =
-  match bug with
-  | _ -> [| instr |]
+  let counter_arg = LL.const_int (LL.i32_type llctx) !assert_counter in
+  [| counter_arg; instr |]
 ;;
 
 let apply_annotation
@@ -152,7 +154,9 @@ let apply_annotation
           | _ -> inx)
         | _ -> inx)
       else inx in
-    let _ = debug ("Actual Apply: " ^ LL.string_of_llvalue actual_ins) in
+    let _ =
+      if !print_instrumented_prog && !mode_deep_debug
+      then debug ("Actual Apply: " ^ LL.string_of_llvalue actual_ins) in
     let insert_pos = LL.instr_succ actual_ins in
     let llctx = LL.module_context modul in
     let builder = LL.builder_at llctx insert_pos in
@@ -164,56 +168,59 @@ let apply_annotation
           match assert_func_opt with
           | None ->
             let func_type =
-              LL.function_type (LL.void_type llctx) [| ins_type |] in
+              LL.function_type (LL.void_type llctx)
+                [| LL.i32_type llctx; ins_type |] in
             let func = LL.declare_function func_name func_type modul in
             func
           | Some func -> func in
-        let args = generate_instrumented_func_args bug actual_ins in
+        let args = generate_instrumented_func_args actual_ins llctx in
         ignore (LL.build_call assert_func args "" builder))
 ;;
 
-let rec update (instr : tagged_instr) anns =
-  match anns with
-  | [] -> []
-  | hd_match :: tl ->
-    (match hd_match with
-    | ann, ins_op ->
-      (match ins_op with
-      | None -> (ann, Some instr) :: update instr tl
-      | Some old_ins ->
+let update (instr : tagged_instr) matched_anns =
+  List.map
+    ~f:(fun (ann, instrs) ->
+      match instrs with
+      | [] -> ann, [ instr ]
+      | old_ins :: _ as all_ins ->
         let choose_ins =
           let old_start, old_end = get_coverage old_ins.tagx_instr in
           let cstart, cend = get_coverage instr.tagx_instr in
           let start_comp = compare_position old_start cstart in
           let end_comp = compare_position old_end cend in
-          if start_comp < 0
-             || (start_comp = 0 && end_comp > 0)
-             || (start_comp = 0 && end_comp = 0
-                && old_ins.tagx_tag < instr.tagx_tag)
-          then old_ins
-          else instr in
-        (ann, Some choose_ins) :: update instr tl))
+          if start_comp = 0 && end_comp = 0
+          then instr :: all_ins
+          else if start_comp < 0 || (start_comp = 0 && end_comp > 0)
+          then all_ins
+          else [ instr ] in
+        ann, choose_ins)
+    matched_anns
 ;;
 
 let apply_bug_annotation
     (end_ann : bug_annot)
-    (matched_anns : (bug_annot * tagged_instr option) list)
+    (matched_anns : (bug_annot * tagged_instr list) list)
     (modul : LL.llmodule)
   =
   let pos = get_annot_position end_ann in
   match matched_anns with
   | [] ->
     errorp "Bug annotation: ending without start at " pr_annot_position pos
-  | (ann, ins_op) :: other_matched_anns ->
-    (match ins_op with
-    | None ->
-      errorp "Bug annotation: no instr for annot at " pr_annot_position pos
-    | Some instr ->
+  | (ann, instrs) :: other_matched_anns ->
+    let instrc = List.length instrs in
+    if instrc = 0
+    then errorp "Bug annotation: no instr for annot at " pr_annot_position pos
+    else (
+      (* if instrc = 1 then *)
       let ann_type = get_annot_type end_ann in
       if String.equal (get_annot_type ann) ann_type
       then (
         let bugs = get_annot_bugs ann in
-        let _ = apply_annotation ann_type instr bugs modul in
+        let _ =
+          List.iter
+            ~f:(fun instr -> apply_annotation ann_type instr bugs modul)
+            instrs in
+        let _ = assert_counter := !assert_counter + 1 in
         other_matched_anns)
       else errorp "Bug annotation: unmatched ending at " pr_annot_position pos)
 ;;
@@ -237,7 +244,7 @@ let rec resolve
       | instr :: tl_ins ->
         if is_instr_before_annotation instr hd_ann
         then resolve annots tl_ins (update instr matched_anns) modul
-        else resolve tl_anns instrs ((hd_ann, None) :: matched_anns) modul)
+        else resolve tl_anns instrs ((hd_ann, []) :: matched_anns) modul)
     | End (pos, atype) ->
       (match instrs with
       | [] ->
@@ -256,16 +263,30 @@ let rec resolve
 
 let bug_annotation annots source_name (modul : LL.llmodule) : unit =
   let _ =
-    if !print_instrumented_prog
+    if !print_instrumented_prog && !mode_deep_debug
     then debugp ~ruler:`Long "Uninstrumented: " LL.string_of_llmodule modul
   in
   let finstr =
     Some
       (fun acc instr ->
-        if (is_instr_call instr) || (is_instr_store instr)
+        let _ =
+          if !print_instrumented_prog && !mode_deep_debug
+          then (
+            let ins = llvalue_of_instr instr in
+            let _ = print ("Ins: " ^ LL.string_of_llvalue ins) in
+            let oprs = operands instr in
+            List.iter
+              ~f:(fun opr ->
+                print
+                  ("Opr: " ^ LL.string_of_llvalue opr ^ " ValueKind: "
+                  ^ pr_valuekind (LL.classify_value opr)))
+              oprs) in
+        if is_instr_call instr || is_instr_store instr
            (*&& LL.is_intrinsic (operand instr 0) then acc*)
         then (
-          let _ = debug ("Call/Store: " ^ LL.string_of_llvalue (operand instr 0)) in
+          let _ = if !print_instrumented_prog && !mode_deep_debug then
+            debug ("Call/Store: " ^ LL.string_of_llvalue (operand instr 0))
+          in
           acc)
         else (
           let pos_op = position_of_instr instr in
@@ -280,7 +301,7 @@ let bug_annotation annots source_name (modul : LL.llmodule) : unit =
               | hd :: tl -> mk_tagged_instr pos (hd.tagx_tag + 1) instr :: acc)))
   in
   let tagged_instr = visit_fold_module ~finstr [] modul in
-  let _ =
+  let _ = if !print_instrumented_prog && !mode_deep_debug then
     List.iter
       ~f:(fun tagged ->
         let ins = tagged.tagx_instr in
@@ -291,9 +312,7 @@ let bug_annotation annots source_name (modul : LL.llmodule) : unit =
     let p2 = ins2.tagx_pos.pos_line_end, ins2.tagx_pos.pos_col_end in
     if Poly.(p1 > p2) then 1 else if Poly.(p1 < p2) then -1 else 0 in
   let sorted_ins = List.stable_sort ~compare tagged_instr in
-  let _ = resolve annots sorted_ins [] modul in
-  if !print_instrumented_prog
-  then debugp ~ruler:`Long "Instrumented" LL.string_of_llmodule modul
+  resolve annots sorted_ins [] modul
 ;;
 
 (*we need source_name to ignore instructions with location outside the source file *)

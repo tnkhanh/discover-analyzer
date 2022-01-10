@@ -222,8 +222,27 @@ let compute_benchmark_result (prog : LI.program) (bugs : BG.bug list) : benchmar
     Some (fun acc instr ->
       if LI.is_instr_call instr then
         (let func_name = LI.func_name (LI.callee_of_instr_call instr) in
-        if String.is_prefix ~prefix:__assert func_name
-        then (instr, None) :: acc
+        if String.is_prefix ~prefix:(__assert^"_ins") func_name
+        then 
+          match acc with
+          | [] -> [[instr]]
+          | hd_calls :: tl_calls ->
+            (match hd_calls with
+             | [] -> error "Error: This is not supposed to happen"
+             | hd_call :: _ ->
+               let hd_counter = 
+                 match LI.int64_of_const (LI.operand hd_call 0) with
+                 | None -> error "Error: This is not supposed to happen"
+                 | Some i -> i
+               in
+               let counter =
+                 match LI.int64_of_const (LI.operand instr 0) with
+                 | None -> error "Error: This is not supposed to happen"
+                 | Some i -> i
+               in
+               if Int64.equal hd_counter counter then (instr :: hd_calls) :: tl_calls
+               else
+                 [instr] :: acc)
         else
           acc)
       else
@@ -233,9 +252,10 @@ let compute_benchmark_result (prog : LI.program) (bugs : BG.bug list) : benchmar
   let _ = print "Assert calls: " in
   let _ =
     List.iter ~f:print
-      (List.map assert_calls ~f: (fun (c, _) -> LL.string_of_llvalue (LI.llvalue_of_instr c))) in
+      (List.map 
+         ~f:(pr_list_plain ~f:LI.pr_instr ~sep:" | ") assert_calls) in
 
-  let correct_bug_reports, incorrect_bug_reports, matched_calls = 
+  let matched_calls = 
     List.fold ~init:(0, 0, assert_calls) ~f:(fun (correct, incorrect, mcalls) bug ->
 
       let found, new_rev_mcalls = 
