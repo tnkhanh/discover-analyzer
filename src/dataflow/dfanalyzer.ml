@@ -26,20 +26,19 @@ type dfa_result =
   }
 
 type benchmark_result =
-  {
-    ben_correct_bug_reports : int;
-    ben_incorrect_bug_reports: int;
+  { ben_correct_bug_reports : int;
+    ben_incorrect_bug_reports : int;
     ben_missing_bugs : int;
-    ben_detailed_result : string;
+    ben_detailed_result : string
   }
 
 (*let dummy_ben_result =*)
-  (*{*)
-    (*ben_found_bugs = 0;*)
-    (*ben_missing_bugs = 0;*)
-    (*ben_incorrect_bug_reports = 0;*)
-    (*ben_detailed_result = "";*)
-  (*}*)
+(*{*)
+(*ben_found_bugs = 0;*)
+(*ben_missing_bugs = 0;*)
+(*ben_incorrect_bug_reports = 0;*)
+(*ben_detailed_result = "";*)
+(*}*)
 
 (*******************************************************************
  ** Supporting functions
@@ -217,90 +216,142 @@ let compute_analysis_result (dfa : dfa_data) (bugs : BG.bug list) : dfa_result =
   update_analysis_time dfa res
 ;;
 
-let compute_benchmark_result (prog : LI.program) (bugs : BG.bug list) : benchmark_result =
+(* core function for matching bug vs assertion *)
+(* TODO: Check function name *)
+let match_assert (bug : BG.bug) (assert_match : LI.instr * BG.bug option) =
+  let assert_call, _ = assert_match in
+  (* TODO: Check out this physical equality! *)
+  if LI.llvalue_of_instr bug.bug_instr == LI.operand assert_call 1
+  then (assert_call, Some bug), true
+  else assert_match, false
+;;
+
+let match_asserts
+    (bug : BG.bug)
+    (assert_matches : (LI.instr * BG.bug option) list)
+  =
+  let assert_results = List.map ~f:(match_assert bug) assert_matches in
+  let new_assert_matches, results = List.unzip assert_results in
+  new_assert_matches, List.exists ~f:(fun res -> res) results
+;;
+
+let match_groups (bug : BG.bug) assert_groups =
+  let assert_results = List.map ~f:(match_asserts bug) assert_groups in
+  let new_assert_groups, results = List.unzip assert_results in
+  new_assert_groups, List.exists ~f:(fun res -> res) results
+;;
+
+let update_matches (assert_groups, match_count) bug =
+  let new_assert_groups, result = match_groups bug assert_groups in
+  new_assert_groups, if result then match_count + 1 else match_count
+;;
+
+let compute_misses_from_asserts asserts =
+  let miss =
+    List.for_all
+      ~f:(fun (_, bug_opt) ->
+        match bug_opt with
+        | None -> true
+        | Some _ -> false)
+      asserts in
+  if miss then asserts else []
+;;
+
+let compute_misses_from_groups assert_groups =
+  let unfiltered_misses =
+    List.map ~f:compute_misses_from_asserts assert_groups in
+  List.filter
+    ~f:(fun asserts ->
+      match asserts with
+      | [] -> false
+      | _ :: _ -> true)
+    unfiltered_misses
+;;
+
+let pr_bug_misses bug_misses =
+  List.fold ~init:""
+    ~f:(fun acc (assert_call, _) ->
+      acc ^ LL.string_of_llvalue (LI.llvalue_of_instr assert_call) ^ "\n")
+    bug_misses
+;;
+
+let pr_bug_miss_groups bug_miss_groups =
+  List.fold ~init:""
+    ~f:(fun acc bug_misses -> acc ^ pr_bug_misses bug_misses ^ "------\n")
+    bug_miss_groups
+;;
+
+let pr_bug_matches (assert_groups : (LI.instr * BG.bug option) list list) =
+  let assert_calls = List.concat assert_groups in
+  List.fold ~init:""
+    ~f:(fun acc (assert_call, bug_opt) ->
+      match bug_opt with
+      | None -> acc
+      | Some bug ->
+        let instr_str =
+          LL.string_of_llvalue (LI.llvalue_of_instr assert_call) in
+        acc ^ instr_str ^ "\n - " ^ bug.bug_reason ^ "\n------\n")
+    assert_calls
+;;
+
+let compute_benchmark_result (prog : LI.program) (bugs : BG.bug list)
+    : benchmark_result
+  =
   let finstr =
-    Some (fun acc instr ->
-      if LI.is_instr_call instr then
-        (let func_name = LI.func_name (LI.callee_of_instr_call instr) in
-        if String.is_prefix ~prefix:(__assert^"_ins") func_name
-        then 
-          match acc with
-          | [] -> [[instr]]
-          | hd_calls :: tl_calls ->
-            (match hd_calls with
-             | [] -> error "Error: This is not supposed to happen"
-             | hd_call :: _ ->
-               let hd_counter = 
-                 match LI.int64_of_const (LI.operand hd_call 0) with
-                 | None -> error "Error: This is not supposed to happen"
-                 | Some i -> i
-               in
-               let counter =
-                 match LI.int64_of_const (LI.operand instr 0) with
-                 | None -> error "Error: This is not supposed to happen"
-                 | Some i -> i
-               in
-               if Int64.equal hd_counter counter then (instr :: hd_calls) :: tl_calls
-               else
-                 [instr] :: acc)
-        else
-          acc)
-      else
-       acc)
-  in
-  let assert_calls = LI.visit_fold_program ~finstr [] prog in
+    Some
+      (fun acc instr ->
+        if LI.is_instr_call instr
+        then (
+          let callee = LI.callee_of_instr_call instr in
+          let func_name = LI.func_name callee in
+          if String.is_prefix ~prefix:"__assert_ins" func_name
+          then (
+            match acc with
+            | [] -> [ [ instr, None ] ]
+            | hd_calls :: tl_calls ->
+              (match hd_calls with
+              | [] -> error "Error: This is not supposed to happen"
+              | (hd_call, _) :: _ ->
+                let hd_counter =
+                  match LI.int64_of_const (LI.operand hd_call 0) with
+                  | None -> error "Error: This is not supposed to happen"
+                  | Some i -> i in
+                let counter =
+                  match LI.int64_of_const (LI.operand instr 0) with
+                  | None -> error "Error: This is not supposed to happen"
+                  | Some i -> i in
+                if Int64.equal hd_counter counter
+                then ((instr, None) :: hd_calls) :: tl_calls
+                else [ instr, None ] :: acc))
+          else acc)
+        else acc) in
+  (* TODO: Maybe sort the assertions. 
+   * Multiple bug types for one annotation may cause problems *)
+  let assert_groups = LI.visit_fold_program ~finstr [] prog in
   let _ = print "Assert calls: " in
   let _ =
     List.iter ~f:print
-      (List.map 
-         ~f:(pr_list_plain ~f:LI.pr_instr ~sep:" | ") assert_calls) in
+      (List.map ~f:(fun (c, _) -> LI.pr_instr c) (List.concat assert_groups))
+  in
 
-  let matched_calls = 
-    List.fold ~init:(0, 0, assert_calls) ~f:(fun (correct, incorrect, mcalls) bug ->
-
-      let found, new_rev_mcalls = 
-        List.fold ~init:(false, []) ~f:(fun (f, new_mcalls) ((call, _) as mcall) ->
-          if f then
-            (true, mcall :: new_mcalls)
-          else
-            let asserted_ins = LI.operand call 0 in
-            let bug_ins = LI.llvalue_of_instr bug.bug_instr in
-            (* TODO: nested folds need inspection, and the comparison below *)
-            if asserted_ins == bug_ins then
-              (
-                let callee_name = LI.func_name (LI.callee_of_instr_call call) in
-                if String.is_substring 
-                     ~substring:(BG.pr_bug_type_lowercase bug.bug_type) callee_name
-                then
-                  (true, (call, Some bug) :: new_mcalls)
-                else
-                  false, mcall :: new_mcalls
-              )
-            else
-              false, mcall :: new_mcalls
-        ) mcalls in
-      ((if found then correct + 1 else correct),
-       (if found then incorrect else incorrect + 1),
-       List.rev new_rev_mcalls)
-    ) bugs in
-  let detailed_result, missing_bugs =
-    List.fold ~init:("", 0) ~f:(fun (acc, count) (call, bug_opt) ->
-      match bug_opt with
-      | None -> acc, count + 1
-      | Some bug -> 
-        (let call_str = LL.string_of_llvalue (LI.llvalue_of_instr call) in 
-        acc ^ "Match:\n  Call: " ^ call_str ^ "\n  Bug: " ^ bug.bug_reason ^ "\n"),
-        count
-    ) matched_calls in
-  {
-    ben_correct_bug_reports = correct_bug_reports;
+  let matched_asserts, correct_bug_reports =
+    List.fold ~init:(assert_groups, 0) ~f:update_matches bugs in
+  let incorrect_bug_reports = List.length bugs - correct_bug_reports in
+  let bug_miss_groups = compute_misses_from_groups matched_asserts in
+  let missing_bugs = List.length bug_miss_groups in
+  let detailed_result =
+    "+ Bug misses:\n"
+    ^ pr_bug_miss_groups bug_miss_groups
+    ^ "+ Bug matches:\n"
+    ^ pr_bug_matches matched_asserts in
+  { ben_correct_bug_reports = correct_bug_reports;
     ben_incorrect_bug_reports = incorrect_bug_reports;
     ben_missing_bugs = missing_bugs;
-    ben_detailed_result = detailed_result;
+    ben_detailed_result = detailed_result
   }
 ;;
 
-let analyze_program (prog : LI.program) : (dfa_result * benchmark_result) =
+let analyze_program (prog : LI.program) : dfa_result * benchmark_result =
   let _ = printp ~ruler:`Long "Analyze program by " pr_dfa_mode !dfa_mode in
   let dfa =
     prog |> mk_dfa_data |> perform_pre_analysis_passes
@@ -308,6 +359,5 @@ let analyze_program (prog : LI.program) : (dfa_result * benchmark_result) =
   let _ = report_analysis_stats dfa in
   let _ = check_assertions dfa in
   let bugs = find_bugs dfa in
-  (compute_analysis_result dfa bugs, 
-   compute_benchmark_result prog bugs)
+  compute_analysis_result dfa bugs, compute_benchmark_result prog bugs
 ;;
