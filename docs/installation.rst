@@ -43,11 +43,16 @@ compilation of LLVM.
    cd $LLVMPROJECT/build
 
    # Configure compilation by CMake.
-   # Note that for compilation on macOS, remove `-DLLVM_USE_LINKER=gold`
+   # For Linux
    cmake ../llvm -DCMAKE_INSTALL_PREFIX=$LLVMINSTALLDIR \
          -DLLVM_ENABLE_BINDINGS=ON -DLLVM_ENABLE_RTTI=ON \
          -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release \
          -DLLVM_USE_LINKER=gold -Wno-dev -G Ninja
+   # For macOS
+   cmake ../llvm -DCMAKE_INSTALL_PREFIX=$LLVMINSTALLDIR \
+         -DLLVM_ENABLE_BINDINGS=ON -DLLVM_ENABLE_RTTI=ON \
+         -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release \
+         -Wno-dev -G Ninja
 
    # Build LLVM
    ninja
@@ -62,14 +67,17 @@ To update your environment with this LLVM 13 installation:
 
    # Option 1: run these commands to update the environment temporarily
    export PATH=$LLVMINSTALLDIR/bin:$PATH
-   export LD_LIBRARY_PATH=$LLVMINSTALLDIR/lib:$LD_LIBRARY_PATH
    export LIBRARY_PATH=$LLVMINSTALLDIR/lib:$LIBRARY_PATH
+   export LD_LIBRARY_PATH=$LLVMINSTALLDIR/lib:$LD_LIBRARY_PATH
+   export DYLD_LIBRARY_PATH=$LLVMINSTALLDIR/lib:$DYLD_LIBRARY_PATH  # for macOS
 
-   # Option 2: put the following to ~/.profile to configure the environment permanently
+   # Option 2: put the following to ~/.profile (Linux) or ~/.zshenv (macOS)
+   #           to configure the environment permanently
    export LLVMINSTALLDIR=$HOME/llvm/llvm-sbip
    export PATH=$LLVMINSTALLDIR/bin:$PATH
-   export LD_LIBRARY_PATH=$LLVMINSTALLDIR/lib:$LD_LIBRARY_PATH
    export LIBRARY_PATH=$LLVMINSTALLDIR/lib:$LIBRARY_PATH
+   export LD_LIBRARY_PATH=$LLVMINSTALLDIR/lib:$LD_LIBRARY_PATH
+   export DYLD_LIBRARY_PATH=$LLVMINSTALLDIR/lib:$DYLD_LIBRARY_PATH  # for macOS
 
 .. _section-ocaml:
 
