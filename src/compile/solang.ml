@@ -106,6 +106,7 @@ let compile_program (input_file : string) : LI.program =
       @ [ "--emit"; "llvm-bc" ]
       @ [ "--no-constant-folding"; "--no-strength-reduce" ]
       @ [ "--no-dead-storage"; "--no-vector-to-slice" ]
+      @ [ "--no-implicit-type-cast-check" ]
       @ [ "-O"; "none"; "--target"; "ewasm" ]
       @ [ "-o"; output_dir ] @ user_options in
     let _ = debugf "Compilation command: %s" (String.concat ~sep:" " cmd) in

@@ -19,7 +19,7 @@ LLVM and Clang
 We use a customized version `LLVM-SBIP
 <https://github.com/sbip-sg/llvm-project>`_ of LLVM 13. The latest development
 is at the branch ``sbip-llvm-13``. It need to be installed to
-``$HOME/llvm/llvm-sbip``. Note that it might take 2 to 3 hours to finish the
+``$HOME/llvm/llvm-sbip``. Note that it might take 1 or 2 hours to finish the
 compilation of LLVM.
 
 .. code-block:: sh
