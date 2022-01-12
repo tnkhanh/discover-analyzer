@@ -120,12 +120,10 @@ let rec test default_conf benchmark =
       [ default_conf ]) in
   List.iter
     ~f:(fun conf ->
-      (*      let total_assert_ok = ref 0 in*)
-      (*let total_assert_failed = ref 0 in*)
-      (*let total_refute_ok = ref 0 in*)
-      (*let total_refute_failed = ref 0 in*)
-      let total_valid_assert = ref 0 in
-      let total_invalid_assert = ref 0 in
+      let total_assert_ok = ref 0 in
+      let total_assert_failed = ref 0 in
+      let total_refute_ok = ref 0 in
+      let total_refute_failed = ref 0 in
 
       let _ = print ("Config for " ^ dir ^ ":\n" ^ str_of_config conf) in
       let full_log_dir = log_dir ^ dir ^ "/" ^ conf.conf_name in
@@ -133,11 +131,42 @@ let rec test default_conf benchmark =
       let all_files =
         List.sort ~compare:Poly.compare (Array.to_list (Sys.readdir dir)) in
 
-      let update_summary test_output =
+      let collect_summary test_output =
         let output_lines = String.split ~on:'\n' test_output in
-        List.iter
-          ~f:(fun line ->
-            if String.is_prefix ~prefix:__report_valid_assert line
+        let rev_assertions =
+          List.fold ~init: []
+            ~f:(fun acc line ->
+              if String.is_substring ~substring:"__assert_" line then (
+                if String.is_suffix ~suffix:"OK!" line then
+                  let _ = total_assert_ok := !total_assert_ok + 1 in
+                  line :: acc
+                else
+                if String.is_suffix ~suffix:"FAILED!" line then
+                  let _ = total_assert_failed := !total_assert_failed + 1 in
+                  line :: acc
+                else
+                  acc
+              )
+              else
+              if String.is_substring ~substring:"__refute_" line then (
+                if String.is_suffix ~suffix:"OK!" line then
+                  let _ = total_refute_ok := !total_refute_ok + 1 in
+                  line :: acc
+                else
+                if String.is_suffix ~suffix:"FAILED!" line then
+                  let _ = total_refute_failed := !total_refute_failed + 1 in
+                  line :: acc
+                else
+                  acc
+              )
+              else
+                acc
+            ) output_lines in
+        let assertions = List.rev rev_assertions in
+        let _ = print ("  Found " ^ pr_int (List.length assertions) ^ " assertions:") in
+        List.iter ~f:print assertions in
+
+(*            if String.is_prefix ~prefix:__report_valid_assert line
             then (
               let prefix_length = String.length __report_valid_assert in
               let number_length =
@@ -157,8 +186,7 @@ let rec test default_conf benchmark =
                   (String.sub line ~pos:prefix_length ~len:number_length) in
 
               total_invalid_assert
-                := !total_invalid_assert + added_invalid_assert))
-          output_lines in
+                := !total_invalid_assert + added_invalid_assert)) *)
 
       let _ =
         List.iter
@@ -178,14 +206,17 @@ let rec test default_conf benchmark =
                 let log_file = full_log_dir ^ "/" ^ file ^ ".log" in
                 let _ = PS.run_command_output_to_file command log_file in
                 let output_str = In_channel.read_all log_file in
-                update_summary output_str)
+                collect_summary output_str)
             | `Unknown -> ())
           all_files in
       let summary =
-        "Summary of config " ^ conf.conf_name ^ " of benchmark " ^ dir ^ ":\n"
-        ^ "  Valid asssertions: " ^ pr_int !total_valid_assert
-        ^ "  Invalid asssertions: "
-        ^ pr_int !total_invalid_assert in
+        String.concat
+          ["Summary of config " ; conf.conf_name ; " of benchmark " ; dir ; ":\n";
+           "  Valid asssert: " ; pr_int !total_assert_ok; "\n";
+           "  Invalid asssert: "; pr_int !total_assert_failed; "\n";
+           "  Valid refute: " ; pr_int !total_refute_ok; "\n";
+           "  Invalid refute: "; pr_int !total_refute_failed
+          ] in
       print summary)
     configs
 ;;

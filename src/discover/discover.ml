@@ -14,9 +14,10 @@ module DA = Dfanalyzer
 module SE = Symexec
 module CP = Compile
 module VS = Version
+module BM = Benchmark
 
 type analysis_result =
-  | RDfa of (DA.dfa_result * DA.benchmark_result)
+  | RDfa of (DA.dfa_result * BM.benchmark_result)
   | RSymexec of SE.symexec_result
   | RNone
 
