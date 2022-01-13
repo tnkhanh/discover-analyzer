@@ -142,18 +142,7 @@ let apply_annotation
   =
   match instr.tagx_instr with
   | Instr inx ->
-    (* if instr is store and first operand is trunc *)
-    let actual_ins =
-      if is_instr_store instr.tagx_instr
-      then (
-        let first_opr = operand instr.tagx_instr 0 in
-        match LL.classify_value first_opr with
-        | Instruction opc ->
-          (match opc with
-          | LO.Trunc -> first_opr
-          | _ -> inx)
-        | _ -> inx)
-      else inx in
+    let actual_ins = inx in
     let _ =
       if !print_instrumented_prog && !mode_deep_debug
       then debug ("Actual Apply: " ^ LL.string_of_llvalue actual_ins) in
