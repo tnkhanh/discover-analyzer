@@ -77,30 +77,29 @@ let compute_misses_from_groups assert_groups =
     unfiltered_misses
 ;;
 
-let pr_bug_misses bug_misses =
-  List.fold ~init:""
-    ~f:(fun acc (assert_call, _) ->
-      acc ^ LL.string_of_llvalue (LI.llvalue_of_instr assert_call) ^ "\n")
-    bug_misses
+let pr_bug_miss bug_miss =
+  let assert_call, _ = bug_miss in
+  LL.string_of_llvalue (LI.llvalue_of_instr assert_call)
 ;;
+
+let pr_bug_misses bug_misses = pr_list ~sep:"\n" ~f:pr_bug_miss bug_misses
 
 let pr_bug_miss_groups bug_miss_groups =
-  List.fold ~init:""
-    ~f:(fun acc bug_misses -> acc ^ pr_bug_misses bug_misses ^ "------\n")
-    bug_miss_groups
+  pr_list ~sep:"\n" ~f:pr_bug_misses bug_miss_groups
 ;;
 
-let pr_bug_matches (assert_groups : (LI.instr * BG.bug option) list list) =
-  let assert_calls = List.concat assert_groups in
-  List.fold ~init:""
-    ~f:(fun acc (assert_call, bug_opt) ->
-      match bug_opt with
-      | None -> acc
-      | Some bug ->
-        let instr_str =
-          LL.string_of_llvalue (LI.llvalue_of_instr assert_call) in
-        acc ^ instr_str ^ "\n - " ^ bug.bug_reason ^ "\n------\n")
-    assert_calls
+let pr_bug_match (bug_match : LI.instr * BG.bug option) : string =
+  let assert_call, bug_opt = bug_match in
+  match bug_opt with
+  | None -> ""
+  | Some bug ->
+    let instr_str = LL.string_of_llvalue (LI.llvalue_of_instr assert_call) in
+    String.concat [ "--\n"; instr_str; "\n"; bug.bug_reason; "\n------\n" ]
+;;
+
+let pr_bug_match_groups (groups : (LI.instr * BG.bug option) list list) =
+  let assert_calls = List.concat groups in
+  pr_list_plain ~f:pr_bug_match assert_calls
 ;;
 
 let compute_benchmark_result (prog : LI.program) (bugs : BG.bug list)
@@ -149,10 +148,13 @@ let compute_benchmark_result (prog : LI.program) (bugs : BG.bug list)
   let bug_miss_groups = compute_misses_from_groups matched_asserts in
   let missing_bugs = List.length bug_miss_groups in
   let detailed_result =
-    "+ Bug misses:\n"
-    ^ pr_bug_miss_groups bug_miss_groups
-    ^ "+ Bug matches:\n"
-    ^ pr_bug_matches matched_asserts in
+    String.concat
+      [ "+ Bug misses:\n";
+        pr_bug_miss_groups bug_miss_groups;
+        "\n";
+        "+ Bug matches:\n";
+        pr_bug_match_groups matched_asserts
+      ] in
   { ben_correct_bug_reports = correct_bug_reports;
     ben_incorrect_bug_reports = incorrect_bug_reports;
     ben_missing_bugs = missing_bugs;
