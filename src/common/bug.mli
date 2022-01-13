@@ -5,52 +5,67 @@
  * All rights reserved.
  ********************************************************************)
 
-type integer_overflow =
-  { iof_expr : Llir.value;
-    iof_bitwidth : int;
-    iof_instr : Llir.instr
-  }
+module ArithmeticBug : sig
+  type integer_overflow =
+    { iof_expr : Llir.value;
+      iof_bitwidth : int;
+      iof_instr : Llir.instr
+    }
 
-type integer_underflow =
-  { iuf_expr : Llir.value;
-    iuf_bitwidth : int;
-    iuf_instr : Llir.instr
-  }
+  type integer_underflow =
+    { iuf_expr : Llir.value;
+      iuf_bitwidth : int;
+      iuf_instr : Llir.instr
+    }
 
-type integer_coercion_error =
-  { ice_expr : Llir.value;
-    ice_instr : Llir.instr
-  }
+  type integer_coercion_error =
+    { ice_expr : Llir.value;
+      ice_instr : Llir.instr
+    }
 
-type numeric_truncation_error =
-  { nte_expr : Llir.value;
-    nte_instr : Llir.instr
-  }
+  type numeric_truncation_error =
+    { nte_expr : Llir.value;
+      nte_instr : Llir.instr
+    }
 
-type division_by_zero =
-  { dbz_expr : Llir.value;
-    dbz_instr : Llir.instr
-  }
+  type division_by_zero =
+    { dbz_expr : Llir.value;
+      dbz_instr : Llir.instr
+    }
+end
 
-type memory_leak =
-  { mlk_pointer : Llir.value;
-    mlk_size : int option
-  }
+module MemoryBug : sig
+  type memory_leak =
+    { mlk_pointer : Llir.value;
+      mlk_size : int option
+    }
 
-type null_pointer_deref = { npe_pointer : Llir.value }
+  type null_pointer_deref = { npe_pointer : Llir.value }
 
-type buffer_overflow =
-  { bof_pointer : Llir.value;
-    bof_elem_index : Llir.value;
-    bof_instr : Llir.instr;
-    mutable bof_write_operation : bool option;
-    mutable bof_stack_based : bool option
-  }
+  type buffer_overflow =
+    { bof_pointer : Llir.value;
+      bof_elem_index : Llir.value;
+      bof_instr : Llir.instr;
+      mutable bof_write_operation : bool option;
+      mutable bof_stack_based : bool option
+    }
+end
 
-type resource_leak =
-  { rlk_pointer : Llir.value;
-    rlk_file_resource : bool
-  }
+module ResourceBug : sig
+  type resource_leak =
+    { rlk_pointer : Llir.value;
+      rlk_file_resource : bool
+    }
+end
+
+module SolidityBug : sig
+  type solidity_access_control = { sac_pointer : Llir.value }
+end
+
+include module type of ArithmeticBug
+include module type of MemoryBug
+include module type of ResourceBug
+include module type of SolidityBug
 
 type bug_type =
   | IntegerOverflow of integer_overflow option
@@ -62,6 +77,7 @@ type bug_type =
   | NullPointerDeref of null_pointer_deref option
   | BufferOverflow of buffer_overflow option
   | ResourceLeak of resource_leak option
+  | SolidityAccessControl of solidity_access_control
 
 type bug_types = bug_type list
 

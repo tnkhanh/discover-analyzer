@@ -19,7 +19,8 @@ module LO = Llvm.Opcode
  * Bug type, used by bug detection and instrumentation
  *-----------------------------------------------------*)
 
-(* Module containing definitions of arithmetic bugs *)
+(** Module containing definitions of arithmetic bugs *)
+
 module ArithmeticBug = struct
   type integer_overflow =
     { iof_expr : value;
@@ -49,7 +50,8 @@ module ArithmeticBug = struct
     }
 end
 
-(* Module containing definitions of memory bugs *)
+(** Module containing definitions of memory bugs *)
+
 module MemoryBug = struct
   (*---------------
    * Data structures
@@ -71,7 +73,8 @@ module MemoryBug = struct
     }
 end
 
-(* Module containing definitions of resource bugs *)
+(** Module containing definitions of resource bugs *)
+
 module ResourceBug = struct
   type resource_leak =
     { rlk_pointer : value;
@@ -79,10 +82,23 @@ module ResourceBug = struct
     }
 end
 
+(** Module containing definitions of memory bugs *)
+
+module SolidityBug = struct
+  (* Example of access control bugs like:
+     - Authorization using `tx.origin`, e.g.: `require(tx.origin == owner)`
+  *)
+  type solidity_access_control = { sac_pointer : value }
+end
+
+(* Include all modules *)
+
 include ArithmeticBug
 include MemoryBug
 include ResourceBug
+include SolidityBug
 
+(* Define bug types *)
 type bug_type =
   (* Numerical bugs *)
   | IntegerOverflow of integer_overflow option
@@ -96,6 +112,8 @@ type bug_type =
   | BufferOverflow of buffer_overflow option
   (* Resources bugs *)
   | ResourceLeak of resource_leak option
+  (* Soldity bugs *)
+  | SolidityAccessControl of solidity_access_control
 
 type potential_bug =
   { pbug_instr : instr;
@@ -161,6 +179,7 @@ let pr_bug_cwe (btype : bug_type) : string =
         "CWE-775: Missing Release of File Descriptor or Handle"
         ^ " after Effective Lifetime"
       else "CWE-772: Missing Release of Resource after Effective Lifetime")
+  | SolidityAccessControl _ -> ""
 ;;
 
 let pr_bug_type (btype : bug_type) : string =
@@ -177,6 +196,7 @@ let pr_bug_type (btype : bug_type) : string =
   | BufferOverflow _ -> "Buffer Overflow"
   (* Resource bugs *)
   | ResourceLeak _ -> "Resource Leak"
+  | SolidityAccessControl _ -> "Solidity Access Control"
 ;;
 
 let pr_potential_bug (pbug : potential_bug) : string =
