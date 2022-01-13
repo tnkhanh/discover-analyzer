@@ -130,4 +130,4 @@ val is_bug_integer_underflow : bug -> bool
 (*** reporting ***)
 
 val report_bug_stats : bug list -> unit
-val mark_potential_bugs : Llir.program -> potential_bugs
+val record_potential_bugs : Llir.program -> potential_bugs

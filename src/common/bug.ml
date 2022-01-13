@@ -179,6 +179,7 @@ let pr_bug_cwe (btype : bug_type) : string =
         "CWE-775: Missing Release of File Descriptor or Handle"
         ^ " after Effective Lifetime"
       else "CWE-772: Missing Release of Resource after Effective Lifetime")
+  (* Solidity bugs: TODO: check with Solidity CWE *)
   | SolidityAccessControl _ -> ""
 ;;
 
@@ -434,7 +435,7 @@ let is_bug_integer_underflow (bug : bug) =
       function --> a list of bugs
 *)
 
-let mark_potential_bugs (prog : program) : potential_bugs =
+let record_potential_bugs (prog : program) : potential_bugs =
   let process_instr acc (ins : instr) =
     match instr_opcode ins with
     | LO.Add | LO.Sub | LO.Mul ->
