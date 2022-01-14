@@ -214,6 +214,8 @@ let pr_bug_type_lowercase (btype : bug_type) : string =
   | BufferOverflow _ -> "buffer_overflow"
   (* Resource bugs *)
   | ResourceLeak _ -> "resource_leak"
+  (* Solidity bugs *)
+  | SolidityAccessControl _ -> "solidity_access_control"
 ;;
 
 let pr_potential_bug (pbug : potential_bug) : string =

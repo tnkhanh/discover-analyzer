@@ -44,27 +44,26 @@ open Llannot
 prog:
   | EOF (* empty *)
       {[]}
-  | ts = toks; EOF
+  | ts = tokens; EOF
       {ts};
 
-toks:
-  | t = tok
+tokens:
+  | t = token
       { match t with
         | Skip -> []
         | _ as m -> [m] }
-  | ts = toks; t = tok
+  | ts = tokens; t = token
       { match t with
         | Skip -> ts
         | _ as m -> m::ts };
 
-tok:
+token:
   | WORD
   | SLASH
   | ASTER
   | OBRAC
   | CBRAC
   | COLON
-  | ATYPE
   | COMMA { Llannot.Skip }
   | a = ann_begin { a }
   | a = ann_end { a }
@@ -101,5 +100,5 @@ ann_end:
         End (pos, a) };
 
 ann_line:
-  | l = ANN_LINE; w = WORD; COLON; b = bugs 
+  | l = ANN_LINE; w = WORD; COLON; b = bugs
       { Line (l, w, b)};
