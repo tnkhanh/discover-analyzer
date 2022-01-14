@@ -79,7 +79,7 @@ bug:
   | NULL_POINTER_DEREF
       { Bug.mk_bug_type_null_pointer_deref () }
   | BUFFER_OVERFLOW
-      { Bug.mk_bug_type_memory_leak () }
+      { Bug.mk_bug_type_buffer_overflow () }
   | INTEGER_OVERFLOW
       { Bug.mk_bug_type_integer_overflow () }
   | INTEGER_UNDERFLOW

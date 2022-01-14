@@ -136,21 +136,22 @@ let generate_instrumented_func_args (instr : value) (llctx : LL.llcontext)
 
 let apply_annotation
     (anntyp : string)
-    (instr : tagged_instr)
-    (bugs : BG.bug_types)
+    (instrs : tagged_instr list)
+    (bug : BG.bug_type)
     (modul : bitcode_module)
   =
-  match instr.tagx_instr with
-  | Instr inx ->
-    let actual_ins = inx in
-    let _ =
-      if !print_instrumented_prog && !mode_deep_debug
-      then debug ("Actual Apply: " ^ LL.string_of_llvalue actual_ins) in
-    let insert_pos = LL.instr_succ actual_ins in
-    let llctx = LL.module_context modul in
-    let builder = LL.builder_at llctx insert_pos in
-    let ins_type = LL.type_of actual_ins in
-    List.iter bugs ~f:(fun bug ->
+  List.iter
+    ~f:(fun instr ->
+      match instr.tagx_instr with
+      | Instr inx ->
+        let actual_ins = inx in
+        let _ =
+          if !print_instrumented_prog && !mode_deep_debug
+          then debug ("Actual Apply: " ^ LL.string_of_llvalue actual_ins) in
+        let insert_pos = LL.instr_succ actual_ins in
+        let llctx = LL.module_context modul in
+        let builder = LL.builder_at llctx insert_pos in
+        let ins_type = LL.type_of actual_ins in
         let func_name = generate_instrumented_func_name anntyp bug ins_type in
         let assert_func_opt = LL.lookup_function func_name modul in
         let assert_func =
@@ -164,6 +165,7 @@ let apply_annotation
           | Some func -> func in
         let args = generate_instrumented_func_args actual_ins llctx in
         ignore (LL.build_call assert_func args "" builder))
+    instrs
 ;;
 
 let update (instr : tagged_instr) matched_anns =
@@ -207,9 +209,10 @@ let apply_bug_annotation
         let bugs = get_annot_bugs ann in
         let _ =
           List.iter
-            ~f:(fun instr -> apply_annotation ann_type instr bugs modul)
-            instrs in
-        let _ = assert_counter := !assert_counter + 1 in
+            ~f:(fun bug ->
+              let _ = assert_counter := !assert_counter + 1 in
+              apply_annotation ann_type instrs bug modul)
+            bugs in
         other_matched_anns)
       else errorp "Bug annotation: unmatched ending at " pr_annot_position pos)
 ;;
@@ -272,8 +275,9 @@ let bug_annotation annots source_name (modul : LL.llmodule) : unit =
               oprs) in
         if is_instr_store instr
         then (
-          let _ = if !print_instrumented_prog && !mode_deep_debug then
-            debug ("Store: " ^ LL.string_of_llvalue (operand instr 0))
+          let _ =
+            if !print_instrumented_prog && !mode_deep_debug
+            then debug ("Store: " ^ LL.string_of_llvalue (operand instr 0))
           in
           acc)
         else (
@@ -289,12 +293,14 @@ let bug_annotation annots source_name (modul : LL.llmodule) : unit =
               | hd :: tl -> mk_tagged_instr pos (hd.tagx_tag + 1) instr :: acc)))
   in
   let tagged_instr = visit_fold_module ~finstr [] modul in
-  let _ = if !print_instrumented_prog && !mode_deep_debug then
-    List.iter
-      ~f:(fun tagged ->
-        let ins = tagged.tagx_instr in
-        debug ("Instrs: " ^ LL.string_of_llvalue (llvalue_of_instr ins)))
-      tagged_instr in
+  let _ =
+    if !print_instrumented_prog && !mode_deep_debug
+    then
+      List.iter
+        ~f:(fun tagged ->
+          let ins = tagged.tagx_instr in
+          debug ("Instrs: " ^ LL.string_of_llvalue (llvalue_of_instr ins)))
+        tagged_instr in
   let compare ins1 ins2 =
     let p1 = ins1.tagx_pos.pos_line_end, ins1.tagx_pos.pos_col_end in
     let p2 = ins2.tagx_pos.pos_line_end, ins2.tagx_pos.pos_col_end in

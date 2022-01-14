@@ -240,7 +240,7 @@ let pr_bugs (bugs : bug list) : string =
 
 let mk_bug_type_memory_leak () : bug_type = MemoryLeak None
 let mk_bug_type_null_pointer_deref () : bug_type = NullPointerDeref None
-let mk_bug_type_buffer_overflow_deref () : bug_type = NullPointerDeref None
+let mk_bug_type_buffer_overflow () : bug_type = BufferOverflow None
 
 (*** integer bugs ***)
 
