@@ -30,7 +30,10 @@ type benchmark_result =
 let match_assert (bug : BG.bug) (assert_match : LI.instr * BG.bug option) =
   let assert_call, _ = assert_match in
   (* TODO: Check out this physical equality! *)
-  if LI.llvalue_of_instr bug.bug_instr == LI.operand assert_call 1
+  let bug_name = BG.pr_bug_type_lowercase bug.bug_type in
+  let assert_name = LI.func_name (LI.callee_of_instr_call assert_call) in
+  if String.is_substring ~substring:bug_name assert_name &&
+    (LI.llvalue_of_instr bug.bug_instr == LI.operand assert_call 1)
   then (assert_call, Some bug), true
   else assert_match, false
 ;;
@@ -102,6 +105,30 @@ let pr_bug_match_groups (groups : (LI.instr * BG.bug option) list list) =
   pr_list_plain ~f:pr_bug_match assert_calls
 ;;
 
+(* TODO: Maybe List.fold can be used *)
+let rec add_assert_to_groups assert_call groups =
+  match groups with
+  | [] -> [ [assert_call, None] ]
+  | hd_calls :: tl_groups ->
+    (match hd_calls with
+     | [] -> error "Error: This is not supposed to happen"
+     | (hd_call, _) :: _ ->
+       let hd_counter =
+         match LI.int64_of_const (LI.operand hd_call 0) with
+         | None -> error "Error: This is not supposed to happen"
+         | Some i -> i in
+       let counter =
+         match LI.int64_of_const (LI.operand assert_call 0) with
+         | None -> error "Error: This is not supposed to happen"
+         | Some i -> i in
+       if Int64.equal hd_counter counter
+       then
+         ((assert_call, None) :: hd_calls) :: tl_groups
+       else
+         hd_calls :: add_assert_to_groups assert_call tl_groups
+    )
+;;
+
 let compute_benchmark_result (prog : LI.program) (bugs : BG.bug list)
     : benchmark_result
   =
@@ -113,28 +140,11 @@ let compute_benchmark_result (prog : LI.program) (bugs : BG.bug list)
           let callee = LI.callee_of_instr_call instr in
           let func_name = LI.func_name callee in
           if String.is_prefix ~prefix:"__assert_ins" func_name
-          then (
-            match acc with
-            | [] -> [ [ instr, None ] ]
-            | hd_calls :: tl_calls ->
-              (match hd_calls with
-              | [] -> error "Error: This is not supposed to happen"
-              | (hd_call, _) :: _ ->
-                let hd_counter =
-                  match LI.int64_of_const (LI.operand hd_call 0) with
-                  | None -> error "Error: This is not supposed to happen"
-                  | Some i -> i in
-                let counter =
-                  match LI.int64_of_const (LI.operand instr 0) with
-                  | None -> error "Error: This is not supposed to happen"
-                  | Some i -> i in
-                if Int64.equal hd_counter counter
-                then ((instr, None) :: hd_calls) :: tl_calls
-                else [ instr, None ] :: acc))
-          else acc)
+          then add_assert_to_groups instr acc
+          else
+            acc
+        )
         else acc) in
-  (* TODO: Maybe sort the assertions. 
-   * Multiple bug types for one annotation may cause problems *)
   let assert_groups = LI.visit_fold_program ~finstr [] prog in
   let _ = print "Assert calls: " in
   let _ =
