@@ -102,6 +102,7 @@ type bugs = bug list
 (*** printing ***)
 
 val pr_bug_type : bug_type -> string
+val pr_bug_type_lowercase : bug_type -> string
 val pr_potential_bug : potential_bug -> string
 val pr_potential_bugs : potential_bug list -> string
 val pr_bug : bug -> string
@@ -112,7 +113,7 @@ val pr_bugs : bug list -> string
 
 val mk_bug_type_memory_leak : unit -> bug_type
 val mk_bug_type_null_pointer_deref : unit -> bug_type
-val mk_bug_type_buffer_overflow_deref : unit -> bug_type
+val mk_bug_type_buffer_overflow : unit -> bug_type
 val mk_bug_type_integer_overflow : unit -> bug_type
 val mk_bug_type_integer_underflow : unit -> bug_type
 val mk_bug_type_coercion_error : unit -> bug_type

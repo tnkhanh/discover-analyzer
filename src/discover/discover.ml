@@ -13,9 +13,10 @@ module DA = Dfanalyzer
 module SE = Symexec
 module CP = Compile
 module VS = Version
+module BM = Benchmark
 
 type analysis_result =
-  | RDfa of DA.dfa_result
+  | RDfa of (DA.dfa_result * BM.benchmark_result)
   | RSymexec of SE.symexec_result
   | RNone
 
@@ -91,7 +92,7 @@ let _enable_release_mode_alias_analysis () =
 
 let create_runtime_summary (res : analysis_result) : string =
   match res with
-  | RDfa rdfa ->
+  | RDfa (rdfa, rben) ->
     let total_time =
       sprintf "- Analysis time: %.2fs\n" rdfa.DA.dfa_total_analysis_time in
     let detailed_runtime =
@@ -118,7 +119,7 @@ let create_bug_summary (res : analysis_result) : string =
   if !find_bug
   then (
     match res with
-    | RDfa rdfa ->
+    | RDfa (rdfa, _) ->
       let total_bugs =
         sprintf "- Detected bugs: %d\n" rdfa.dfa_num_detected_bugs in
       let detailed_bugs =
@@ -131,6 +132,18 @@ let create_bug_summary (res : analysis_result) : string =
   else "- Bug finding is not enabled\n"
 ;;
 
+let create_benchmark_summary (res: analysis_result) : string =
+  match res with
+  | RDfa (_, rben) ->
+    let short_summary = 
+      "===\nBenchmark summary:\n" 
+     ^"- Correct bug reports: " ^ (pr_int rben.ben_correct_bug_reports) ^ "\n"
+     ^"- Incorrect bug reports: " ^ (pr_int rben.ben_incorrect_bug_reports) ^ "\n"
+     ^"- Missing bugs: " ^ (pr_int rben.ben_missing_bugs) ^ "\n"
+
+    in short_summary ^ rben.ben_detailed_result ^ "===\n"
+  | _ -> ""
+
 let print_analysis_summary (res : analysis_result) (total_time : float) : unit =
   match !work_mode with
   | WkmNoAnalysis -> ()
@@ -138,10 +151,11 @@ let print_analysis_summary (res : analysis_result) (total_time : float) : unit =
     let assertion_summary = create_assertion_summary res in
     let runtime_summary = create_runtime_summary res in
     let bug_summary = create_bug_summary res in
+    let benchmark_summary = create_benchmark_summary res in
     let msg =
       "Summary:\n"
       ^ sprintf "- Input file: %s\n" !input_file
-      ^ assertion_summary ^ bug_summary ^ runtime_summary
+      ^ assertion_summary ^ bug_summary ^ runtime_summary ^ benchmark_summary
       ^ sprintf "- Total runtime: %.2fs" total_time in
     println ~mtype:"" ~always:true ~autoformat:false ~ruler:`Long msg
 ;;

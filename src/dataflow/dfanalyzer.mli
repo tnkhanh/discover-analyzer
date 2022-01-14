@@ -5,6 +5,8 @@
  * All rights reserved.
  ********************************************************************)
 
+module BM = Benchmark
+
 type dfa_result =
   { dfa_total_analysis_time : float;
     dfa_detailed_analysis_time : (string * float) list;
@@ -14,5 +16,4 @@ type dfa_result =
     dfa_num_invalid_asserts : int
   }
 
-
-val analyze_program : Llir.program -> dfa_result
+val analyze_program : Llir.program -> (dfa_result * BM.benchmark_result)

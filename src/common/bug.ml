@@ -200,6 +200,22 @@ let pr_bug_type (btype : bug_type) : string =
   | SolidityAccessControl _ -> "Solidity Access Control"
 ;;
 
+let pr_bug_type_lowercase (btype : bug_type) : string =
+  match btype with
+  (* Integer bugs *)
+  | IntegerOverflow _ -> "integer_over_under_flow"
+  | IntegerUnderflow _ -> "integer_over_under_flow"
+  | IntegerCoercionError _ -> "integer_coercion_error"
+  | NumericTruncationError _ -> "numeric_truncation_error"
+  | DivisionByZero _ -> "division_by_zero"
+  (* Memory bugs *)
+  | MemoryLeak _ -> "memory_leak"
+  | NullPointerDeref _ -> "null_pointer_dereference"
+  | BufferOverflow _ -> "buffer_overflow"
+  (* Resource bugs *)
+  | ResourceLeak _ -> "resource_leak"
+;;
+
 let pr_potential_bug (pbug : potential_bug) : string =
   "Potential "
   ^ (pr_bug_type pbug.pbug_type ^ " bug at:\n")
@@ -245,7 +261,7 @@ let pr_bugs (bugs : bug list) : string =
 
 let mk_bug_type_memory_leak () : bug_type = MemoryLeak None
 let mk_bug_type_null_pointer_deref () : bug_type = NullPointerDeref None
-let mk_bug_type_buffer_overflow_deref () : bug_type = NullPointerDeref None
+let mk_bug_type_buffer_overflow () : bug_type = BufferOverflow None
 
 (*** integer bugs ***)
 

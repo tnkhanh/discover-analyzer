@@ -15,6 +15,7 @@ module PA = Pointer.Analysis
 module MS = Memsize.Analysis
 module RG = Range.Analysis
 module UA = Undef.Analysis
+module BM = Benchmark
 
 type dfa_result =
   { dfa_total_analysis_time : float;
@@ -201,7 +202,7 @@ let compute_analysis_result (dfa : dfa_data) (bugs : BG.bug list) : dfa_result =
   update_analysis_time dfa res
 ;;
 
-let analyze_program (prog : LI.program) : dfa_result =
+let analyze_program (prog : LI.program) : dfa_result * BM.benchmark_result =
   let _ = printp ~ruler:`Long "Analyze program by " pr_dfa_mode !dfa_mode in
   let dfa =
     prog |> mk_dfa_data |> perform_pre_analysis_passes
@@ -209,5 +210,5 @@ let analyze_program (prog : LI.program) : dfa_result =
   let _ = report_analysis_stats dfa in
   let _ = check_assertions dfa in
   let bugs = find_bugs dfa in
-  compute_analysis_result dfa bugs
+  compute_analysis_result dfa bugs, BM.compute_benchmark_result prog bugs
 ;;

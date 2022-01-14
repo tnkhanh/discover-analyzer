@@ -10,14 +10,15 @@
  *******************************************************************)
 
 %{
-  open Dcore
+open Llannot
 %}
 
 (*******************************************************************
  ** Token
  *******************************************************************)
 
-%token <int * int> ANNSTART
+%token <int * int> ANN_EXP
+%token <int> ANN_LINE
 %token <int * int> SLASH
 %token ASTER
 %token OBRAC
@@ -29,7 +30,6 @@
 %token INTEGER_OVERFLOW
 %token INTEGER_UNDERFLOW
 %token DIVISION_BY_ZERO
-%token <string> ATYPE
 %token <string> WORD
 %token EOF
 %token COMMA
@@ -50,11 +50,11 @@ prog:
 toks:
   | t = tok
       { match t with
-        | Llannot.Skip -> []
+        | Skip -> []
         | _ as m -> [m] }
   | ts = toks; t = tok
       { match t with
-        | Llannot.Skip -> ts
+        | Skip -> ts
         | _ as m -> m::ts };
 
 tok:
@@ -67,7 +67,9 @@ tok:
   | ATYPE
   | COMMA { Llannot.Skip }
   | a = ann_begin { a }
-  | a = ann_end { a };
+  | a = ann_end { a }
+  | a = ann_line { a }
+;
 
 bugs:
   value = separated_list(COMMA, bug) { value };
@@ -78,7 +80,7 @@ bug:
   | NULL_POINTER_DEREF
       { Bug.mk_bug_type_null_pointer_deref () }
   | BUFFER_OVERFLOW
-      { Bug.mk_bug_type_memory_leak () }
+      { Bug.mk_bug_type_buffer_overflow () }
   | INTEGER_OVERFLOW
       { Bug.mk_bug_type_integer_overflow () }
   | INTEGER_UNDERFLOW
@@ -87,15 +89,17 @@ bug:
       { Bug.mk_bug_type_division_by_zero () }
 
 ann_begin:
-  | ANNSTART; OBRAC; a = ATYPE; COLON; b = bugs; ASTER; p = SLASH
+  | ANN_EXP; OBRAC; a = WORD; COLON; b = bugs; ASTER; p = SLASH
       { let line, col = p in
         let pos = Llannot.mk_annot_position line col in
-        if String.equal a "Bug" then Llannot.Bug_start (pos, b)
-        else Safe_start (pos, b) };
+        Start (pos, a, b) };
 
 ann_end:
-  | p = ANNSTART; COLON; a = ATYPE; CBRAC; ASTER; SLASH
+  | p = ANN_EXP; COLON; a = WORD; CBRAC; ASTER; SLASH
       { let line, col = p in
         let pos = Llannot.mk_annot_position line col in
-        if String.equal a "Bug" then Llannot.Bug_end pos
-        else Safe_end pos };
+        End (pos, a) };
+
+ann_line:
+  | l = ANN_LINE; w = WORD; COLON; b = bugs 
+      { Line (l, w, b)};
