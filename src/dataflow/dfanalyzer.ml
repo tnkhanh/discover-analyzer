@@ -39,16 +39,16 @@ let is_analysis_enabled (analysis : dfa_analysis) : bool =
  ** Perform pre-analysis passes
  *******************************************************************)
 
-let mark_potential_bugs (dfa : dfa_data) : dfa_data =
-  let _ = ddebug "Annotating Potential Bug..." in
+let record_potential_bugs (dfa : dfa_data) : dfa_data =
+  let _ = ddebug "Recording Potential Bug..." in
   let prog = dfa.dfa_program in
-  let pbugs = BG.mark_potential_bugs prog in
+  let pbugs = BG.record_potential_bugs prog in
   let _ = ddebugp "POTENTIAL BUGS:" BG.pr_potential_bugs pbugs in
   { dfa with dfa_potential_bugs = pbugs }
 ;;
 
 let perform_pre_analysis_passes (dfa : dfa_data) : dfa_data =
-  mark_potential_bugs dfa
+  record_potential_bugs dfa
 ;;
 
 (*******************************************************************

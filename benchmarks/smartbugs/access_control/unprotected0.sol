@@ -14,8 +14,8 @@
          _;
      }
 
-     function Unprotected()
-         public
+     // function Unprotected() public
+     constructor ()                     // TRUNG: updated to Solidity 0.8.11
      {
          owner = msg.sender;
      }

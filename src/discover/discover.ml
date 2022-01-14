@@ -6,7 +6,6 @@
  ********************************************************************)
 
 open Dcore
-module PS = Outils.Process
 module AG = Argument
 module AS = Assertion
 module CI = Commonir
@@ -21,79 +20,61 @@ type analysis_result =
   | RSymexec of SE.symexec_result
   | RNone
 
-let print_discover_settings () =
-  let _ = print ~always:true ("Checking file: " ^ !input_file) in
-  let info =
-    [ "Discover's settings:";
-      "  Git revision: " ^ VS.get_current_revision ();
-      "  LLVM version: " ^ llvm_version;
-      "  Path to Clang: " ^ !clang_exe;
-      "  Path to Solang: " ^ !solang_exe;
-      "  Path to llvm-opt: " ^ !opt_exe;
-      "  Path to llvm-normalizer: " ^ !normalizer_exe;
-      "  Z3 solver: " ^ !Z3.z3exe ^ " (" ^ !Z3.z3version ^ ")"
-    ] in
-  debug (String.concat ~sep:"\n" info)
-;;
+let init_solvers () = Z3.config_z3_solver ()
 
-let init_solvers () =
-  let _ =
-    match PS.run_command_get_output [ !Z3.z3exe; "--version" ] with
-    | Ok res -> Z3.z3version := res
-    | Error msg ->
-      let _ = debug ("Checking Z3 command: " ^ !Z3.z3exe) in
-      error "Z3 solver not found!" in
-  ()
-;;
-
-let read_user_configuration () : unit =
-  let root_dir = Filename.dirname Sys.executable_name in
-  let config_file_path = root_dir ^ "/" ^ user_config_file in
-  match Sys.file_exists config_file_path with
+let config_discover () : unit =
+  let _ = discover_version := !discover_version ^ "-git:" ^ VS.git_revision in
+  let _ = discover_version := !discover_version ^ ":" ^ VS.git_time in
+  let discover_dir = Filename.dirname Sys.executable_name in
+  let _ = lib_core_file := discover_dir ^ "/" ^ !lib_core_file in
+  let user_config_file = discover_dir ^ "/" ^ user_config_file in
+  match Sys.file_exists user_config_file with
   | `No | `Unknown -> ()
   | `Yes ->
     let _ = print "Read user configuration" in
-    let file_content = In_channel.read_all config_file_path in
+    let file_content = In_channel.read_all user_config_file in
     (match Yaml.of_string file_content with
     | Result.Error (`Msg msg) ->
-      error ("Failed to read the configuration file: " ^ config_file_path)
+      error ("Failed to read the configuration file: " ^ user_config_file)
     | Result.Ok config ->
       let _ =
         match Ezjsonm.find_opt config [ "GOLLVM_BINARY_PATH" ] with
         | Some path ->
-          let path = Ezjsonm.get_string path in
-          (try
-             let _ = gollvm_bin_path := Filename.realpath path in
-             debugf "User's Gollvm binary path: %s" !gollvm_bin_path
-           with _ ->
-             warning
-               ("Checking user's Golang configuration\n"
-              ^ "  Gollvm path not existed: " ^ path ^ "\n"
-              ^ "  Used default settings from $PATH"))
+          let _ = gollvm_bin_path := Ezjsonm.get_string path in
+          if not (String.is_suffix ~suffix:"/" !gollvm_bin_path)
+          then gollvm_bin_path := !gollvm_bin_path ^ "/"
         | None -> () in
       let _ =
         match Ezjsonm.find_opt config [ "LLVM_BINARY_PATH" ] with
         | Some path ->
-          let path = Ezjsonm.get_string path in
-          (try
-             let _ = llvm_bin_path := Filename.realpath path in
-             debugf "User's LLVM binary path: %s" !llvm_bin_path
-           with _ ->
-             warning
-               ("Checking user's LLVM configuration\n"
-              ^ "  LLVM path not existed: " ^ path ^ "\n"
-              ^ "  Used default settings from $PATH"))
+          let _ = llvm_bin_path := Ezjsonm.get_string path in
+          if not (String.is_suffix ~suffix:"/" !llvm_bin_path)
+          then llvm_bin_path := !llvm_bin_path ^ "/"
         | None -> () in
       ())
 ;;
 
 let init_environment () =
-  let root_dir = Filename.dirname Sys.executable_name in
-  let _ = lib_core_file := root_dir ^ "/" ^ !lib_core_file in
-  let _ = read_user_configuration () in
+  let _ = config_discover () in
   let _ = CP.config_toolchain () in
   let _ = init_solvers () in
   if !skip_analysis then work_mode := WkmNoAnalysis
+;;
+
+let print_discover_settings () =
+  let _ = print ("Running Discover: " ^ !discover_version) in
+  let _ = print ~always:true ("Checking file: " ^ !input_file) in
+  let info =
+    [ "Discover's settings:";
+      "- Clang: " ^ !clang_exe ^ " (" ^ !clang_version ^ ")";
+      "- Llvm-opt: " ^ !llvm_opt_exe ^ " (" ^ !llvm_opt_version ^ ")";
+      "- Llvm-dis: " ^ !llvm_dis_exe ^ " (" ^ !llvm_dis_version ^ ")";
+      "- Normalizer: " ^ !normalizer_exe ^ " (" ^ !normalizer_version ^ ")";
+      "- Solang: " ^ !solang_exe ^ " (" ^ !solang_version ^ ")";
+      "- Gollvm: " ^ !gollvm_exe ^ " (" ^ !gollvm_version ^ ")";
+      "- Z3: " ^ !Z3.z3_exe ^ " (" ^ !Z3.z3_version ^ ")"
+    ] in
+  debug (beautiful_concat ~sep:"\n" info)
 ;;
 
 let clean_environment () = Smt.stop_solver ()
@@ -212,7 +193,7 @@ let analyze_program (prog : CI.program) : analysis_result =
 ;;
 
 let analyze_input_file (filename : string) : analysis_result =
-  let _ = print ("Analyze input file: " ^ filename) in
+  let _ = printf "Analyze input file: %s" filename in
   let prog = CP.compile_input_file filename in
   analyze_program prog
 ;;
@@ -234,7 +215,7 @@ let main () : unit =
 let _ =
   try main ()
   with e ->
-    let _ = print ("Exception occurred: " ^ Exn.to_string e) in
+    let _ = printp "Exception occurred: " Exn.to_string e in
     let _ = print (Printexc.get_backtrace ()) in
     if not (is_debug_mode ())
     then print "To debug, run Discover again with additional '-d'.";

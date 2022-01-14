@@ -4,7 +4,8 @@
  * @vulnerable_at_lines: 30
  */
 
- pragma solidity ^0.4.24;
+ // pragma solidity ^0.4.24;
+ pragma solidity ^0.8.11;
 
  /* User can add pay in and withdraw Ether.
     Unfortunatelty, the developer was drunk and used the wrong comparison operator in "withdraw()"
@@ -36,7 +37,8 @@
 
      function migrateTo(address to) public {
          require(creator == msg.sender);
-         to.transfer(this.balance);
+         // to.transfer(this.balance);
+         payable(to).transfer(address(this).balance);  // TRUNG: updated to Solidity 0.8.11
      }
 
  }

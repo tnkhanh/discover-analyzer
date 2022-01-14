@@ -17,14 +17,31 @@ module SP = Set.Poly
  ** Z3 process management
  *******************************************************************)
 
-let z3exe = ref "z3"
-let z3version = ref "unknown"
-let z3eof = "Z3EOF"
-let z3cmd = [ !z3exe; "-smt2"; "-in"; "-t:5000" ]
+let z3_exe = ref "z3"
+let z3_version = ref "unknown"
+let z3_eof = "Z3EOF"
+let z3_cmd = [ !z3_exe; "-smt2"; "-in"; "-t:5000" ]
 
-(* let proc = ref (PS.mk_proc_dummy [ !z3cmd; "-smt2"; "-in"; "-t:5000" ]) *)
+(* let proc = ref (PS.mk_proc_dummy [ !z3_cmd; "-smt2"; "-in"; "-t:5000" ]) *)
 
 let z3proc = ref None
+
+let config_z3_solver () : unit =
+  let open Option.Let_syntax in
+  let _ =
+    match PS.run_command_get_output [ "which"; !z3_exe ] with
+    | Ok res -> z3_exe := res
+    | Error msg -> () in
+  match PS.run_command_get_output [ !z3_exe; "--version" ] with
+  | Ok output ->
+    ignore
+      (let%bind line = String.find_line_contain ~pattern:"version" output in
+       let%bind version = String.slice_from ~pattern:"version" line in
+       let version =
+         String.substr_replace_all ~pattern:"version " ~with_:"v" version in
+       return (z3_version := version))
+  | Error msg -> error "Z3 version not found!"
+;;
 
 let start_solver () =
   let send_config proc config =
@@ -33,13 +50,13 @@ let start_solver () =
   match !z3proc with
   | None ->
     let config = [] in
-    (match PS.open_process z3cmd with
+    (match PS.open_process z3_cmd with
     | Ok proc ->
       let _ = z3proc := Some proc in
       List.iter ~f:(fun cfg -> send_config proc cfg) config
     | Error log ->
       error
-        (("Failed to start Z3: %s" ^ String.concat ~sep:" " z3cmd ^ "\n")
+        (("Failed to start Z3: %s" ^ String.concat ~sep:" " z3_cmd ^ "\n")
         ^ "Error log: " ^ log))
   | _ -> ()
 ;;
@@ -63,7 +80,7 @@ let send_input_to_solver (input : string) : unit =
   match !z3proc with
   | None -> warning "send_input_to_solver: Z3 is not running"
   | Some proc ->
-    let input = "(reset)\n" ^ input ^ "(echo \"" ^ z3eof ^ "\")\n" in
+    let input = "(reset)\n" ^ input ^ "(echo \"" ^ z3_eof ^ "\")\n" in
     (* let _ = debugpc "Z3bin INPUT: \n" pr_str input in *)
     output_string proc.PS.proc_out_channel input;
     flush proc.PS.proc_out_channel
@@ -80,7 +97,7 @@ let read_output_from_solver () : string =
         let line = String.strip (input_line proc.PS.proc_in_channel) in
         (* let _ = debugpc "Z3bin OUTPUT: " pr_str line in *)
         let nacc = acc @ [ line ] in
-        if String.equal line z3eof then nacc else read nacc
+        if String.equal line z3_eof then nacc else read nacc
       with End_of_file -> read acc in
     let output = [] |> read |> String.concat ~sep:"\n" in
     (* let _ = debugpc "Z3bin OUTPUT FINAL: " pr_str output in *)

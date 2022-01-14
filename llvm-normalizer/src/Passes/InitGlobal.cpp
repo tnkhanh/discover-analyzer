@@ -12,10 +12,17 @@ using namespace llvm;
 
 char InitGlobal::ID = 0;
 
+// command line option
 static cl::opt<bool> DisableInitGlobal("disable-init-global",
                                        cl::desc("Disable initializing globals"),
                                        cl::init(false),
                                        cl::cat(DiscoverNormalizerCategory));
+
+// command line option
+static cl::opt<bool> EnableInitGlobal("enable-init-global",
+                                      cl::desc("Enable initializing globals"),
+                                      cl::init(false),
+                                      cl::cat(DiscoverNormalizerCategory));
 
 void InitGlobal::uninlineConstantExpr(IRBuilder<> *builder,
                                       Instruction *instr) {
@@ -88,8 +95,10 @@ void InitGlobal::uninlineAggregateInitValue(LLVMContext &ctx,
     uninlineConstantExpr(builder, exprInstr);
     builder->Insert(exprInstr);
     ArrayRef<Value *> idxs = (ArrayRef<Value *>)gepIdxs;
+    Type *pointeeType =
+        global->getType()->getScalarType()->getPointerElementType();
     Instruction *gepInst =
-        GetElementPtrInst::CreateInBounds(global, idxs, "gep");
+        GetElementPtrInst::CreateInBounds(pointeeType, global, idxs, "gep");
     // debug() << "   New GepInst1: " << *gepInst << "\n";
     builder->Insert(gepInst);
     Instruction *storeInst = new StoreInst(exprInstr, gepInst, false, align);
@@ -100,8 +109,10 @@ void InitGlobal::uninlineAggregateInitValue(LLVMContext &ctx,
   else if (isa<ConstantInt>(initValue) || isa<Function>(initValue) ||
            isa<GlobalVariable>(initValue)) {
     ArrayRef<Value *> idxs = (ArrayRef<Value *>)gepIdxs;
+    Type *pointeeType =
+        global->getType()->getScalarType()->getPointerElementType();
     Instruction *gepInst =
-        GetElementPtrInst::CreateInBounds(global, idxs, "gep");
+        GetElementPtrInst::CreateInBounds(pointeeType, global, idxs, "gep");
     // debug() << "   New GepInst2: " << *gepInst << "\n";
     builder->Insert(gepInst);
     Instruction *storeInst = new StoreInst(initValue, gepInst, false, align);
@@ -193,7 +204,7 @@ void InitGlobal::invokeGlobalInitFunctions(IRBuilder<> *builder,
 }
 
 bool InitGlobal::runOnModule(Module &M) {
-  if (DisableInitGlobal)
+  if (DisableInitGlobal || (RunPassesManually && !EnableInitGlobal))
     return true;
 
   StringRef passName = this->getPassName();

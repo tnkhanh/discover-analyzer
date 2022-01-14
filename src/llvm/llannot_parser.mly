@@ -64,7 +64,8 @@ tok:
   | OBRAC
   | CBRAC
   | COLON
-  | COMMA { Skip }
+  | ATYPE
+  | COMMA { Llannot.Skip }
   | a = ann_begin { a }
   | a = ann_end { a }
   | a = ann_line { a }

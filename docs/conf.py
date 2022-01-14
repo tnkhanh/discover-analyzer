@@ -16,7 +16,7 @@
 import os
 
 def setup(sphinx):
-    sphinx.add_stylesheet('css/custom.css')
+    sphinx.add_css_file('css/custom.css')
 
 # -- Project information -----------------------------------------------------
 
@@ -33,6 +33,7 @@ release = os.popen('git describe --tags').readline().strip()
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+     "sphinx_rtd_theme"
 ]
 
 # Add any paths that contain templates here, relative to this directory.

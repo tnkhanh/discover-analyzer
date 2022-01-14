@@ -15,7 +15,8 @@
 // some number (specified in constructor) of the set of owners (specified in the constructor, modifiable) before the
 // interior is executed.
 
-pragma solidity ^0.4.9;
+// pragma solidity ^0.4.9;
+pragma solidity ^0.8.11;
 
 contract WalletEvents {
   // EVENTS

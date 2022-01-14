@@ -25,9 +25,16 @@ using namespace llvm;
 
 char ElimAllocaStoreArg::ID = 0;
 
+// command line option
 static cl::opt<bool> DisableElimAllocaStoreArg(
     "disable-elim-alloca-store-arg",
     cl::desc("Disable elmininate alloca instructions storing arguments"),
+    cl::init(false), cl::cat(DiscoverNormalizerCategory));
+
+// command line option
+static cl::opt<bool> EnableElimAllocaStoreArg(
+    "enable-elim-alloca-store-arg",
+    cl::desc("Enable elmininate alloca instructions storing arguments"),
     cl::init(false), cl::cat(DiscoverNormalizerCategory));
 
 void ElimAllocaStoreArg::removeAllocaStoreArg(Function &F,
@@ -49,15 +56,18 @@ void ElimAllocaStoreArg::removeAllocaStoreArg(Function &F,
       debug() << "   replace: " << *loadInst << "\n"
               << "      by: " << *storeSrc << "\n";
       llvm::replaceOperand(&F, loadInst, storeSrc);
-      loadInst->removeFromParent();
-      loadInst->deleteValue();
+      // loadInst->removeFromParent();
+      // loadInst->deleteValue();
+      loadInst->eraseFromParent();
     }
 
-    storeInst->removeFromParent();
-    storeInst->deleteValue();
+    // storeInst->removeFromParent();
+    // storeInst->deleteValue();
+    storeInst->eraseFromParent();
 
-    allocInst->removeFromParent();
-    allocInst->deleteValue();
+    // allocInst->removeFromParent();
+    // allocInst->deleteValue();
+    allocInst->eraseFromParent();
 
     // debug() << "Output function:\n" << F;
   }
@@ -115,7 +125,8 @@ std::vector<ASLInstrs> ElimAllocaStoreArg::findAllocaStoreArg(Function &F) {
 }
 
 bool ElimAllocaStoreArg::runOnFunction(Function &F) {
-  if (DisableElimAllocaStoreArg)
+  if (DisableElimAllocaStoreArg ||
+      (RunPassesManually && !EnableElimAllocaStoreArg))
     return true;
 
   StringRef passName = this->getPassName();

@@ -4,13 +4,14 @@
  * @vulnerable_at_lines: 23,25,33
  */
 
-pragma solidity ^0.4.21;
+pragma solidity ^0.8.9;
 
 contract TokenSaleChallenge {
     mapping(address => uint256) public balanceOf;
     uint256 constant PRICE_PER_TOKEN = 1 ether;
 
-    function TokenSaleChallenge(address _player) public payable {
+    // function TokenSaleChallenge(address _player) public payable {
+    constructor () payable {              // TRUNG: updated to Solidity 0.8.9
         require(msg.value == 1 ether);
     }
 
@@ -30,6 +31,6 @@ contract TokenSaleChallenge {
 
         balanceOf[msg.sender] -= numTokens;
         // <yes> <report> ARITHMETIC
-        msg.sender.transfer(numTokens * PRICE_PER_TOKEN);
+        payable(msg.sender).transfer(numTokens * PRICE_PER_TOKEN);
     }
 }

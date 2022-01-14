@@ -12,6 +12,33 @@ module LI = Llir
 module LL = Llvm
 module LT = Llinstrument
 
+let config_clang_compiler () =
+  let open Option.Let_syntax in
+  let _ =
+    let clang_path =
+      if String.is_empty !llvm_bin_path
+      then !clang_exe
+      else if String.is_suffix ~suffix:"/" !llvm_bin_path
+      then !llvm_bin_path ^ !clang_exe
+      else !llvm_bin_path ^ !clang_exe in
+    match PS.run_command_get_output [ "which"; clang_path ] with
+    | Ok res -> clang_exe := res
+    | Error msg -> () in
+  match PS.run_command_get_output [ !clang_exe; "--version" ] with
+  | Ok output ->
+    ignore
+      (let%bind line = String.find_line_contain ~pattern:"version" output in
+       let%bind version = String.slice_from ~pattern:"version" line in
+       let%bind version = String.slice_to ~pattern:" (" version in
+       let version =
+         String.substr_replace_all ~pattern:"version " ~with_:"v" version in
+       let _ =
+         if not (String.is_prefix ~prefix:("v" ^ llvm_version) version)
+         then errorf "Expect Clang %s but found: %s" llvm_version version in
+       return (clang_version := version))
+  | Error msg -> warning "Clang version not found!"
+;;
+
 let find_entry_functions (prog : LI.program) : LI.funcs =
   List.fold_left
     ~f:(fun acc f -> if LI.is_func_main f then acc @ [ f ] else acc)

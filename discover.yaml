@@ -9,8 +9,8 @@
 # User configurations for Discover
 # --------------------------------
 
-# LLVM binary path containing Clang, Opt
-LLVM_BINARY_PATH: ~/llvm/llvm-sbip/bin
+# Absolute path to folder containing LLVM Clang, Opt
+# LLVM_BINARY_PATH: /home/trungtq/llvm/llvm-sbip/bin
 
-# Gollvm compiler
-GOLLVM_BINARY_PATH: ~/workspace/gollvm/bin
+# Absolute path to folder containing Gollvm compiler
+# GOLLVM_BINARY_PATH: /home/trungtq/workspace/gollvm/bin

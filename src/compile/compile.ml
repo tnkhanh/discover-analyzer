@@ -15,51 +15,73 @@ module SE = Symexec
  * LLVM PROGRAM
  **********************************************************)
 
-let config_llvm_compiler () : unit =
-  if String.not_empty !llvm_bin_path
-  then (
-    let _ =
-      if not (String.is_suffix !llvm_bin_path ~suffix:"/")
-      then llvm_bin_path := !llvm_bin_path ^ "/" in
-    clang_exe := !llvm_bin_path ^ !clang_exe;
-    opt_exe := !llvm_bin_path ^ !opt_exe;
-    llvm_dis_exe := !llvm_bin_path ^ !llvm_dis_exe)
-;;
-
-let verify_llvm_compiler () =
-  let _ =
-    match PS.run_command_get_output [ !clang_exe; "--version" ] with
-    | Error msg ->
-      error
-        (sprintf "Failed to check Clang version: %s\n" msg
-        ^ sprintf "Clang path: %s" !clang_exe)
-    | Ok output ->
-      if String.is_substring ~substring:("version " ^ llvm_version) output
-      then ()
-      else
-        error
-          ("Expect Clang " ^ llvm_version ^ " but found: \n"
-         ^ String.indent 2 output) in
-  match PS.run_command_get_output [ !opt_exe; "--version" ] with
-  | Error msg -> error ("Failed to check LLVM Opt version: " ^ msg)
-  | Ok output ->
-    if String.is_substring ~substring:("version " ^ llvm_version) output
-    then ()
-    else
-      error
-        ("Expect LLVM Opt " ^ llvm_version ^ " but found: \n"
-       ^ String.indent 2 output)
-;;
-
 let config_llvm_normalizer () =
-  normalizer_exe := project_path ^ "/" ^ !normalizer_exe
+  let open Option.Let_syntax in
+  let _ = normalizer_exe := project_path ^ "/" ^ !normalizer_exe in
+  match PS.run_command_get_output [ !normalizer_exe; "--version" ] with
+  | Ok output ->
+    ignore
+      (let%bind line = String.find_line_contain ~pattern:"version" output in
+       let%bind version = String.slice_from ~pattern:"version" line in
+       let version =
+         String.substr_replace_all ~pattern:"version " ~with_:"v" version in
+       return (normalizer_version := version))
+  | Error msg -> warning "Normalizer version not found!"
+;;
+
+let config_llvm_opt () =
+  let open Option.Let_syntax in
+  let _ =
+    let opt_path =
+      if String.is_empty !llvm_bin_path
+      then !llvm_opt_exe
+      else if String.is_suffix ~suffix:"/" !llvm_bin_path
+      then !llvm_bin_path ^ !llvm_opt_exe
+      else !llvm_bin_path ^ "/" ^ !llvm_opt_exe in
+    match PS.run_command_get_output [ "which"; opt_path ] with
+    | Ok res -> llvm_opt_exe := res
+    | Error msg -> () in
+  match PS.run_command_get_output [ !llvm_opt_exe; "--version" ] with
+  | Ok output ->
+    ignore
+      (let%bind line = String.find_line_contain ~pattern:"version" output in
+       let%bind version = String.slice_from ~pattern:"version" line in
+       let version =
+         String.substr_replace_all ~pattern:"version " ~with_:"v" version in
+       return (llvm_opt_version := version))
+  | Error msg -> warning "Llvm-opt version not found!"
+;;
+
+let config_llvm_dis () =
+  let open Option.Let_syntax in
+  let _ =
+    let dis_path =
+      if String.is_empty !llvm_bin_path
+      then !llvm_dis_exe
+      else if String.is_suffix ~suffix:"/" !llvm_bin_path
+      then !llvm_bin_path ^ !llvm_dis_exe
+      else !llvm_bin_path ^ "/" ^ !llvm_dis_exe in
+    match PS.run_command_get_output [ "which"; dis_path ] with
+    | Ok res -> llvm_dis_exe := res
+    | Error msg -> () in
+  match PS.run_command_get_output [ !llvm_dis_exe; "--version" ] with
+  | Ok output ->
+    ignore
+      (let%bind line = String.find_line_contain ~pattern:"version" output in
+       let%bind version = String.slice_from ~pattern:"version" line in
+       let version =
+         String.substr_replace_all ~pattern:"version " ~with_:"v" version in
+       return (llvm_dis_version := version))
+  | Error msg -> warning "Llvm-dis version not found!"
 ;;
 
 let config_toolchain () =
-  let _ = config_llvm_compiler () in
-  let _ = Golang.config_golang_compiler () in
-  let _ = verify_llvm_compiler () in
-  config_llvm_normalizer ()
+  config_llvm_opt ();
+  config_llvm_dis ();
+  config_llvm_normalizer ();
+  Clang.config_clang_compiler ();
+  Solang.config_solang_compiler ();
+  Golang.config_golang_compiler ()
 ;;
 
 let get_input_type (filename : string) =

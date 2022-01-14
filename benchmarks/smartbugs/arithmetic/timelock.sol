@@ -5,7 +5,8 @@
  */
 
 //added pragma version
- pragma solidity ^0.4.0;
+ // pragma solidity ^0.4.0;
+ pragma solidity ^0.8.9;
 
  contract TimeLock {
 
@@ -29,6 +30,7 @@
          require(block.timestamp > lockTime[msg.sender]);
          uint transferValue = balances[msg.sender];
          balances[msg.sender] = 0;
-         msg.sender.transfer(transferValue);
+         // msg.sender.transfer(transferValue);       // TRUNG: original code
+         payable(msg.sender).transfer(transferValue); // adjusted to Solidity 0.8.x
      }
  }

@@ -50,6 +50,12 @@ type input_mode =
  ** Global Flags
  *******************************************************************)
 
+(*-------------
+ * Versioning
+ *------------*)
+
+let discover_version = ref "v0.1"
+
 (*-----------
  * printing
  *----------*)
@@ -187,12 +193,29 @@ let gollvm_bin_path = ref ""
 let discover_path = Filename.realpath Sys.argv.(0)
 let project_path = Filename.dirname discover_path
 
-(* executable files *)
+(* Clang *)
 let clang_exe = ref "clang"
-let opt_exe = ref "opt"
+let clang_version = ref "version unknown"
+
+(* llvm-opt *)
+let llvm_opt_exe = ref "opt"
+let llvm_opt_version = ref "version unknown"
+
+(* llvm-dis *)
 let llvm_dis_exe = ref "llvm-dis"
+let llvm_dis_version = ref "version unknown"
+
+(* llvm-normalizer *)
 let normalizer_exe = ref "normalizer"
+let normalizer_version = ref "version unknown"
+
+(* solang *)
 let solang_exe = ref "solang"
+let solang_version = ref "version unknown"
+
+(* gollvm *)
+let gollvm_exe = ref "gollvm"
+let gollvm_version = ref "version unknown"
 
 (*----------------------
  * Compilation options
@@ -202,15 +225,27 @@ let clang_user_options = ref ""
 let solang_user_options = ref ""
 let opt_user_options = ref ""
 
-(*------------
- * Keywords
- *-----------*)
+(*-----------------------------
+ * Discover built-in keywords
+ *----------------------------*)
 
 let __result = "result"
 let __assert = "__assert_"
 let __refute = "__refute_"
 let __assume = "__assume_"
 let __init = "__init_"
+
+(*-----------------------------
+ * Discover's result keywords
+ *----------------------------*)
+
+let __report_valid_assert = "- Valid assertions: "
+let __report_invalid_assert = "- Invalid assertions: "
+
+(*------------------------------
+ * Discover built-in functions
+ *-----------------------------*)
+
 let __assert_no_alias = __assert ^ "no_alias"
 let __assert_may_alias = __assert ^ "may_alias"
 let __assert_must_alias = __assert ^ "must_alias"
@@ -223,11 +258,20 @@ let __assert_range_full = __assert ^ "range_full"
 let __assume_range = __assume ^ "range"
 let __init_globals = __init ^ "globals"
 
-(*------------
- * Reporting key words
- *-----------*)
-let __report_valid_assert = "- Valid assertions: "
-let __report_invalid_assert = "- Invalid assertions: "
+(*---------------------------------------
+ * Solang's Solidity built-in functions
+ *--------------------------------------*)
+
+let __solidity_storage_store = "storageStore"
+let __solidity_storage_load = "storageLoad"
+let __solidity_get_code_size = "getCodeSize"
+let __solidity_code_copy = "codeCopy"
+let __solidity_call = "call"
+let __solidity_get_call_value = "getCallValue"
+let __solidity_get_caller = "getCaller"
+let __solidity_get_tx_origin = "getTxOrigin"
+let __solidity_finish = "finish"
+let __solidity_revert = "revert"
 
 (*--------------------------------
  * Bugs and assertions summaries

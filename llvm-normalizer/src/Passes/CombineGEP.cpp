@@ -28,10 +28,17 @@ using GEPInstList = std::vector<GetElementPtrInst *>;
 
 char CombineGEP::ID = 0;
 
+// command line option
 static cl::opt<bool>
     DisableCombineGEP("disable-combine-gep",
                       cl::desc("Disable combining GEP instructions"),
                       cl::init(false), cl::cat(DiscoverNormalizerCategory));
+
+// command line option
+static cl::opt<bool>
+    EnableCombineGEP("enable-combine-gep",
+                     cl::desc("Enable combining GEP instructions"),
+                     cl::init(false), cl::cat(DiscoverNormalizerCategory));
 
 /*
  * Combine GEP Instructions
@@ -59,8 +66,10 @@ void combineGEPInstructions(Function &F,
     }
 
     Value *rootPtr = firstGEP->getPointerOperand();
+    Type *pointeeTyp =
+        rootPtr->getType()->getScalarType()->getPointerElementType();
     Instruction *newGepInstr =
-        GetElementPtrInst::CreateInBounds(rootPtr, newIdxs);
+        GetElementPtrInst::CreateInBounds(pointeeTyp, rootPtr, newIdxs);
 
     IRBuilder<> builder = IRBuilder(firstGEP);
     builder.SetInsertPoint(otherGEP);
@@ -69,8 +78,9 @@ void combineGEPInstructions(Function &F,
 
     for (it2 = gepInstList.begin(); it2 != gepInstList.end(); it2++) {
       GetElementPtrInst *instr = *it2;
-      instr->removeFromParent();
-      instr->deleteValue();
+      // instr->removeFromParent();
+      // instr->deleteValue();
+      instr->eraseFromParent();
     }
   }
 }
@@ -142,8 +152,9 @@ std::vector<GEPInstList> findCombinableGEPList(Function &F) {
  * Entry function for this FunctionPass, can be used by llvm-opt
  */
 bool CombineGEP::runOnFunction(Function &F) {
-  if (DisableCombineGEP)
+  if (DisableCombineGEP || (RunPassesManually && !EnableCombineGEP)) {
     return true;
+  }
 
   StringRef passName = this->getPassName();
   debug() << "=========================================\n"

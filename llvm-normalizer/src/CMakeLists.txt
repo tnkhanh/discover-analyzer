@@ -6,7 +6,6 @@
 ####################################################################
 
 set(LLNormCore
-  Common.cpp
   Normalizer.cpp)
 
 # Relevant LLVM Components can be found by: llvm-config --components
@@ -16,7 +15,7 @@ llvm_map_components_to_libnames(LLVM_LIBS
 
 # add directory of normalization passes
 add_subdirectory(Passes)
-add_subdirectory(Debug)
+add_subdirectory(Utils)
 
 # message(STATUS "Normalization Passes: ${LLNormPasses}")
 # message(STATUS "Normalization Passes: ${LLNormDebug}")
@@ -44,3 +43,10 @@ add_custom_command(TARGET normalizer POST_BUILD
   COMMAND ${CMAKE_COMMAND}
   -E copy $<TARGET_FILE:normalizer> ${PROJECT_BINARY_DIR}/normalizer
   COMMENT "Copied to: ${PROJECT_BINARY_DIR}/normalizer")
+
+# Deploy after build
+get_filename_component(DISCOVER_DIR "${PROJECT_BINARY_DIR}/../.." ABSOLUTE)
+add_custom_command(TARGET normalizer POST_BUILD
+  COMMAND ${CMAKE_COMMAND}
+  -E copy $<TARGET_FILE:normalizer> ${DISCOVER_DIR}//normalizer
+  COMMENT "Deployed to: ${DISCOVER_DIR}/normalizer")

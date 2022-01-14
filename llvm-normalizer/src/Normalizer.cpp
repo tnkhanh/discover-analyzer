@@ -27,8 +27,6 @@
 
 #include "llvm/Transforms/Utils/Debugify.h"
 
-#include "Debug/Debug.h"
-#include "Debug/PrintIR.h"
 #include "Passes/CombineGEP.h"
 #include "Passes/ElimAllocaStoreArg.h"
 #include "Passes/ElimIdenticalInstrs.h"
@@ -38,17 +36,18 @@
 #include "Passes/InitGlobal.h"
 #include "Passes/InlineSimpleFunction.h"
 #include "Passes/UninlineInstruction.h"
+#include "Utils/PrintIR.h"
+#include "Version.h"
 
 using namespace std;
 using namespace llvm;
 using namespace discover;
 
-typedef struct Arguments {
-  string inputFile;
-  string outputFile;
-  bool normalizeAll;
-  string inlineFunction;
-} Arguments;
+/*******************************************************************
+ * Some global variables
+ *******************************************************************/
+
+const char *VERSION = "0.1";
 
 /*******************************************************************
  * Declare command line options
@@ -87,19 +86,6 @@ static cl::opt<bool> VerifyOnly("verify-only",
 static cl::opt<bool> PrintOnly("print-only",
                                cl::desc("Only print, not transform bitcode"),
                                cl::cat(DiscoverNormalizerCategory));
-
-static cl::opt<bool> Debugging("debug", cl::desc("Enable debugging"),
-                               cl::cat(DiscoverNormalizerCategory));
-
-static cl::opt<bool>
-    PrintInputProgram("print-input-program",
-                      cl::desc("Enable printing input program"),
-                      cl::cat(DiscoverNormalizerCategory));
-
-static cl::opt<bool>
-    PrintOutputProgram("print-output-program",
-                       cl::desc("Enable printing input program"),
-                       cl::cat(DiscoverNormalizerCategory));
 
 static cl::opt<bool>
     PrintOutputEach("print-output-each",
@@ -194,15 +180,15 @@ int main(int argc, char **argv) {
    * Parse command line options
    *----------------------------*/
 
+  // Version printer for --version option
+  llvm::cl::SetVersionPrinter([](llvm::raw_ostream &OS) {
+    OS << "Normalizer version " << VERSION << "-git:" << GIT_REV;
+    OS << ":" << GIT_TIME << "\n";
+  });
+
   // Show only options of Discover category
   cl::HideUnrelatedOptions(DiscoverNormalizerCategory);
   cl::ParseCommandLineOptions(argc, argv, "LLVM Discover Normalizer!\n");
-
-  // Retrieve flags from CLI
-  debugging = Debugging;
-  printInputProgram = PrintInputProgram;
-  printOutputProgram = PrintOutputProgram;
-  bool printOnly = PrintOnly;
 
   /*-------------
    * Read input
@@ -213,7 +199,7 @@ int main(int argc, char **argv) {
   std::unique_ptr<Module> M = parseIRFile(InputFilename, Err, Context);
 
   // Print input program
-  if (printInputProgram) {
+  if (PrintInputProgram) {
     debug() << "===========================================\n"
             << "Input Bitcode Program: \n\n";
     M->print(debug(), nullptr);
@@ -250,7 +236,9 @@ int main(int argc, char **argv) {
     addFunctionPass(*FuncPasses, new ElimAllocaStoreArg());
     addFunctionPass(*FuncPasses, new UninlineInstruction());
     addFunctionPass(*FuncPasses, new CombineGEP());
-    addFunctionPass(*FuncPasses, new ElimIdenticalInstrs());
+    /* FIXME: temporarily disable ElimIdenticalInstrs since it
+       might create invalid records in the output bitcode file. */
+    // addFunctionPass(*FuncPasses, new ElimIdenticalInstrs());
   }
 
   /*--------------------------------------------
@@ -271,7 +259,7 @@ int main(int argc, char **argv) {
    * Finish and clean up
    *---------------------*/
 
-  if (printOutputProgram) {
+  if (PrintOutputProgram) {
     debug() << "===========================================\n"
             << "Output Bitcode Program: \n\n";
     M->print(debug(), nullptr);

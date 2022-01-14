@@ -4,21 +4,25 @@
  * @vulnerable_at_lines: 21
  */
 
-pragma solidity ^0.4.0;
+// pragma solidity ^0.4.0;
+
+pragma solidity ^0.8.11;
+
 contract EtherBank{
     mapping (address => uint) userBalances;
-    function getBalance(address user) constant returns(uint) {  
+    // function getBalance(address user) constant returns(uint) {
+    function getBalance(address user) public returns(uint) {
 		return userBalances[user];
 	}
 
-	function addToBalance() {  
+	function addToBalance() public {
 		userBalances[msg.sender] += msg.value;
 	}
 
-	function withdrawBalance() {  
+	function withdrawBalance() public {
 		uint amountToWithdraw = userBalances[msg.sender];
         // <yes> <report> REENTRANCY
 		if (!(msg.sender.call.value(amountToWithdraw)())) { throw; }
 		userBalances[msg.sender] = 0;
-	}    
+	}
 }

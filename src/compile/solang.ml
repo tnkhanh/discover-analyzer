@@ -11,6 +11,21 @@ module BC = Bitcode
 module FN = Filename
 module LI = Llir
 
+let config_solang_compiler () : unit =
+  let open Option.Let_syntax in
+  let _ =
+    match PS.run_command_get_output [ "which"; !solang_exe ] with
+    | Ok res -> solang_exe := res
+    | Error msg -> () in
+  match PS.run_command_get_output [ !solang_exe; "--version" ] with
+  | Ok output ->
+    ignore
+      (let%bind line = String.find_line_contain ~pattern:"version" output in
+       let%bind version = String.slice_from ~pattern:"version" line in
+       return (solang_version := version))
+  | Error msg -> warning "Solang version not found!"
+;;
+
 let builtin_Solang_functions =
   [ "__init_heap";
     "__memset8";
@@ -89,8 +104,9 @@ let compile_program (input_file : string) : LI.program =
     let cmd =
       [ !solang_exe; input_file ]
       @ [ "--emit"; "llvm-bc" ]
-      @ [ "--no-constant-folding"; "--no-strength-reduce"]
-      @ [ "--no-dead-storage"; "--no-vector-to-slice"]
+      @ [ "--no-constant-folding"; "--no-strength-reduce" ]
+      @ [ "--no-dead-storage"; "--no-vector-to-slice" ]
+      @ [ "--no-implicit-type-cast-check" ]
       @ [ "-O"; "none"; "--target"; "ewasm" ]
       @ [ "-o"; output_dir ] @ user_options in
     let _ = debugf "Compilation command: %s" (String.concat ~sep:" " cmd) in

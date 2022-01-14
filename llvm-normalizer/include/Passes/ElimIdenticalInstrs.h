@@ -24,8 +24,7 @@
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 
-#include "Debug/Debug.h"
-#include "Common.h"
+#include "Utils/Common.h"
 
 using namespace std;
 using namespace llvm;

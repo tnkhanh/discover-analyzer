@@ -34,7 +34,7 @@ sparse analysis framework based on data-flow analysis.
 
 - [Full documentation](https://discover.readthedocs.io/en/latest/#).
 
-- [Installation guide](INSTALL.md).
+- [Installation guide](https://discover.readthedocs.io/en/latest/installation.html).
 
 # Getting Started
 
@@ -46,8 +46,8 @@ well in Ubuntu-based Linux environment (Ubuntu, Linux Mint). We have also
 successfully compiled and ran it in Arch Linux, macOS, while it hasn't been
 tested in Windows yet.
 
-Please see our detailed tutorial at [INSTALL.md](INSTALL.md) for step-by-step guidelines
-on how to compile Discover in Ubuntu, Linux Mint.
+Please see our [detailed installation tutorial](https://discover.readthedocs.io/en/latest/installation.html) for a step-by-step guideline
+on how to compile Discover in Linux environment.
 
 ## Running Discover
 

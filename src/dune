@@ -9,8 +9,7 @@
 
 ; (env (_ (flags :standard -w +60)))
 
-;; binary
-
+;; Binary files
 (executables
  (names Discover Test_benchmark)
  ; (empty_module_interface_if_absent)
@@ -53,3 +52,9 @@
    -g
    -annot))
  (link_flags (-linkall)))
+
+;; Generate a versioning file
+(rule
+ (targets version.ml)
+ (deps ../scripts/generate-version-ml.sh)
+ (action (run %{deps})))
