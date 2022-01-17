@@ -113,15 +113,20 @@ let compile_program (input_file : string) : LI.program =
     match PS.run_command cmd with
     | Ok () -> ()
     | Error log -> error ~log ("Failed to compile file: " ^ input_file) in
-  let generated_files = Sys.ls_dir output_dir in
-  let _ = debugp "Generated files: " (pr_list ~f:pr_str) generated_files in
-  let deploy_file =
-    List.find ~f:(String.is_suffix ~suffix:"_deploy.bc") generated_files in
-  match deploy_file with
-  | None -> error "Compile Solidity program: no output file generated!"
-  | Some deploy_file ->
-    let output_file = output_dir ^ FN.dir_sep ^ deploy_file in
-    let _ = print ("Output file: " ^ output_file) in
-    let prog = BC.process_bitcode output_file in
-    post_process_program prog
+  let output_files = Sys.ls_dir output_dir in
+  let deploy_files =
+    List.filter ~f:(String.is_suffix ~suffix:"_deploy.bc") output_files in
+  if List.is_empty deploy_files
+  then error "Compile Solidity smart contract: no output file is generated!"
+  else (
+    debugp "Solang generated files: " (pr_items ~f:pr_str) deploy_files;
+    let output_files =
+      List.map ~f:(fun f -> output_dir ^ FN.dir_sep ^ f) deploy_files in
+    printp "Solang: deployed bitcode: " (pr_items ~f:pr_str) output_files;
+    let _ =
+      if List.length output_files > 1
+      then warning "Solang: need to handle multiple contracts in the same file"
+    in
+    let prog = BC.process_bitcode (List.hd_exn output_files) in
+    post_process_program prog)
 ;;
