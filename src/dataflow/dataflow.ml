@@ -2232,10 +2232,7 @@ functor
               time )
           =
           Sys.track_runtime ~f:(fun () -> analyze_function penv wf) in
-        let _ =
-          debugp
-            (" - Time analyzing function: " ^ fname ^ ": ")
-            (sprintf "%.3fs") time in
+        let _ = debugf " - Time analyzing function: %s: %.3fs" fname time in
         (* let _ = if Float.(>) time 15. then
          *     printp "TOO SLOW... Func env: " (pr_func_env penv) fenv in *)
         let _ = debugp "Analysis output updated: " pr_bool env_updated in
@@ -2243,7 +2240,7 @@ functor
           if need_reanalyze
           then (
             let _ =
-              debug ~always:true ("Prepare to enqueue for reanalyze: " ^ fname)
+              debugf ~always:true "Prepare to enqueue to reanalyze: %s" fname
             in
             enqueue_to_analyze_func ~msg:"reanalyze itself" penv wf)
           else
