@@ -115,13 +115,18 @@ let extract_bug_annotations (input_file : string) : bug_annots =
   List.rev rev_mark_list
 ;;
 
-let generate_instrumented_func_name anntyp (bug : BG.bug_type) ins_type =
+let generate_instrumented_func_name
+    ann_class
+    anntyp
+    (bug : BG.bug_type)
+    ins_type
+  =
   let prefix =
     if String.equal anntyp "Bug"
-    then "__assert_ins_"
+    then "__assert_" ^ ann_class ^ "_"
     else if String.equal anntyp "Safe"
-    then "__refute_ins_"
-    else "__wonder_ins_" in
+    then "__refute_" ^ ann_class ^ "_"
+    else "__wonder_" ^ ann_class ^ "_" in
   let bug_name = BG.pr_bug_type_lowercase bug in
   let tail = LL.string_of_lltype ins_type in
   prefix ^ bug_name ^ "_" ^ tail
@@ -152,7 +157,8 @@ let apply_annotation
         let llctx = LL.module_context modul in
         let builder = LL.builder_at llctx insert_pos in
         let ins_type = LL.type_of actual_ins in
-        let func_name = generate_instrumented_func_name anntyp bug ins_type in
+        let func_name =
+          generate_instrumented_func_name "ins" anntyp bug ins_type in
         let assert_func_opt = LL.lookup_function func_name modul in
         let assert_func =
           match assert_func_opt with
@@ -217,6 +223,37 @@ let apply_bug_annotation
       else errorp "Bug annotation: unmatched ending at " pr_annot_position pos)
 ;;
 
+let apply_line_annotation
+    (ann : bug_annot)
+    (instr : instr)
+    (modul : bitcode_module)
+  =
+  let ins = llvalue_of_instr instr in
+  let ins_type = LL.type_of ins in
+  let llctx = LL.module_context modul in
+  match ann with
+  | Line (line, ann_type, bugs) ->
+    List.iter
+      ~f:(fun bug ->
+        let builder = LL.builder_before llctx ins in
+        let func_name =
+          generate_instrumented_func_name "line" ann_type bug ins_type in
+        let assert_func_opt = LL.lookup_function func_name modul in
+        let int_type = LL.i32_type llctx in
+        let assert_func =
+          match assert_func_opt with
+          | None ->
+            let func_type =
+              LL.function_type (LL.void_type llctx) [| int_type |] in
+            let func = LL.declare_function func_name func_type modul in
+            func
+          | Some func -> func in
+        let args = [| LL.const_int int_type line |] in
+        ignore (LL.build_call assert_func args "" builder))
+      bugs
+  | _ -> error "Wrong annotation class, expected Line"
+;;
+
 let rec resolve
     (annots : bug_annot list)
     (instrs : tagged_instr list)
@@ -250,7 +287,18 @@ let rec resolve
           let updated_matched_anns =
             apply_bug_annotation hd_ann matched_anns modul in
           resolve tl_anns instrs updated_matched_anns modul))
-    | Line _ | Skip -> resolve tl_anns instrs matched_anns modul)
+    | Line (line, atype, bugs) ->
+      (match instrs with
+      | [] -> errorp "No match for annotation at line: " pr_int line
+      | hd_ins :: tl_ins ->
+        if is_instr_before_annotation hd_ins hd_ann
+        then resolve annots tl_ins matched_anns modul
+        else (
+          let _ =
+            if hd_ins.tagx_pos.pos_line_start = line + 1
+            then apply_line_annotation hd_ann hd_ins.tagx_instr modul in
+          resolve tl_anns tl_ins matched_anns modul))
+    | Skip -> resolve tl_anns instrs matched_anns modul)
 ;;
 
 let bug_annotation annots source_name (modul : LL.llmodule) : unit =
