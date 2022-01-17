@@ -132,17 +132,21 @@ let create_bug_summary (res : analysis_result) : string =
   else "- Bug finding is not enabled\n"
 ;;
 
-let create_benchmark_summary (res: analysis_result) : string =
+let create_benchmark_summary (res : analysis_result) : string =
   match res with
   | RDfa (_, rben) ->
-    let short_summary = 
-      "===\nBenchmark summary:\n" 
-     ^"- Correct bug reports: " ^ (pr_int rben.ben_correct_bug_reports) ^ "\n"
-     ^"- Incorrect bug reports: " ^ (pr_int rben.ben_incorrect_bug_reports) ^ "\n"
-     ^"- Missing bugs: " ^ (pr_int rben.ben_missing_bugs) ^ "\n"
+    let short_summary =
+      "===\nBenchmark summary:\n" ^ "- Correct bug reports: "
+      ^ pr_int rben.ben_correct_bug_reports
+      ^ "\n" ^ "- Incorrect bug reports: "
+      ^ pr_int rben.ben_incorrect_bug_reports
+      ^ "\n" ^ "- Missing bugs: "
+      ^ pr_int rben.ben_missing_bugs
+      ^ "\n" in
 
-    in short_summary ^ rben.ben_detailed_result ^ "===\n"
+    short_summary ^ rben.ben_detailed_result ^ "===\n"
   | _ -> ""
+;;
 
 let print_analysis_summary (res : analysis_result) (total_time : float) : unit =
   match !work_mode with

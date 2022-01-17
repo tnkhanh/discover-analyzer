@@ -134,39 +134,39 @@ let rec test default_conf benchmark =
       let collect_summary test_output =
         let output_lines = String.split ~on:'\n' test_output in
         let rev_assertions =
-          List.fold ~init: []
+          List.fold ~init:[]
             ~f:(fun acc line ->
-              if String.is_substring ~substring:"__assert_" line then (
-                if String.is_suffix ~suffix:"OK!" line then
+              if String.is_substring ~substring:"__assert_" line
+              then
+                if String.is_suffix ~suffix:"OK!" line
+                then (
                   let _ = total_assert_ok := !total_assert_ok + 1 in
-                  line :: acc
-                else
-                if String.is_suffix ~suffix:"FAILED!" line then
+                  line :: acc)
+                else if String.is_suffix ~suffix:"FAILED!" line
+                then (
                   let _ = total_assert_failed := !total_assert_failed + 1 in
-                  line :: acc
-                else
-                  acc
-              )
-              else
-              if String.is_substring ~substring:"__refute_" line then (
-                if String.is_suffix ~suffix:"OK!" line then
+                  line :: acc)
+                else acc
+              else if String.is_substring ~substring:"__refute_" line
+              then
+                if String.is_suffix ~suffix:"OK!" line
+                then (
                   let _ = total_refute_ok := !total_refute_ok + 1 in
-                  line :: acc
-                else
-                if String.is_suffix ~suffix:"FAILED!" line then
+                  line :: acc)
+                else if String.is_suffix ~suffix:"FAILED!" line
+                then (
                   let _ = total_refute_failed := !total_refute_failed + 1 in
-                  line :: acc
-                else
-                  acc
-              )
-              else
-                acc
-            ) output_lines in
+                  line :: acc)
+                else acc
+              else acc)
+            output_lines in
         let assertions = List.rev rev_assertions in
-        let _ = print ("  Found " ^ pr_int (List.length assertions) ^ " assertions:") in
+        let _ =
+          print ("  Found " ^ pr_int (List.length assertions) ^ " assertions:")
+        in
         List.iter ~f:print assertions in
 
-(*            if String.is_prefix ~prefix:__report_valid_assert line
+      (*            if String.is_prefix ~prefix:__report_valid_assert line
             then (
               let prefix_length = String.length __report_valid_assert in
               let number_length =
@@ -187,7 +187,6 @@ let rec test default_conf benchmark =
 
               total_invalid_assert
                 := !total_invalid_assert + added_invalid_assert)) *)
-
       let _ =
         List.iter
           ~f:(fun file ->
@@ -211,11 +210,22 @@ let rec test default_conf benchmark =
           all_files in
       let summary =
         String.concat
-          ["Summary of config " ; conf.conf_name ; " of benchmark " ; dir ; ":\n";
-           "  Valid asssert: " ; pr_int !total_assert_ok; "\n";
-           "  Invalid asssert: "; pr_int !total_assert_failed; "\n";
-           "  Valid refute: " ; pr_int !total_refute_ok; "\n";
-           "  Invalid refute: "; pr_int !total_refute_failed
+          [ "Summary of config ";
+            conf.conf_name;
+            " of benchmark ";
+            dir;
+            ":\n";
+            "  Valid asssert: ";
+            pr_int !total_assert_ok;
+            "\n";
+            "  Invalid asssert: ";
+            pr_int !total_assert_failed;
+            "\n";
+            "  Valid refute: ";
+            pr_int !total_refute_ok;
+            "\n";
+            "  Invalid refute: ";
+            pr_int !total_refute_failed
           ] in
       print summary)
     configs

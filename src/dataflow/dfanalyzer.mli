@@ -16,4 +16,4 @@ type dfa_result =
     dfa_num_invalid_asserts : int
   }
 
-val analyze_program : Llir.program -> (dfa_result * BM.benchmark_result)
+val analyze_program : Llir.program -> dfa_result * BM.benchmark_result

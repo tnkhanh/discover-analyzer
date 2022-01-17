@@ -18,13 +18,12 @@ type annot_position =
   }
 
 type bug_annot =
-  | Start of annot_position * string * (BG.bug_type list)
+  | Start of annot_position * string * BG.bug_type list
   | End of annot_position * string
-  | Line of int * string * (BG.bug_type list)
+  | Line of int * string * BG.bug_type list
   | Skip
 
 type bug_annots = bug_annot list
-
 type program = bug_annots
 
 (*******************************************************************
@@ -47,6 +46,7 @@ let get_annot_type (ann : bug_annot) : string =
   | End (_, t) -> t
   | Line (_, t, _) -> t
   | Skip -> ".."
+;;
 
 let get_annot_bugs (ann : bug_annot) : BG.bug_type list =
   match ann with
@@ -54,6 +54,7 @@ let get_annot_bugs (ann : bug_annot) : BG.bug_type list =
   | End _ -> []
   | Line (_, _, bugs) -> bugs
   | Skip -> []
+;;
 
 let pr_annot_position (pos : annot_position) : string =
   pr_int pos.apos_line ^ ":" ^ pr_int pos.apos_col
