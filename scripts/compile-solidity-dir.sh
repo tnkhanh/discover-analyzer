@@ -16,10 +16,12 @@ if [ -z "$BENCH_DIR" ]; then
 fi
 
 for FILE in $BENCH_DIR/*.sol; do
-    echo "+ Compiling $FILE"
-    solang --no-constant-folding --no-strength-reduce \
-           --no-dead-storage --no-vector-to-slice \
-           --no-cse --no-implicit-type-cast-check \
-           -O none --target ewasm $FILE
+    echo "===================================="
+    echo ""
+    echo "Compiling $FILE.."
+    echo ""
+    CMD="solang --no-constant-folding --no-strength-reduce --no-dead-storage --no-vector-to-slice --no-cse --no-implicit-type-cast-check -O none --target ewasm $FILE"
+    echo "$CMD"
+    eval $CMD
     echo ""
 done

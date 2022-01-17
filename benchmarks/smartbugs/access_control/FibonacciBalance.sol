@@ -5,7 +5,8 @@
  */
 
 //added pragma version
-pragma solidity ^0.4.0;
+// pragma solidity ^0.4.0;
+pragma solidity ^0.8.11;
 
 contract FibonacciBalance {
 
@@ -16,26 +17,38 @@ contract FibonacciBalance {
     uint public start = 3;
     uint public withdrawalCounter;
     // the fibonancci function selector
-    bytes4 constant fibSig = bytes4(sha3("setFibonacci(uint256)"));
+    // bytes4 constant fibSig = bytes4(sha3("setFibonacci(uint256)"));   // TRUNG: deprecated
+    bytes4 constant fibSig = bytes4(keccak256("setFibonacci(uint256)")); // adjusted to Solidity 0.8.11
 
     // constructor - loads the contract with ether
-    constructor(address _fibonacciLibrary) public payable {
+    constructor(address _fibonacciLibrary) payable {
         fibonacciLibrary = _fibonacciLibrary;
     }
 
-    function withdraw() {
+    // function withdraw() {
+    function withdraw() public {  // TRUNG: adjusted to Solidity 0.8.11
         withdrawalCounter += 1;
         // calculate the fibonacci number for the current withdrawal user
         // this sets calculatedFibNumber
         // <yes> <report> ACCESS_CONTROL
-        require(fibonacciLibrary.delegatecall(fibSig, withdrawalCounter));
-        msg.sender.transfer(calculatedFibNumber * 1 ether);
+        // require(fibonacciLibrary.delegatecall(fibSig, withdrawalCounter));          // TRUNG: deprecated code
+        (bool success, bytes memory returndata) = fibonacciLibrary.delegatecall(abi.encode(fibSig, withdrawalCounter));
+        if (success == false) {
+          revert ("DelegateCall reverted");
+        }
+        // msg.sender.transfer(calculatedFibNumber * 1 ether);        // TRUNG: deprecated code
+        payable(msg.sender).transfer(calculatedFibNumber * 1 ether);  // adjusted to Solidity 0.8.11
     }
 
     // allow users to call fibonacci library functions
-    function() public {
+    // function() public {   // TRUNG: deprecated code
+    fallback() external {      // adjusted to Solidity 0.8.11
         // <yes> <report> ACCESS_CONTROL
-        require(fibonacciLibrary.delegatecall(msg.data));
+        // require(fibonacciLibrary.delegatecall(msg.data));          // TRUNG: deprecated code
+      (bool success, bytes memory returndata) = fibonacciLibrary.delegatecall(msg.data);
+        if (success == false) {
+          revert ("DelegateCall reverted");
+        }
     }
 }
 
