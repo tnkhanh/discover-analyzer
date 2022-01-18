@@ -127,6 +127,7 @@ let compile_program (input_file : string) : LI.program =
       if List.length output_files > 1
       then warning "Solang: need to handle multiple contracts in the same file"
     in
-    let prog = BC.process_bitcode (List.hd_exn output_files) in
-    post_process_program prog)
+    let progs = List.map ~f:BC.process_bitcode output_files in
+    let progs = List.map ~f:post_process_program progs in
+    List.hd_exn progs)
 ;;
