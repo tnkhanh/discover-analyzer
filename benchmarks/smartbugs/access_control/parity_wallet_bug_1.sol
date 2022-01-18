@@ -438,9 +438,12 @@ contract Wallet is WalletEvents {
     // just being sent some cash?
     if (msg.value > 0)
       emit Deposit(msg.sender, msg.value);
+    // TRUNG: Solidity v.0.8.11 does not allow using msg.data inside the receive() function.
+    /*
     else if (msg.data.length > 0)
      // <yes> <report> ACCESS_CONTROL
       _walletLibrary.delegatecall(msg.data); //it should have whitelisted specific methods that the user is allowed to call
+    */
   }
 
   // Gets an owner by 0-indexed position (using numOwners as the count)
