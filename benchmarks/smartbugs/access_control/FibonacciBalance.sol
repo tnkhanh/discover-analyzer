@@ -32,7 +32,7 @@ contract FibonacciBalance {
         // this sets calculatedFibNumber
         // <yes> <report> ACCESS_CONTROL
         // require(fibonacciLibrary.delegatecall(fibSig, withdrawalCounter));          // TRUNG: deprecated code
-        (bool success, bytes memory returndata) = fibonacciLibrary.delegatecall(abi.encode(fibSig, withdrawalCounter));
+        (bool success, ) = fibonacciLibrary.delegatecall(abi.encode(fibSig, withdrawalCounter));
         if (success == false) {
           revert ("DelegateCall reverted");
         }
@@ -45,7 +45,7 @@ contract FibonacciBalance {
     fallback() external {      // adjusted to Solidity 0.8.11
         // <yes> <report> ACCESS_CONTROL
         // require(fibonacciLibrary.delegatecall(msg.data));          // TRUNG: deprecated code
-      (bool success, bytes memory returndata) = fibonacciLibrary.delegatecall(msg.data);
+      (bool success, ) = fibonacciLibrary.delegatecall(msg.data);
         if (success == false) {
           revert ("DelegateCall reverted");
         }
