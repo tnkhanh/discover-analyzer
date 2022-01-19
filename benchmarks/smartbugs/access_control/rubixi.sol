@@ -5,7 +5,7 @@
  */
 
  // 0xe82719202e5965Cf5D9B6673B7503a3b92DE20be#code
- pragma solidity ^0.4.15;
+ pragma solidity ^0.8.11;
 
  contract Rubixi {
 
@@ -20,7 +20,7 @@
 
          //Sets creator
          // <yes> <report> ACCESS_CONTROL
-         function DynamicPyramid() {
+         function DynamicPyramid() public {
                  creator = msg.sender; //anyone can call this
          }
 
@@ -36,7 +36,7 @@
          Participant[] private participants;
 
          //Fallback function
-         function() {
+         constructor () {
                  init();
          }
 
@@ -71,7 +71,7 @@
                  //Pays earlier participiants if balance sufficient
                  while (balance > participants[payoutOrder].payout) {
                          uint payoutToSend = participants[payoutOrder].payout;
-                         participants[payoutOrder].etherAddress.send(payoutToSend);
+                         payable(participants[payoutOrder].etherAddress).transfer(uint128(payoutToSend));
 
                          balance -= participants[payoutOrder].payout;
                          payoutOrder += 1;
@@ -79,81 +79,81 @@
          }
 
          //Fee functions for creator
-         function collectAllFees() onlyowner {
-                 if (collectedFees == 0) throw;
+         function collectAllFees() public onlyowner {
+                 if (collectedFees == 0) revert();
 
-                 creator.send(collectedFees);
+                 payable(creator).transfer(uint128(collectedFees));
                  collectedFees = 0;
          }
 
-         function collectFeesInEther(uint _amt) onlyowner {
+         function collectFeesInEther(uint _amt) public onlyowner {
                  _amt *= 1 ether;
                  if (_amt > collectedFees) collectAllFees();
 
-                 if (collectedFees == 0) throw;
+                 if (collectedFees == 0) revert();
 
-                 creator.send(_amt);
+                 payable(creator).transfer(uint128(_amt));
                  collectedFees -= _amt;
          }
 
-         function collectPercentOfFees(uint _pcent) onlyowner {
-                 if (collectedFees == 0 || _pcent > 100) throw;
+         function collectPercentOfFees(uint _pcent) public onlyowner {
+                 if (collectedFees == 0 || _pcent > 100) revert();
 
                  uint feesToCollect = collectedFees / 100 * _pcent;
-                 creator.send(feesToCollect);
+                 payable(creator).transfer(uint128(feesToCollect));
                  collectedFees -= feesToCollect;
          }
 
          //Functions for changing variables related to the contract
-         function changeOwner(address _owner) onlyowner {
+         function changeOwner(address _owner) public onlyowner {
                  creator = _owner;
          }
 
-         function changeMultiplier(uint _mult) onlyowner {
-                 if (_mult > 300 || _mult < 120) throw;
+         function changeMultiplier(uint _mult) public onlyowner {
+                 if (_mult > 300 || _mult < 120) revert();
 
                  pyramidMultiplier = _mult;
          }
 
-         function changeFeePercentage(uint _fee) onlyowner {
-                 if (_fee > 10) throw;
+         function changeFeePercentage(uint _fee) public onlyowner {
+                 if (_fee > 10) revert();
 
                  feePercent = _fee;
          }
 
          //Functions to provide information to end-user using JSON interface or other interfaces
-         function currentMultiplier() constant returns(uint multiplier, string info) {
+         function currentMultiplier() view public returns(uint multiplier, string memory info) {
                  multiplier = pyramidMultiplier;
                  info = 'This multiplier applies to you as soon as transaction is received, may be lowered to hasten payouts or increased if payouts are fast enough. Due to no float or decimals, multiplier is x100 for a fractional multiplier e.g. 250 is actually a 2.5x multiplier. Capped at 3x max and 1.2x min.';
          }
 
-         function currentFeePercentage() constant returns(uint fee, string info) {
+         function currentFeePercentage() view public returns(uint fee, string memory info) {
                  fee = feePercent;
                  info = 'Shown in % form. Fee is halved(50%) for amounts equal or greater than 50 ethers. (Fee may change, but is capped to a maximum of 10%)';
          }
 
-         function currentPyramidBalanceApproximately() constant returns(uint pyramidBalance, string info) {
+         function currentPyramidBalanceApproximately() view public returns(uint pyramidBalance, string memory info) {
                  pyramidBalance = balance / 1 ether;
                  info = 'All balance values are measured in Ethers, note that due to no decimal placing, these values show up as integers only, within the contract itself you will get the exact decimal value you are supposed to';
          }
 
-         function nextPayoutWhenPyramidBalanceTotalsApproximately() constant returns(uint balancePayout) {
+         function nextPayoutWhenPyramidBalanceTotalsApproximately() view public returns(uint balancePayout) {
                  balancePayout = participants[payoutOrder].payout / 1 ether;
          }
 
-         function feesSeperateFromBalanceApproximately() constant returns(uint fees) {
+         function feesSeperateFromBalanceApproximately() view public returns(uint fees) {
                  fees = collectedFees / 1 ether;
          }
 
-         function totalParticipants() constant returns(uint count) {
+         function totalParticipants() view public returns(uint count) {
                  count = participants.length;
          }
 
-         function numberOfParticipantsWaitingForPayout() constant returns(uint count) {
+         function numberOfParticipantsWaitingForPayout() view public returns(uint count) {
                  count = participants.length - payoutOrder;
          }
 
-         function participantDetails(uint orderInPyramid) constant returns(address Address, uint Payout) {
+         function participantDetails(uint orderInPyramid) view public returns(address Address, uint Payout) {
                  if (orderInPyramid <= participants.length) {
                          Address = participants[orderInPyramid].etherAddress;
                          Payout = participants[orderInPyramid].payout / 1 ether;

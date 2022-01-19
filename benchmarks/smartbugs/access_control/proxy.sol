@@ -18,7 +18,8 @@ contract Proxy {
 
   function forward(address callee, bytes calldata _data) public {
     // <yes> <report> ACCESS_CONTROL
-    require(callee.delegatecall(_data)); //Use delegatecall with caution and make sure to never call into untrusted contracts
+    (bool success, ) = callee.delegatecall(_data); //Use delegatecall with caution and make sure to never call into untrusted contracts
+    require(success);
   }
 
 }
