@@ -150,6 +150,12 @@ let bug_null_pointer_deref = ref false
 let bug_buffer_overflow = ref false
 
 (*-------------------------
+ * Settings for unit test
+ *------------------------*)
+
+let unit_test_bug = ref false
+
+(*-------------------------
  * Settings for reporting
  *------------------------*)
 

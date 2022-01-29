@@ -254,8 +254,12 @@ and arguments_raw =
       Arg.Unit (fun () -> find_bug_type bug_integer_all) );
     ( [ "--bug-memory-all" ],
       "Find all memory bugs",
-      Arg.Unit (fun () -> bug_memory_all := true) );
+      Arg.Unit (fun () -> find_bug_type bug_memory_all) );
     [ "--bug-all" ], "Find all bugs", Arg.Unit find_all_bugs;
+    (*--------------------------------------------------------
+     * Unit tset
+     *--------------------------------------------------------*)
+    [ "--unit-test-bug" ], "Find all memory bugs", Arg.Set unit_test_bug;
     (*--------------------------------------------------------
      * Reporting options
      *--------------------------------------------------------*)

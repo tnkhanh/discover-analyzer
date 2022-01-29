@@ -295,9 +295,9 @@ module MemoryBug = struct
     =
     match pbug.pbug_type with
     | MemoryLeak (Some mlk) ->
-      let _ =
-        print ~mtype:"TODO"
-          "check_bug_memory_leak: IMPLEMENT CHECK MEMORY LEAK" in
+      (* let _ = *)
+      (*   print ~mtype:"TODO" *)
+      (*     "check_bug_memory_leak: IMPLEMENT CHECK MEMORY LEAK" in *)
       None
     | _ -> None
   ;;

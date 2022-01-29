@@ -163,8 +163,7 @@ module AST = struct
     end
 
     include T
-    include Comparator.Make(T)
-
+    include Comparator.Make (T)
   end
 
   module InstrKey = struct
@@ -1328,14 +1327,6 @@ module Func = struct
     || String.equal fname "llvm.eh.typeid.for"
   ;;
 
-  let is_func_memcpy (f : func) : bool =
-    String.is_prefix (func_name f) ~prefix:"llvm.memcpy"
-  ;;
-
-  let is_func_memmove (f : func) : bool =
-    String.is_prefix (func_name f) ~prefix:"llvm.memmove"
-  ;;
-
   let is_func_scanf (f : func) : bool =
     let fname = func_name f in
     String.equal fname "__isoc99_scanf"
@@ -1367,18 +1358,20 @@ module Func = struct
     String.equal (func_name f) "llvm.dbg.declare"
   ;;
 
-  let is_func_llvm_memcpy (f : func) : bool =
-    let fname = func_name f in
-    String.is_prefix fname ~prefix:"llvm.memcpy"
-  ;;
-
-  let is_func_llvm_memmove (f : func) : bool =
-    let fname = func_name f in
-    String.is_prefix fname ~prefix:"llvm.memmove"
-  ;;
-
   let is_func_llvm_debug_value (f : func) : bool =
     String.equal (func_name f) "llvm.dbg.value"
+  ;;
+
+  let is_func_memcpy (f : func) : bool =
+    let fname = func_name f in
+    String.is_prefix fname ~prefix:"llvm.memcpy"
+    || String.is_prefix fname ~prefix:"__memcpy_chk"
+  ;;
+
+  let is_func_memmove (f : func) : bool =
+    let fname = func_name f in
+    String.is_prefix fname ~prefix:"llvm.memmove"
+    || String.is_prefix fname ~prefix:"__memmove_chk"
   ;;
 
   let is_lib_no_source_func (f : func) : bool =

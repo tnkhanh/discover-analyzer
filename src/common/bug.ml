@@ -354,7 +354,7 @@ let mk_potential_buffer_overflow (ins : instr) : potential_bugs =
       | LO.Call | LO.Invoke ->
         let dst_ptr = operand ins 0 in
         let callee = callee_of_instr_func_call ins in
-        if is_func_llvm_memcpy callee || is_func_llvm_memmove callee
+        if is_func_memcpy callee || is_func_memmove callee
         then (
           let index = operand ins 2 in
           { bof_instr = ins;
@@ -468,7 +468,7 @@ let record_potential_bugs (prog : program) : potential_bugs =
     | LO.GetElementPtr -> acc @ mk_potential_buffer_overflow ins
     | LO.Call | LO.Invoke ->
       let callee = callee_of_instr_func_call ins in
-      if is_func_llvm_memcpy callee || is_func_llvm_memmove callee
+      if is_func_memcpy callee || is_func_memmove callee
       then acc @ mk_potential_buffer_overflow ins
       else acc
     | LO.Ret -> acc @ mk_potential_memory_leak ins
