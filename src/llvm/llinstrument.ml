@@ -156,7 +156,7 @@ let apply_annotation
         let llctx = LL.module_context modul in
         let builder = LL.builder_at llctx insert_pos in
         let ins_type = LL.type_of actual_ins in
-        let func_suffix = "_" ^ (LL.string_of_lltype (LL.type_of actual_ins)) in
+        let func_suffix = "_" ^ LL.string_of_lltype (LL.type_of actual_ins) in
         let func_name =
           generate_instrumented_func_name "ins" anntyp bug func_suffix in
         let assert_func_opt = LL.lookup_function func_name modul in
@@ -240,14 +240,13 @@ let apply_line_annotation
         let assert_func_opt = LL.lookup_function func_name modul in
         let int_type = LL.i32_type llctx in
         let instr_dbg_opt = LL.metadata ins (LL.mdkind_id llctx "dbg") in
-        let filename_md_opt = 
+        let filename_md_opt =
           match instr_dbg_opt with
           | None -> error "Error: No debug info in instr"
           | Some instr_dbg ->
             let instr_md = LL.value_as_metadata instr_dbg in
             let scope_md = LD.di_location_get_scope ~location:instr_md in
-            LD.di_scope_get_file ~scope:scope_md
-        in
+            LD.di_scope_get_file ~scope:scope_md in
         let filename_md =
           match filename_md_opt with
           | None -> error "Error: No debug info on files in metadata"
@@ -257,11 +256,15 @@ let apply_line_annotation
           match assert_func_opt with
           | None ->
             let func_type =
-              LL.function_type (LL.void_type llctx) [| int_type; md_type |] in
+              LL.function_type (LL.void_type llctx) [| int_type; md_type |]
+            in
             let func = LL.declare_function func_name func_type modul in
             func
           | Some func -> func in
-        let args = [| LL.const_int int_type line; LL.metadata_as_value llctx filename_md |] in
+        let args =
+          [| LL.const_int int_type line;
+             LL.metadata_as_value llctx filename_md
+          |] in
         ignore (LL.build_call assert_func args "" builder))
       bugs
   | _ -> error "Wrong annotation class, expected Line"
@@ -365,10 +368,11 @@ let bug_annotation annots source_name (modul : LL.llmodule) : unit =
   let compare ins1 ins2 =
     let p1 = ins1.tagx_pos.pos_line_end, ins1.tagx_pos.pos_col_end in
     let p2 = ins2.tagx_pos.pos_line_end, ins2.tagx_pos.pos_col_end in
-    if Poly.(p1 > p2) then 1 else if Poly.(p1 < p2) then -1 
-    else  
-      Poly.compare ins1.tagx_tag ins2.tagx_tag
-  in
+    if Poly.(p1 > p2)
+    then 1
+    else if Poly.(p1 < p2)
+    then -1
+    else Poly.compare ins1.tagx_tag ins2.tagx_tag in
   let sorted_ins = List.stable_sort ~compare tagged_instr in
   resolve annots sorted_ins [] modul
 ;;

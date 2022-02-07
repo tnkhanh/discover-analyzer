@@ -133,20 +133,21 @@ let create_bug_summary (res : analysis_result) : string =
 ;;
 
 let create_benchmark_summary (res : analysis_result) : string =
-  if !print_benchmark then
-  match res with
-  | RDfa (_, rben) ->
-    let short_summary =
-      "===\nBenchmark summary:\n" ^ __report_correct_bug
-      ^ pr_int rben.ben_correct_bug_reports
-      ^ "\n" ^ __report_incorrect_bug
-      ^ pr_int rben.ben_incorrect_bug_reports
-      ^ "\n" ^ __report_missing_bug
-      ^ pr_int rben.ben_missing_bugs
-      ^ "\n" in
+  if !print_benchmark
+  then (
+    match res with
+    | RDfa (_, rben) ->
+      let short_summary =
+        "===\nBenchmark summary:\n" ^ __report_correct_bug
+        ^ pr_int rben.ben_correct_bug_reports
+        ^ "\n" ^ __report_incorrect_bug
+        ^ pr_int rben.ben_incorrect_bug_reports
+        ^ "\n" ^ __report_missing_bug
+        ^ pr_int rben.ben_missing_bugs
+        ^ "\n" in
 
-    short_summary ^ rben.ben_detailed_result ^ "===\n"
-  | _ -> ""
+      short_summary ^ rben.ben_detailed_result ^ "===\n"
+    | _ -> "")
   else ""
 ;;
 

@@ -243,7 +243,7 @@ let __init = "__init_"
 let __report_valid_assert = "- Valid assertions: "
 let __report_invalid_assert = "- Invalid assertions: "
 let __report_correct_bug = "- Correct bug reports:"
-let __report_incorrect_bug = "- Incorrect bug reports:" 
+let __report_incorrect_bug = "- Incorrect bug reports:"
 let __report_missing_bug = "- Missing bugs:"
 
 (*------------------------------
