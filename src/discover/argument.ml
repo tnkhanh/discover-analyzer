@@ -84,6 +84,9 @@ and arguments_raw =
     ( [ "--pcp"; "--print-core-program" ],
       "Print core program",
       Arg.Set print_core_prog );
+    ( [ "--pbench"; "--print-benchmark" ],
+      "Print benchmark result",
+      Arg.Set print_benchmark );
     ( [ "--dis-pcp"; "--dis-print-core-program" ],
       "Disable printing core program",
       Arg.Clear print_core_prog );

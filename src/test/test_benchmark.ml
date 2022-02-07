@@ -41,6 +41,46 @@ let mk_config
   }
 ;;
 
+type total_result =
+  {
+    tot_correct : int;
+    tot_incorrect : int;
+    tot_missing : int;
+    tot_error_files : string list;
+  }
+;;
+
+let empty_result =
+  {
+    tot_correct = 0;
+    tot_incorrect = 0;
+    tot_missing = 0;
+    tot_error_files = [];
+  }
+;;
+
+let sum_result (res1 : total_result) (res2 : total_result) : total_result =
+  {
+    tot_correct = res1.tot_correct + res2.tot_correct;
+    tot_incorrect = res1.tot_incorrect + res2.tot_incorrect;
+    tot_missing = res1.tot_missing + res2.tot_missing;
+    tot_error_files = res1.tot_error_files @ res2.tot_error_files;
+  }
+;;
+
+let find_stat_int (lines : string list) (prefix : string) : int =
+  List.fold
+    ~init:0
+    ~f:(fun acc line ->
+      if String.is_prefix ~prefix line
+      then
+        let strs = String.split ~on:':' line in
+          int_of_string (String.lstrip(List.nth_exn strs 1))
+      else
+        acc
+    ) lines
+;;
+
 let str_of_config conf =
   "Config:\nName: " ^ conf.conf_name ^ "\nClang_opt: " ^ conf.conf_clang_opt
   ^ "\nDiscover_opt: " ^ conf.conf_discover_opt ^ "\nTargets: "
@@ -101,9 +141,16 @@ let is_test_file (conf : config) (file : string) : bool =
        conf.conf_excludes
 ;;
 
-let rec test default_conf benchmark =
-  let description, dir = benchmark in
-  let _ = print ("Testing " ^ description ^ " in " ^ dir) in
+let collect_result (lines : string list) : total_result =
+  {
+    tot_correct = find_stat_int lines __report_correct_bug;
+    tot_incorrect = find_stat_int lines __report_incorrect_bug;
+    tot_missing = find_stat_int lines __report_missing_bug;
+    tot_error_files = [];
+  }
+
+let rec run_bench (default_conf : config) (dir : string) : total_result =
+  let _ = print ("Testing " ^ dir) in
   let config_filename =
     if String.equal !conf_file "" then dir ^ "/benchmark.yaml" else !conf_file
   in
@@ -118,8 +165,9 @@ let rec test default_conf benchmark =
           ("Config file " ^ config_filename
          ^ " not found. Using default config") in
       [ default_conf ]) in
-  List.iter
-    ~f:(fun conf ->
+  List.fold
+    ~init:empty_result
+    ~f:(fun acc_result conf ->
       let total_assert_ok = ref 0 in
       let total_assert_failed = ref 0 in
       let total_refute_ok = ref 0 in
@@ -131,8 +179,7 @@ let rec test default_conf benchmark =
       let all_files =
         List.sort ~compare:Poly.compare (Array.to_list (Sys.readdir dir)) in
 
-      let collect_summary test_output =
-        let output_lines = String.split ~on:'\n' test_output in
+      let collect_summary output_lines =
         let rev_assertions =
           List.fold ~init:[]
             ~f:(fun acc line ->
@@ -166,73 +213,58 @@ let rec test default_conf benchmark =
         in
         List.iter ~f:print assertions in
 
-      (*            if String.is_prefix ~prefix:__report_valid_assert line
-            then (
-              let prefix_length = String.length __report_valid_assert in
-              let number_length =
-                String.length line - String.length __report_valid_assert in
-              let added_valid_assert =
-                int_of_string
-                  (String.sub line ~pos:prefix_length ~len:number_length) in
-              total_valid_assert := !total_valid_assert + added_valid_assert)
-            else if String.is_prefix ~prefix:__report_invalid_assert line
-            then (
-              let prefix_length = String.length __report_invalid_assert in
-              let number_length =
-                String.length line - String.length __report_invalid_assert
-              in
-              let added_invalid_assert =
-                int_of_string
-                  (String.sub line ~pos:prefix_length ~len:number_length) in
-
-              total_invalid_assert
-                := !total_invalid_assert + added_invalid_assert)) *)
-      let _ =
-        List.iter
-          ~f:(fun file ->
+      let conf_res =
+        List.fold
+          ~init:empty_result
+          ~f:(fun acc_res file ->
             let full_filepath = dir ^ "/" ^ file in
-            match Sys.is_directory full_filepath with
-            | `Yes -> if conf.conf_recurse then test conf ("rec", full_filepath)
-            | `No ->
-              if is_test_file conf file
-              then (
-                let _ = print ("File: " ^ file) in
-                let command =
-                  [ !discover_exec; "--clang-option=" ^ conf.conf_clang_opt ]
-                  @ String.split ~on:' ' conf.conf_discover_opt
-                  @ [ full_filepath ] in
-                (*let _ = List.iter command ~f:(fun str -> print ("Comm: " ^ str)) in*)
-                let log_file = full_log_dir ^ "/" ^ file ^ ".log" in
-                let _ = PS.run_command_output_to_file command log_file in
-                let output_str = In_channel.read_all log_file in
-                collect_summary output_str)
-            | `Unknown -> ())
+            let file_res =
+              match Sys.is_directory full_filepath with
+              | `Yes -> 
+                if conf.conf_recurse then run_bench conf full_filepath
+                else
+                  empty_result
+              | `No ->
+                if is_test_file conf file
+                then (
+                  let _ = print ("File: " ^ file) in
+                  let command =
+                    [ !discover_exec; "--clang-option=" ^ conf.conf_clang_opt ]
+                    @ String.split ~on:' ' conf.conf_discover_opt
+                    @ [ full_filepath ] in
+                  (*let _ = List.iter command ~f:(fun str -> print ("Comm: " ^ str)) in*)
+                  let log_file = full_log_dir ^ "/" ^ file ^ ".log" in
+                  let _ = PS.run_command_output_to_file command log_file in
+                  let output_str = In_channel.read_all log_file in
+                  let output_lines = String.split ~on:'\n' output_str in
+                  let _ = collect_summary output_lines in 
+                  let raw_res = collect_result output_lines in
+                  if (raw_res.tot_incorrect = 0) && (raw_res.tot_missing = 0) 
+                  then
+                    raw_res
+                  else
+                    {raw_res with tot_error_files = [full_filepath]}
+                )
+                else
+                  empty_result
+              | `Unknown -> empty_result in
+            sum_result acc_res file_res
+          )
           all_files in
       let summary =
-        String.concat
-          [ "Summary of config ";
-            conf.conf_name;
-            " of benchmark ";
-            dir;
-            ":\n";
-            "  Valid asssert: ";
-            pr_int !total_assert_ok;
-            "\n";
-            "  Invalid asssert: ";
-            pr_int !total_assert_failed;
-            "\n";
-            "  Valid refute: ";
-            pr_int !total_refute_ok;
-            "\n";
-            "  Invalid refute: ";
-            pr_int !total_refute_failed
-          ] in
-      print summary)
-    configs
+          "Summary of config " ^ conf.conf_name ^ " of benchmark " ^ dir ^ ":\n"
+          ^ "  Valid asssert: " ^ pr_int !total_assert_ok ^ "\n"
+          ^ "  Invalid asssert: " ^ pr_int !total_assert_failed ^ "\n"
+          ^ "  Valid refute: " ^ pr_int !total_refute_ok ^ "\n"
+          ^ "  Invalid refute: " ^ pr_int !total_refute_failed ^ "\n"
+          in
+      let _ = print summary in
+      sum_result acc_result conf_res
+    ) configs
 ;;
 
 let default_benchmarks =
-  [ "PTABEN", "benchmarks/ptaben/ptaben-updated/basic_c_tests" ]
+  [ "benchmarks/ptaben/ptaben-updated/basic_c_tests" ]
 ;;
 
 let main () =
@@ -244,13 +276,27 @@ let main () =
     "./test_benchmark [benchmark1] [benchmark2] [..] [-conf some_config.yaml]\nif no benchmark is specified, default benchmark PTABEN is run"
   in
   let benchmarks = ref [] in
-  let anon_fun benchmark = benchmarks := ("X", benchmark) :: !benchmarks in
+  let anon_fun benchmark = benchmarks := benchmark :: !benchmarks in
   let speclist = [ "-conf", Arg.Set_string conf_file, "Set config file" ] in
   let _ = Arg.parse speclist anon_fun usage_msg in
   let _ =
     if List.is_empty !benchmarks then benchmarks := default_benchmarks else ()
   in
-  List.iter ~f:(test default_config) !benchmarks
+  let total_res =
+    List.fold 
+      ~init:empty_result
+      ~f:(fun acc dir ->
+        let res = run_bench default_config dir in
+        sum_result acc res
+      ) !benchmarks
+  in
+  let summary = 
+    "Total correct bug reports: " ^ pr_int total_res.tot_correct ^ "\n" ^
+    "Total incorrect bug reports: " ^ pr_int total_res.tot_incorrect ^ "\n" ^
+    "Total missing bugs: " ^ pr_int total_res.tot_missing ^ "\n" ^
+    "Files with errors: " ^ pr_list_plain ~f:pr_str total_res.tot_error_files
+  in
+  print summary
 ;;
 
 let _ = main ()

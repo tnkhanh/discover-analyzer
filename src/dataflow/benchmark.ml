@@ -17,13 +17,13 @@ type benchmark_result =
     ben_detailed_result : string
   }
 
-(*let dummy_ben_result =*)
-(*{*)
-(*ben_found_bugs = 0;*)
-(*ben_missing_bugs = 0;*)
-(*ben_incorrect_bug_reports = 0;*)
-(*ben_detailed_result = "";*)
-(*}*)
+let dummy_ben_result =
+  { ben_correct_bug_reports = 0;
+    ben_incorrect_bug_reports = 0;
+    ben_missing_bugs = 0;
+    ben_detailed_result = ""
+  }
+;;
 
 (* core function for matching bug vs assertion *)
 (* TODO: Check function name *)
@@ -129,40 +129,43 @@ let rec add_assert_to_groups assert_call groups =
 let compute_benchmark_result (prog : LI.program) (bugs : BG.bug list)
     : benchmark_result
   =
-  let finstr =
-    Some
-      (fun acc instr ->
-        if LI.is_instr_call instr
-        then (
-          let callee = LI.callee_of_instr_call instr in
-          let func_name = LI.func_name callee in
-          if String.is_prefix ~prefix:"__assert_ins" func_name
-          then add_assert_to_groups instr acc
-          else acc)
-        else acc) in
-  let assert_groups = LI.visit_fold_program ~finstr [] prog in
-  let _ = print "Assert calls: " in
-  let _ =
-    List.iter ~f:print
-      (List.map ~f:(fun (c, _) -> LI.pr_instr c) (List.concat assert_groups))
-  in
+  if not !print_benchmark
+  then dummy_ben_result
+  else (
+    let finstr =
+      Some
+        (fun acc instr ->
+          if LI.is_instr_call instr
+          then (
+            let callee = LI.callee_of_instr_call instr in
+            let func_name = LI.func_name callee in
+            if String.is_prefix ~prefix:"__assert_ins" func_name
+            then add_assert_to_groups instr acc
+            else acc)
+          else acc) in
+    let assert_groups = LI.visit_fold_program ~finstr [] prog in
+    let _ = print "Assert calls: " in
+    let _ =
+      List.iter ~f:print
+        (List.map ~f:(fun (c, _) -> LI.pr_instr c) (List.concat assert_groups))
+    in
 
-  let matched_asserts, correct_bug_reports =
-    List.fold ~init:(assert_groups, 0) ~f:update_matches bugs in
-  let incorrect_bug_reports = List.length bugs - correct_bug_reports in
-  let bug_miss_groups = compute_misses_from_groups matched_asserts in
-  let missing_bugs = List.length bug_miss_groups in
-  let detailed_result =
-    String.concat
-      [ "+ Bug misses:\n";
-        pr_bug_miss_groups bug_miss_groups;
-        "\n";
-        "+ Bug matches:\n";
-        pr_bug_match_groups matched_asserts
-      ] in
-  { ben_correct_bug_reports = correct_bug_reports;
-    ben_incorrect_bug_reports = incorrect_bug_reports;
-    ben_missing_bugs = missing_bugs;
-    ben_detailed_result = detailed_result
-  }
+    let matched_asserts, correct_bug_reports =
+      List.fold ~init:(assert_groups, 0) ~f:update_matches bugs in
+    let incorrect_bug_reports = List.length bugs - correct_bug_reports in
+    let bug_miss_groups = compute_misses_from_groups matched_asserts in
+    let missing_bugs = List.length bug_miss_groups in
+    let detailed_result =
+      String.concat
+        [ "+ Bug misses:\n";
+          pr_bug_miss_groups bug_miss_groups;
+          "\n";
+          "+ Bug matches:\n";
+          pr_bug_match_groups matched_asserts
+        ] in
+    { ben_correct_bug_reports = correct_bug_reports;
+      ben_incorrect_bug_reports = incorrect_bug_reports;
+      ben_missing_bugs = missing_bugs;
+      ben_detailed_result = detailed_result
+    })
 ;;
