@@ -138,11 +138,23 @@ let generate_instrumented_func_args (instr : value) (llctx : LL.llcontext)
   [| counter_arg; instr |]
 ;;
 
+let create_debug_location (modul : bitcode_module) ~(line : int) ~(column : int)
+  : LL.llmetadata =
+  let di_builder = LD.dibuilder modul in
+  let file_scope = 
+    LD.dibuild_create_file di_builder
+      ~filename: (LL.get_module_identifier modul)
+        ~directory:"" in
+  let llctx = LL.module_context modul in
+  LD.dibuild_create_debug_location llctx 
+      ~line ~column ~scope:file_scope
+
 let apply_annotation
     (anntyp : string)
     (instrs : tagged_instr list)
     (bug : BG.bug_type)
     (modul : bitcode_module)
+    (pos : annot_position)
   =
   List.iter
     ~f:(fun instr ->
@@ -170,6 +182,14 @@ let apply_annotation
             func
           | Some func -> func in
         let args = generate_instrumented_func_args actual_ins llctx in
+        let debug_location = 
+          create_debug_location 
+            modul ~line:pos.apos_line ~column:pos.apos_col
+        in
+        let _ = LL.clear_current_debug_location builder in
+        let _ =
+          LL.set_current_debug_location
+            builder (LL.metadata_as_value llctx debug_location) in
         ignore (LL.build_call assert_func args "" builder))
     instrs
 ;;
@@ -217,7 +237,7 @@ let apply_bug_annotation
           List.iter
             ~f:(fun bug ->
               let _ = assert_counter := !assert_counter + 1 in
-              apply_annotation ann_type instrs bug modul)
+              apply_annotation ann_type instrs bug modul (get_annot_position ann))
             bugs in
         other_matched_anns)
       else errorp "Bug annotation: unmatched ending at " pr_annot_position pos)
@@ -265,6 +285,13 @@ let apply_line_annotation
           [| LL.const_int int_type line;
              LL.metadata_as_value llctx filename_md
           |] in
+
+        let debug_location = 
+          create_debug_location modul ~line ~column:0
+        in
+        let _ =
+          LL.set_current_debug_location
+            builder (LL.metadata_as_value llctx debug_location) in
         ignore (LL.build_call assert_func args "" builder))
       bugs
   | _ -> error "Wrong annotation class, expected Line"
@@ -330,6 +357,9 @@ let bug_annotation annots source_name (modul : LL.llmodule) : unit =
           then (
             let ins = llvalue_of_instr instr in
             let _ = print ("Ins: " ^ LL.string_of_llvalue ins) in
+(*            let md =*)
+              (*match metadata *)
+            (*let _ = print ("Metadata: " ^ LL.*)
             let oprs = operands instr in
             List.iter
               ~f:(fun opr ->
