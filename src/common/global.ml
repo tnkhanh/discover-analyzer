@@ -35,6 +35,7 @@ type dfa_analysis =
   | DfaMemType
   | DfaPointer
   | DfaAutoSchedule
+  | DfaTaint
   | DfaAllAnalyses
 
 type input_mode =
@@ -354,6 +355,7 @@ let pr_dfa_name (dfa : dfa_analysis) : string =
   | DfaMemType -> "MemType Analysis"
   | DfaPointer -> "Pointer Analysis"
   | DfaAutoSchedule -> "Auto-schedule DFA Analyses"
+  | DfaTaint -> "Taint Analysis"
   | DfaAllAnalyses -> "All Analyses"
 ;;
 

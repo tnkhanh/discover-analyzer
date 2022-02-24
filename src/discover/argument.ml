@@ -185,6 +185,12 @@ and arguments_raw =
         (fun () ->
           work_mode := WkmDFA;
           dfa_analyses := !dfa_analyses @ [ DfaUndef; DfaPointer ]) );
+    ( [ "--dfa-taint" ],
+      "Perform the data-flow taint analysis",
+      Arg.Unit
+        (fun () ->
+          work_mode := WkmDFA;
+          dfa_analyses := !dfa_analyses @ [ DfaTaint ]) );
     ( [ "--dfa-all-analysis" ],
       "Perform all data-flow analyses",
       Arg.Unit

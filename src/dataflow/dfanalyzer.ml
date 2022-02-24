@@ -15,6 +15,7 @@ module PA = Pointer.Analysis
 module MS = Memsize.Analysis
 module RG = Range.Analysis
 module UA = Undef.Analysis
+module TA = Taint.Analysis
 module BM = Benchmark
 
 type dfa_result =
@@ -120,6 +121,19 @@ let perform_pointer_analysis (dfa : dfa_data) : dfa_data =
   else dfa
 ;;
 
+let perform_taint_analysis (dfa : dfa_data) : dfa_data =
+  if is_analysis_enabled DfaTaint
+  then (
+    let _ = debug ~header:true "Performing Taint Analysis" in
+    let prog = dfa.dfa_program in
+    let penv = TA.analyze_program prog in
+    let _ =
+      if (not !print_concise_output) && !print_analyzed_prog
+      then printp ~header:true "Taint Info" TA.pr_prog_env penv in
+    { dfa with dfa_env_taint = Some penv })
+  else dfa
+;;
+
 let reorder_analysis_passes () =
   let _ = warning "TO IMPLEMENET: reorder_analysis passes" in
   ()
@@ -129,7 +143,7 @@ let perform_main_analysis_passes (dfa : dfa_data) : dfa_data =
   let _ = reorder_analysis_passes () in
   dfa |> perform_undef_analysis |> perform_pointer_analysis
   |> perform_memsize_analysis |> perform_memtype_analysis
-  |> perform_range_analysis
+  |> perform_range_analysis |> perform_taint_analysis
 ;;
 
 (*******************************************************************

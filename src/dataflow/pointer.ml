@@ -2128,7 +2128,7 @@ struct
   let analysis = DfaPointer
 
   (*******************************************************************
-   ** Handling atstract data
+   ** Handling abstract data
    *******************************************************************)
 
   (* constants *)

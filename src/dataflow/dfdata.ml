@@ -19,6 +19,7 @@ module MS = Memsize.Analysis
 module MT = Memtype.Analysis
 module RG = Range.Analysis
 module UD = Undef.Analysis
+module TA = Taint.Analysis
 
 (*******************************************************************
  ** Data structures
@@ -31,7 +32,8 @@ type dfa_data =
     dfa_env_memtype : MT.prog_env option;
     dfa_env_pointer : PT.prog_env option;
     dfa_env_range : RG.prog_env option;
-    dfa_env_undef : UD.prog_env option
+    dfa_env_undef : UD.prog_env option;
+    dfa_env_taint : TA.prog_env option
   }
 
 (*******************************************************************
@@ -45,7 +47,8 @@ let mk_dfa_data (prog : LI.program) : dfa_data =
     dfa_env_memtype = None;
     dfa_env_pointer = None;
     dfa_env_range = None;
-    dfa_env_undef = None
+    dfa_env_undef = None;
+    dfa_env_taint = None
   }
 ;;
 
